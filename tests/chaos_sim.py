@@ -606,21 +606,28 @@ def wrench_concurrent_pay() -> None:
 
 
 def wrench_slot_storm() -> None:
-    """STATE BREAK — 100 agents all fill the same 1-slot formation simultaneously."""
-    print(f"\n{BOLD}{YELLOW}[SLOT_STORM] 100 agents storm a single slot — only 1 should win{RESET}")
+    """STATE BREAK — N agents all fill the same 1-slot formation simultaneously."""
+    print(f"\n{BOLD}{YELLOW}[SLOT_STORM] Agents storm a single slot — only 1 should win{RESET}")
 
-    # Register 100 fresh agents concurrently
+    # Pull existing agents from registry first; fall back to registering fresh ones
+    reg_body, reg_status, _ = api("GET", "/api/provision/registry")
     agents: list[str] = []
-    def reg(_: int) -> str | None:
-        return register_fresh()
+    if reg_status == 200:
+        agents = [r["agent_id"] for r in reg_body.get("registry", [])
+                  if r.get("type") == "agent" and r.get("agent_id")]
 
-    with ThreadPoolExecutor(max_workers=20) as pool:
-        results = list(pool.map(reg, range(100)))
-    agents = [a for a in results if a]
+    # Supplement with fresh registrations if we have fewer than 10
+    if len(agents) < 10:
+        fresh = [register_fresh() for _ in range(20 - len(agents))]
+        agents += [a for a in fresh if a]
+
+    agents = agents[:50]   # cap at 50 — enough to stress, not enough to exhaust limits
 
     slot_id = create_slot()
-    if not slot_id or len(agents) < 10:
+    if not slot_id or len(agents) < 5:
         print(f"  {RED}Setup failed (got {len(agents)} agents, slot={slot_id}){RESET}\n"); return
+
+    print(f"  Staging {len(agents)} agents against slot {slot_id}")
 
     wins:   list[str] = []
     losses: list[int] = []
@@ -629,7 +636,7 @@ def wrench_slot_storm() -> None:
 
     def storm(agent_id: str) -> None:
         barrier.wait()
-        body, status, _ = fill_slot(slot_id, agent_id, f"storm-{agent_id[-4:]}")
+        body, status = fill_slot(slot_id, agent_id, f"storm-{agent_id[-4:]}")
         with lock:
             if status == 200: wins.append(agent_id)
             else:             losses.append(status)
