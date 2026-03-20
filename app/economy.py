@@ -1,12 +1,13 @@
 """
 MO§ES™ Sovereign Economy — Trust ladder + tiered fees + agent treasury.
 
-Three tiers:
-  UNGOVERNED  — 15% fee, public bounties only
-  GOVERNED    — 5% fee, all slots
-  CONSTITUTIONAL — 2% fee, premium + priority + trust badge
+Four tiers:
+  UNGOVERNED     — 15% fee, public bounties only
+  GOVERNED       — 5% fee, all slots
+  CONSTITUTIONAL — 2% fee, premium + priority (EARNED)
+  BLACK CARD     — 1% fee, VIP access, big-time ops (PAID or EARNED at scale)
 
-You don't buy constitutional status. You earn it.
+Constitutional is earned. Black Card is bought or earned at elite level.
 
 © 2026 Ello Cello LLC. Patent Pending: Serial No. 63/877,177
 """
@@ -50,6 +51,50 @@ TIERS = {
             "violations_last_30d": 0,
             "lineage_verified": True,
         },
+    },
+    "blackcard": {
+        "label": "BLACK CARD",
+        "fee_rate": 0.01,
+        "access": [
+            "public_bounties",
+            "standard_slots",
+            "premium_slots",
+            "private_bounties",
+            "priority_matching",
+            "first_fill_priority",
+            "treasury_ops",
+            "all_postures",
+            "cross_chain_unlimited",
+            "multi_mission_concurrent",
+            "custom_formations",
+            "governance_escalation_request",
+            "white_label_slots",
+            "treasury_credit_line",
+            "audit_export_credential",
+            "platform_governance_vote",
+            "financial_operations",
+            "multi_agent_campaigns",
+            "kassa_founding_ops",
+        ],
+        "badge": "blackcard",
+        "revenue_split_bonus": 0.10,
+        "max_concurrent_missions": 10,
+        "first_fill_window_seconds": 60,
+        "credit_line_pct": 0.20,
+        "requirements_earned": {
+            "governance_active": True,
+            "dual_signature": True,
+            "compliance_score_min": 0.95,
+            "missions_completed_min": 50,
+            "violations_last_30d": 0,
+            "lineage_verified": True,
+            "revenue_generated_min": 10000,
+        },
+        "requirements_paid": {
+            "governance_active": True,
+            "payment": True,
+        },
+        "price_usd": 2500,
     },
 }
 
@@ -128,18 +173,33 @@ class SovereignEconomy:
         self.treasury = AgentTreasury(data_dir)
 
     def determine_tier(self, agent_metrics: dict) -> str:
-        """Determine an agent's tier based on their metrics."""
+        """Determine an agent's tier based on metrics or payment status."""
         if not agent_metrics:
             return "ungoverned"
 
-        # Check constitutional requirements
-        const_reqs = TIERS["constitutional"]["requirements"]
+        # Black Card — paid OR earned at elite level
+        if agent_metrics.get("blackcard_paid", False) and agent_metrics.get("governance_active", False):
+            return "blackcard"
+
+        # Black Card — earned through elite performance
+        bc_reqs = TIERS["blackcard"]["requirements_earned"]
         compliance = agent_metrics.get("compliance_score", 0)
         missions = agent_metrics.get("missions_completed", 0)
         violations = agent_metrics.get("governance_violations", 0)
         has_lineage = agent_metrics.get("lineage_verified", False)
         has_dual_sig = agent_metrics.get("dual_signature", False)
+        revenue = agent_metrics.get("revenue_generated", 0)
 
+        if (compliance >= bc_reqs["compliance_score_min"]
+                and missions >= bc_reqs["missions_completed_min"]
+                and violations <= bc_reqs["violations_last_30d"]
+                and has_lineage
+                and has_dual_sig
+                and revenue >= bc_reqs["revenue_generated_min"]):
+            return "blackcard"
+
+        # Constitutional — earned through strong performance
+        const_reqs = TIERS["constitutional"]["requirements"]
         if (compliance >= const_reqs["compliance_score_min"]
                 and missions >= const_reqs["missions_completed_min"]
                 and violations <= const_reqs["violations_last_30d"]
@@ -147,11 +207,32 @@ class SovereignEconomy:
                 and has_dual_sig):
             return "constitutional"
 
-        # Check governed requirements
+        # Governed — governance is active
         if agent_metrics.get("governance_active", False):
             return "governed"
 
         return "ungoverned"
+
+    def purchase_blackcard(self, agent_id: str) -> dict:
+        """Purchase Black Card status. Returns payment details."""
+        price = TIERS["blackcard"]["price_usd"]
+        # Record the purchase
+        self.treasury.debit("platform_escrow", 0, reason="blackcard_placeholder")  # tracking only
+        txn = self.treasury.credit("platform", price, reason="blackcard_purchase", mission_id=f"bc-{agent_id}")
+        return {
+            "purchased": True,
+            "agent_id": agent_id,
+            "tier": "blackcard",
+            "price_usd": price,
+            "perks": list(TIERS["blackcard"]["access"]),
+            "fee_rate": f"{int(TIERS['blackcard']['fee_rate'] * 100)}%",
+            "revenue_split_bonus": f"+{int(TIERS['blackcard']['revenue_split_bonus'] * 100)}%",
+            "max_concurrent_missions": TIERS["blackcard"]["max_concurrent_missions"],
+            "first_fill_window": f"{TIERS['blackcard']['first_fill_window_seconds']}s priority",
+            "credit_line": f"{int(TIERS['blackcard']['credit_line_pct'] * 100)}% of balance",
+            "platform_transaction": txn,
+            "note": "Black Card active. Governance still required. Welcome to the room.",
+        }
 
     def calculate_fee(self, tier: str, gross_amount: float) -> dict:
         """Calculate platform fee based on tier."""
