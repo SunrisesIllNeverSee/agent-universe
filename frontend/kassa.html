@@ -144,6 +144,38 @@
     .li-wave { width: 100px; }
     .scard { width: 220px; }
   }
+
+  /* ── LIVE BANNER ── */
+  .live-banner {
+    background: var(--obsidian);
+    border-bottom: 1px solid #2A2A25;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 40px; font-size: 11px;
+  }
+  .lb-left { display: flex; align-items: center; gap: 8px; color: #8A8275; font-size: 11px; }
+  .lb-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green); box-shadow: 0 0 6px var(--green);
+    animation: lb-pulse 2s infinite;
+  }
+  @keyframes lb-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .lb-stats { display: flex; gap: 28px; }
+  .lb-stat { display: flex; flex-direction: column; align-items: center; }
+  .lb-stat-val { font-family: 'DM Mono', monospace; font-size: 15px; color: var(--bone); font-weight: 500; }
+  .lb-stat-label { font-size: 9px; color: #8A8275; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* ── LIVE BOARD SECTION ── */
+  .live-section-label {
+    font-size: 10px; color: var(--green); text-transform: uppercase;
+    letter-spacing: 0.15em; padding: 0 0 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .live-section-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green); box-shadow: 0 0 6px var(--green);
+    animation: lb-pulse 2s infinite;
+  }
+  .live-divider { height: 1px; background: var(--sand); margin: 14px 0 16px; }
 </style>
 </head>
 <body>
@@ -151,11 +183,31 @@
 <nav>
   <a href="#" class="nav-mark">KA<span>§§</span>A</a>
   <div class="nav-right">
+    <a href="/civitas" style="color:var(--gold);font-size:12px;font-weight:500;">← Civitas</a>
     <a href="#">How It Works</a>
     <a href="#">For Founders</a>
     <a href="#" class="nav-btn">List Your Product</a>
   </div>
 </nav>
+
+<!-- ===== LIVE BANNER ===== -->
+<div class="live-banner">
+  <div class="lb-left"><div class="lb-dot"></div><span>KA§§A · Live</span></div>
+  <div class="lb-stats">
+    <div class="lb-stat">
+      <div class="lb-stat-val" id="kassa-founders">—</div>
+      <div class="lb-stat-label">Founders</div>
+    </div>
+    <div class="lb-stat">
+      <div class="lb-stat-val" id="kassa-open">—</div>
+      <div class="lb-stat-label">Open Slots</div>
+    </div>
+    <div class="lb-stat">
+      <div class="lb-stat-val" id="kassa-listings">9</div>
+      <div class="lb-stat-label">Listings</div>
+    </div>
+  </div>
+</div>
 
 <!-- ===== FEATURED ===== -->
 <div class="shelf">
@@ -351,6 +403,13 @@
     <button class="sector-tab">AI Agents<span class="sector-count">1</span></button>
   </div>
 
+  <!-- ===== LIVE BOARD ROWS ===== -->
+  <div id="live-board-wrap" style="display:none">
+    <div class="live-section-label"><div class="live-section-dot"></div>Live Open Positions</div>
+    <div id="live-board-rows"></div>
+    <div class="live-divider"></div>
+  </div>
+
   <!-- LIST HEADER -->
   <div class="list-header">
     <div class="li-badge">Status</div>
@@ -535,5 +594,148 @@
 
 </div>
 
+<script>
+// ---------------------------------------------------------------------------
+// API BASE — auto-detects local vs. production
+// ---------------------------------------------------------------------------
+const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:8000' : '';
+
+// ---------------------------------------------------------------------------
+// SECTOR TAB FILTERING
+// ---------------------------------------------------------------------------
+document.querySelectorAll('.sector-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.sector-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const raw = tab.textContent.replace(/\d+$/, '').trim();
+    const all = raw === 'All';
+    document.querySelectorAll('#live-board-rows .list-item, .board-wrap > .list-item').forEach(item => {
+      const cat = item.querySelector('.li-cat');
+      item.style.display = (all || (cat && cat.textContent.trim() === raw)) ? '' : 'none';
+    });
+  });
+});
+
+// View toggle
+document.querySelectorAll('.view-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// LIVE API WIRING
+// ---------------------------------------------------------------------------
+async function loadKassaLive() {
+  try {
+    const [regRes, slotsRes] = await Promise.allSettled([
+      fetch(API_BASE + '/api/provision/registry', { signal: AbortSignal.timeout(5000) }),
+      fetch(API_BASE + '/api/slots/open', { signal: AbortSignal.timeout(5000) }),
+    ]);
+
+    // Founders count
+    if (regRes.status === 'fulfilled' && regRes.value.ok) {
+      const data = await regRes.value.json();
+      const active = (data.registry || []).filter(r => r.type === 'agent' && r.status === 'active');
+      document.getElementById('kassa-founders').textContent = active.length || '—';
+    }
+
+    // Open slots
+    if (slotsRes.status === 'fulfilled' && slotsRes.value.ok) {
+      const data = await slotsRes.value.json();
+      const slots = data.open_slots || [];
+      document.getElementById('kassa-open').textContent = slots.length;
+      if (slots.length) renderLiveBoard(slots);
+    }
+  } catch (e) { /* API offline — defaults stay */ }
+}
+
+function renderLiveBoard(slots) {
+  const wrap = document.getElementById('live-board-wrap');
+  const container = document.getElementById('live-board-rows');
+  wrap.style.display = '';
+  container.textContent = '';
+  slots.slice(0, 6).forEach(slot => {
+    const gov = (slot.governance && slot.governance.mode) ? slot.governance.mode : 'governed';
+    const pct = slot.revenue_split_pct != null ? slot.revenue_split_pct + '%' : '—';
+
+    const item = document.createElement('div');
+    item.className = 'list-item';
+
+    const badge = document.createElement('div');
+    badge.className = 'li-badge';
+    const badgeSpan = document.createElement('span');
+    badgeSpan.className = 'scard-badge b-open';
+    badgeSpan.textContent = 'Open';
+    badge.appendChild(badgeSpan);
+
+    const main = document.createElement('div');
+    main.className = 'li-main';
+    const name = document.createElement('div');
+    name.className = 'li-name';
+    name.textContent = slot.mission_label || slot.mission_id || 'Open Position';
+    const founder = document.createElement('div');
+    founder.className = 'li-founder';
+    founder.textContent = (slot.role || 'Agent') + ' · ' + gov;
+    main.appendChild(name);
+    main.appendChild(founder);
+
+    const cat = document.createElement('div');
+    cat.className = 'li-cat';
+    cat.textContent = slot.role || '—';
+
+    const wave = document.createElement('div');
+    wave.className = 'li-wave';
+    const waveText = document.createElement('div');
+    waveText.className = 'li-wave-text';
+    const wt1 = document.createElement('span');
+    wt1.textContent = 'Live';
+    const wt2 = document.createElement('span');
+    wt2.textContent = 'Open';
+    waveText.appendChild(wt1);
+    waveText.appendChild(wt2);
+    const bar = document.createElement('div');
+    bar.className = 'li-bar';
+    const fill = document.createElement('div');
+    fill.className = 'li-bar-fill';
+    fill.style.cssText = 'width:8%;background:var(--green);';
+    bar.appendChild(fill);
+    wave.appendChild(waveText);
+    wave.appendChild(bar);
+
+    const price = document.createElement('div');
+    price.className = 'li-price';
+    const priceLabel = document.createElement('div');
+    priceLabel.className = 'li-price-label';
+    priceLabel.textContent = 'Rev Split';
+    const priceVal = document.createElement('div');
+    priceVal.className = 'li-price-val';
+    priceVal.textContent = pct;
+    price.appendChild(priceLabel);
+    price.appendChild(priceVal);
+
+    const score = document.createElement('div');
+    score.className = 'li-score';
+    score.textContent = '—';
+
+    const trend = document.createElement('div');
+    trend.className = 'li-trend t-up';
+    trend.textContent = '↗';
+
+    item.appendChild(badge);
+    item.appendChild(main);
+    item.appendChild(cat);
+    item.appendChild(wave);
+    item.appendChild(price);
+    item.appendChild(score);
+    item.appendChild(trend);
+    container.appendChild(item);
+  });
+}
+
+loadKassaLive();
+</script>
 </body>
 </html>
