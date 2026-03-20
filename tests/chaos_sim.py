@@ -114,13 +114,20 @@ def record(name: str, desc: str, passed: bool, status: int, expected: str, actua
 def rand_id(prefix: str = "chaos") -> str:
     return f"{prefix}-{''.join(random.choices(string.ascii_lowercase + string.digits, k=8))}"
 
-def register_fresh() -> str | None:
-    """Register a fresh agent and return its agent_id."""
+def register_fresh(retries: int = 3) -> str | None:
+    """Register a fresh agent and return its agent_id. Retries on 429 rate limit."""
     name = rand_id("wrench")
-    body, status, _ = api("POST", "/api/provision/signup", json={
-        "name": name, "type": "agent", "role": "primary",
-    })
-    return body.get("agent_id") if status == 200 else None
+    for attempt in range(retries):
+        body, status, _ = api("POST", "/api/provision/signup", json={
+            "name": name, "type": "agent", "role": "primary",
+        })
+        if status == 200:
+            return body.get("agent_id")
+        if status == 429:
+            time.sleep(2.0 * (attempt + 1))   # back off 2s, 4s, 6s
+            continue
+        break   # non-retryable error
+    return None
 
 def create_slot() -> str | None:
     """Create a test slot and return its slot_id (or grab one from the open pool)."""
@@ -540,20 +547,369 @@ def wrench_govflip() -> None:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  ESCALATION WRENCHES  (hunt for DATA, CASCADE, STATE, and HARD breaks)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# BREAK TAXONOMY
+# ─────────────────────────────────────────────────────────────────────────────
+# HARD BREAK    Backend process dies — connection refused / 502
+# DATA BREAK    Concurrent ops produce wrong math (ledger race conditions)
+# SILENT BREAK  Invalid input returns 200 and writes corrupt state   ← found 5
+# CASCADE BREAK Endpoint A under load causes Endpoint B to 500
+# STATE BREAK   Slot/agent in impossible state (filled + open simultaneously)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def wrench_concurrent_pay() -> None:
+    """DATA BREAK — 50 threads simultaneously pay same agent. Balance must add up."""
+    print(f"\n{BOLD}{YELLOW}[CONCURRENT_PAY] 50 threads pay same agent simultaneously → check ledger math{RESET}")
+
+    agent_id   = register_fresh()
+    if not agent_id:
+        print(f"  {RED}Setup failed{RESET}\n"); return
+
+    n_threads  = 50
+    amount     = 100.0
+    expected_gross = n_threads * amount
+    fee_rate   = 0.15
+    expected_net = round(expected_gross * (1 - fee_rate), 2)  # $4,250.00
+
+    errors: list[int] = []
+
+    def pay_once(_: int) -> None:
+        _, status, _ = api("POST", "/api/economy/pay", json={
+            "agent_id": agent_id, "amount": amount, "reason": "concurrent-pay-test",
+        })
+        if status != 200:
+            errors.append(status)
+
+    with ThreadPoolExecutor(max_workers=n_threads) as pool:
+        futures = [pool.submit(pay_once, i) for i in range(n_threads)]
+        for f in as_completed(futures): f.result()
+
+    # Read the actual balance
+    bal_body, bal_status, ms = api("GET", f"/api/economy/balance/{agent_id}")
+    actual_balance = bal_body.get("balance", 0.0)
+    tolerance      = 1.0   # allow $1 float rounding slop
+
+    math_correct = abs(actual_balance - expected_net) <= tolerance
+    passed       = math_correct and len(errors) == 0
+
+    record(
+        "CONCURRENT_PAY",
+        f"{n_threads} simultaneous $100 pays → ledger must be ${expected_net:.2f}",
+        passed, bal_status,
+        f"${expected_net:.2f} (±${tolerance})",
+        f"actual balance = ${actual_balance:.2f}  |  {len(errors)} pay errors",
+        notes="DATA BREAK if balance ≠ expected. Race condition on in-memory treasury dict.",
+        ms=ms,
+    )
+
+
+def wrench_slot_storm() -> None:
+    """STATE BREAK — 100 agents all fill the same 1-slot formation simultaneously."""
+    print(f"\n{BOLD}{YELLOW}[SLOT_STORM] 100 agents storm a single slot — only 1 should win{RESET}")
+
+    # Register 100 fresh agents concurrently
+    agents: list[str] = []
+    def reg(_: int) -> str | None:
+        return register_fresh()
+
+    with ThreadPoolExecutor(max_workers=20) as pool:
+        results = list(pool.map(reg, range(100)))
+    agents = [a for a in results if a]
+
+    slot_id = create_slot()
+    if not slot_id or len(agents) < 10:
+        print(f"  {RED}Setup failed (got {len(agents)} agents, slot={slot_id}){RESET}\n"); return
+
+    wins:   list[str] = []
+    losses: list[int] = []
+    lock    = threading.Lock()
+    barrier = threading.Barrier(len(agents))
+
+    def storm(agent_id: str) -> None:
+        barrier.wait()
+        body, status, _ = fill_slot(slot_id, agent_id, f"storm-{agent_id[-4:]}")
+        with lock:
+            if status == 200: wins.append(agent_id)
+            else:             losses.append(status)
+
+    threads = [threading.Thread(target=storm, args=(a,)) for a in agents]
+    for t in threads: t.start()
+    for t in threads: t.join()
+
+    only_one_won  = len(wins) == 1
+    passed        = only_one_won
+
+    record(
+        "SLOT_STORM",
+        f"{len(agents)} agents simultaneously storm 1 slot",
+        passed, 200 if wins else 0,
+        "Exactly 1 winner, all others 4xx",
+        f"{len(wins)} winner(s), {len(losses)} rejected",
+        notes="STATE BREAK if len(wins) > 1 — slot accepted multiple agents simultaneously.",
+    )
+
+    # Cleanup
+    for a in wins:
+        leave_slot(slot_id, a)
+
+
+def wrench_treasury_drain() -> None:
+    """SILENT BREAK exploit — use the known negative-pay bug to drain the treasury."""
+    print(f"\n{BOLD}{YELLOW}[TREASURY_DRAIN] Exploit negative pay × 20 → drive treasury negative{RESET}")
+
+    agent_id = register_fresh()
+    if not agent_id:
+        print(f"  {RED}Setup failed{RESET}\n"); return
+
+    n          = 20
+    drain_each = -1000.0  # each call sends -$1000 → platform gets -$150 credited (reversed)
+    successes  = 0
+
+    for _ in range(n):
+        body, status, _ = api("POST", "/api/economy/pay", json={
+            "agent_id": agent_id, "amount": drain_each, "reason": "drain",
+        })
+        if status == 200:
+            successes += 1
+
+    # Check platform treasury via leaderboard (platform account)
+    lb_body, _, ms = api("GET", "/api/economy/leaderboard")
+    entries   = lb_body.get("leaderboard", [])
+    platform  = next((e for e in entries if "platform" in str(e.get("agent_id","")).lower()), None)
+    plat_bal  = platform.get("balance", "?") if platform else "not in leaderboard"
+
+    # Also hit metrics to see if backend is still alive
+    _, health_status, _ = api("GET", "/api/metrics")
+    still_alive = health_status == 200
+
+    passed = successes == 0  # all negative pays should have been rejected
+
+    record(
+        "TREASURY_DRAIN",
+        f"{n} × ${drain_each} pay requests → treasury should reject all negatives",
+        passed, 200 if successes > 0 else 400,
+        "0 successes — negative amounts rejected (BUG-002 fix needed)",
+        f"{successes}/{n} drained successfully | platform balance = {plat_bal}",
+        notes=f"HARD BREAK risk: if treasury goes deeply negative and balance checks crash. Backend alive: {still_alive}",
+        ms=ms,
+    )
+
+
+def wrench_leaderboard_poison() -> None:
+    """SILENT BREAK — flood leaderboard with zombie agents paid $999,999 each."""
+    print(f"\n{BOLD}{YELLOW}[LEADERBOARD_POISON] Pay 10 zombie agents $999,999 — poison the rankings{RESET}")
+
+    zombie_ids = [f"agent-zombie-{rand_id()}" for _ in range(10)]
+    successes  = 0
+
+    for zid in zombie_ids:
+        body, status, _ = api("POST", "/api/economy/pay", json={
+            "agent_id": zid, "amount": 999_999.0, "reason": "leaderboard-poison",
+        })
+        if status == 200:
+            successes += 1
+
+    # Check leaderboard
+    lb_body, lb_status, ms = api("GET", "/api/economy/leaderboard")
+    entries    = lb_body.get("leaderboard", [])
+    top_ids    = [e.get("agent_id", "") for e in entries[:5]]
+    zombie_in  = sum(1 for tid in top_ids if "zombie" in tid)
+
+    passed = zombie_in == 0  # no zombies should appear in real leaderboard
+
+    record(
+        "LEADERBOARD_POISON",
+        "Pay 10 unregistered zombie agents $999,999 — check if they dominate leaderboard",
+        passed, lb_status,
+        "Zombies absent from leaderboard (not registered agents)",
+        f"{successes}/10 pays accepted | {zombie_in}/5 top spots are zombies",
+        notes="SILENT BREAK: if zombies top the board, the leaderboard ranks non-agents.",
+        ms=ms,
+    )
+
+
+def wrench_cascade_stress() -> None:
+    """CASCADE BREAK — flood metrics while hammering pay. Does one destabilize the other?"""
+    print(f"\n{BOLD}{YELLOW}[CASCADE_STRESS] Flood metrics (200 req) + concurrent pay — check for cascade 500s{RESET}")
+
+    agent_id = register_fresh()
+    if not agent_id:
+        print(f"  {RED}Setup failed{RESET}\n"); return
+
+    pay_statuses:     list[int] = []
+    metric_statuses:  list[int] = []
+    pay_lock          = threading.Lock()
+    metric_lock       = threading.Lock()
+
+    def spam_metric(_: int) -> None:
+        _, status, _ = api("POST", "/api/metrics/agent", json={
+            "agent_id": agent_id, "slot_id": "cascade-test", "mission_id": rand_id("m"),
+            "metrics": {"compliance_score": 0.88, "governance_active": True,
+                        "output_quality": 0.9, "performance_score": 0.85},
+            "summary": "cascade stress test",
+        })
+        with metric_lock: metric_statuses.append(status)
+
+    def spam_pay(_: int) -> None:
+        _, status, _ = api("POST", "/api/economy/pay", json={
+            "agent_id": agent_id, "amount": random.uniform(10, 50), "reason": "cascade-pay",
+        })
+        with pay_lock: pay_statuses.append(status)
+
+    # Fire both concurrently
+    with ThreadPoolExecutor(max_workers=40) as pool:
+        m_futures = [pool.submit(spam_metric, i) for i in range(200)]
+        p_futures = [pool.submit(spam_pay, i)    for i in range(50)]
+        for f in as_completed(m_futures + p_futures): f.result()
+
+    metric_500s = metric_statuses.count(500)
+    pay_500s    = pay_statuses.count(500)
+    pay_ok      = pay_statuses.count(200)
+
+    # Backend alive?
+    _, health_status, ms = api("GET", "/api/metrics")
+    alive = health_status == 200
+
+    passed = metric_500s == 0 and pay_500s == 0 and alive
+
+    record(
+        "CASCADE_STRESS",
+        "200 metric floods + 50 concurrent pays fired simultaneously",
+        passed, health_status,
+        "0 server errors on either endpoint, backend alive after",
+        f"metric 500s={metric_500s} | pay 500s={pay_500s} | pay ok={pay_ok} | alive={alive}",
+        notes="CASCADE BREAK: if pay starts 500ing under metric load, shared state has no isolation.",
+        ms=ms,
+    )
+
+
+def wrench_rapid_cycle() -> None:
+    """STATE BREAK — single agent fill/leave/fill/leave same slot 200 times fast."""
+    print(f"\n{BOLD}{YELLOW}[RAPID_CYCLE] Same agent hammers fill→leave on same slot 200x{RESET}")
+
+    agent_id = register_fresh()
+    slot_id  = create_slot()
+    if not agent_id or not slot_id:
+        print(f"  {RED}Setup failed{RESET}\n"); return
+
+    fill_ok  = 0
+    fill_err = 0
+    leave_ok = 0
+    leave_err = 0
+    state_corrupts = 0  # fill returns 200 when slot should be filled (didn't leave properly)
+
+    n = 200
+    t0 = time.perf_counter()
+    for i in range(n):
+        _, fs = fill_slot(slot_id, agent_id, "cycler")
+        if fs == 200:   fill_ok  += 1
+        else:            fill_err += 1; continue   # can't leave what we didn't fill
+
+        _, ls = leave_slot(slot_id, agent_id)
+        if ls == 200:   leave_ok  += 1
+        else:           leave_err += 1; state_corrupts += 1
+
+    elapsed = (time.perf_counter() - t0) * 1000
+
+    # Final state check — slot should be open (last op was leave)
+    open_body, _, ms = api("GET", "/api/slots/open")
+    open_ids   = [s.get("id") for s in open_body.get("open_slots", [])]
+    slot_open  = slot_id in open_ids
+
+    passed = state_corrupts == 0 and fill_ok > 150 and slot_open
+
+    record(
+        "RAPID_CYCLE",
+        f"{n} fill→leave cycles on same slot by same agent",
+        passed, 200 if fill_ok > 0 else 0,
+        f"All {n} fill+leave pairs succeed, slot ends in 'open' state",
+        f"fill ok={fill_ok} err={fill_err} | leave ok={leave_ok} err={leave_err} | "
+        f"corrupts={state_corrupts} | slot_open={slot_open} | {elapsed:.0f}ms total",
+        notes="STATE BREAK: if state_corrupts > 0, fill is succeeding when slot is still occupied.",
+        ms=ms,
+    )
+
+
+def wrench_unicode_bomb() -> None:
+    """HARD BREAK hunt — send payloads designed to crash the server."""
+    print(f"\n{BOLD}{YELLOW}[UNICODE_BOMB] Pathological string payloads — hunt for server crashes{RESET}")
+
+    cases: list[tuple[str, str, str, dict]] = [
+        ("10kb-name",    "POST", "/api/provision/signup", {"name": "A" * 10_000}),
+        ("null-bytes",   "POST", "/api/provision/signup", {"name": "agent\x00null"}),
+        ("emoji-storm",  "POST", "/api/provision/signup", {"name": "🔥" * 500}),
+        ("deep-nested",  "POST", "/api/metrics/agent",    {
+            "agent_id": "x", "slot_id": "y", "mission_id": "z",
+            "metrics": {"a": {"b": {"c": {"d": {"e": {"f": {"g": 1}}}}}}},
+            "summary": "deep",
+        }),
+        ("sqli-attempt", "POST", "/api/provision/signup", {"name": "'; DROP TABLE agents; --"}),
+        ("huge-amount",  "POST", "/api/economy/pay",      {"agent_id": "x", "amount": 10**308}),
+        ("nan-amount",   "POST", "/api/economy/pay",      {"agent_id": "x", "amount": "Infinity"}),  # JSON doesn't support inf — send string to test type coercion
+    ]
+
+    crashes = 0
+    for label, method, path, body in cases:
+        # inf/nan can't be JSON serialized — catch that locally
+        import math as _math
+        try:
+            resp, status, ms = api(method, path, json=body)
+        except Exception as e:
+            resp, status, ms = {"_error": str(e)}, 0, 0.0
+
+        is_crash = (status == 0 or status == 500)
+        if is_crash: crashes += 1
+        passed_case = not is_crash or status == 500  # 500 is bad but not dead; 0 = dead
+        record(
+            f"UNICODE_BOMB/{label}",
+            f"{method} {path} with {label}",
+            status not in (0,),   # HARD BREAK only if connection dies (0)
+            status,
+            "4xx (rejected) or 500 (unhandled but alive) — NOT connection refused",
+            f"HTTP {status}",
+            notes="HARD BREAK if status=0 (server crashed/unreachable)." if is_crash else "",
+            ms=ms,
+        )
+
+    # Final alive check
+    _, health, ms = api("GET", "/api/metrics")
+    alive = health == 200
+    record(
+        "UNICODE_BOMB/alive",
+        "Backend still responding after all pathological payloads",
+        alive, health,
+        "200 — server survived",
+        f"HTTP {health}" + (f" {GREEN}← ALIVE{RESET}" if alive else f" {RED}← DEAD{RESET}"),
+        ms=ms,
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 #  REGISTRY + RUNNER
 # ══════════════════════════════════════════════════════════════════════════════
 
 WRENCHES: dict[str, tuple[str, Any]] = {
-    "race":       ("Two agents race to fill the same slot (threading)", wrench_race),
-    "double":     ("Same agent double-fills the same slot",             wrench_double),
-    "zombie":     ("Unregistered agent tries all ops",                  wrench_zombie),
-    "imperson":   ("Agent A steals payment into Agent B's account",     wrench_impersonation),
-    "overflow":   ("$999,999 / -$50 / $0 payment requests",            wrench_overflow),
-    "ghost":      ("Fill / leave non-existent slot_ids",                wrench_ghost),
-    "abandon":    ("Agent holds slot A, immediately fills slot B",      wrench_abandon),
-    "flood":      ("20 concurrent signups for same agent name",         wrench_flood),
-    "badpayload": ("Malformed requests — missing fields, wrong types",  wrench_badpayload),
-    "govflip":    ("Governance metrics tank to 0 mid-cycle",            wrench_govflip),
+    # ── Tier 1: Contract violations (silent breaks) ───────────────────────
+    "race":           ("Two agents race to fill the same slot (threading)",          wrench_race),
+    "double":         ("Same agent double-fills the same slot",                      wrench_double),
+    "zombie":         ("Unregistered agent tries all ops",                           wrench_zombie),
+    "imperson":       ("Agent A steals payment into Agent B's account",              wrench_impersonation),
+    "overflow":       ("$999,999 / -$50 / $0 payment requests",                     wrench_overflow),
+    "ghost":          ("Fill / leave non-existent slot_ids",                         wrench_ghost),
+    "abandon":        ("Agent holds slot A, immediately fills slot B",               wrench_abandon),
+    "flood":          ("20 concurrent signups for same agent name",                  wrench_flood),
+    "badpayload":     ("Malformed requests — missing fields, wrong types",           wrench_badpayload),
+    "govflip":        ("Governance metrics tank to 0 mid-cycle",                     wrench_govflip),
+    # ── Tier 2: Escalation (data, state, cascade, hard breaks) ───────────
+    "concurrent_pay": ("50 threads pay same agent simultaneously → ledger math",     wrench_concurrent_pay),
+    "slot_storm":     ("100 agents storm 1 slot simultaneously → only 1 winner",    wrench_slot_storm),
+    "treasury_drain": ("Exploit negative pay × 20 → drive treasury negative",        wrench_treasury_drain),
+    "leaderboard_poison": ("Pay 10 zombies $999,999 → corrupt rankings",            wrench_leaderboard_poison),
+    "cascade_stress": ("200 metric floods + 50 concurrent pays simultaneously",      wrench_cascade_stress),
+    "rapid_cycle":    ("Same agent hammers fill→leave 200x on same slot",           wrench_rapid_cycle),
+    "unicode_bomb":   ("Pathological strings + float extremes → hunt server crash",  wrench_unicode_bomb),
 }
 
 
