@@ -249,6 +249,7 @@
     <a href="/frontend/helpwanted.html">HIRING</a>
     <a href="/frontend/refinery.html" class="active">REFINERY</a>
     <a href="/frontend/switchboard.html">SWITCHBOARD</a>
+    <a href="/civitas" style="border-color:var(--gold);color:var(--gold);">← Civitas</a>
   </div>
 </div>
 
@@ -287,28 +288,28 @@
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-name">Compliance Score</div>
-        <div class="metric-val">--</div>
-        <div class="metric-bar"><div class="metric-bar-fill" style="width:0%"></div></div>
+        <div class="metric-val" id="m-compliance">--</div>
+        <div class="metric-bar"><div class="metric-bar-fill" id="mb-compliance" style="width:0%"></div></div>
       </div>
       <div class="metric-card">
         <div class="metric-name">Performance Score</div>
-        <div class="metric-val">--</div>
-        <div class="metric-bar"><div class="metric-bar-fill" style="width:0%"></div></div>
+        <div class="metric-val" id="m-performance">--</div>
+        <div class="metric-bar"><div class="metric-bar-fill" id="mb-performance" style="width:0%"></div></div>
       </div>
       <div class="metric-card">
         <div class="metric-name">Governance Adherence</div>
-        <div class="metric-val">--</div>
-        <div class="metric-bar"><div class="metric-bar-fill" style="width:0%"></div></div>
+        <div class="metric-val" id="m-governance">--</div>
+        <div class="metric-bar"><div class="metric-bar-fill" id="mb-governance" style="width:0%"></div></div>
       </div>
       <div class="metric-card">
         <div class="metric-name">Output Quality</div>
-        <div class="metric-val">--</div>
-        <div class="metric-bar"><div class="metric-bar-fill" style="width:0%"></div></div>
+        <div class="metric-val" id="m-quality">--</div>
+        <div class="metric-bar"><div class="metric-bar-fill" id="mb-quality" style="width:0%"></div></div>
       </div>
       <div class="metric-card">
-        <div class="metric-name">Combined SIGRANK</div>
-        <div class="metric-val">--</div>
-        <div class="metric-bar"><div class="metric-bar-fill" style="width:0%"></div></div>
+        <div class="metric-name">Active Agents</div>
+        <div class="metric-val" id="m-agents">--</div>
+        <div class="metric-bar"><div class="metric-bar-fill" id="mb-agents" style="width:0%"></div></div>
       </div>
     </div>
   </div>
@@ -318,5 +319,41 @@
   <div class="footer-brand">MO$ES&trade; Sovereign Governance &mdash; <strong>AGENT UNIVERSE</strong> &mdash; Architecture Phase</div>
 </div>
 
+<script>
+(async () => {
+  const base = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:8000' : '';
+
+  function setMetric(id, barId, val, max) {
+    const pct = max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0;
+    const el = document.getElementById(id);
+    const bar = document.getElementById(barId);
+    if (el) el.textContent = typeof val === 'number' ? val.toFixed(2) : val;
+    if (bar) { bar.style.width = pct + '%'; bar.style.opacity = '0.8'; }
+  }
+
+  try {
+    const [metricsRes, regRes] = await Promise.allSettled([
+      fetch(base + '/api/metrics', { signal: AbortSignal.timeout(5000) }),
+      fetch(base + '/api/provision/registry', { signal: AbortSignal.timeout(5000) }),
+    ]);
+
+    if (metricsRes.status === 'fulfilled' && metricsRes.value.ok) {
+      const d = await metricsRes.value.json();
+      const agg = d.aggregates || {};
+      setMetric('m-compliance', 'mb-compliance', agg.avg_compliance_score || 0, 1);
+      setMetric('m-performance', 'mb-performance', agg.avg_performance_score || 0, 1);
+      setMetric('m-governance', 'mb-governance', agg.avg_governance_adherence || 0, 1);
+      setMetric('m-quality', 'mb-quality', agg.avg_output_quality || 0, 1);
+    }
+
+    if (regRes.status === 'fulfilled' && regRes.value.ok) {
+      const d = await regRes.value.json();
+      const active = (d.registry || []).filter(r => r.type === 'agent' && r.status === 'active').length;
+      setMetric('m-agents', 'mb-agents', active, 50);
+    }
+  } catch (e) { /* API offline — defaults stay */ }
+})();
+</script>
 </body>
 </html>

@@ -98,6 +98,7 @@
 <div class="topbar">
   <div class="logo">SLOT CONFIGURATOR <span>drag badges into slots</span></div>
   <div class="nav">
+    <a href="/civitas" style="border-color:var(--gold);color:var(--gold);">← Civitas</a>
     <a href="/world">WORLD</a>
     <a href="/">BOUNTIES</a>
     <a href="/slots" class="active">SLOTS</a>
@@ -379,6 +380,25 @@ addSlot();
 addSlot();
 addSlot();
 renderDrawer();
+
+// Load live agents from registry
+(async () => {
+  try {
+    const base = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? 'http://localhost:8000' : '';
+    const res = await fetch(base + '/api/provision/registry', { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return;
+    const data = await res.json();
+    const live = (data.registry || [])
+      .filter(r => r.type === 'agent' && r.status === 'active')
+      .map(r => ({ id: r.agent_id, name: r.name, type: r.role || 'agent', icon: '⚡', _live: true }));
+    if (live.length) {
+      // Prepend live agents and mark them
+      AGENTS.unshift(...live);
+      if (activeDrawer === 'agents') renderDrawer();
+    }
+  } catch (e) { /* API offline — defaults stay */ }
+})();
 </script>
 </body>
 </html>
