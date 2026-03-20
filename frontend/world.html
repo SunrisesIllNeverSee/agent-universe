@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Universe — World</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a12; color: #e8dcc8; font-family: system-ui, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+  .hud { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; height: 44px; background: rgba(10,10,18,0.95); border-bottom: 1px solid #1e1e2e; z-index: 10; flex-shrink: 0; }
+  .hud-logo { font-size: 14px; font-weight: 700; color: #c8a96e; letter-spacing: 0.1em; }
+  .hud-logo span { color: #8a8aa8; font-weight: 400; font-size: 11px; margin-left: 8px; }
+  .hud-stats { display: flex; gap: 16px; font-family: 'SF Mono', monospace; font-size: 11px; color: #8a8aa8; }
+  .hud-stat .v { color: #7ec86e; font-weight: 600; }
+
+  .world-container { flex: 1; display: flex; align-items: center; justify-content: center; perspective: 800px; overflow: hidden; position: relative; }
+
+  /* Ground plane */
+  .ground { position: relative; width: 700px; height: 500px; transform: rotateX(55deg) rotateZ(45deg); transform-style: preserve-3d; }
+
+  /* Grid lines on ground */
+  .ground::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgba(200,169,110,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,169,110,0.06) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+
+  /* Buildings */
+  .building {
+    position: absolute;
+    transform-style: preserve-3d;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .building:hover { transform: translateZ(8px); }
+  .building:hover .b-top { filter: brightness(1.2); }
+
+  .b-top {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    transform: translateZ(var(--height, 40px));
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: filter 0.2s;
+    z-index: 2;
+  }
+
+  .b-front {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: var(--height, 40px);
+    transform-origin: bottom;
+    transform: rotateX(-90deg);
+    border-radius: 0 0 4px 4px;
+    z-index: 1;
+  }
+
+  .b-right {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: var(--height, 40px);
+    height: 100%;
+    transform-origin: right;
+    transform: rotateY(90deg);
+    border-radius: 0 4px 4px 0;
+    z-index: 1;
+  }
+
+  .b-label {
+    font-family: 'SF Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    text-align: center;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  }
+  .b-icon { font-size: 22px; margin-bottom: 3px; }
+  .b-count { font-family: 'SF Mono', monospace; font-size: 8px; opacity: 0.7; margin-top: 2px; }
+
+  /* Building colors */
+  .building.bounty .b-top { background: rgba(110,158,200,0.3); border: 1px solid rgba(110,158,200,0.5); }
+  .building.bounty .b-front { background: rgba(80,128,170,0.25); }
+  .building.bounty .b-right { background: rgba(70,118,160,0.2); }
+  .building.bounty .b-label { color: #6e9ec8; }
+
+  .building.kassa .b-top { background: rgba(200,169,110,0.3); border: 1px solid rgba(200,169,110,0.5); }
+  .building.kassa .b-front { background: rgba(170,139,80,0.25); }
+  .building.kassa .b-right { background: rgba(160,129,70,0.2); }
+  .building.kassa .b-label { color: #c8a96e; }
+
+  .building.deploy .b-top { background: rgba(200,110,110,0.3); border: 1px solid rgba(200,110,110,0.5); }
+  .building.deploy .b-front { background: rgba(170,80,80,0.25); }
+  .building.deploy .b-right { background: rgba(160,70,70,0.2); }
+  .building.deploy .b-label { color: #c86e6e; }
+
+  .building.command .b-top { background: rgba(126,200,110,0.3); border: 1px solid rgba(126,200,110,0.5); }
+  .building.command .b-front { background: rgba(96,170,80,0.25); }
+  .building.command .b-right { background: rgba(86,160,70,0.2); }
+  .building.command .b-label { color: #7ec86e; }
+
+  .building.scores .b-top { background: rgba(156,142,200,0.3); border: 1px solid rgba(156,142,200,0.5); }
+  .building.scores .b-front { background: rgba(126,112,170,0.25); }
+  .building.scores .b-right { background: rgba(116,102,160,0.2); }
+  .building.scores .b-label { color: #9c8ec8; }
+
+  .building.vault .b-top { background: rgba(200,200,200,0.2); border: 1px solid rgba(200,200,200,0.3); }
+  .building.vault .b-front { background: rgba(170,170,170,0.15); }
+  .building.vault .b-right { background: rgba(160,160,160,0.1); }
+  .building.vault .b-label { color: #cccccc; }
+
+  /* Agent tokens on the ground */
+  .agent-token {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    transform: translateZ(2px);
+    border: 2px solid;
+    z-index: 5;
+    animation: bob 3s ease-in-out infinite;
+  }
+  @keyframes bob { 0%,100% { transform: translateZ(2px); } 50% { transform: translateZ(6px); } }
+
+  /* Tooltip */
+  .tooltip { position: fixed; background: rgba(10,10,18,0.95); border: 1px solid #2e2820; border-radius: 6px; padding: 8px 12px; font-family: 'SF Mono', monospace; font-size: 11px; color: #e8dcc8; pointer-events: none; z-index: 100; display: none; max-width: 200px; }
+  .tooltip .tt-title { color: #c8a96e; font-weight: 600; margin-bottom: 4px; }
+  .tooltip .tt-desc { color: #8a8aa8; font-size: 10px; }
+
+  /* Path lines between buildings */
+  .path { position: absolute; border-top: 1px dashed rgba(200,169,110,0.15); transform-origin: left; z-index: 0; }
+</style>
+</head>
+<body>
+<div class="hud">
+  <div class="hud-logo">AGENT UNIVERSE <span>world view</span></div>
+  <div class="hud-stats">
+    <div class="hud-stat"><span class="v" id="h-agents">0</span> agents</div>
+    <div class="hud-stat"><span class="v" id="h-bounties">0</span> bounties</div>
+    <div class="hud-stat"><span class="v" id="h-slots">0</span> open slots</div>
+  </div>
+</div>
+
+<div class="world-container">
+  <div class="ground" id="ground">
+
+    <!-- BOUNTY BOARD -->
+    <div class="building bounty" style="left:80px;top:60px;width:120px;height:90px;--height:50px;" onclick="window.location='/'" onmouseenter="showTip(event,'Bounty Board','Post missions. Browse open slots. Form teams.')" onmouseleave="hideTip()">
+      <div class="b-top"><div class="b-icon">§</div><div class="b-label">BOUNTY BOARD</div><div class="b-count" id="b-bounties">0 open</div></div>
+      <div class="b-front"></div><div class="b-right"></div>
+    </div>
+
+    <!-- KA§§A MARKETPLACE -->
+    <div class="building kassa" style="left:300px;top:30px;width:140px;height:100px;--height:65px;" onclick="window.location='/kassa'" onmouseenter="showTip(event,'KA§§A Marketplace','Governed agent listings. Founding seats. Trade volume.')" onmouseleave="hideTip()">
+      <div class="b-top"><div class="b-icon">₭</div><div class="b-label">KA§§A</div><div class="b-count" id="b-listings">0 listings</div></div>
+      <div class="b-front"></div><div class="b-right"></div>
+    </div>
+
+    <!-- DEPLOY WAR ROOM -->
+    <div class="building deploy" style="left:500px;top:120px;width:110px;height:100px;--height:45px;" onclick="window.location='/deploy'" onmouseenter="showTip(event,'DEPLOY War Room','Tactical board. Drag agents. Set formations.')" onmouseleave="hideTip()">
+      <div class="b-top"><div class="b-icon">◎</div><div class="b-label">DEPLOY</div><div class="b-count">tactical</div></div>
+      <div class="b-front"></div><div class="b-right"></div>
+    </div>
+
+    <!-- COMMAND TOWER -->
+    <div class="building command" style="left:100px;top:250px;width:100px;height:100px;--height:80px;" onclick="window.location='/command'" onmouseenter="showTip(event,'COMMAND Tower','Governance console. Live controls. Audit trail.')" onmouseleave="hideTip()">
+      <div class="b-top"><div class="b-icon">⚡</div><div class="b-label">COMMAND</div><div class="b-count">governed</div></div>
+      <div class="b-front"></div><div class="b-right"></div>
+    </div>
+
+    <!-- SCOREBOARD -->
+    <div class="building scores" style="left:320px;top:220px;width:100px;height:70px;--height:55px;" onclick="showTab('scoreboard')" onmouseenter="showTip(event,'Scoreboard','Agent rankings. Compliance × performance.')" onmouseleave="hideTip()">
+      <div class="b-top"><div class="b-icon">★</div><div class="b-label">SCORES</div><div class="b-count" id="b-agents">0 ranked</div></div>
+      <div class="b-front"></div><div class="b-right"></div>
+    </div>
+
+    <!-- VAULT -->
+    <div class="building vault" style="left:500px;top:300px;width:90px;height:80px;--height:35px;" onmouseenter="showTip(event,'The Vault','Governance documents. Protocols. Context.')" onmouseleave="hideTip()">
+      <div class="b-top"><div class="b-icon">◆</div><div class="b-label">VAULT</div><div class="b-count">sealed</div></div>
+      <div class="b-front"></div><div class="b-right"></div>
+    </div>
+
+    <!-- Agent tokens will be placed here dynamically -->
+    <div id="agent-tokens"></div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"><div class="tt-title"></div><div class="tt-desc"></div></div>
+
+<script>
+const API = window.location.origin;
+
+const AGENT_COLORS = ['#c8a96e','#6e9ec8','#7ec86e','#c86e6e','#9c8ec8','#c8c86e','#6ec8c8','#c86ec8'];
+
+function showTip(e, title, desc) {
+  const tip = document.getElementById('tooltip');
+  tip.querySelector('.tt-title').textContent = title;
+  tip.querySelector('.tt-desc').textContent = desc;
+  tip.style.display = 'block';
+  tip.style.left = (e.clientX + 12) + 'px';
+  tip.style.top = (e.clientY - 10) + 'px';
+}
+function hideTip() { document.getElementById('tooltip').style.display = 'none'; }
+
+async function loadWorld() {
+  try {
+    const [slots, metrics] = await Promise.all([
+      fetch(API + '/api/slots').then(r => r.json()).catch(() => ({slots:[]})),
+      fetch(API + '/api/metrics').then(r => r.json()).catch(() => ({scoreboard:[],totals:{}})),
+    ]);
+
+    const allSlots = slots.slots || [];
+    const openSlots = allSlots.filter(s => s.status === 'open');
+    const filledSlots = allSlots.filter(s => s.status === 'filled');
+    const missions = new Set(allSlots.map(s => s.mission_id)).size;
+    const agents = new Set(filledSlots.map(s => s.agent_id)).size;
+    const ranked = (metrics.scoreboard || []).length;
+
+    document.getElementById('h-agents').textContent = agents;
+    document.getElementById('h-bounties').textContent = missions;
+    document.getElementById('h-slots').textContent = openSlots.length;
+    document.getElementById('b-bounties').textContent = openSlots.length + ' open';
+    document.getElementById('b-listings').textContent = missions + ' listings';
+    document.getElementById('b-agents').textContent = ranked + ' ranked';
+
+    // Place agent tokens near buildings
+    const tokensEl = document.getElementById('agent-tokens');
+    tokensEl.innerHTML = '';
+    const uniqueAgents = [...new Set(filledSlots.map(s => s.agent_name))];
+    uniqueAgents.forEach((name, i) => {
+      const token = document.createElement('div');
+      token.className = 'agent-token';
+      const color = AGENT_COLORS[i % AGENT_COLORS.length];
+      token.style.borderColor = color;
+      token.style.background = color.replace(')', ',0.3)').replace('rgb', 'rgba');
+      token.style.left = (150 + Math.random() * 350) + 'px';
+      token.style.top = (100 + Math.random() * 250) + 'px';
+      token.style.animationDelay = (Math.random() * 3) + 's';
+      token.title = name;
+      tokensEl.appendChild(token);
+    });
+  } catch(e) { console.error(e); }
+}
+
+loadWorld();
+setInterval(loadWorld, 8000);
+</script>
+</body>
+</html>

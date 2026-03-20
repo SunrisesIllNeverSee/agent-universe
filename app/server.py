@@ -107,6 +107,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def kassa_page() -> FileResponse:
         return FileResponse(frontend_dir / "kassa.html")
 
+    @app.get("/world")
+    async def world_page() -> FileResponse:
+        return FileResponse(frontend_dir / "world.html")
+
     @app.get("/api/state")
     async def get_state() -> dict:
         return runtime.snapshot().model_dump(mode="json")
