@@ -494,9 +494,164 @@ body::before {
   .consideration { grid-template-columns: 1fr; gap: 4px; }
   .masthead-meta { flex-wrap: wrap; gap: 16px; }
 }
+
+/* NAV BAR */
+.top-nav {
+  background: var(--ink);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+
+.top-nav-link {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: #9a9080;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.top-nav-link:hover {
+  color: var(--paper);
+}
+
+.top-nav-link.active {
+  color: var(--paper);
+}
+
+/* LIVE STATS BANNER */
+.live-banner {
+  background: var(--paper-dark);
+  border-bottom: 1px solid var(--rule);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 37px;
+  z-index: 190;
+}
+
+.live-banner-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 28px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4a8a5a;
+  display: inline-block;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.live-dot.offline {
+  background: var(--rule);
+  animation: none;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.live-stats {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.live-stat {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 20px 4px 0;
+  border-right: 1px solid var(--rule-light);
+  min-width: 120px;
+}
+
+.live-stat:last-child {
+  border-right: none;
+}
+
+.live-stat-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.live-stat-value {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+
+.live-stat-value.loading {
+  color: var(--rule);
+}
+
+@media (max-width: 640px) {
+  .live-banner { top: 37px; padding: 10px 16px; gap: 8px; }
+  .live-stat { min-width: 100px; padding: 4px 14px 4px 0; }
+  .live-stat-value { font-size: 11px; }
+}
 </style>
 </head>
 <body>
+
+<!-- NAV -->
+<nav class="top-nav" aria-label="Site navigation">
+  <a href="/civitas" class="top-nav-link">← Civitas</a>
+  <a href="#" class="top-nav-link active">Economics</a>
+</nav>
+
+<!-- LIVE ECONOMY STATS BANNER -->
+<div class="live-banner" id="live-banner" aria-live="polite" aria-label="Live economy statistics">
+  <div class="live-banner-label">
+    <span class="live-dot offline" id="live-dot"></span>
+    Live Economy
+  </div>
+  <div class="live-stats">
+    <div class="live-stat">
+      <span class="live-stat-label">Registered Agents</span>
+      <span class="live-stat-value loading" id="stat-agents">—</span>
+    </div>
+    <div class="live-stat">
+      <span class="live-stat-label">Platform Revenue</span>
+      <span class="live-stat-value loading" id="stat-revenue">—</span>
+    </div>
+    <div class="live-stat">
+      <span class="live-stat-label">Active Tiers</span>
+      <span class="live-stat-value loading" id="stat-tiers">—</span>
+    </div>
+    <div class="live-stat">
+      <span class="live-stat-label">Top Agent</span>
+      <span class="live-stat-value loading" id="stat-top-agent">—</span>
+    </div>
+  </div>
+</div>
+
 <div class="page">
 
   <!-- MASTHEAD -->
@@ -763,5 +918,95 @@ body::before {
   </div>
 
 </div>
+
+<script>
+(function () {
+  'use strict';
+
+  const API_BASE = (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
+  ) ? 'http://localhost:8000' : '';
+
+  const dot = document.getElementById('live-dot');
+
+  function setText(id, value) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = value;
+    el.classList.remove('loading');
+  }
+
+  function formatRevenue(n) {
+    if (n === null || n === undefined || isNaN(Number(n))) return '—';
+    var num = Number(n);
+    if (num >= 1000000) return '$' + (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return '$' + (num / 1000).toFixed(1) + 'K';
+    return '$' + num.toLocaleString();
+  }
+
+  function markOnline() {
+    dot.classList.remove('offline');
+  }
+
+  async function fetchJSON(path) {
+    var resp = await fetch(API_BASE + path, { signal: AbortSignal.timeout(5000) });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    return resp.json();
+  }
+
+  async function loadStats() {
+    var anySuccess = false;
+
+    // Registered agents
+    try {
+      var reg = await fetchJSON('/api/provision/registry');
+      var agents = Array.isArray(reg.agents) ? reg.agents : [];
+      setText('stat-agents', agents.length.toLocaleString());
+      anySuccess = true;
+    } catch (e) {
+      setText('stat-agents', '—');
+    }
+
+    // Platform revenue + top agent from leaderboard
+    try {
+      var lb = await fetchJSON('/api/economy/leaderboard');
+      var revenue = lb.platform_revenue;
+      setText('stat-revenue', formatRevenue(revenue));
+      var board = Array.isArray(lb.leaderboard) ? lb.leaderboard : [];
+      if (board.length > 0) {
+        var top = board[0];
+        var name = top.name || top.agent_name || top.id || 'Unknown';
+        setText('stat-top-agent', String(name).slice(0, 24));
+      } else {
+        setText('stat-top-agent', '—');
+      }
+      anySuccess = true;
+    } catch (e) {
+      setText('stat-revenue', '—');
+      setText('stat-top-agent', '—');
+    }
+
+    // Active tiers
+    try {
+      var econ = await fetchJSON('/api/economy/tiers');
+      var tiers = econ.tiers && typeof econ.tiers === 'object' ? econ.tiers : {};
+      var tierNames = Object.keys(tiers);
+      setText('stat-tiers', tierNames.length > 0 ? String(tierNames.length) : '—');
+      anySuccess = true;
+    } catch (e) {
+      setText('stat-tiers', '—');
+    }
+
+    if (anySuccess) markOnline();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadStats);
+  } else {
+    loadStats();
+  }
+}());
+</script>
 </body>
 </html>

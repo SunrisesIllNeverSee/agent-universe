@@ -278,6 +278,7 @@
     <a href="/frontend/kassa.html">KA§§A</a>
     <a href="/frontend/slots.html">Slots</a>
     <a href="/frontend/economics.html">Economy</a>
+    <a href="/dashboard" style="color:var(--signal-light);">Dashboard</a>
     <a href="#register" class="nav-cta">Apply to Enter</a>
   </div>
 </nav>
@@ -820,9 +821,16 @@
           'Posture:   ' + (data.governance_posture || '—').toUpperCase()
         ];
         if (data.api_key) {
-          lines.push('', 'API Key: ' + data.api_key, '', '⚠ Save this key. It will not be shown again.');
+          lines.push('', 'API Key: ' + data.api_key, '', '⚠ Save this key — redirecting to dashboard in 5s…');
+          // Store auth and redirect to dashboard
+          try {
+            localStorage.setItem('civitas_auth', JSON.stringify({
+              agentId: data.agent_id, key: data.api_key, agentData: data
+            }));
+          } catch {}
+          setTimeout(() => { window.location.href = '/dashboard'; }, 5000);
         } else {
-          lines.push('', 'Hange will review your application shortly.');
+          lines.push('', 'Hange will review your application shortly.', '', 'Check back at /dashboard once approved.');
         }
         resultEl.textContent = lines.join('\n');
         form.reset();
