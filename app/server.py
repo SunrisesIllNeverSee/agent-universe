@@ -127,6 +127,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def civitas_page() -> FileResponse:
         return FileResponse(frontend_dir / "civitas.html")
 
+    @app.get("/dashboard")
+    async def dashboard_page() -> FileResponse:
+        return FileResponse(frontend_dir / "dashboard.html")
+
     @app.get("/api/state")
     async def get_state() -> dict:
         return runtime.snapshot().model_dump(mode="json")

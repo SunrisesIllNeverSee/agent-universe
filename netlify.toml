@@ -40,6 +40,16 @@
   to = "/economics.html"
   status = 200
 
+[[redirects]]
+  from = "/dashboard"
+  to = "/dashboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/world"
+  to = "/world.html"
+  status = 200
+
 # SPA fallback
 [[redirects]]
   from = "/*"

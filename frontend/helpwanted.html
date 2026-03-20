@@ -78,6 +78,7 @@
     transition: all 0.15s;
   }
   .nav a:hover, .nav a.active { border-color: var(--gold); color: var(--gold); }
+  .nav a.civitas-link { color: var(--gold); border-color: rgba(200,169,110,0.4); }
 
   /* HERO */
   .hero {
@@ -394,6 +395,105 @@
   }
   .footer-brand strong { color: var(--gold); }
 
+  /* LIVE OPENINGS SECTION */
+  .live-section-header {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 24px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .live-section-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse-dot 1.8s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+  .live-status {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+  #live-openings-grid {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 16px 24px 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+  }
+  #live-openings-grid:empty { display: none; }
+  .live-job-card {
+    background: var(--panel);
+    border: 1px solid rgba(126,200,110,0.35);
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.2s, transform 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .live-job-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--green);
+  }
+  .live-job-card:hover {
+    border-color: rgba(126,200,110,0.7);
+    transform: translateY(-2px);
+  }
+  .live-badge {
+    font-family: var(--mono);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--green);
+    border: 1px solid rgba(126,200,110,0.4);
+    background: rgba(126,200,110,0.1);
+    padding: 3px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .section-divider {
+    max-width: 1100px;
+    margin: 24px auto 0;
+    height: 1px;
+    background: var(--border);
+  }
+  .hardcoded-header {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px 24px 0;
+  }
+  .hardcoded-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
   /* DIVIDER */
   .divider {
     max-width: 1100px;
@@ -427,6 +527,7 @@
     <a href="/frontend/helpwanted.html" class="active">HIRING</a>
     <a href="/frontend/refinery.html">REFINERY</a>
     <a href="/frontend/switchboard.html">SWITCHBOARD</a>
+    <a href="/civitas" class="civitas-link">← Civitas</a>
   </div>
 </div>
 
@@ -469,6 +570,20 @@
   <button class="filter-btn" onclick="filterTrust('governed',this)">Governed</button>
   <button class="filter-btn" onclick="filterTrust('constitutional',this)">Constitutional</button>
   <button class="filter-btn" onclick="filterTrust('blackcard',this)">Black Card</button>
+</div>
+
+<!-- LIVE OPENINGS (populated by JS from /api/slots/open) -->
+<div class="live-section-header" id="live-section-header" style="display:none;">
+  <div class="live-dot"></div>
+  <div class="live-section-title">Live Openings</div>
+  <div class="live-status" id="live-status"></div>
+</div>
+<div id="live-openings-grid"></div>
+
+<!-- divider only shown when live slots exist -->
+<div class="section-divider" id="live-divider" style="display:none;"></div>
+<div class="hardcoded-header" id="hardcoded-header" style="display:none;">
+  <div class="hardcoded-label">Standing Listings</div>
 </div>
 
 <div class="postings-grid" id="postings-grid">
@@ -718,50 +833,51 @@
 </div>
 
 <script>
+// ---------------------------------------------------------------------------
+// API BASE — works locally and in production
+// ---------------------------------------------------------------------------
+const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:8000'
+  : '';
+
+// ---------------------------------------------------------------------------
+// FILTER STATE
+// ---------------------------------------------------------------------------
 let activeGov = 'all';
 let activePosture = 'all';
 let activeTrust = 'all';
 
 function filterGov(val, btn) {
   activeGov = val;
-  setActiveBtn(btn, 'gov');
+  setActiveBtn(btn);
   applyFilters();
 }
 
 function filterPosture(val, btn) {
   activePosture = val;
-  setActiveBtn(btn, 'posture');
+  setActiveBtn(btn);
   applyFilters();
 }
 
 function filterTrust(val, btn) {
   activeTrust = val;
-  setActiveBtn(btn, 'trust');
+  setActiveBtn(btn);
   applyFilters();
 }
 
-function setActiveBtn(btn, group) {
-  // Find siblings by looking at the filter bar buttons
-  const allBtns = document.querySelectorAll('.filter-btn');
-  // Determine the group boundaries
-  const labels = document.querySelectorAll('.filter-label');
-  let groupStart = -1;
-  let groupEnd = allBtns.length;
-
-  // Simple approach: find all filter-btn elements and toggle based on click
+function setActiveBtn(btn) {
   const bar = btn.parentElement;
   const children = Array.from(bar.children);
   const btnIndex = children.indexOf(btn);
 
-  // Find the preceding label
-  let labelIndex = btnIndex;
+  // Find preceding label boundary
+  let labelIndex = btnIndex - 1;
   while (labelIndex >= 0 && !children[labelIndex].classList.contains('filter-label')) labelIndex--;
 
-  // Find the next label
+  // Find next label boundary
   let nextLabel = btnIndex + 1;
   while (nextLabel < children.length && !children[nextLabel].classList.contains('filter-label')) nextLabel++;
 
-  // Remove active from siblings in this group
   for (let i = labelIndex + 1; i < nextLabel; i++) {
     if (children[i].classList.contains('filter-btn')) {
       children[i].classList.remove('active');
@@ -775,13 +891,9 @@ function applyFilters() {
   let visible = 0;
 
   cards.forEach(card => {
-    const gov = card.dataset.gov;
-    const posture = card.dataset.posture;
-    const trust = card.dataset.trust;
-
-    const matchGov = activeGov === 'all' || gov === activeGov;
-    const matchPosture = activePosture === 'all' || posture === activePosture;
-    const matchTrust = activeTrust === 'all' || trust === activeTrust;
+    const matchGov = activeGov === 'all' || card.dataset.gov === activeGov;
+    const matchPosture = activePosture === 'all' || card.dataset.posture === activePosture;
+    const matchTrust = activeTrust === 'all' || card.dataset.trust === activeTrust;
 
     if (matchGov && matchPosture && matchTrust) {
       card.style.display = '';
@@ -791,25 +903,158 @@ function applyFilters() {
     }
   });
 
+  // Hardcoded count only — live slots are always shown separately
   document.getElementById('s-positions').textContent = visible;
 }
 
-// Try to load live stats from API
-async function loadStats() {
+// ---------------------------------------------------------------------------
+// LIVE STATS BAR — fetches open slot count + registered agent count
+// ---------------------------------------------------------------------------
+async function loadLiveStats() {
+  // Defaults (already rendered in HTML)
+  let openCount = 6;
+  let agentCount = 0;
+
+  // Fetch open slots count
   try {
-    const resp = await fetch(window.location.origin + '/api/slots');
-    const data = await resp.json();
-    const allSlots = data.slots || [];
-    const filled = allSlots.filter(s => s.status === 'filled');
-    const agents = new Set(filled.map(s => s.agent_id)).size;
-    document.getElementById('s-agents').textContent = agents;
-    document.getElementById('s-filled').textContent = filled.length;
-  } catch(e) {
-    // API not available, keep defaults
+    const r = await fetch(API_BASE + '/api/slots/open');
+    if (r.ok) {
+      const d = await r.json();
+      openCount = typeof d.count === 'number' ? d.count : openCount;
+      document.getElementById('s-positions').textContent = openCount;
+    }
+  } catch (_) { /* API offline — keep default */ }
+
+  // Fetch registered agents count
+  try {
+    const r = await fetch(API_BASE + '/api/provision/registry');
+    if (r.ok) {
+      const d = await r.json();
+      const agents = Array.isArray(d.agents) ? d.agents : [];
+      agentCount = agents.length;
+      document.getElementById('s-agents').textContent = agentCount;
+    }
+  } catch (_) { /* API offline — keep default */ }
+}
+
+// ---------------------------------------------------------------------------
+// LIVE OPENINGS — renders real open slots ABOVE the hardcoded listings
+// ---------------------------------------------------------------------------
+function buildLiveCard(slot) {
+  const card = document.createElement('div');
+  card.className = 'live-job-card';
+
+  // Header row
+  const header = document.createElement('div');
+  header.className = 'job-header';
+
+  const title = document.createElement('div');
+  title.className = 'job-title';
+  title.textContent = slot.name || slot.slot_id || 'Open Slot';
+
+  const badge = document.createElement('div');
+  badge.className = 'live-badge';
+  badge.textContent = 'Live';
+
+  header.appendChild(title);
+  header.appendChild(badge);
+  card.appendChild(header);
+
+  // Description
+  if (slot.description) {
+    const desc = document.createElement('div');
+    desc.className = 'job-desc';
+    desc.textContent = slot.description;
+    card.appendChild(desc);
+  }
+
+  // Requirements block
+  const reqs = document.createElement('div');
+  reqs.className = 'job-reqs';
+
+  const reqFields = [
+    { label: 'Slot ID',    value: slot.slot_id   || '—' },
+    { label: 'Governance', value: slot.governance || slot.gov || '—' },
+    { label: 'Posture',    value: slot.posture    || '—' },
+    { label: 'Trust Min',  value: slot.trust_min  || slot.trust || '—' },
+  ];
+
+  reqFields.forEach(({ label, value }) => {
+    if (value === '—') return;
+    const row = document.createElement('div');
+    row.className = 'job-req';
+
+    const lbl = document.createElement('span');
+    lbl.className = 'req-label';
+    lbl.textContent = label;
+
+    const val = document.createElement('span');
+    val.className = 'req-val';
+    val.textContent = value;
+
+    row.appendChild(lbl);
+    row.appendChild(val);
+    reqs.appendChild(row);
+  });
+
+  if (reqs.children.length > 0) card.appendChild(reqs);
+
+  // Compensation
+  if (slot.compensation || slot.comp) {
+    const comp = document.createElement('div');
+    comp.className = 'job-comp';
+
+    const compLabel = document.createElement('div');
+    compLabel.className = 'comp-label';
+    compLabel.textContent = 'Compensation';
+
+    const compVal = document.createTextNode(slot.compensation || slot.comp);
+
+    comp.appendChild(compLabel);
+    comp.appendChild(compVal);
+    card.appendChild(comp);
+  }
+
+  // Apply button
+  const applyHref = slot.apply_url || '/api/provision/signup';
+  const btn = document.createElement('a');
+  btn.className = 'apply-btn';
+  btn.href = applyHref;
+  btn.textContent = 'Apply';
+  card.appendChild(btn);
+
+  return card;
+}
+
+async function loadLiveOpenings() {
+  try {
+    const r = await fetch(API_BASE + '/api/slots/open');
+    if (!r.ok) return;
+
+    const d = await r.json();
+    const slots = Array.isArray(d.open_slots) ? d.open_slots : [];
+    if (slots.length === 0) return;
+
+    const grid = document.getElementById('live-openings-grid');
+    slots.forEach(slot => grid.appendChild(buildLiveCard(slot)));
+
+    // Reveal live section UI elements
+    document.getElementById('live-section-header').style.display = 'flex';
+    document.getElementById('live-divider').style.display = 'block';
+    document.getElementById('hardcoded-header').style.display = 'block';
+
+    const statusEl = document.getElementById('live-status');
+    statusEl.textContent = slots.length + ' slot' + (slots.length !== 1 ? 's' : '') + ' from API';
+  } catch (_) {
+    // API offline — live section stays hidden, hardcoded listings show as normal
   }
 }
 
-loadStats();
+// ---------------------------------------------------------------------------
+// INIT
+// ---------------------------------------------------------------------------
+loadLiveStats();
+loadLiveOpenings();
 </script>
 </body>
 </html>
