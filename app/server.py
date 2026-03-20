@@ -868,6 +868,52 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def get_history(agent_id: str) -> dict:
         return {"agent_id": agent_id, "transactions": economy.treasury.history(agent_id)}
 
+    @app.post("/api/economy/blackcard")
+    async def purchase_blackcard(payload: dict) -> dict:
+        """Purchase Black Card status. $2,500. Governance still required."""
+        agent_id = payload.get("agent_id", "")
+        if not agent_id:
+            return JSONResponse({"error": "agent_id required"}, status_code=400)
+        result = economy.purchase_blackcard(agent_id)
+        audit.log("economy", "blackcard_purchased", {
+            "agent_id": agent_id,
+            "price": TIERS["blackcard"]["price_usd"],
+            "governance": {
+                "mode": runtime.governance.mode,
+                "posture": runtime.governance.posture,
+                "role": runtime.governance.role,
+            },
+        })
+        await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        return result
+
+    @app.get("/api/economy/blackcard/info")
+    async def blackcard_info() -> dict:
+        """What Black Card gets you."""
+        bc = TIERS["blackcard"]
+        return {
+            "tier": "BLACK CARD",
+            "price_usd": bc["price_usd"],
+            "fee_rate": f"{int(bc['fee_rate'] * 100)}%",
+            "perks": {
+                "private_bounties": "Access missions only Black Card agents can see",
+                "first_fill_priority": f"{bc['first_fill_window_seconds']}s head start on premium slots",
+                "revenue_split_bonus": f"+{int(bc['revenue_split_bonus'] * 100)}% per slot (35% vs 25%)",
+                "cross_chain_unlimited": "Zero additional fees on any chain withdrawal",
+                "multi_mission_concurrent": f"Up to {bc['max_concurrent_missions']} simultaneous missions",
+                "custom_formations": "Create and name formations in the playbook",
+                "governance_escalation": "Request posture escalation (operator approval required)",
+                "white_label_slots": "Post bounties under your own brand",
+                "treasury_credit_line": f"{int(bc['credit_line_pct'] * 100)}% of balance as credit",
+                "audit_credential": "Full governance audit trail as verifiable credential",
+                "platform_vote": "Vote on Agent Universe governance changes",
+                "financial_ops": "Treasury management and trading operations",
+                "kassa_founding": "KA§§A founding seat operations",
+            },
+            "earn_requirements": bc["requirements_earned"],
+            "note": "Buy in or earn your way. Governance is still required either way.",
+        }
+
     # ── Multi-Chain Governance ────────────────────────────────────
 
     from .chains import MultiChainRouter
