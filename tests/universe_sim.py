@@ -254,7 +254,7 @@ class SimAgent:
                 "compliance_score":  0.88,
                 "missions_completed": self.missions_completed + 1,
             },
-            "gross_amount": round(gross, 2),
+            "amount":        round(gross, 2),
             "mission_id":   slot.get("mission_id", ""),
         })
         ok  = "_error" not in resp
