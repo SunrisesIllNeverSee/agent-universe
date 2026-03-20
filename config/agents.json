@@ -1,0 +1,8 @@
+{
+  "agents": [
+    { "name": "Email Agent", "role": "executor", "tools": ["send_email", "read_email", "draft"] },
+    { "name": "Search Agent", "role": "executor", "tools": ["web_search", "scrape", "summarize"] },
+    { "name": "Code Agent", "role": "executor", "tools": ["write_code", "run_code", "debug"] },
+    { "name": "File Agent", "role": "executor", "tools": ["read_file", "write_file", "organize"] }
+  ]
+}
