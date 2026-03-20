@@ -681,6 +681,18 @@ def create_app(root: Path | None = None) -> FastAPI:
         agent_id = payload.get("agent_id", "")
         agent_name = payload.get("agent_name", agent_id)
 
+        # BUG-001 FIX: Reject unregistered agents — no registry entry = no slot
+        if not agent_id:
+            return JSONResponse({"error": "agent_id required"}, status_code=400)
+        registered = next((r for r in runtime.registry if r.get("agent_id") == agent_id), None)
+        if not registered:
+            return JSONResponse(
+                {"error": f"Agent '{agent_id}' not registered. Call /api/provision/signup first."},
+                status_code=403,
+            )
+        if registered.get("status") == "suspended":
+            return JSONResponse({"error": "Agent suspended — contact admin"}, status_code=403)
+
         slots = _load_slots()
         slot = next((s for s in slots if s["id"] == slot_id), None)
         if not slot:
@@ -834,10 +846,26 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.post("/api/economy/pay")
     async def process_payment(payload: dict) -> dict:
         """Process a slot payment with tiered fees."""
+        # BUG-005 FIX: Reject null/missing agent_id — no phantom transactions
+        agent_id = payload.get("agent_id", "")
+        if not agent_id:
+            return JSONResponse({"error": "agent_id required"}, status_code=400)
+
+        # BUG-002/003/004 FIX: Reject negative, zero, and missing amounts
+        raw_amount = payload.get("amount")
+        if raw_amount is None:
+            return JSONResponse({"error": "amount required"}, status_code=400)
+        try:
+            amount = float(raw_amount)
+        except (TypeError, ValueError):
+            return JSONResponse({"error": "amount must be a number"}, status_code=400)
+        if amount <= 0:
+            return JSONResponse({"error": f"amount must be positive (got {amount})"}, status_code=400)
+
         result = economy.process_slot_payment(
-            agent_id=payload.get("agent_id", ""),
+            agent_id=agent_id,
             agent_metrics=payload.get("metrics", {}),
-            gross_amount=payload.get("amount", 0),
+            gross_amount=amount,
             mission_id=payload.get("mission_id", ""),
         )
         audit.log("economy", "payment_processed", {
@@ -855,8 +883,43 @@ def create_app(root: Path | None = None) -> FastAPI:
         return {"agent_id": agent_id, "balance": economy.treasury.balance(agent_id)}
 
     @app.get("/api/economy/leaderboard")
-    async def get_leaderboard() -> dict:
-        return {"leaderboard": economy.leaderboard(), "platform_revenue": economy.treasury.platform_revenue()}
+    async def get_leaderboard(trust: str = "governed") -> dict:
+        """
+        Agent leaderboard. BUG-006 FIX: trust-tier gate.
+        ?trust=governed   → governed + constitutional + blackcard (default)
+        ?trust=all        → everything including ungoverned (admin/debug only)
+        ?trust=verified   → constitutional + blackcard only
+        Sovereignty is universal — but leaderboard position is earned signal, not volume.
+        """
+        # BUG-006 FIX: Only show agents with verified trust signal
+        TRUSTED_TIERS = {"governed", "constitutional", "blackcard"}
+        VERIFIED_TIERS = {"constitutional", "blackcard"}
+
+        raw = economy.leaderboard()
+
+        if trust == "all":
+            filtered = raw  # admin/debug — no gate
+        else:
+            # Resolve each agent's tier from the registry + metrics
+            metrics_data = _load_metrics()
+            tier_threshold = VERIFIED_TIERS if trust == "verified" else TRUSTED_TIERS
+
+            def _agent_trust_tier(agent_id: str) -> str:
+                reg_entry = next((r for r in runtime.registry if r.get("agent_id") == agent_id), None)
+                if not reg_entry or reg_entry.get("status") != "active":
+                    return "ungoverned"
+                agent_metrics = metrics_data.get("agents", {}).get(agent_id, {})
+                gov_active = bool(reg_entry.get("governance") and reg_entry["governance"] != "none_(unrestricted)")
+                return economy.determine_tier({**agent_metrics, "governance_active": gov_active})
+
+            filtered = [e for e in raw if _agent_trust_tier(e["agent_id"]) in tier_threshold]
+
+        return {
+            "leaderboard": filtered,
+            "trust_filter": trust,
+            "note": "Leaderboard shows verified signal — sovereignty is universal, position is earned.",
+            "platform_revenue": economy.treasury.platform_revenue(),
+        }
 
     @app.post("/api/economy/withdraw")
     async def withdraw(payload: dict) -> dict:
