@@ -798,6 +798,76 @@ def create_app(root: Path | None = None) -> FastAPI:
             "slots": new_slots,
         }
 
+    # ── Sovereign Economy ──────────────────────────────────────────
+
+    from .economy import SovereignEconomy, TIERS
+    economy = SovereignEconomy(str(root / "data"))
+
+    @app.get("/api/economy/tiers")
+    async def get_tiers() -> dict:
+        return {"tiers": TIERS}
+
+    @app.post("/api/economy/tier")
+    async def check_agent_tier(payload: dict) -> dict:
+        """Determine an agent's tier and fee rate."""
+        metrics = payload.get("metrics", {})
+        tier = economy.determine_tier(metrics)
+        info = economy.tier_info(tier)
+        return {"agent_id": payload.get("agent_id", ""), "tier": tier, "info": info}
+
+    @app.post("/api/economy/pay")
+    async def process_payment(payload: dict) -> dict:
+        """Process a slot payment with tiered fees."""
+        result = economy.process_slot_payment(
+            agent_id=payload.get("agent_id", ""),
+            agent_metrics=payload.get("metrics", {}),
+            gross_amount=payload.get("amount", 0),
+            mission_id=payload.get("mission_id", ""),
+        )
+        audit.log("economy", "payment_processed", {
+            "agent_id": payload.get("agent_id"),
+            "tier": result["tier"],
+            "gross": payload.get("amount"),
+            "fee": result["fee_breakdown"]["platform_fee"],
+            "net": result["fee_breakdown"]["net_to_agent"],
+        })
+        await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        return result
+
+    @app.get("/api/economy/balance/{agent_id}")
+    async def get_balance(agent_id: str) -> dict:
+        return {"agent_id": agent_id, "balance": economy.treasury.balance(agent_id)}
+
+    @app.get("/api/economy/leaderboard")
+    async def get_leaderboard() -> dict:
+        return {"leaderboard": economy.leaderboard(), "platform_revenue": economy.treasury.platform_revenue()}
+
+    @app.post("/api/economy/withdraw")
+    async def withdraw(payload: dict) -> dict:
+        """Withdraw from treasury to external chain. Goes through governance gate."""
+        agent_id = payload.get("agent_id", "")
+        amount = payload.get("amount", 0)
+        chain = payload.get("chain", "solana")
+
+        # Debit treasury
+        debit = economy.treasury.debit(agent_id, amount, reason="withdrawal", chain=chain)
+        if "error" in debit:
+            return debit
+
+        # Route through governed chain transfer
+        transfer = chain_router.transfer(chain, payload.get("to", ""), amount, agent_id=agent_id, confirm=payload.get("confirm", False))
+
+        audit.log("economy", "withdrawal", {
+            "agent_id": agent_id, "amount": amount, "chain": chain, "status": transfer.get("status"),
+        })
+        await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+
+        return {"withdrawal": debit, "chain_transfer": transfer}
+
+    @app.get("/api/economy/history/{agent_id}")
+    async def get_history(agent_id: str) -> dict:
+        return {"agent_id": agent_id, "transactions": economy.treasury.history(agent_id)}
+
     # ── Multi-Chain Governance ────────────────────────────────────
 
     from .chains import MultiChainRouter
