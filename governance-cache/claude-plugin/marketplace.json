@@ -1,0 +1,28 @@
+{
+  "name": "moses-governance-marketplace",
+  "owner": {
+    "name": "Ello Cello LLC",
+    "email": "burnmydays@proton.me",
+    "url": "https://mos2es.io"
+  },
+  "metadata": {
+    "description": "MO§E§™ Constitutional Governance for Claude — behavioral modes, role hierarchy, posture controls, cryptographic audit trails. Patent-pending."
+  },
+  "plugins": [
+    {
+      "name": "moses-governance",
+      "source": ".",
+      "version": "1.0.0",
+      "description": "Constitutional governance framework for Claude. 9 commands, 6 skills, 3 agents, hooks, and cryptographic audit trails.",
+      "category": "enterprise",
+      "keywords": [
+        "governance",
+        "security",
+        "compliance",
+        "audit",
+        "enterprise",
+        "constitutional-ai"
+      ]
+    }
+  ]
+}

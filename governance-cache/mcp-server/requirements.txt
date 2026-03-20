@@ -1,0 +1,17 @@
+# MO§ES™ MCP Server — Dependencies
+# © 2026 Ello Cello LLC | Patent Pending: Serial No. 63/877,177
+#
+# Install: pip install -r requirements.txt
+#
+# Required
+fastmcp>=3.0.0
+#
+# Optional — commitment scoring (TF-IDF, falls back to word-overlap without)
+scikit-learn>=1.0.0
+numpy>=1.21.0
+#
+# Optional — Grok Oracle external verification (falls back to local-only without)
+httpx>=0.24.0
+#
+# Optional — .env support for XAI_GROK_API_KEY
+python-dotenv>=1.0.0

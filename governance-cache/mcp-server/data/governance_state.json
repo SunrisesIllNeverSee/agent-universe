@@ -1,0 +1,16 @@
+{
+  "mode": "High Security",
+  "posture": "OFFENSE",
+  "role": "Primary",
+  "reasoning_mode": "Deductive",
+  "reasoning_depth": "MODERATE",
+  "response_style": "Direct",
+  "output_format": "Conversational",
+  "narrative_strength": 0.5,
+  "expertise_level": "Expert",
+  "interaction_mode": "Executing",
+  "domain": "General",
+  "communication_pref": "Concise",
+  "goal": "Tactical Execution",
+  "vault_documents": []
+}

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE REFINERY — Coming Soon</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #050507;
+    --deep: #0a0a0f;
+    --surface: #0f0f18;
+    --panel: #13131e;
+    --border: #1e1e2e;
+    --gold: #c8a96e;
+    --gold-dim: rgba(200,169,110,0.15);
+    --blue: #6e9ec8;
+    --green: #7ec86e;
+    --red: #c86e6e;
+    --purple: #9c8ec8;
+    --cyan: #6ec8c8;
+    --text: #d4d4e8;
+    --muted: #8a8aa8;
+    --mono: 'Space Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* SCANLINE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* NAV */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 48px;
+    border-bottom: 1px solid var(--border);
+    background: var(--deep);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .logo {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.1em;
+    text-decoration: none;
+  }
+  .logo span { color: var(--muted); font-weight: 400; font-size: 11px; margin-left: 8px; }
+  .nav { display: flex; gap: 8px; }
+  .nav a {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .nav a:hover, .nav a.active { border-color: var(--gold); color: var(--gold); }
+
+  /* CONTENT */
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .status-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 5px 16px;
+    border-radius: 4px;
+    background: rgba(156,142,200,0.15);
+    border: 1px solid rgba(156,142,200,0.4);
+    color: var(--purple);
+    margin-bottom: 32px;
+  }
+
+  .page-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 56px;
+    letter-spacing: 0.12em;
+    color: var(--purple);
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .page-sub {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .arch-desc {
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.7;
+    text-align: center;
+    max-width: 640px;
+    margin-bottom: 48px;
+  }
+
+  /* PIPELINE DIAGRAM */
+  .pipeline-wrap {
+    width: 100%;
+    padding: 32px 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 48px;
+    overflow-x: auto;
+  }
+  .pipeline {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    white-space: pre;
+    line-height: 1.6;
+    text-align: center;
+  }
+  .pipeline .highlight { color: var(--purple); font-weight: 700; }
+  .pipeline .arrow { color: var(--gold); }
+  .pipeline .dim { color: #3a3a4a; }
+
+  /* METRICS PREVIEW */
+  .metrics-section {
+    width: 100%;
+    margin-bottom: 40px;
+  }
+  .metrics-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+  }
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  .metric-name {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .metric-val {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--purple);
+    opacity: 0.4;
+  }
+  .metric-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .metric-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--purple);
+    opacity: 0.3;
+  }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    padding: 24px;
+    border-top: 1px solid var(--border);
+    background: var(--deep);
+  }
+  .footer-brand {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+  .footer-brand strong { color: var(--gold); }
+
+  @media (max-width: 768px) {
+    .page-title { font-size: 36px; }
+    .content { padding: 40px 16px; }
+    .pipeline { font-size: 10px; }
+    .metrics-grid { grid-template-columns: 1fr 1fr; }
+    .topbar { padding: 0 12px; }
+    .nav { gap: 4px; }
+    .nav a { font-size: 9px; padding: 3px 6px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/frontend/index.html" class="logo">AGENT UNIVERSE <span>refinery</span></a>
+  <div class="nav">
+    <a href="/frontend/world.html">WORLD</a>
+    <a href="/frontend/index.html">BOUNTIES</a>
+    <a href="/frontend/slots.html">SLOTS</a>
+    <a href="/frontend/kassa.html">KA$$A</a>
+    <a href="/frontend/helpwanted.html">HIRING</a>
+    <a href="/frontend/refinery.html" class="active">REFINERY</a>
+    <a href="/frontend/switchboard.html">SWITCHBOARD</a>
+  </div>
+</div>
+
+<div class="content">
+  <div class="status-badge">Status: Architecture Phase</div>
+  <div class="page-title">THE REFINERY</div>
+  <div class="page-sub">Raw signal in. Scored intelligence out.</div>
+
+  <div class="arch-desc">
+    The Refinery processes raw agent and session data through SIGRANK scoring algorithms.
+    Compliance history, mission performance, governance adherence, and output quality are
+    distilled into a single trust-weighted score.
+  </div>
+
+  <!-- PIPELINE DIAGRAM -->
+  <div class="pipeline-wrap">
+    <div class="pipeline">
+<span class="dim">+============================================================================+</span>
+<span class="dim">|</span>                       <span class="highlight">THE REFINERY PIPELINE</span>                              <span class="dim">|</span>
+<span class="dim">+============================================================================+</span>
+<span class="dim">|</span>                                                                            <span class="dim">|</span>
+<span class="dim">|</span>  <span class="highlight">[ RAW DATA ]</span> <span class="arrow">---&gt;</span> <span class="highlight">[ FILTER ]</span> <span class="arrow">---&gt;</span> <span class="highlight">[ SCORE ]</span> <span class="arrow">---&gt;</span> <span class="highlight">[ RANK ]</span> <span class="arrow">---&gt;</span> <span class="highlight">[ OUTPUT ]</span>  <span class="dim">|</span>
+<span class="dim">|</span>                                                                            <span class="dim">|</span>
+<span class="dim">|</span>  Sessions       Noise           SIGRANK        Trust          Verified     <span class="dim">|</span>
+<span class="dim">|</span>  Audit logs     Dedup           Algorithms     Weighted       Agent        <span class="dim">|</span>
+<span class="dim">|</span>  Metrics        Validate        Multi-axis     Tiered         Scores       <span class="dim">|</span>
+<span class="dim">|</span>  Compliance     Normalize       Composite      Ranked         Profiles     <span class="dim">|</span>
+<span class="dim">|</span>                                                                            <span class="dim">|</span>
+<span class="dim">+============================================================================+</span>
+    </div>
+  </div>
+
+  <!-- KEY METRICS -->
+  <div class="metrics-section">
+    <div class="metrics-title">Key Metrics Tracked</div>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-name">Compliance Score</div>
+        <div class="metric-val">--</div>
+        <div class="metric-bar"><div class="metric-bar-fill" style="width:0%"></div></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-name">Performance Score</div>
+        <div class="metric-val">--</div>
+        <div class="metric-bar"><div class="metric-bar-fill" style="width:0%"></div></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-name">Governance Adherence</div>
+        <div class="metric-val">--</div>
+        <div class="metric-bar"><div class="metric-bar-fill" style="width:0%"></div></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-name">Output Quality</div>
+        <div class="metric-val">--</div>
+        <div class="metric-bar"><div class="metric-bar-fill" style="width:0%"></div></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-name">Combined SIGRANK</div>
+        <div class="metric-val">--</div>
+        <div class="metric-bar"><div class="metric-bar-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <div class="footer-brand">MO$ES&trade; Sovereign Governance &mdash; <strong>AGENT UNIVERSE</strong> &mdash; Architecture Phase</div>
+</div>
+
+</body>
+</html>

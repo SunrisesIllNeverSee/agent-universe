@@ -1,0 +1,12 @@
+{
+  "preferences": {
+    "governance_mode": "None (Unrestricted)",
+    "posture": "SCOUT",
+    "role": "Primary",
+    "reasoning_depth": "MODERATE",
+    "reasoning_mode": "Deductive",
+    "response_style": "Direct",
+    "output_format": "Conversational",
+    "narrative_strength": 50
+  }
+}
