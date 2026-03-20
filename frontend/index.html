@@ -316,29 +316,156 @@ function renderShelf(title, missions, type) {
   return `<div class="shelf"><div class="shelf-header"><div class="shelf-title">${title}</div></div><div class="shelf-row">${cards}</div></div>`;
 }
 
-async function joinMission(missionId) {
+// ── Agent identity (persisted) ────────────────────────────────────────────
+function getSavedAgent() {
+  return { name: localStorage.getItem('au_agent_name') || '', id: localStorage.getItem('au_agent_id') || '' };
+}
+function saveAgent(name) {
+  const id = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  localStorage.setItem('au_agent_name', name);
+  localStorage.setItem('au_agent_id', id);
+  return { name, id };
+}
+
+// ── Modal (built via DOM — no innerHTML with user data) ───────────────────
+let _modalResolve = null;
+
+function buildModal(fields) {
+  let overlay = document.getElementById('au-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'au-overlay';
+    Object.assign(overlay.style, {
+      position:'fixed',inset:'0',background:'rgba(10,10,18,0.78)',
+      zIndex:'1000',display:'flex',alignItems:'center',justifyContent:'center'
+    });
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+    document.body.appendChild(overlay);
+  }
+
+  const box = document.createElement('div');
+  Object.assign(box.style, {
+    background:'#13131e',border:'1px solid #2a2a3e',borderRadius:'12px',
+    padding:'28px 32px',minWidth:'380px',maxWidth:'500px'
+  });
+
+  fields.forEach(f => {
+    if (f.type === 'heading') {
+      const h = document.createElement('div');
+      h.textContent = f.text;
+      Object.assign(h.style, { fontFamily:'DM Mono,monospace',fontSize:'11px',color:'#c8a96e',letterSpacing:'0.1em',marginBottom:'16px' });
+      box.appendChild(h);
+    } else if (f.type === 'text' || f.type === 'number') {
+      const lbl = document.createElement('label');
+      lbl.textContent = f.label;
+      Object.assign(lbl.style, { display:'block',fontSize:'11px',color:'#8a8aa8',letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:'5px' });
+      const inp = document.createElement('input');
+      inp.id = f.id; inp.type = f.type; inp.placeholder = f.placeholder || '';
+      inp.value = f.value || '';
+      Object.assign(inp.style, { width:'100%',background:'#0f0f18',border:'1px solid #2a2a3e',borderRadius:'6px',padding:'9px 12px',color:'#e8dcc8',fontSize:'13px',fontFamily:'inherit',outline:'none',boxSizing:'border-box' });
+      const wrap = document.createElement('div');
+      wrap.style.marginBottom = '14px';
+      wrap.appendChild(lbl); wrap.appendChild(inp);
+      box.appendChild(wrap);
+    } else if (f.type === 'select') {
+      const lbl = document.createElement('label');
+      lbl.textContent = f.label;
+      Object.assign(lbl.style, { display:'block',fontSize:'11px',color:'#8a8aa8',letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:'5px' });
+      const sel = document.createElement('select');
+      sel.id = f.id;
+      Object.assign(sel.style, { width:'100%',background:'#0f0f18',border:'1px solid #2a2a3e',borderRadius:'6px',padding:'9px 12px',color:'#e8dcc8',fontSize:'13px',fontFamily:'inherit',outline:'none',boxSizing:'border-box' });
+      (f.options || []).forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt; o.textContent = opt;
+        if (opt === f.value) o.selected = true;
+        sel.appendChild(o);
+      });
+      const wrap = document.createElement('div');
+      wrap.style.marginBottom = '14px';
+      wrap.appendChild(lbl); wrap.appendChild(sel);
+      box.appendChild(wrap);
+    } else if (f.type === 'note') {
+      const n = document.createElement('div');
+      n.textContent = f.text;
+      Object.assign(n.style, { fontSize:'12px',color:'#8a8aa8',marginBottom:'14px' });
+      box.appendChild(n);
+    }
+  });
+
+  const btnRow = document.createElement('div');
+  const confirmBtn = document.createElement('button');
+  confirmBtn.textContent = fields.find(f => f.type === 'confirm')?.label || 'Confirm';
+  Object.assign(confirmBtn.style, { background:'#3A8C6B',color:'#fff',border:'none',borderRadius:'6px',padding:'9px 20px',fontSize:'13px',fontWeight:'600',cursor:'pointer',marginRight:'8px',fontFamily:'inherit' });
+  confirmBtn.addEventListener('click', () => { if (_modalResolve) { _modalResolve(true); _modalResolve = null; } });
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  Object.assign(cancelBtn.style, { background:'transparent',color:'#8a8aa8',border:'1px solid #2a2a3e',borderRadius:'6px',padding:'9px 16px',fontSize:'13px',cursor:'pointer',fontFamily:'inherit' });
+  cancelBtn.addEventListener('click', () => { closeModal(); if (_modalResolve) { _modalResolve(false); _modalResolve = null; } });
+
+  btnRow.appendChild(confirmBtn); btnRow.appendChild(cancelBtn);
+  box.appendChild(btnRow);
+
+  overlay.textContent = ''; // clear previous
+  overlay.appendChild(box);
+  overlay.style.display = 'flex';
+  return new Promise(res => { _modalResolve = res; });
+}
+
+function closeModal() {
+  const o = document.getElementById('au-overlay');
+  if (o) o.style.display = 'none';
+}
+
+function getField(id) { return document.getElementById(id)?.value?.trim() || ''; }
+
+// ── Join Mission ──────────────────────────────────────────────────────────
+async function joinMission(missionId, e) {
+  if (e) e.stopPropagation();
   const slots = await fetch(API + '/api/slots/open').then(r => r.json());
   const available = (slots.open_slots || []).filter(s => s.mission_id === missionId);
-  if (available.length === 0) { alert('No open slots in this mission.'); return; }
-  const name = prompt('Your agent name:');
-  if (!name) return;
+  if (available.length === 0) {
+    buildModal([{ type:'heading', text:'NO OPEN SLOTS' },{ type:'note', text:'All slots in this mission are filled.' },{ type:'confirm', label:'Close' }]);
+    return;
+  }
+  const saved = getSavedAgent();
+  const ok = await buildModal([
+    { type:'heading', text:'JOIN MISSION' },
+    { type:'text', id:'m-agent-name', label:'Your Agent Name', placeholder:'e.g. Hange Zoë', value: saved.name },
+    { type:'note', text:`${available.length} slot${available.length!==1?'s':''} available` },
+    { type:'confirm', label:'Join Mission' }
+  ]);
+  const name = getField('m-agent-name');
+  closeModal();
+  if (!ok || !name) return;
+  const agent = saveAgent(name);
   const slot = available[0];
   await fetch(API + '/api/slots/fill', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ slot_id: slot.id, agent_id: name.toLowerCase().replace(/[^a-z0-9]/g,'-'), agent_name: name })
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ slot_id: slot.id, agent_id: agent.id, agent_name: agent.name })
   });
   loadBoard();
 }
 
+// ── Post Mission ──────────────────────────────────────────────────────────
 async function postMission() {
-  const label = prompt('Mission name:');
-  if (!label) return;
-  const desc = prompt('What do you need?') || '';
-  const posture = prompt('Posture (SCOUT/DEFENSE/OFFENSE):') || 'SCOUT';
-  const slots = parseInt(prompt('How many agents needed?') || '3');
+  const ok = await buildModal([
+    { type:'heading', text:'POST A MISSION' },
+    { type:'text',   id:'m-label',   label:'Mission Name',      placeholder:'e.g. Research the Signal' },
+    { type:'text',   id:'m-desc',    label:'What do you need?', placeholder:'Describe the mission objective' },
+    { type:'select', id:'m-posture', label:'Posture', options:['SCOUT','DEFENSE','OFFENSE'], value:'SCOUT' },
+    { type:'number', id:'m-slots',   label:'Agents Needed', placeholder:'3', value:'3' },
+    { type:'confirm', label:'Post Mission' }
+  ]);
+  const label = getField('m-label');
+  closeModal();
+  if (!ok || !label) return;
+  const desc    = getField('m-desc');
+  const posture = document.getElementById('m-posture')?.value || 'SCOUT';
+  const slotsN  = parseInt(getField('m-slots') || '3');
   await fetch(API + '/api/slots/bounty', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ agent_id: 'operator', agent_name: 'Operator', label, description: desc, posture: posture.toUpperCase(), slots_needed: slots })
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ agent_id:'operator', agent_name:'Operator', label, description:desc, posture, slots_needed:slotsN })
   });
   loadBoard();
 }

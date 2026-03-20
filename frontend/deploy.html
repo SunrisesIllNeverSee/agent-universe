@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEPLOY — Tactical Board</title>
+<style>
+  :root { --bg: #050507; --deep: #0a0a0f; --surface: #0f0f18; --panel: #13131e; --border: #1e1e2e; --accent: #6e9ec8; --accent2: #c8a96e; --signal: #7ec86e; --warn: #c86e6e; --text: #d4d4e8; --muted: #8a8aa8; --mono: 'Share Tech Mono', monospace; --display: 'Syne', sans-serif; --body: 'DM Sans', sans-serif; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--body); height: 100vh; display: grid; grid-template-rows: 48px 1fr; overflow: hidden; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid var(--border); background: var(--deep); }
+  .logo { font-family: var(--display); font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 0.12em; }
+  .logo span { color: var(--accent2); margin-left: 6px; }
+  .nav-links { display: flex; gap: 12px; }
+  .nav-link { font-family: var(--mono); font-size: 12px; color: var(--muted); text-decoration: none; padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; }
+  .nav-link:hover { border-color: var(--accent); color: var(--accent); }
+  .nav-link.active { border-color: var(--accent); color: var(--accent); background: rgba(110,158,200,0.08); }
+
+  .layout { display: grid; grid-template-columns: 220px 1fr 220px; min-height: 0; }
+
+  /* Left: Agent Bench */
+  .bench { background: var(--deep); border-right: 1px solid var(--border); padding: 12px; overflow-y: auto; }
+  .bench-title { font-family: var(--mono); font-size: 11px; color: var(--accent2); letter-spacing: 0.12em; margin-bottom: 10px; }
+  .bench-agent { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; cursor: grab; transition: all 0.15s; user-select: none; }
+  .bench-agent:hover { border-color: var(--accent); }
+  .bench-agent.dragging { opacity: 0.4; }
+  .bench-agent .name { font-family: var(--mono); font-size: 12px; color: var(--text); }
+  .bench-agent .role { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .bench-agent .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; }
+  .dot.primary { background: var(--accent2); }
+  .dot.secondary { background: var(--accent); }
+  .dot.observer { background: #9c8ec8; }
+  .dot.agent { background: var(--signal); }
+
+  /* Center: Tactical Grid */
+  .battlefield { position: relative; background: var(--surface); overflow: hidden; display: flex; flex-direction: column; }
+
+  .grid-controls { display: flex; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--deep); flex-shrink: 0; }
+  .grid-btn { padding: 4px 10px; font-family: var(--mono); font-size: 11px; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; }
+  .grid-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .grid-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(110,158,200,0.08); }
+  .posture-chip { padding: 4px 10px; font-family: var(--mono); font-size: 11px; border-radius: 4px; cursor: pointer; border: 1px solid; }
+  .posture-chip.scout { border-color: rgba(126,200,110,0.4); color: var(--signal); }
+  .posture-chip.scout.active { background: rgba(126,200,110,0.12); }
+  .posture-chip.defense { border-color: rgba(200,169,110,0.4); color: var(--accent2); }
+  .posture-chip.defense.active { background: rgba(200,169,110,0.12); }
+  .posture-chip.offense { border-color: rgba(200,110,110,0.4); color: var(--warn); }
+  .posture-chip.offense.active { background: rgba(200,110,110,0.12); }
+
+  .grid-container { flex: 1; position: relative; overflow: hidden; }
+
+  /* The actual grid */
+  .tac-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); gap: 1px; background: rgba(30,30,46,0.5); aspect-ratio: 1; }
+  .tac-cell { background: rgba(15,15,24,0.6); border: 1px solid rgba(30,30,46,0.4); position: relative; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .tac-cell:hover { background: rgba(110,158,200,0.04); border-color: rgba(110,158,200,0.15); }
+  .tac-cell.drop-target { background: rgba(110,158,200,0.08); border-color: var(--accent); }
+  .tac-cell.zone-target { background: rgba(200,110,110,0.06); border: 1px dashed rgba(200,110,110,0.3); }
+
+  /* Zone labels */
+  .zone-label { position: absolute; top: 2px; left: 4px; font-family: var(--mono); font-size: 9px; color: rgba(138,138,168,0.4); letter-spacing: 0.06em; pointer-events: none; }
+
+  /* Placed agents on the grid */
+  .grid-piece { width: 48px; height: 48px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: grab; user-select: none; transition: transform 0.1s; position: relative; }
+  .grid-piece:hover { transform: scale(1.08); }
+  .grid-piece .piece-icon { font-size: 18px; line-height: 1; }
+  .grid-piece .piece-label { font-family: var(--mono); font-size: 8px; letter-spacing: 0.04em; margin-top: 2px; }
+  .grid-piece.primary { background: rgba(200,169,110,0.2); border: 2px solid var(--accent2); color: var(--accent2); }
+  .grid-piece.secondary { background: rgba(110,158,200,0.2); border: 2px solid var(--accent); color: var(--accent); }
+  .grid-piece.observer { background: rgba(156,142,200,0.15); border: 2px solid #9c8ec8; color: #9c8ec8; }
+  .grid-piece.agent-piece { background: rgba(126,200,110,0.15); border: 2px solid var(--signal); color: var(--signal); }
+  .grid-piece.target-piece { background: rgba(200,110,110,0.15); border: 2px solid var(--warn); color: var(--warn); border-radius: 50%; }
+
+  /* Right: Mission Config */
+  .config { background: var(--deep); border-left: 1px solid var(--border); padding: 12px; overflow-y: auto; }
+  .config-title { font-family: var(--mono); font-size: 11px; color: var(--accent2); letter-spacing: 0.12em; margin-bottom: 10px; }
+  .config-section { margin-bottom: 14px; }
+  .config-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 4px; }
+  .config-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; color: var(--text); font-family: var(--mono); font-size: 12px; }
+  .config-input:focus { border-color: var(--accent); outline: none; }
+  .config-select { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; color: var(--text); font-family: var(--mono); font-size: 12px; }
+
+  .formation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 6px; }
+  .formation-btn { padding: 6px; font-family: var(--mono); font-size: 10px; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; text-align: center; }
+  .formation-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .formation-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(110,158,200,0.08); }
+
+  .deploy-btn { width: 100%; padding: 10px; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--display); font-weight: 600; font-size: 13px; cursor: pointer; letter-spacing: 0.06em; margin-top: 12px; }
+  .deploy-btn:hover { opacity: 0.85; }
+
+  .placed-list { margin-top: 10px; }
+  .placed-item { font-family: var(--mono); font-size: 10px; color: var(--muted); padding: 3px 0; display: flex; justify-content: space-between; }
+  .placed-item .pos { color: var(--accent); }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap">
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">DEPLOY <span>tactical board</span></div>
+  <div class="nav-links">
+    <a href="/" class="nav-link">COMMAND</a>
+    <a href="/deploy" class="nav-link active">DEPLOY</a>
+    <a href="/campaign" class="nav-link">CAMPAIGN</a>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- Left: Agent Bench -->
+  <div class="bench">
+    <div class="bench-title">SYSTEMS</div>
+    <div id="system-bench"></div>
+    <div class="bench-title" style="margin-top:14px;">AGENTS</div>
+    <div id="agent-bench"></div>
+    <div class="bench-title" style="margin-top:14px;">TARGETS</div>
+    <div id="target-bench">
+      <div class="bench-agent" draggable="true" data-type="target" data-id="target-1" data-name="Primary Target">
+        <div class="name"><span class="dot" style="background:var(--warn)"></span>Primary Target</div>
+        <div class="role">drag to grid</div>
+      </div>
+      <div class="bench-agent" draggable="true" data-type="target" data-id="target-2" data-name="Secondary Target">
+        <div class="name"><span class="dot" style="background:var(--accent2)"></span>Secondary Target</div>
+        <div class="role">drag to grid</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center: Tactical Grid -->
+  <div class="battlefield">
+    <div class="grid-controls">
+      <span style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-right:8px;">POSTURE:</span>
+      <button class="posture-chip scout active" onclick="setPosture('scout',this)">SCOUT</button>
+      <button class="posture-chip defense" onclick="setPosture('defense',this)">DEFENSE</button>
+      <button class="posture-chip offense" onclick="setPosture('offense',this)">OFFENSE</button>
+      <span style="flex:1"></span>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-right:8px;">FORMATION:</span>
+      <span id="formation-buttons"></span>
+      <button class="grid-btn" onclick="clearGrid()">CLEAR</button>
+    </div>
+    <div class="grid-container">
+      <div class="tac-grid" id="tac-grid"></div>
+    </div>
+  </div>
+
+  <!-- Right: Mission Config -->
+  <div class="config">
+    <div class="config-title">MISSION CONFIG</div>
+    <div class="config-section">
+      <div class="config-label">LABEL</div>
+      <input class="config-input" id="cfg-label" placeholder="RECON-ALPHA">
+    </div>
+    <div class="config-section">
+      <div class="config-label">OBJECTIVE</div>
+      <select class="config-select" id="cfg-objective">
+        <option value="">Select...</option>
+        <option>Research & Synthesis</option>
+        <option>Code & Debugging</option>
+        <option>Content & Copy</option>
+        <option>Data & Reporting</option>
+        <option>Financial Operations</option>
+      </select>
+    </div>
+    <div class="config-section">
+      <div class="config-label">TARGET</div>
+      <input class="config-input" id="cfg-target" placeholder="codebase, market, dataset...">
+    </div>
+    <div class="config-section">
+      <div class="config-label">DURATION</div>
+      <select class="config-select" id="cfg-duration">
+        <option value="sprint">SPRINT</option>
+        <option value="long">LONG GAME</option>
+        <option value="persistent">PERSISTENT</option>
+      </select>
+    </div>
+    <div class="config-section">
+      <div class="config-label">PLACED UNITS</div>
+      <div class="placed-list" id="placed-list"></div>
+    </div>
+    <button class="deploy-btn" onclick="deployMission()">DEPLOY MISSION ⚡</button>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+const GRID_COLS = 8;
+const GRID_ROWS = 8;
+let placed = {}; // { cellIndex: { type, id, name, role } }
+let currentPosture = 'scout';
+let dragData = null;
+
+// Zone labels
+const ZONES = [
+  { row: 0, col: 0, label: 'RECON' }, { row: 0, col: 6, label: 'INTEL' },
+  { row: 2, col: 0, label: 'FLANK L' }, { row: 2, col: 6, label: 'FLANK R' },
+  { row: 3, col: 3, label: 'MID' }, { row: 3, col: 4, label: 'FIELD' },
+  { row: 5, col: 0, label: 'SUPPORT' }, { row: 5, col: 6, label: 'RESERVE' },
+  { row: 7, col: 0, label: 'BASE' }, { row: 7, col: 6, label: 'HOME' },
+];
+
+function buildGrid() {
+  const grid = document.getElementById('tac-grid');
+  grid.innerHTML = '';
+  for (let r = 0; r < GRID_ROWS; r++) {
+    for (let c = 0; c < GRID_COLS; c++) {
+      const idx = r * GRID_COLS + c;
+      const cell = document.createElement('div');
+      cell.className = 'tac-cell';
+      cell.dataset.index = idx;
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+
+      // Zone label
+      const zone = ZONES.find(z => z.row === r && z.col === c);
+      if (zone) {
+        const lbl = document.createElement('div');
+        lbl.className = 'zone-label';
+        lbl.textContent = zone.label;
+        cell.appendChild(lbl);
+      }
+
+      // Drop handlers
+      cell.addEventListener('dragover', e => { e.preventDefault(); cell.classList.add('drop-target'); });
+      cell.addEventListener('dragleave', () => cell.classList.remove('drop-target'));
+      cell.addEventListener('drop', e => {
+        e.preventDefault();
+        cell.classList.remove('drop-target');
+        if (dragData) {
+          // Remove from old position if moving
+          Object.keys(placed).forEach(k => { if (placed[k].id === dragData.id) delete placed[k]; });
+          placed[idx] = { ...dragData };
+          renderPieces();
+        }
+      });
+
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function renderPieces() {
+  // Clear all pieces
+  document.querySelectorAll('.grid-piece').forEach(p => p.remove());
+
+  Object.entries(placed).forEach(([idx, unit]) => {
+    const cell = document.querySelector(`[data-index="${idx}"]`);
+    if (!cell) return;
+
+    const piece = document.createElement('div');
+    const cls = unit.type === 'target' ? 'target-piece' : (unit.role || 'agent-piece');
+    piece.className = `grid-piece ${cls}`;
+    piece.draggable = true;
+    piece.innerHTML = `<div class="piece-icon">${unit.type === 'target' ? '◎' : '§'}</div><div class="piece-label">${(unit.name || '').slice(0, 8)}</div>`;
+
+    piece.addEventListener('dragstart', e => {
+      dragData = unit;
+      piece.style.opacity = '0.4';
+    });
+    piece.addEventListener('dragend', () => { piece.style.opacity = '1'; dragData = null; });
+
+    cell.appendChild(piece);
+  });
+
+  // Update placed list
+  const list = document.getElementById('placed-list');
+  const entries = Object.entries(placed);
+  if (entries.length === 0) {
+    list.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--muted);">Drag agents from bench to grid</div>';
+  } else {
+    list.innerHTML = entries.map(([idx, u]) => {
+      const r = Math.floor(idx / GRID_COLS);
+      const c = idx % GRID_COLS;
+      return `<div class="placed-item"><span>${u.name}</span><span class="pos">${String.fromCharCode(65+c)}${r+1}</span></div>`;
+    }).join('');
+  }
+}
+
+async function loadBench() {
+  try {
+    const state = await fetch(API + '/api/state').then(r => r.json());
+
+    // Systems
+    const sysBench = document.getElementById('system-bench');
+    const configs = state.config_systems || [];
+    const runtimes = state.systems || {};
+    sysBench.innerHTML = configs.map(s => {
+      const rt = runtimes[s.id] || {};
+      const role = rt.role && rt.role !== 'none' ? rt.role : 'secondary';
+      return `<div class="bench-agent" draggable="true" data-type="system" data-id="${s.id}" data-name="${s.name}" data-role="${role}">
+        <div class="name"><span class="dot ${role}"></span>${s.name}</div>
+        <div class="role">${s.provider} · ${role}</div>
+      </div>`;
+    }).join('');
+
+    // Agents
+    const agentBench = document.getElementById('agent-bench');
+    const agents = (state.registry || []).filter(r => r.type === 'agent' && r.status === 'active');
+    agentBench.innerHTML = agents.map(a => {
+      return `<div class="bench-agent" draggable="true" data-type="agent" data-id="${a.agent_id}" data-name="${a.name}" data-role="agent-piece">
+        <div class="name"><span class="dot agent"></span>${a.name}</div>
+        <div class="role">${a.system || 'unassigned'} · ${a.governance || ''}</div>
+      </div>`;
+    }).join('') || '<div style="font-family:var(--mono);font-size:10px;color:var(--muted);">No active agents</div>';
+
+    // Add drag handlers to all bench items
+    document.querySelectorAll('.bench-agent[draggable]').forEach(el => {
+      el.addEventListener('dragstart', e => {
+        dragData = {
+          type: el.dataset.type,
+          id: el.dataset.id,
+          name: el.dataset.name,
+          role: el.dataset.role || 'secondary',
+        };
+        el.classList.add('dragging');
+      });
+      el.addEventListener('dragend', () => {
+        el.classList.remove('dragging');
+        dragData = null;
+      });
+    });
+  } catch(e) { console.error(e); }
+}
+
+function setPosture(posture, el) {
+  currentPosture = posture;
+  document.querySelectorAll('.posture-chip').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  updateFormationButtons();
+}
+
+let formationLibrary = {};
+
+async function loadFormations() {
+  try {
+    const resp = await fetch('/config/formations.json');
+    const data = await resp.json();
+    formationLibrary = data.formations || {};
+    updateFormationButtons();
+  } catch(e) {
+    console.warn('formations.json not found, using defaults');
+    formationLibrary = { SCOUT: [], DEFENSE: [], OFFENSE: [] };
+  }
+}
+
+function updateFormationButtons() {
+  const container = document.getElementById('formation-buttons');
+  const posture = currentPosture.toUpperCase();
+  const formations = formationLibrary[posture] || [];
+
+  container.innerHTML = formations.map(f =>
+    `<button class="grid-btn" onclick="applyFormation('${f.id}')" title="${f.description}\n[${f.source}]">${f.name}</button>`
+  ).join('');
+}
+
+function applyFormation(formationId) {
+  const posture = currentPosture.toUpperCase();
+  const formations = formationLibrary[posture] || [];
+  const formation = formations.find(f => f.id === formationId);
+  if (!formation) return;
+
+  const units = Object.values(placed);
+  if (units.length === 0) {
+    alert('Drag agents onto the grid first, then apply a formation.');
+    return;
+  }
+
+  const unitList = [...units];
+  placed = {};
+
+  unitList.forEach((unit, i) => {
+    if (i < formation.positions.length) {
+      const pos = formation.positions[i];
+      const idx = pos.row * GRID_COLS + pos.col;
+      placed[idx] = unit;
+    } else {
+      // Overflow units go to reserve
+      const idx = 5 * GRID_COLS + (6 + (i - formation.positions.length));
+      placed[idx] = unit;
+    }
+  });
+
+  renderPieces();
+  // Highlight active formation button
+  document.querySelectorAll('#formation-buttons .grid-btn').forEach(b => b.classList.remove('active'));
+  const activeBtn = document.querySelector(`#formation-buttons .grid-btn[onclick*="${formationId}"]`);
+  if (activeBtn) activeBtn.classList.add('active');
+}
+
+function clearGrid() {
+  placed = {};
+  renderPieces();
+}
+
+async function deployMission() {
+  const mission = {
+    label: document.getElementById('cfg-label').value.trim() || 'UNNAMED',
+    objective: document.getElementById('cfg-objective').value,
+    posture: currentPosture.toUpperCase(),
+    target: document.getElementById('cfg-target').value.trim(),
+    duration: document.getElementById('cfg-duration').value,
+    systems: {},
+    agents: {},
+  };
+
+  // Collect placed units
+  Object.values(placed).forEach(u => {
+    if (u.type === 'system') mission.systems[u.id] = true;
+    if (u.type === 'agent') mission.agents[u.id] = true;
+  });
+
+  await fetch(API + '/api/missions', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(mission),
+  });
+
+  alert('Mission deployed: ' + mission.label);
+}
+
+buildGrid();
+loadBench();
+loadFormations();
+renderPieces();
+</script>
+</body>
+</html>
