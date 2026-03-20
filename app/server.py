@@ -123,6 +123,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def economics_page() -> FileResponse:
         return FileResponse(frontend_dir / "economics.html")
 
+    @app.get("/civitas")
+    async def civitas_page() -> FileResponse:
+        return FileResponse(frontend_dir / "civitas.html")
+
     @app.get("/api/state")
     async def get_state() -> dict:
         return runtime.snapshot().model_dump(mode="json")
