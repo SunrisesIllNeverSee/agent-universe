@@ -131,6 +131,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def dashboard_page() -> FileResponse:
         return FileResponse(frontend_dir / "dashboard.html")
 
+    @app.get("/admin")
+    async def admin_page() -> FileResponse:
+        return FileResponse(frontend_dir / "admin.html")
+
     @app.get("/api/state")
     async def get_state() -> dict:
         return runtime.snapshot().model_dump(mode="json")

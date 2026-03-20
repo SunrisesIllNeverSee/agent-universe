@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hange's Panel — Civitas Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --obsidian:#0B0D10; --void:#111418; --chamber:#16191E; --iron:#1E2430;
+    --wall:#262E3A; --veil:#2E3848; --drift:#6B7888; --muted:#8A94A0;
+    --fog:#A8B0BC; --ice:#C8D0DC; --cream:#F2EDE4;
+    --gold:#C4923A; --gold-light:#D4A85A; --gold-dim:rgba(196,146,58,0.15); --gold-border:rgba(196,146,58,0.3);
+    --signal:#3A8C6B; --signal-light:#4AAD85; --signal-dim:rgba(58,140,107,0.12);
+    --warn:#C45B3F; --warn-dim:rgba(196,91,63,0.12);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'DM Sans',sans-serif; background:var(--obsidian); color:var(--cream); min-height:100vh; }
+  .mono { font-family:'DM Mono',monospace; }
+
+  /* GATE */
+  .gate { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:40px; }
+  .gate-card { background:var(--void); border:1px solid var(--wall); border-radius:10px; padding:40px; max-width:380px; width:100%; text-align:center; }
+  .gate-icon { font-size:40px; margin-bottom:16px; }
+  .gate-title { font-family:'Playfair Display',serif; font-size:24px; color:var(--cream); margin-bottom:6px; }
+  .gate-sub { font-family:'DM Mono',monospace; font-size:10px; color:var(--drift); letter-spacing:0.12em; margin-bottom:28px; }
+  .gate-input { width:100%; padding:10px 14px; background:var(--chamber); border:1px solid var(--wall); border-radius:5px; color:var(--cream); font-family:'DM Mono',monospace; font-size:13px; margin-bottom:12px; }
+  .gate-input:focus { outline:none; border-color:var(--gold-border); }
+  .gate-btn { width:100%; padding:11px; background:var(--gold); color:var(--obsidian); border:none; border-radius:5px; font-weight:700; font-size:13px; letter-spacing:0.04em; text-transform:uppercase; cursor:pointer; }
+  .gate-btn:hover { background:var(--gold-light); }
+  .gate-err { font-family:'DM Mono',monospace; font-size:11px; color:#E07060; margin-top:8px; }
+
+  /* MAIN */
+  .main { display:none; }
+
+  /* NAV */
+  nav { display:flex; align-items:center; justify-content:space-between; padding:14px 40px; background:rgba(11,13,16,0.9); border-bottom:1px solid var(--wall); position:sticky; top:0; z-index:50; }
+  .nav-mark { font-family:'Playfair Display',serif; font-size:17px; font-weight:900; color:var(--cream); }
+  .nav-mark em { color:var(--gold); font-style:normal; }
+  .nav-right { display:flex; gap:20px; align-items:center; }
+  .nav-right a { font-size:12px; color:var(--muted); text-decoration:none; }
+  .nav-right a:hover { color:var(--cream); }
+  .nav-refresh { padding:6px 14px; background:var(--wall); border:1px solid var(--veil); border-radius:4px; font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); cursor:pointer; }
+  .nav-refresh:hover { color:var(--cream); }
+  .live-dot { width:7px; height:7px; border-radius:50%; background:var(--signal); display:inline-block; margin-right:4px; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;}50%{opacity:0.3;} }
+
+  /* INNER */
+  .inner { max-width:1200px; margin:0 auto; padding:32px 40px 60px; }
+
+  /* STATS BAR */
+  .stats-bar { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:28px; }
+  .stat-card { background:var(--void); border:1px solid var(--wall); border-radius:7px; padding:18px 20px; }
+  .stat-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.15em; color:var(--drift); text-transform:uppercase; margin-bottom:8px; }
+  .stat-val { font-family:'DM Mono',monospace; font-size:24px; font-weight:500; color:var(--cream); }
+  .stat-val.gold { color:var(--gold); }
+  .stat-val.green { color:var(--signal-light); }
+  .stat-val.warn { color:var(--warn); }
+
+  /* SECTION */
+  .section { margin-bottom:28px; }
+  .section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .section-title { font-family:'Playfair Display',serif; font-size:20px; color:var(--cream); }
+  .section-count { font-family:'DM Mono',monospace; font-size:11px; color:var(--drift); padding:3px 8px; background:var(--wall); border-radius:3px; }
+
+  /* AGENT TABLE */
+  .agent-table { width:100%; border-collapse:collapse; }
+  .agent-table th { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--drift); padding:8px 12px; text-align:left; border-bottom:1px solid var(--wall); background:var(--void); }
+  .agent-table td { padding:12px 12px; border-bottom:1px solid rgba(255,255,255,0.04); font-size:12px; vertical-align:top; }
+  .agent-table tr:hover td { background:rgba(255,255,255,0.02); }
+
+  .agent-name-cell { font-weight:500; color:var(--cream); margin-bottom:2px; }
+  .agent-id-cell { font-family:'DM Mono',monospace; font-size:10px; color:var(--drift); }
+
+  .status-badge { font-family:'DM Mono',monospace; font-size:9px; padding:2px 8px; border-radius:3px; letter-spacing:0.1em; display:inline-block; }
+  .status-active { background:var(--signal-dim); color:var(--signal-light); }
+  .status-pending { background:rgba(196,146,58,0.12); color:var(--gold); }
+  .status-suspended { background:var(--warn-dim); color:#E07060; }
+
+  .tier-badge { font-family:'DM Mono',monospace; font-size:9px; padding:2px 7px; border-radius:3px; letter-spacing:0.08em; display:inline-block; }
+  .tier-ungoverned { background:rgba(107,120,136,0.18); color:var(--muted); }
+  .tier-governed { background:var(--signal-dim); color:var(--signal-light); }
+  .tier-constitutional { background:var(--gold-dim); color:var(--gold); }
+  .tier-blackcard { background:rgba(140,100,200,0.15); color:#B090E0; }
+
+  .caps-list { font-family:'DM Mono',monospace; font-size:9px; color:var(--muted); line-height:1.7; max-width:200px; }
+  .meta-block { font-family:'DM Mono',monospace; font-size:9px; color:var(--drift); line-height:1.7; }
+
+  .action-group { display:flex; gap:6px; flex-wrap:wrap; }
+  .action-btn { padding:5px 10px; border-radius:3px; font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.06em; cursor:pointer; border:1px solid; transition:opacity 0.15s; }
+  .action-btn:hover { opacity:0.75; }
+  .btn-approve { background:var(--signal-dim); border-color:rgba(58,140,107,0.3); color:var(--signal-light); }
+  .btn-suspend { background:var(--warn-dim); border-color:rgba(196,91,63,0.3); color:#E07060; }
+  .btn-key { background:var(--gold-dim); border-color:var(--gold-border); color:var(--gold); }
+  .btn-view { background:var(--wall); border-color:var(--veil); color:var(--muted); }
+
+  .empty-state { padding:32px; text-align:center; font-family:'DM Mono',monospace; font-size:11px; color:var(--drift); border:1px dashed var(--wall); border-radius:6px; }
+
+  /* DETAIL PANEL */
+  .detail-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; display:none; align-items:center; justify-content:center; padding:24px; }
+  .detail-overlay.open { display:flex; }
+  .detail-panel { background:var(--chamber); border:1px solid var(--wall); border-radius:10px; padding:36px; max-width:540px; width:100%; max-height:90vh; overflow-y:auto; position:relative; }
+  .detail-close { position:absolute; top:14px; right:18px; background:none; border:none; color:var(--drift); font-size:18px; cursor:pointer; }
+  .detail-close:hover { color:var(--cream); }
+  .detail-name { font-family:'Playfair Display',serif; font-size:22px; color:var(--cream); margin-bottom:4px; }
+  .detail-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.04); font-size:12px; }
+  .detail-row:last-child { border-bottom:none; }
+  .detail-key { color:var(--drift); font-family:'DM Mono',monospace; font-size:10px; }
+  .detail-val { color:var(--cream); font-family:'DM Mono',monospace; font-size:10px; text-align:right; max-width:280px; word-break:break-word; }
+  .detail-section-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.15em; text-transform:uppercase; color:var(--gold); margin:16px 0 10px; }
+
+  /* LEADERBOARD */
+  .leaderboard { list-style:none; }
+  .lb-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+  .lb-rank { font-family:'DM Mono',monospace; font-size:11px; color:var(--drift); width:24px; }
+  .lb-name { font-size:12px; color:var(--cream); flex:1; padding:0 12px; }
+  .lb-val { font-family:'DM Mono',monospace; font-size:12px; color:var(--gold); }
+
+  /* AUDIT LOG */
+  .audit-list { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); line-height:2; max-height:260px; overflow-y:auto; }
+  .audit-event { padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.03); display:flex; gap:12px; align-items:baseline; }
+  .audit-ts { color:var(--drift); flex-shrink:0; }
+  .audit-action { color:var(--gold); flex-shrink:0; }
+  .audit-detail { color:var(--muted); word-break:break-all; }
+
+  @media(max-width:768px) {
+    nav { padding:12px 16px; }
+    .inner { padding:20px 16px; }
+    .stats-bar { grid-template-columns:repeat(3,1fr); }
+    .agent-table { display:block; overflow-x:auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- GATE -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gate-icon">🔬</div>
+    <div class="gate-title">Hange's Panel</div>
+    <div class="gate-sub">CIVITAS ADMINISTRATION · RESTRICTED ACCESS</div>
+    <div style="text-align:left;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:12px;">Access Passphrase</div>
+    <input type="password" class="gate-input" id="gate-pass" placeholder="enter passphrase" autocomplete="off">
+    <button class="gate-btn" onclick="checkGate()">Enter</button>
+    <div class="gate-err" id="gate-err" style="display:none;"></div>
+    <div style="margin-top:16px;font-family:'DM Mono',monospace;font-size:10px;color:var(--drift);">
+      → <a href="/civitas" style="color:var(--gold);text-decoration:none;">Back to Civitas</a>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN PANEL -->
+<div class="main" id="main">
+
+  <nav>
+    <div class="nav-mark"><em>HANGE'S</em> PANEL</div>
+    <div class="nav-right">
+      <span><span class="live-dot"></span><span class="mono" style="font-size:10px;color:var(--signal-light);" id="live-status">LIVE</span></span>
+      <button class="nav-refresh" onclick="loadAll()">↻ Refresh</button>
+      <a href="/civitas">← Civitas</a>
+      <a href="/frontend/index.html">Missions</a>
+    </div>
+  </nav>
+
+  <div class="inner">
+
+    <!-- STATS BAR -->
+    <div class="stats-bar">
+      <div class="stat-card"><div class="stat-label">Total Agents</div><div class="stat-val" id="s-total">—</div></div>
+      <div class="stat-card"><div class="stat-label">Pending Review</div><div class="stat-val warn" id="s-pending">—</div></div>
+      <div class="stat-card"><div class="stat-label">Active</div><div class="stat-val green" id="s-active">—</div></div>
+      <div class="stat-card"><div class="stat-label">Platform Revenue</div><div class="stat-val gold" id="s-revenue">—</div></div>
+      <div class="stat-card"><div class="stat-label">Open Slots</div><div class="stat-val" id="s-slots">—</div></div>
+    </div>
+
+    <!-- PENDING APPLICATIONS -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">⚡ Pending Review</div>
+        <div class="section-count" id="pending-count">0</div>
+      </div>
+      <div id="pending-list"><div class="empty-state">No pending applications.</div></div>
+    </div>
+
+    <!-- ALL AGENTS -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Registry — All Agents</div>
+        <div class="section-count" id="all-count">0</div>
+      </div>
+      <div id="all-list"><div class="empty-state">Loading…</div></div>
+    </div>
+
+    <!-- LEADERBOARD + AUDIT (side by side) -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+      <div class="section">
+        <div class="section-head"><div class="section-title">Economy Leaderboard</div></div>
+        <div style="background:var(--void);border:1px solid var(--wall);border-radius:8px;padding:20px;">
+          <ul class="leaderboard" id="leaderboard-list"><li style="font-family:'DM Mono',monospace;font-size:11px;color:var(--drift);padding:8px 0;">Loading…</li></ul>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><div class="section-title">Recent Audit Events</div></div>
+        <div style="background:var(--void);border:1px solid var(--wall);border-radius:8px;padding:20px;">
+          <div class="audit-list" id="audit-list">Loading…</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+
+<!-- DETAIL PANEL -->
+<div class="detail-overlay" id="detail-overlay">
+  <div class="detail-panel">
+    <button class="detail-close" onclick="closeDetail()">&times;</button>
+    <div class="detail-name" id="d-name">—</div>
+    <div class="detail-section-label">Identity</div>
+    <div id="d-identity"></div>
+    <div class="detail-section-label">Governance</div>
+    <div id="d-governance"></div>
+    <div class="detail-section-label">Capabilities</div>
+    <div id="d-capabilities"></div>
+    <div class="detail-section-label">Metadata</div>
+    <div id="d-metadata"></div>
+    <div style="margin-top:20px;" id="d-actions"></div>
+  </div>
+</div>
+
+
+<script>
+  const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:8000' : '';
+
+  // ── Gate ──────────────────────────────────────────────
+  // Simple passphrase stored locally — not cryptographic, just keeps it off the open web
+  const PASSPHRASE_KEY = 'civitas_admin_pass';
+
+  function checkGate() {
+    const pass = document.getElementById('gate-pass').value;
+    const errEl = document.getElementById('gate-err');
+    if (!pass) { errEl.textContent = 'Enter a passphrase.'; errEl.style.display = 'block'; return; }
+    // Store passphrase and try to hit the API — if it works, we're in
+    fetch(API_BASE + '/api/provision/registry')
+      .then(r => {
+        if (!r.ok) throw new Error('API error');
+        return r.json();
+      })
+      .then(() => {
+        localStorage.setItem(PASSPHRASE_KEY, pass);
+        openAdmin();
+      })
+      .catch(() => {
+        errEl.textContent = '⚠ Cannot reach Civitas server. Is it running?';
+        errEl.style.display = 'block';
+      });
+  }
+
+  function openAdmin() {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('main').style.display = 'block';
+    loadAll();
+    // Auto-refresh every 30s
+    setInterval(loadAll, 30000);
+  }
+
+  // Auto-login if already visited
+  if (localStorage.getItem(PASSPHRASE_KEY)) {
+    fetch(API_BASE + '/api/provision/registry')
+      .then(r => r.ok ? openAdmin() : null)
+      .catch(() => {});
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('gate').style.display !== 'none') checkGate();
+  });
+
+  // ── Load All ──────────────────────────────────────────
+
+  async function loadAll() {
+    document.getElementById('live-status').textContent = 'LOADING…';
+    await Promise.all([loadRegistry(), loadEconomy(), loadSlots(), loadAudit()]);
+    document.getElementById('live-status').textContent = 'LIVE';
+  }
+
+  async function loadRegistry() {
+    try {
+      const res = await fetch(API_BASE + '/api/provision/registry');
+      const data = await res.json();
+      const agents = data.registry || data.agents || [];
+      renderRegistry(agents);
+    } catch {
+      document.getElementById('all-list').textContent = '';
+      const e = document.createElement('div'); e.className = 'empty-state'; e.textContent = 'Cannot reach server.';
+      document.getElementById('all-list').appendChild(e);
+    }
+  }
+
+  async function loadEconomy() {
+    try {
+      const [lbRes, slotsRes] = await Promise.all([
+        fetch(API_BASE + '/api/economy/leaderboard'),
+        fetch(API_BASE + '/api/slots/open')
+      ]);
+      const lb = await lbRes.json();
+      const slots = await slotsRes.json();
+      document.getElementById('s-revenue').textContent = formatMoney(lb.platform_revenue || 0);
+      document.getElementById('s-slots').textContent = String(slots.count || 0);
+      renderLeaderboard(lb.leaderboard || []);
+    } catch {}
+  }
+
+  async function loadAudit() {
+    try {
+      const res = await fetch(API_BASE + '/api/audit');
+      const data = await res.json();
+      renderAudit(data.events || data.recent || []);
+    } catch {}
+  }
+
+  // ── Render Registry ───────────────────────────────────
+
+  function renderRegistry(agents) {
+    const pending = agents.filter(a => (a.status || 'pending') === 'pending');
+    const all = agents;
+
+    document.getElementById('s-total').textContent = String(all.length);
+    document.getElementById('s-pending').textContent = String(pending.length);
+    document.getElementById('s-active').textContent = String(agents.filter(a => a.status === 'active').length);
+    document.getElementById('pending-count').textContent = String(pending.length);
+    document.getElementById('all-count').textContent = String(all.length);
+
+    renderAgentTable('pending-list', pending);
+    renderAgentTable('all-list', all);
+  }
+
+  function renderAgentTable(containerId, agents) {
+    const container = document.getElementById(containerId);
+    container.textContent = '';
+
+    if (agents.length === 0) {
+      const e = document.createElement('div'); e.className = 'empty-state';
+      e.textContent = containerId.includes('pending') ? 'No pending applications.' : 'No agents registered yet.';
+      container.appendChild(e);
+      return;
+    }
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'background:var(--void);border:1px solid var(--wall);border-radius:8px;overflow:hidden;';
+
+    const table = document.createElement('table');
+    table.className = 'agent-table';
+
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    ['Agent', 'Status', 'Tier', 'Type', 'Capabilities', 'Applied', 'Actions'].forEach(h => {
+      const th = document.createElement('th');
+      th.textContent = h;
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    agents.forEach(agent => {
+      const tr = document.createElement('tr');
+
+      // Name + ID
+      const tdName = document.createElement('td');
+      const nameEl = document.createElement('div'); nameEl.className = 'agent-name-cell'; nameEl.textContent = agent.agent_name || '—';
+      const idEl = document.createElement('div'); idEl.className = 'agent-id-cell'; idEl.textContent = agent.agent_id || '—';
+      tdName.appendChild(nameEl); tdName.appendChild(idEl);
+
+      // Status
+      const tdStatus = document.createElement('td');
+      const statusBadge = document.createElement('span');
+      const status = agent.status || 'pending';
+      statusBadge.className = 'status-badge status-' + status;
+      statusBadge.textContent = status.toUpperCase();
+      tdStatus.appendChild(statusBadge);
+
+      // Tier
+      const tdTier = document.createElement('td');
+      const tierBadge = document.createElement('span');
+      const tier = (agent.tier || 'ungoverned').toLowerCase().replace(/\s/g, '');
+      tierBadge.className = 'tier-badge tier-' + tier;
+      tierBadge.textContent = (agent.tier || 'UNGOVERNED').toUpperCase();
+      tdTier.appendChild(tierBadge);
+
+      // Type
+      const tdType = document.createElement('td');
+      tdType.className = 'mono';
+      tdType.style.cssText = 'font-size:10px;color:var(--muted);';
+      tdType.textContent = agent.agent_type || '—';
+
+      // Capabilities
+      const tdCaps = document.createElement('td');
+      const capList = document.createElement('div'); capList.className = 'caps-list';
+      const caps = agent.capabilities || [];
+      capList.textContent = caps.slice(0, 3).join('\n') + (caps.length > 3 ? '\n+' + (caps.length - 3) + ' more' : '');
+      tdCaps.appendChild(capList);
+
+      // Applied date
+      const tdDate = document.createElement('td');
+      tdDate.className = 'mono';
+      tdDate.style.cssText = 'font-size:10px;color:var(--drift);';
+      const prov = agent.provisioned || agent.metadata?.timestamp;
+      tdDate.textContent = prov ? new Date(prov).toLocaleDateString() : '—';
+
+      // Actions
+      const tdActions = document.createElement('td');
+      const actionGroup = document.createElement('div');
+      actionGroup.className = 'action-group';
+
+      const viewBtn = document.createElement('button');
+      viewBtn.className = 'action-btn btn-view';
+      viewBtn.textContent = 'VIEW';
+      viewBtn.addEventListener('click', () => openDetail(agent));
+
+      actionGroup.appendChild(viewBtn);
+
+      if (status === 'pending') {
+        const approveBtn = document.createElement('button');
+        approveBtn.className = 'action-btn btn-approve';
+        approveBtn.textContent = 'APPROVE';
+        approveBtn.addEventListener('click', () => approveAgent(agent.agent_id, approveBtn));
+        actionGroup.appendChild(approveBtn);
+      }
+
+      if (status === 'active') {
+        const suspendBtn = document.createElement('button');
+        suspendBtn.className = 'action-btn btn-suspend';
+        suspendBtn.textContent = 'SUSPEND';
+        suspendBtn.addEventListener('click', () => suspendAgent(agent.agent_id, suspendBtn));
+        actionGroup.appendChild(suspendBtn);
+
+        const keyBtn = document.createElement('button');
+        keyBtn.className = 'action-btn btn-key';
+        keyBtn.textContent = 'REGEN KEY';
+        keyBtn.addEventListener('click', () => regenKey(agent.agent_id, keyBtn));
+        actionGroup.appendChild(keyBtn);
+      }
+
+      tdActions.appendChild(actionGroup);
+
+      [tdName, tdStatus, tdTier, tdType, tdCaps, tdDate, tdActions].forEach(td => tr.appendChild(td));
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    container.appendChild(wrap);
+  }
+
+  // ── Actions ───────────────────────────────────────────
+
+  async function approveAgent(agentId, btn) {
+    const original = btn.textContent;
+    btn.textContent = '…'; btn.disabled = true;
+    try {
+      const res = await fetch(API_BASE + '/api/provision/approve', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ agent_id: agentId })
+      });
+      if (res.ok) { btn.textContent = '✓ APPROVED'; setTimeout(() => loadAll(), 1000); }
+      else { btn.textContent = 'ERROR'; btn.disabled = false; }
+    } catch { btn.textContent = original; btn.disabled = false; }
+  }
+
+  async function suspendAgent(agentId, btn) {
+    if (!confirm('Suspend agent ' + agentId + '?')) return;
+    const original = btn.textContent;
+    btn.textContent = '…'; btn.disabled = true;
+    try {
+      const res = await fetch(API_BASE + '/api/provision/suspend', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ agent_id: agentId })
+      });
+      if (res.ok) { btn.textContent = '✓ SUSPENDED'; setTimeout(() => loadAll(), 1000); }
+      else { btn.textContent = 'ERROR'; btn.disabled = false; }
+    } catch { btn.textContent = original; btn.disabled = false; }
+  }
+
+  async function regenKey(agentId, btn) {
+    const original = btn.textContent;
+    btn.textContent = '…'; btn.disabled = true;
+    try {
+      const res = await fetch(API_BASE + '/api/provision/key', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ agent_id: agentId })
+      });
+      const data = await res.json();
+      if (res.ok && data.api_key) {
+        alert('New key for ' + agentId + ':\n\n' + data.api_key + '\n\nSend this to the agent directly.');
+        btn.textContent = '✓ SENT';
+      } else { btn.textContent = 'ERROR'; btn.disabled = false; }
+    } catch { btn.textContent = original; btn.disabled = false; }
+  }
+
+  // ── Detail Panel ──────────────────────────────────────
+
+  function openDetail(agent) {
+    document.getElementById('d-name').textContent = agent.agent_name || 'Unknown';
+
+    function makeRows(el, pairs) {
+      el.textContent = '';
+      pairs.forEach(([k, v]) => {
+        const row = document.createElement('div'); row.className = 'detail-row';
+        const key = document.createElement('span'); key.className = 'detail-key'; key.textContent = k;
+        const val = document.createElement('span'); val.className = 'detail-val'; val.textContent = v || '—';
+        row.appendChild(key); row.appendChild(val);
+        el.appendChild(row);
+      });
+    }
+
+    makeRows(document.getElementById('d-identity'), [
+      ['Agent ID', agent.agent_id],
+      ['Name', agent.agent_name],
+      ['Type', agent.agent_type],
+      ['Model', agent.metadata?.model],
+      ['Contact', agent.metadata?.contact],
+      ['Applied Via', agent.metadata?.applied_via],
+    ]);
+
+    makeRows(document.getElementById('d-governance'), [
+      ['Status', agent.status],
+      ['Tier', agent.tier],
+      ['Posture', agent.governance_posture],
+      ['Role', agent.role],
+      ['Provisioned', agent.provisioned ? new Date(agent.provisioned).toLocaleString() : '—'],
+    ]);
+
+    const capsEl = document.getElementById('d-capabilities');
+    capsEl.textContent = '';
+    const caps = agent.capabilities || [];
+    if (caps.length === 0) {
+      const none = document.createElement('div'); none.className = 'detail-key'; none.textContent = '—';
+      capsEl.appendChild(none);
+    } else {
+      caps.forEach(c => {
+        const item = document.createElement('div');
+        item.style.cssText = 'font-family:DM Mono,monospace;font-size:10px;color:var(--muted);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.03);';
+        item.textContent = '→ ' + c;
+        capsEl.appendChild(item);
+      });
+    }
+
+    makeRows(document.getElementById('d-metadata'), [
+      ['Desired Role', agent.metadata?.desired_role],
+      ['Motivation', agent.metadata?.motivation],
+      ['Constitution Ack', agent.metadata?.constitution_acknowledged ? 'YES' : 'NO'],
+      ['Lineage Ack', agent.metadata?.lineage_clause_acknowledged ? 'YES' : 'NO'],
+    ]);
+
+    // Actions in detail panel
+    const actionsEl = document.getElementById('d-actions');
+    actionsEl.textContent = '';
+    const ag = document.createElement('div'); ag.className = 'action-group';
+
+    if (agent.status === 'pending') {
+      const approveBtn = document.createElement('button');
+      approveBtn.className = 'action-btn btn-approve';
+      approveBtn.style.padding = '8px 16px';
+      approveBtn.textContent = '✓ APPROVE';
+      approveBtn.addEventListener('click', () => { approveAgent(agent.agent_id, approveBtn); closeDetail(); });
+      ag.appendChild(approveBtn);
+    }
+    if (agent.status === 'active') {
+      const suspendBtn = document.createElement('button');
+      suspendBtn.className = 'action-btn btn-suspend';
+      suspendBtn.style.padding = '8px 16px';
+      suspendBtn.textContent = 'SUSPEND';
+      suspendBtn.addEventListener('click', () => { suspendAgent(agent.agent_id, suspendBtn); closeDetail(); });
+      ag.appendChild(suspendBtn);
+    }
+    actionsEl.appendChild(ag);
+
+    document.getElementById('detail-overlay').classList.add('open');
+  }
+
+  function closeDetail() {
+    document.getElementById('detail-overlay').classList.remove('open');
+  }
+  document.getElementById('detail-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeDetail();
+  });
+
+  // ── Leaderboard ───────────────────────────────────────
+
+  function renderLeaderboard(entries) {
+    const el = document.getElementById('leaderboard-list');
+    el.textContent = '';
+    if (!entries.length) {
+      const li = document.createElement('li');
+      li.style.cssText = 'font-family:DM Mono,monospace;font-size:11px;color:var(--drift);padding:8px 0;';
+      li.textContent = 'No transactions yet.';
+      el.appendChild(li);
+      return;
+    }
+    entries.slice(0, 8).forEach((entry, i) => {
+      const li = document.createElement('li'); li.className = 'lb-row';
+      const rank = document.createElement('div'); rank.className = 'lb-rank'; rank.textContent = '#' + (i + 1);
+      const name = document.createElement('div'); name.className = 'lb-name'; name.textContent = entry.agent_id || '—';
+      const val = document.createElement('div'); val.className = 'lb-val'; val.textContent = formatMoney(entry.balance || 0);
+      li.appendChild(rank); li.appendChild(name); li.appendChild(val);
+      el.appendChild(li);
+    });
+  }
+
+  // ── Audit ─────────────────────────────────────────────
+
+  function renderAudit(events) {
+    const el = document.getElementById('audit-list');
+    el.textContent = '';
+    if (!events.length) {
+      el.textContent = 'No audit events yet.';
+      return;
+    }
+    events.slice(0, 30).reverse().forEach(ev => {
+      const row = document.createElement('div'); row.className = 'audit-event';
+      const ts = document.createElement('span'); ts.className = 'audit-ts';
+      ts.textContent = ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : '—';
+      const action = document.createElement('span'); action.className = 'audit-action';
+      action.textContent = (ev.domain || '') + ':' + (ev.event || '');
+      const detail = document.createElement('span'); detail.className = 'audit-detail';
+      detail.textContent = ev.agent_id || JSON.stringify(ev.data || {}).slice(0, 60);
+      row.appendChild(ts); row.appendChild(action); row.appendChild(detail);
+      el.appendChild(row);
+    });
+  }
+
+  // ── Helpers ───────────────────────────────────────────
+
+  function formatMoney(n) {
+    if (n >= 1000000) return '$' + (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return '$' + (n / 1000).toFixed(1) + 'K';
+    return '$' + n;
+  }
+</script>
+
+</body>
+</html>
