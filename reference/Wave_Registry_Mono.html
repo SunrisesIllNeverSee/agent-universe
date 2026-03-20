@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wave Registry — COMMAND · DEPLOY</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #f8f8f6;
+    --surface: #ffffff;
+    --border: #d8d8d4;
+    --border-dark: #b0b0a8;
+    --text: #1a1a18;
+    --muted: #888880;
+    --faint: #c8c8c0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    padding: 48px 40px;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--text);
+  }
+
+  .header-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.35em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .header-title {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .header-right {
+    text-align: right;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    line-height: 1.8;
+  }
+
+  .legend {
+    display: flex;
+    gap: 28px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .legend-swatch {
+    width: 16px;
+    height: 10px;
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+
+  .col-headers {
+    display: grid;
+    grid-template-columns: 1fr 32px 1fr;
+    margin-bottom: 2px;
+  }
+
+  .col-header {
+    padding: 10px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--text);
+    color: var(--bg);
+  }
+
+  .col-header span { font-weight: 300; opacity: 0.6; font-size: 8px; }
+
+  .wave-row {
+    display: grid;
+    grid-template-columns: 1fr 32px 1fr;
+    margin-bottom: 2px;
+  }
+
+  .wave-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px 16px 14px;
+  }
+
+  .wave-block.open { background: #f0f0ec; border-color: var(--border-dark); }
+  .wave-block.matched { background: #f4f4f0; border-style: dashed; border-color: var(--border-dark); }
+
+  .wave-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .wave-id {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+
+  .wave-tier {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.25em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  .wave-price { text-align: right; }
+
+  .price-main {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .price-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7px;
+    color: var(--muted);
+    margin-top: 2px;
+    letter-spacing: 0.08em;
+  }
+
+  .price-note {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7px;
+    color: var(--faint);
+    margin-top: 1px;
+    letter-spacing: 0.08em;
+    font-style: italic;
+  }
+
+  .seats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 12px;
+  }
+
+  .seat {
+    padding: 4px 9px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    border: 1px solid;
+    border-radius: 2px;
+  }
+
+  .seat-open { background: var(--text); border-color: var(--text); color: var(--bg); }
+  .seat-locked { background: transparent; border-color: var(--faint); color: var(--faint); }
+  .seat-matched { background: transparent; border-color: var(--border-dark); color: var(--muted); border-style: dashed; }
+  .seat-bid { background: transparent; border-color: var(--border-dark); color: var(--text); }
+
+  .wave-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .wave-status {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-open .status-dot { background: var(--text); animation: blink 2s infinite; }
+  .status-locked .status-dot { background: var(--faint); }
+  .status-matched .status-dot { background: var(--muted); }
+  .status-bid .status-dot { background: var(--border-dark); }
+  .status-open { color: var(--text); }
+  .status-locked { color: var(--faint); }
+  .status-matched { color: var(--muted); }
+  .status-bid { color: var(--muted); }
+
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+  .unlock-note {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 6px;
+    letter-spacing: 0.1em;
+    color: var(--faint);
+    text-align: right;
+    max-width: 200px;
+    text-transform: uppercase;
+    line-height: 1.5;
+  }
+
+  .wave-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    gap: 3px;
+    padding: 4px 0;
+  }
+
+  .conn-line { width: 1px; flex: 1; background: var(--faint); min-height: 10px; }
+  .conn-node { width: 5px; height: 5px; border: 1px solid var(--border-dark); background: var(--bg); border-radius: 50%; flex-shrink: 0; }
+
+  .summary { margin-top: 24px; border: 1px solid var(--border); background: var(--surface); }
+
+  .summary-header {
+    padding: 10px 16px;
+    background: var(--text);
+    color: var(--bg);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
+
+  .summary-cell { padding: 16px; border-right: 1px solid var(--border); }
+  .summary-cell:last-child { border-right: none; }
+
+  .summary-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .summary-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .summary-note {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7px;
+    color: var(--faint);
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  .footer {
+    margin-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.2em;
+    color: var(--faint);
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-eyebrow">Commercial Seat Registry</div>
+    <div class="header-title">Wave Unlock Sequence</div>
+  </div>
+  <div class="header-right">
+    <div>February 2026 · Draft</div>
+    <div>Ello Cello LLC · MO§ES™</div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch" style="background:#1a1a18"></div>Open</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#f8f8f6;border:1px solid #c8c8c0"></div>Locked</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#f4f4f0;border:1px dashed #b0b0a8"></div>Early Access — Matched</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#f8f8f6;border:1px solid #b0b0a8"></div>Bid</div>
+</div>
+
+<div class="col-headers">
+  <div class="col-header">COMMAND · powered by MO§ES™ <span>17 Seats</span></div>
+  <div style="background:var(--bg)"></div>
+  <div class="col-header">DEPLOY · by MO§ES™ <span>17 Seats</span></div>
+</div>
+
+<!-- W1a -->
+<div class="wave-row">
+  <div class="wave-block open">
+    <div class="wave-meta">
+      <div><div class="wave-id">CW1a</div><div class="wave-tier">Internal Use</div></div>
+      <div class="wave-price"><div class="price-main">$65,000</div></div>
+    </div>
+    <div class="seats">
+      <div class="seat seat-open">CI</div><div class="seat seat-open">CII</div><div class="seat seat-open">CIII</div><div class="seat seat-open">CIV</div><div class="seat seat-open">CV</div>
+    </div>
+    <div class="wave-footer">
+      <div class="wave-status status-open"><div class="status-dot"></div>Open</div>
+      <div class="unlock-note">Closes → CW1b opens · DW1a goes to market</div>
+    </div>
+  </div>
+  <div class="wave-connector"><div class="conn-line"></div><div class="conn-node"></div><div class="conn-line"></div></div>
+  <div class="wave-block">
+    <div class="wave-meta">
+      <div><div class="wave-id">DW1a</div><div class="wave-tier">Internal Use</div></div>
+      <div class="wave-price">
+        <div class="price-main">$95,000</div>
+        <div class="price-note">Early access $65,000 via CW1a</div>
+      </div>
+    </div>
+    <div class="seats">
+      <div class="seat seat-locked">DI</div><div class="seat seat-locked">DII</div><div class="seat seat-locked">DIII</div><div class="seat seat-locked">DIV</div><div class="seat seat-locked">DV</div>
+    </div>
+    <div class="wave-footer">
+      <div class="wave-status status-locked"><div class="status-dot"></div>Opens with CW1b</div>
+    </div>
+  </div>
+</div>
+
+<!-- W1b -->
+<div class="wave-row">
+  <div class="wave-block">
+    <div class="wave-meta">
+      <div><div class="wave-id">CW1b</div><div class="wave-tier">Embedded / OEM</div></div>
+      <div class="wave-price"><div class="price-main">$130,000</div></div>
+    </div>
+    <div class="seats">
+      <div class="seat seat-locked">CVI</div><div class="seat seat-locked">CVII</div><div class="seat seat-locked">CVIII</div>
+    </div>
+    <div class="wave-footer">
+      <div class="wave-status status-locked"><div class="status-dot"></div>Opens when CW1a fills</div>
+      <div class="unlock-note">Closes → CW2a opens · DW1b goes to market</div>
+    </div>
+  </div>
+  <div class="wave-connector"><div class="conn-line"></div><div class="conn-node"></div><div class="conn-line"></div></div>
+  <div class="wave-block">
+    <div class="wave-meta">
+      <div><div class="wave-id">DW1b</div><div class="wave-tier">Embedded / OEM</div></div>
+      <div class="wave-price">
+        <div class="price-main">$180,000</div>
+        <div class="price-note">Early access $130,000 via CW1b</div>
+      </div>
+    </div>
+    <div class="seats">
+      <div class="seat seat-locked">DVI</div><div class="seat seat-locked">DVII</div><div class="seat seat-locked">DVIII</div>
+    </div>
+    <div class="wave-footer">
+      <div class="wave-status status-locked"><div class="status-dot"></div>Opens with CW2a</div>
+    </div>
+  </div>
+</div>
+
+<!-- W2a -->
+<div class="wave-row">
+  <div class="wave-block">
+    <div class="wave-meta">
+      <div><div class="wave-id">CW2a</div><div class="wave-tier">Internal Use</div></div>
+      <div class="wave-price"><div class="price-main">$195,000</div></div>
+    </div>
+    <div class="seats">
+      <div class="seat seat-locked">CIX</div><div class="seat seat-locked">CX</div><div class="seat seat-locked">CXI</div><div class="seat seat-locked">CXII</div><div class="seat seat-locked">CXIII</div>
+    </div>
+    <div class="wave-footer">
+      <div class="wave-status status-locked"><div class="status-dot"></div>Opens when CW1b fills</div>
+      <div class="unlock-note">Closes → CW2b opens · DW2a goes to market</div>
+    </div>
+  </div>
+  <div class="wave-connector"><div class="conn-line"></div><div class="conn-node"></div><div class="conn-line"></div></div>
+  <div class="wave-block">
+    <div class="wave-meta">
+      <div><div class="wave-id">DW2a</div><div class="wave-tier">Internal Use</div></div>
+      <div class="wave-price">
+        <div class="price-main">$275,000</div>
+        <div class="price-note">Early access $195,000 via CW2a</div>
+      </div>
+    </div>
+    <div class="seats">
+      <div class="seat seat-locked">DIX</div><div class="seat seat-locked">DX</div><div class="seat seat-locked">DXI</div><div class="seat seat-locked">DXII</div><div class="seat seat-locked">DXIII</div>
+    </div>
+    <div class="wave-footer">
+      <div class="wave-status status-locked"><div class="status-dot"></div>Opens with CW2b</div>
+    </div>
+  </div>
+</div>
+
+<!-- W2b -->
+<div class="wave-row">
+  <div class="wave-block">
+    <div class="wave-meta">
+      <div><div class="wave-id">CW2b</div><div class="wave-tier">Embedded / OEM</div></div>
+      <div class="wave-price"><div class="price-main">$260,000</div></div>
+    </div>
+    <div class="seats">
+      <div class="seat seat-locked">CXIV</div><div class="seat seat-locked">CXV</div><div class="seat seat-locked">CXVI</div>
+    </div>
+    <div class="wave-footer">
+      <div class="wave-status status-locked"><div class="status-dot"></div>Opens when CW2a fills</div>
+      <div class="unlock-note">Closes → CW3 opens · DW2b goes to market</div>
+    </div>
+  </div>
+  <div class="wave-connector"><div class="conn-line"></div><div class="conn-node"></div><div class="conn-line"></div></div>
+  <div class="wave-block">
+    <div class="wave-meta">
+      <div><div class="wave-id">DW2b</div><div class="wave-tier">Embedded / OEM</div></div>
+      <div class="wave-price">
+        <div class="price-main">$370,000</div>
+        <div class="price-note">Early access $260,000 via CW2b</div>
+      </div>
+    </div>
+    <div class="seats">
+      <div class="seat seat-locked">DXIV</div><div class="seat seat-locked">DXV</div><div class="seat seat-locked">DXVI</div>
+    </div>
+    <div class="wave-footer">
+      <div class="wave-status status-locked"><div class="status-dot"></div>Opens with CW3</div>
+    </div>
+  </div>
+</div>
+
+<!-- W3 -->
+<div class="wave-row">
+  <div class="wave-block">
+    <div class="wave-meta">
+      <div><div class="wave-id">CW3</div><div class="wave-tier">Internal Bid</div></div>
+      <div class="wave-price"><div class="price-main">Bid</div></div>
+    </div>
+    <div class="seats">
+      <div class="seat seat-bid">CXVII</div>
+    </div>
+    <div class="wave-footer">
+      <div class="wave-status status-bid"><div class="status-dot"></div>Opens when CW2b fills</div>
+      <div class="unlock-note">Closes → DW3 goes to market</div>
+    </div>
+  </div>
+  <div class="wave-connector"><div class="conn-line"></div><div class="conn-node"></div><div class="conn-line"></div></div>
+  <div class="wave-block">
+    <div class="wave-meta">
+      <div><div class="wave-id">DW3</div><div class="wave-tier">Internal Bid</div></div>
+      <div class="wave-price">
+        <div class="price-main">Bid</div>
+        <div class="price-note">Early access matched via CW3</div>
+      </div>
+    </div>
+    <div class="seats">
+      <div class="seat seat-bid">DXVII</div>
+    </div>
+    <div class="wave-footer">
+      <div class="wave-status status-bid"><div class="status-dot"></div>Opens with CW3 close</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <div>© 2026 Ello Cello LLC · All Rights Reserved</div>
+  <div>Patent Pending · Confidential</div>
+</div>
+
+</body>
+</html>
