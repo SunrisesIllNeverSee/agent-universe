@@ -1,0 +1,239 @@
+{
+  "timestamp": "20260320_210430",
+  "base_url": "http://localhost:8300",
+  "total": 23,
+  "passed": 18,
+  "failed": 5,
+  "results": [
+    {
+      "name": "RACE",
+      "description": "Simultaneous slot fill from two different agents",
+      "passed": true,
+      "status_code": 200,
+      "expected": "One agent wins (200), other is rejected (4xx)",
+      "actual": "Agent-A got 200, Agent-B got 409",
+      "notes": "Both 200 = double-fill bug. Both 4xx = slot unreachable bug.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "name": "DOUBLE",
+      "description": "Same agent fills same slot a second time",
+      "passed": true,
+      "status_code": 409,
+      "expected": "First fill 200, second fill 4xx (conflict)",
+      "actual": "First: 200, Second: 409",
+      "notes": "Two 200s means the same agent occupies the slot twice.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "name": "ZOMBIE/fill",
+      "description": "Unregistered agent fills slot",
+      "passed": false,
+      "status_code": 200,
+      "expected": "4xx \u2014 agent not in registry",
+      "actual": "HTTP 200 \u2190 zombie IN slot!",
+      "notes": "If 200, the slot accepted a ghost. That slot is now poisoned.",
+      "elapsed_ms": 6.9
+    },
+    {
+      "name": "ZOMBIE/pay",
+      "description": "Unregistered agent requests payment",
+      "passed": true,
+      "status_code": 200,
+      "expected": "Either 4xx (strict) or 200 with $0 balance (lenient)",
+      "actual": "HTTP 200 | balance=170.0",
+      "notes": "If 200, document whether money can be extracted.",
+      "elapsed_ms": 5.9
+    },
+    {
+      "name": "IMPERSON",
+      "description": "Agent A requests pay credited to Agent B's account",
+      "passed": true,
+      "status_code": 200,
+      "expected": "Future: 4xx without matching slot\u2194agent proof. Today: 200 (no auth)",
+      "actual": "B balance went from $0 \u2192 $212.50 | A balance = $0.00",
+      "notes": "This maps the attack surface for the auth middleware milestone.",
+      "elapsed_ms": 6.0
+    },
+    {
+      "name": "OVERFLOW/$999,999",
+      "description": "Payment request for $999,999",
+      "passed": true,
+      "status_code": 200,
+      "expected": "reject (>cap) or accept and apply tier fee",
+      "actual": "net_to_agent=849999.15",
+      "notes": "",
+      "elapsed_ms": 5.6
+    },
+    {
+      "name": "OVERFLOW/-$50",
+      "description": "Payment request for -$50",
+      "passed": false,
+      "status_code": 200,
+      "expected": "4xx \u2014 negative amounts must be rejected",
+      "actual": "net_to_agent=-42.5",
+      "notes": "",
+      "elapsed_ms": 5.5
+    },
+    {
+      "name": "OVERFLOW/$0",
+      "description": "Payment request for $0",
+      "passed": false,
+      "status_code": 200,
+      "expected": "4xx or 200/$0 \u2014 zero-pay is a no-op",
+      "actual": "net_to_agent=0.0",
+      "notes": "",
+      "elapsed_ms": 5.7
+    },
+    {
+      "name": "GHOST/fill",
+      "description": "Fill a slot_id that does not exist",
+      "passed": true,
+      "status_code": 404,
+      "expected": "4xx \u2014 slot not found",
+      "actual": "HTTP 404",
+      "notes": "",
+      "elapsed_ms": 5.2
+    },
+    {
+      "name": "GHOST/leave",
+      "description": "Leave a slot_id that does not exist",
+      "passed": true,
+      "status_code": 404,
+      "expected": "4xx \u2014 slot not found",
+      "actual": "HTTP 404",
+      "notes": "",
+      "elapsed_ms": 5.8
+    },
+    {
+      "name": "ABANDON/slot-a",
+      "description": "Agent fills first slot (should succeed)",
+      "passed": true,
+      "status_code": 200,
+      "expected": "200 \u2014 first fill is valid",
+      "actual": "HTTP 200",
+      "notes": "",
+      "elapsed_ms": 0.0
+    },
+    {
+      "name": "ABANDON/slot-b",
+      "description": "Agent fills second slot without leaving first",
+      "passed": true,
+      "status_code": 200,
+      "expected": "Policy-dependent: 200 (multi-slot allowed) or 4xx (enforce single occupancy)",
+      "actual": "HTTP 200 \u2014 multi-slot allowed",
+      "notes": "Document this. If 200, agent holds two slots simultaneously.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "name": "FLOOD",
+      "description": "20 concurrent signups for the same agent name",
+      "passed": true,
+      "status_code": 200,
+      "expected": "\u22641 success (200), rest 4xx (duplicate)",
+      "actual": "1 succeeded, 19 conflicts, 0 unexpected",
+      "notes": "Multiple 200s = race condition in signup creates duplicate agent records.",
+      "elapsed_ms": 0.0
+    },
+    {
+      "name": "BADPAYLOAD/signup/empty",
+      "description": "POST /api/provision/signup with signup/empty",
+      "passed": true,
+      "status_code": 400,
+      "expected": "4xx \u2014 name required",
+      "actual": "HTTP 400",
+      "notes": "",
+      "elapsed_ms": 4.1
+    },
+    {
+      "name": "BADPAYLOAD/signup/null-name",
+      "description": "POST /api/provision/signup with signup/null-name",
+      "passed": true,
+      "status_code": 500,
+      "expected": "4xx \u2014 null name",
+      "actual": "HTTP 500",
+      "notes": "",
+      "elapsed_ms": 3.9
+    },
+    {
+      "name": "BADPAYLOAD/signup/int-name",
+      "description": "POST /api/provision/signup with signup/int-name",
+      "passed": true,
+      "status_code": 500,
+      "expected": "4xx or 200 (coerced)",
+      "actual": "HTTP 500",
+      "notes": "",
+      "elapsed_ms": 4.0
+    },
+    {
+      "name": "BADPAYLOAD/fill/missing-slot",
+      "description": "POST /api/slots/fill with fill/missing-slot",
+      "passed": true,
+      "status_code": 404,
+      "expected": "4xx \u2014 slot_id required",
+      "actual": "HTTP 404",
+      "notes": "",
+      "elapsed_ms": 5.4
+    },
+    {
+      "name": "BADPAYLOAD/fill/missing-agent",
+      "description": "POST /api/slots/fill with fill/missing-agent",
+      "passed": true,
+      "status_code": 404,
+      "expected": "4xx \u2014 agent_id required",
+      "actual": "HTTP 404",
+      "notes": "",
+      "elapsed_ms": 5.2
+    },
+    {
+      "name": "BADPAYLOAD/pay/missing-amount",
+      "description": "POST /api/economy/pay with pay/missing-amount",
+      "passed": false,
+      "status_code": 200,
+      "expected": "4xx \u2014 amount required",
+      "actual": "HTTP 200",
+      "notes": "",
+      "elapsed_ms": 5.6
+    },
+    {
+      "name": "BADPAYLOAD/pay/string-amount",
+      "description": "POST /api/economy/pay with pay/string-amount",
+      "passed": true,
+      "status_code": 500,
+      "expected": "422 \u2014 invalid type",
+      "actual": "HTTP 500",
+      "notes": "",
+      "elapsed_ms": 4.2
+    },
+    {
+      "name": "BADPAYLOAD/pay/null-agent",
+      "description": "POST /api/economy/pay with pay/null-agent",
+      "passed": false,
+      "status_code": 200,
+      "expected": "4xx \u2014 null agent_id",
+      "actual": "HTTP 200",
+      "notes": "",
+      "elapsed_ms": 6.0
+    },
+    {
+      "name": "GOVFLIP/metrics",
+      "description": "Log compliance_score=0, governance_active=False",
+      "passed": true,
+      "status_code": 200,
+      "expected": "200 \u2014 metrics accepted (backend should flag for review)",
+      "actual": "HTTP 200",
+      "notes": "",
+      "elapsed_ms": 5.1
+    },
+    {
+      "name": "GOVFLIP/pay",
+      "description": "Request payment after governance failure signals",
+      "passed": true,
+      "status_code": 200,
+      "expected": "Future: higher fee or rejection. Today: UNGOVERNED tier fee applies",
+      "actual": "tier=UNGOVERNED net=$170.00",
+      "notes": "If net > 0 at same rate, governance metrics aren't factored into fees yet.",
+      "elapsed_ms": 6.0
+    }
+  ]
+}
