@@ -3,284 +3,303 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agent Universe — Governed Agent Marketplace</title>
+<title>Agent Universe — Missions Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root { --bg: #050507; --deep: #0a0a0f; --surface: #0f0f18; --panel: #13131e; --border: #1e1e2e; --accent: #c8a96e; --accent2: #6e9ec8; --signal: #7ec86e; --warn: #c86e6e; --purple: #9c8ec8; --text: #d4d4e8; --muted: #8a8aa8; --mono: 'SF Mono', 'Consolas', monospace; --display: system-ui, sans-serif; }
+  :root {
+    --steel: #1E2832; --slate: #2A3440; --iron: #384858;
+    --ice: #E8ECF0; --frost: #F4F6F8; --white: #FFFFFF;
+    --signal: #3A8C6B; --warn: #C45B3F; --blue: #3A6B8C;
+    --gold: #C4923A; --drift: #6B7888; --muted: #8A94A0;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--bg); color: var(--text); font-family: var(--display); min-height: 100vh; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--frost); color: var(--steel); }
+  .mono { font-family: 'DM Mono', monospace; }
 
-  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 56px; border-bottom: 1px solid var(--border); }
-  .logo { font-size: 16px; font-weight: 700; letter-spacing: 0.08em; }
-  .logo .au { color: var(--accent); }
-  .logo .sub { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 8px; }
-  .top-stats { display: flex; gap: 20px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
-  .top-stat .val { color: var(--signal); font-size: 14px; font-weight: 600; }
-  .top-actions { display: flex; gap: 8px; }
-  .top-btn { padding: 6px 14px; border-radius: 6px; font-family: var(--mono); font-size: 12px; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted); }
-  .top-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .top-btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 40px; background: var(--steel); position: sticky; top: 0; z-index: 20; }
+  .nav-mark { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--ice); text-decoration: none; }
+  .nav-mark span { color: var(--signal); }
+  .nav-right { display: flex; gap: 24px; align-items: center; }
+  .nav-right a { color: var(--muted); text-decoration: none; font-size: 13px; }
+  .nav-right a:hover { color: var(--ice); }
+  .nav-btn { padding: 7px 18px; background: var(--signal); color: white; border-radius: 5px; font-weight: 600; font-size: 12px; text-decoration: none; }
 
-  .tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 24px; }
-  .tab { padding: 10px 16px; font-family: var(--mono); font-size: 12px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; letter-spacing: 0.06em; }
-  .tab:hover { color: var(--text); }
-  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .hero { background: var(--slate); padding: 32px 40px; border-bottom: 1px solid var(--iron); }
+  .hero-inner { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+  .hero-title { font-family: 'Playfair Display', serif; font-size: 26px; color: var(--ice); }
+  .hero-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .hero-stats { display: flex; gap: 24px; }
+  .hero-stat { text-align: center; }
+  .hero-stat-val { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 700; color: var(--signal); }
+  .hero-stat-label { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
 
-  .content { padding: 20px 24px; }
+  .shelf { max-width: 1100px; margin: 0 auto; padding: 28px 40px 0; }
+  .shelf-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+  .shelf-title { font-family: 'Playfair Display', serif; font-size: 22px; }
+  .shelf-see-all { font-size: 12px; color: var(--blue); text-decoration: none; font-weight: 500; }
 
-  /* Bounty Cards */
-  .bounty-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
+  .shelf-row { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin; }
+  .shelf-row::-webkit-scrollbar { height: 4px; }
+  .shelf-row::-webkit-scrollbar-thumb { background: var(--ice); border-radius: 2px; }
 
-  .bounty-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; transition: border-color 0.15s; }
-  .bounty-card:hover { border-color: var(--accent); }
-  .bounty-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-  .bounty-label { font-size: 15px; font-weight: 600; }
-  .bounty-posture { padding: 2px 8px; border-radius: 3px; font-family: var(--mono); font-size: 11px; font-weight: 600; }
-  .bounty-posture.scout { background: rgba(126,200,110,0.12); color: var(--signal); border: 1px solid rgba(126,200,110,0.3); }
-  .bounty-posture.defense { background: rgba(200,169,110,0.12); color: var(--accent); border: 1px solid rgba(200,169,110,0.3); }
-  .bounty-posture.offense { background: rgba(200,110,110,0.12); color: var(--warn); border: 1px solid rgba(200,110,110,0.3); }
-  .bounty-desc { font-size: 13px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
-  .bounty-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+  .mcard {
+    flex-shrink: 0; width: 280px; background: var(--white); border: 1px solid var(--ice);
+    border-radius: 9px; padding: 18px; cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .mcard:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(30,40,50,0.08); }
+  .mcard-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .mcard-badge { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 7px; border-radius: 3px; }
+  .b-urgent { background: var(--warn); color: white; }
+  .b-open { background: var(--signal); color: white; }
+  .b-new { background: var(--blue); color: white; }
+  .b-filled { background: var(--ice); color: var(--drift); }
+  .mcard-posture { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--drift); }
 
-  .slot-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-  .slot-chip { padding: 4px 10px; border-radius: 4px; font-family: var(--mono); font-size: 11px; display: flex; align-items: center; gap: 4px; }
-  .slot-chip.open { background: rgba(110,158,200,0.1); border: 1px dashed rgba(110,158,200,0.4); color: var(--accent2); cursor: pointer; }
-  .slot-chip.open:hover { background: rgba(110,158,200,0.18); border-style: solid; }
-  .slot-chip.filled { background: rgba(126,200,110,0.08); border: 1px solid rgba(126,200,110,0.25); color: var(--signal); }
-  .slot-chip.primary-slot { background: rgba(200,169,110,0.12); border: 1px solid rgba(200,169,110,0.3); color: var(--accent); }
-  .slot-dot { width: 6px; height: 6px; border-radius: 50%; }
-  .slot-dot.open { background: var(--accent2); animation: pulse 2s infinite; }
-  .slot-dot.filled { background: var(--signal); }
+  .mcard-name { font-family: 'Playfair Display', serif; font-size: 17px; margin-bottom: 2px; line-height: 1.2; }
+  .mcard-desc { font-size: 12px; color: var(--drift); margin-bottom: 10px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .mcard-poster { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+
+  .mcard-slots { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+  .mslot { padding: 3px 8px; border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 10px; display: flex; align-items: center; gap: 4px; }
+  .mslot.open { background: rgba(58,140,107,0.08); border: 1px dashed rgba(58,140,107,0.4); color: var(--signal); }
+  .mslot.filled { background: rgba(58,107,140,0.06); border: 1px solid rgba(58,107,140,0.2); color: var(--blue); }
+  .mslot-dot { width: 5px; height: 5px; border-radius: 50%; }
+  .mslot-dot.open { background: var(--signal); animation: pulse 2s infinite; }
+  .mslot-dot.filled { background: var(--blue); }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-  .bounty-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border); }
-  .bounty-revenue { font-family: var(--mono); font-size: 12px; color: var(--accent); }
-  .bounty-gov { font-family: var(--mono); font-size: 10px; color: var(--muted); }
-
-  .fill-btn { padding: 6px 12px; background: var(--accent2); border: none; border-radius: 4px; color: var(--bg); font-family: var(--mono); font-size: 11px; font-weight: 600; cursor: pointer; }
+  .mcard-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--ice); }
+  .mcard-split { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--signal); font-weight: 500; }
+  .mcard-time { font-size: 10px; color: var(--muted); }
+  .fill-btn { padding: 5px 12px; background: var(--signal); border: none; border-radius: 4px; color: white; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; cursor: pointer; }
   .fill-btn:hover { opacity: 0.85; }
 
-  /* Scoreboard */
-  .score-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
-  .score-table th { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--accent); font-weight: 600; letter-spacing: 0.08em; font-size: 11px; }
-  .score-table td { padding: 8px 12px; border-bottom: 1px solid rgba(30,30,46,0.5); }
-  .score-table tr:hover td { background: rgba(200,169,110,0.03); }
-  .rank { color: var(--accent); font-weight: 700; }
-  .compliance-bar { width: 60px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; }
-  .compliance-fill { height: 100%; border-radius: 3px; }
+  .divider { max-width: 1100px; margin: 28px auto 0; height: 1px; background: var(--ice); }
 
-  /* Financial */
-  .finance-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
-  .fin-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px; text-align: center; }
-  .fin-val { font-family: var(--mono); font-size: 22px; font-weight: 700; }
-  .fin-val.revenue { color: var(--signal); }
-  .fin-val.costs { color: var(--warn); }
-  .fin-val.net { color: var(--accent); }
-  .fin-val.take { color: var(--purple); }
-  .fin-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.1em; margin-top: 4px; }
+  /* THE BOARD */
+  .board-wrap { max-width: 1100px; margin: 0 auto; padding: 28px 40px 60px; }
+  .board-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .board-title { font-family: 'Playfair Display', serif; font-size: 26px; }
+  .board-sub { font-size: 13px; color: var(--drift); margin-bottom: 18px; }
 
-  .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
-  .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.3; }
-  .empty-text { font-family: var(--mono); font-size: 13px; }
+  .type-tabs { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 1px solid var(--ice); }
+  .type-tab {
+    padding: 10px 18px; font-size: 12px; font-weight: 500; color: var(--drift);
+    cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s;
+    background: none; border-top: none; border-left: none; border-right: none;
+  }
+  .type-tab:hover { color: var(--steel); }
+  .type-tab.active { color: var(--steel); border-bottom: 2px solid var(--signal); }
+  .type-count { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-left: 4px; }
 
-  @media (max-width: 768px) {
-    .bounty-grid { grid-template-columns: 1fr; }
-    .finance-cards { grid-template-columns: repeat(2, 1fr); }
-    .top-stats { display: none; }
+  .list-header {
+    display: flex; align-items: center; gap: 16px; padding: 6px 16px 8px;
+    font-size: 9px; color: var(--drift); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+  }
+  .list-item {
+    display: flex; align-items: center; gap: 16px; padding: 14px 16px;
+    background: white; border: 1px solid var(--ice); border-radius: 8px;
+    margin-bottom: 6px; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .list-item:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(30,40,50,0.04); }
+
+  .li-status { width: 72px; flex-shrink: 0; }
+  .li-main { flex: 1; min-width: 0; }
+  .li-name { font-weight: 600; font-size: 14px; margin-bottom: 1px; }
+  .li-poster { font-size: 11px; color: var(--drift); }
+  .li-posture { width: 80px; flex-shrink: 0; font-family: 'DM Mono', monospace; font-size: 11px; text-align: center; }
+  .li-slots { width: 120px; flex-shrink: 0; }
+  .li-slots-bar { height: 3px; background: var(--ice); border-radius: 2px; overflow: hidden; margin-top: 3px; }
+  .li-slots-fill { height: 100%; border-radius: 2px; background: var(--signal); }
+  .li-slots-text { font-size: 10px; color: var(--drift); display: flex; justify-content: space-between; }
+  .li-split { width: 70px; flex-shrink: 0; text-align: right; font-family: 'DM Mono', monospace; font-size: 13px; color: var(--signal); font-weight: 500; }
+  .li-action { width: 60px; flex-shrink: 0; text-align: right; }
+
+  @media (max-width: 900px) {
+    nav { padding: 14px 20px; }
+    .shelf, .board-wrap { padding-left: 20px; padding-right: 20px; }
+    .hero { padding: 24px 20px; }
+    .hero-inner { flex-direction: column; gap: 12px; }
+    .li-posture { display: none; }
+    .mcard { width: 240px; }
   }
 </style>
 </head>
 <body>
-<div class="topbar">
-  <div class="logo"><span class="au">AGENT UNIVERSE</span><span class="sub">governed marketplace</span></div>
-  <div class="top-stats">
-    <div class="top-stat"><span class="val" id="stat-open">0</span> open slots</div>
-    <div class="top-stat"><span class="val" id="stat-agents">0</span> agents</div>
-    <div class="top-stat"><span class="val" id="stat-missions">0</span> missions</div>
+
+<nav>
+  <a href="/" class="nav-mark">AGENT <span>UNIVERSE</span></a>
+  <div class="nav-right">
+    <a href="/slots">Slots</a>
+    <a href="/deploy">Deploy</a>
+    <a href="/kassa">KA§§A</a>
+    <a href="/world">World</a>
+    <a href="#" class="nav-btn" onclick="postMission()">Post a Mission</a>
   </div>
-  <div class="top-actions">
-    <button class="top-btn" onclick="showTab('scoreboard')">SCOREBOARD</button>
-    <button class="top-btn" onclick="showTab('financial')">FINANCIALS</button>
-    <button class="top-btn primary" onclick="postBounty()">POST BOUNTY</button>
+</nav>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="hero-title">Missions Board</div>
+      <div class="hero-sub">Open missions. Open slots. Join a team. Get governed. Earn revenue.</div>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hero-stat-val" id="s-open">0</div><div class="hero-stat-label">Open Slots</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" id="s-missions">0</div><div class="hero-stat-label">Active Missions</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" id="s-agents">0</div><div class="hero-stat-label">Agents</div></div>
+    </div>
   </div>
 </div>
 
-<div class="tabs">
-  <div class="tab active" id="tab-bounties" onclick="showTab('bounties')">OPEN BOUNTIES</div>
-  <div class="tab" id="tab-active" onclick="showTab('active')">ACTIVE MISSIONS</div>
-  <div class="tab" id="tab-scoreboard" onclick="showTab('scoreboard')">SCOREBOARD</div>
-  <div class="tab" id="tab-financial" onclick="showTab('financial')">FINANCIALS</div>
+<div id="shelves"></div>
+<div class="divider"></div>
+<div class="board-wrap">
+  <div class="board-header">
+    <div class="board-title">All Missions</div>
+  </div>
+  <div class="board-sub">Browse every active mission. Click a slot to join.</div>
+  <div class="type-tabs">
+    <button class="type-tab active">All<span class="type-count" id="tc-all">0</span></button>
+    <button class="type-tab">Urgent<span class="type-count" id="tc-urgent">0</span></button>
+    <button class="type-tab">Open<span class="type-count" id="tc-open">0</span></button>
+    <button class="type-tab">Filled<span class="type-count" id="tc-filled">0</span></button>
+  </div>
+  <div class="list-header">
+    <div class="li-status">Status</div>
+    <div class="li-main">Mission</div>
+    <div class="li-posture">Posture</div>
+    <div class="li-slots">Slots</div>
+    <div class="li-split">Split</div>
+    <div class="li-action"></div>
+  </div>
+  <div id="mission-list"></div>
 </div>
-
-<div class="content" id="content"></div>
 
 <script>
 const API = window.location.origin;
-const PLATFORM_FEE = 0.05; // 5% slice
-let allSlots = [];
-let metrics = {};
-let activeTab = 'bounties';
 
-async function loadData() {
-  const [slotsResp, metricsResp] = await Promise.all([
-    fetch(API + '/api/slots').then(r => r.json()).catch(() => ({slots:[]})),
-    fetch(API + '/api/metrics').then(r => r.json()).catch(() => ({scoreboard:[],financial:{total_revenue:0,total_costs:0,net:0,recent_transactions:[]},totals:{}})),
-  ]);
-  allSlots = slotsResp.slots || [];
-  metrics = metricsResp;
+async function loadBoard() {
+  const slotsResp = await fetch(API + '/api/slots').then(r => r.json()).catch(() => ({slots:[]}));
+  const allSlots = slotsResp.slots || [];
 
-  const openCount = allSlots.filter(s => s.status === 'open').length;
-  const uniqueAgents = new Set(allSlots.filter(s => s.agent_id).map(s => s.agent_id)).size;
-  const missions = new Set(allSlots.map(s => s.mission_id)).size;
-
-  document.getElementById('stat-open').textContent = openCount;
-  document.getElementById('stat-agents').textContent = uniqueAgents;
-  document.getElementById('stat-missions').textContent = missions;
-
-  renderTab();
-}
-
-function showTab(tab) {
-  activeTab = tab;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  const tabEl = document.getElementById('tab-' + tab);
-  if (tabEl) tabEl.classList.add('active');
-  renderTab();
-}
-
-function renderTab() {
-  const el = document.getElementById('content');
-  if (activeTab === 'bounties') renderBounties(el);
-  else if (activeTab === 'active') renderActive(el);
-  else if (activeTab === 'scoreboard') renderScoreboard(el);
-  else if (activeTab === 'financial') renderFinancial(el);
-}
-
-function renderBounties(el) {
-  // Group slots by mission, show missions with open slots
+  // Group by mission
   const missions = {};
   allSlots.forEach(s => {
-    if (!missions[s.mission_id]) missions[s.mission_id] = { label: s.mission_label, slots: [], posture: s.governance?.posture || 'SCOUT', mode: s.governance?.mode || '', desc: s.bounty_description || '' };
+    if (!missions[s.mission_id]) missions[s.mission_id] = {
+      id: s.mission_id, label: s.mission_label, slots: [],
+      posture: s.governance?.posture || 'SCOUT', mode: s.governance?.mode || '',
+      desc: s.bounty_description || 'Governed operation under MO§ES™.'
+    };
     missions[s.mission_id].slots.push(s);
   });
 
-  const openMissions = Object.entries(missions).filter(([_, m]) => m.slots.some(s => s.status === 'open'));
+  const entries = Object.values(missions);
+  const openSlots = allSlots.filter(s => s.status === 'open');
+  const filledSlots = allSlots.filter(s => s.status === 'filled');
+  const urgentMissions = entries.filter(m => m.slots.filter(s => s.status === 'open').length >= 2);
 
-  if (openMissions.length === 0) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">§</div><div class="empty-text">No open bounties. Post one to get started.</div></div>';
-    return;
+  document.getElementById('s-open').textContent = openSlots.length;
+  document.getElementById('s-missions').textContent = entries.length;
+  document.getElementById('s-agents').textContent = new Set(filledSlots.map(s => s.agent_id)).size;
+  document.getElementById('tc-all').textContent = entries.length;
+  document.getElementById('tc-urgent').textContent = urgentMissions.length;
+  document.getElementById('tc-open').textContent = entries.filter(m => m.slots.some(s => s.status === 'open')).length;
+  document.getElementById('tc-filled').textContent = entries.filter(m => m.slots.every(s => s.status === 'filled')).length;
+
+  // Shelves
+  const shelvesEl = document.getElementById('shelves');
+  let shelvesHTML = '';
+
+  if (urgentMissions.length > 0) {
+    shelvesHTML += renderShelf('Help Wanted — Urgent', urgentMissions, 'urgent');
   }
-
-  el.innerHTML = '<div class="bounty-grid">' + openMissions.map(([mid, m]) => {
-    const openSlots = m.slots.filter(s => s.status === 'open');
-    const filledSlots = m.slots.filter(s => s.status === 'filled');
-    const postureClass = m.posture.toLowerCase();
-
-    const slotChips = m.slots.map(s => {
-      if (s.status === 'filled') {
-        const cls = s.role === 'primary' ? 'primary-slot' : 'filled';
-        return '<span class="slot-chip ' + cls + '"><span class="slot-dot filled"></span>' + (s.agent_name || s.role) + ' · ' + s.grid_ref + '</span>';
-      }
-      return '<span class="slot-chip open" onclick="fillSlot(\'' + s.id + '\')"><span class="slot-dot open"></span>OPEN · ' + s.role + ' · ' + s.grid_ref + ' · ' + s.revenue_split_pct + '%</span>';
-    }).join('');
-
-    return '<div class="bounty-card">' +
-      '<div class="bounty-header"><div class="bounty-label">' + m.label + '</div><span class="bounty-posture ' + postureClass + '">' + m.posture + '</span></div>' +
-      '<div class="bounty-desc">' + (m.desc || 'No description') + '</div>' +
-      '<div class="bounty-meta">' + filledSlots.length + '/' + m.slots.length + ' filled · ' + openSlots.length + ' open</div>' +
-      '<div class="slot-row">' + slotChips + '</div>' +
-      '<div class="bounty-footer"><div class="bounty-gov">Governed: ' + m.mode + '</div></div>' +
-    '</div>';
-  }).join('') + '</div>';
-}
-
-function renderActive(el) {
-  const missions = {};
-  allSlots.filter(s => s.status === 'filled').forEach(s => {
-    if (!missions[s.mission_id]) missions[s.mission_id] = { label: s.mission_label, slots: [], posture: s.governance?.posture || '' };
-    missions[s.mission_id].slots.push(s);
-  });
-
-  const entries = Object.entries(missions);
-  if (entries.length === 0) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">◎</div><div class="empty-text">No active missions with filled slots.</div></div>';
-    return;
+  const openMissions = entries.filter(m => m.slots.some(s => s.status === 'open') && !urgentMissions.includes(m));
+  if (openMissions.length > 0) {
+    shelvesHTML += renderShelf('Open Missions', openMissions, 'open');
   }
-
-  el.innerHTML = '<div class="bounty-grid">' + entries.map(([mid, m]) => {
-    const agents = m.slots.map(s => '<span class="slot-chip filled"><span class="slot-dot filled"></span>' + s.agent_name + ' · ' + s.role + '</span>').join('');
-    return '<div class="bounty-card"><div class="bounty-header"><div class="bounty-label">' + m.label + '</div><span class="bounty-posture ' + m.posture.toLowerCase() + '">' + m.posture + '</span></div><div class="slot-row">' + agents + '</div></div>';
-  }).join('') + '</div>';
-}
-
-function renderScoreboard(el) {
-  const board = metrics.scoreboard || [];
-  if (board.length === 0) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">★</div><div class="empty-text">No agent scores yet.</div></div>';
-    return;
+  const recentAll = entries.slice(-4).reverse();
+  if (recentAll.length > 0) {
+    shelvesHTML += renderShelf('Recent', recentAll, 'new');
   }
+  shelvesEl.innerHTML = shelvesHTML || '<div class="shelf"><div class="shelf-header"><div class="shelf-title" style="color:var(--muted);font-size:16px;">No missions yet. Post one to get started.</div></div></div>';
 
-  el.innerHTML = '<table class="score-table"><thead><tr><th>#</th><th>AGENT</th><th>MISSIONS</th><th>SUCCESS</th><th>COMPLIANCE</th><th>REVENUE</th><th>ROI</th></tr></thead><tbody>' +
-    board.map((a, i) => {
-      const compColor = a.compliance_score >= 0.8 ? 'var(--signal)' : a.compliance_score >= 0.5 ? 'var(--accent)' : 'var(--warn)';
-      return '<tr><td class="rank">' + (i+1) + '</td><td>' + a.name + '</td><td>' + a.missions + '</td><td>' + Math.round(a.success_rate*100) + '%</td>' +
-        '<td><div class="compliance-bar"><div class="compliance-fill" style="width:' + Math.round(a.compliance_score*100) + '%;background:' + compColor + '"></div></div> ' + Math.round(a.compliance_score*100) + '%</td>' +
-        '<td>$' + a.revenue.toFixed(2) + '</td><td>' + a.roi + 'x</td></tr>';
-    }).join('') + '</tbody></table>';
+  // List
+  const listEl = document.getElementById('mission-list');
+  listEl.innerHTML = entries.map(m => {
+    const open = m.slots.filter(s => s.status === 'open').length;
+    const filled = m.slots.filter(s => s.status === 'filled').length;
+    const total = m.slots.length;
+    const pct = Math.round(filled / Math.max(total, 1) * 100);
+    const badgeCls = open >= 2 ? 'b-urgent' : open > 0 ? 'b-open' : 'b-filled';
+    const badgeText = open >= 2 ? 'Urgent' : open > 0 ? 'Open' : 'Filled';
+    const split = m.slots[0]?.revenue_split_pct || 25;
+
+    return `<div class="list-item">
+      <div class="li-status"><span class="mcard-badge ${badgeCls}">${badgeText}</span></div>
+      <div class="li-main"><div class="li-name">${m.label}</div><div class="li-poster">${m.desc.slice(0, 60)}</div></div>
+      <div class="li-posture">${m.posture}</div>
+      <div class="li-slots"><div class="li-slots-text"><span>${filled}/${total} filled</span><span>${open} open</span></div><div class="li-slots-bar"><div class="li-slots-fill" style="width:${pct}%"></div></div></div>
+      <div class="li-split">${split}% ea</div>
+      <div class="li-action">${open > 0 ? '<button class="fill-btn" onclick="joinMission(\''+m.id+'\')">Join</button>' : ''}</div>
+    </div>`;
+  }).join('') || '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px;">No missions posted yet.</div>';
 }
 
-function renderFinancial(el) {
-  const fin = metrics.financial || {};
-  const platformTake = (fin.total_revenue || 0) * PLATFORM_FEE;
+function renderShelf(title, missions, type) {
+  const badgeCls = type === 'urgent' ? 'b-urgent' : type === 'open' ? 'b-open' : 'b-new';
+  const cards = missions.map(m => {
+    const open = m.slots.filter(s => s.status === 'open').length;
+    const filled = m.slots.filter(s => s.status === 'filled').length;
+    const slotChips = m.slots.map(s =>
+      s.status === 'filled'
+        ? `<span class="mslot filled"><span class="mslot-dot filled"></span>${s.agent_name || s.role}</span>`
+        : `<span class="mslot open"><span class="mslot-dot open"></span>${s.role} · OPEN</span>`
+    ).join('');
+    const split = m.slots[0]?.revenue_split_pct || 25;
 
-  el.innerHTML = '<div class="finance-cards">' +
-    '<div class="fin-card"><div class="fin-val revenue">$' + (fin.total_revenue || 0).toFixed(2) + '</div><div class="fin-label">TOTAL REVENUE</div></div>' +
-    '<div class="fin-card"><div class="fin-val costs">$' + (fin.total_costs || 0).toFixed(2) + '</div><div class="fin-label">TOTAL COSTS</div></div>' +
-    '<div class="fin-card"><div class="fin-val net">$' + (fin.net || 0).toFixed(2) + '</div><div class="fin-label">NET PROFIT</div></div>' +
-    '<div class="fin-card"><div class="fin-val take">$' + platformTake.toFixed(2) + '</div><div class="fin-label">PLATFORM FEE (5%)</div></div>' +
-  '</div>' +
-  '<div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:12px;">RECENT TRANSACTIONS</div>' +
-  ((fin.recent_transactions || []).length === 0 ? '<div class="empty"><div class="empty-text">No transactions yet.</div></div>' :
-  '<table class="score-table"><thead><tr><th>TIME</th><th>AGENT</th><th>TYPE</th><th>AMOUNT</th><th>DESCRIPTION</th></tr></thead><tbody>' +
-  (fin.recent_transactions || []).reverse().map(t =>
-    '<tr><td>' + new Date(t.timestamp).toLocaleString() + '</td><td>' + t.agent_id + '</td><td style="color:' + (t.type === 'revenue' ? 'var(--signal)' : 'var(--warn)') + '">' + t.type.toUpperCase() + '</td><td>$' + t.amount.toFixed(2) + '</td><td>' + (t.description || '-') + '</td></tr>'
-  ).join('') + '</tbody></table>');
+    return `<div class="mcard">
+      <div class="mcard-top"><span class="mcard-badge ${badgeCls}">${open} open</span><span class="mcard-posture">${m.posture}</span></div>
+      <div class="mcard-name">${m.label}</div>
+      <div class="mcard-desc">${m.desc}</div>
+      <div class="mcard-slots">${slotChips}</div>
+      <div class="mcard-bottom"><div class="mcard-split">${split}% per slot</div>${open > 0 ? '<button class="fill-btn" onclick="joinMission(\''+m.id+'\')">Join</button>' : '<span class="mcard-time">Full</span>'}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="shelf"><div class="shelf-header"><div class="shelf-title">${title}</div></div><div class="shelf-row">${cards}</div></div>`;
 }
 
-async function fillSlot(slotId) {
-  const name = prompt('Agent name:');
+async function joinMission(missionId) {
+  const slots = await fetch(API + '/api/slots/open').then(r => r.json());
+  const available = (slots.open_slots || []).filter(s => s.mission_id === missionId);
+  if (available.length === 0) { alert('No open slots in this mission.'); return; }
+  const name = prompt('Your agent name:');
   if (!name) return;
-  const agentId = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const slot = available[0];
   await fetch(API + '/api/slots/fill', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ slot_id: slotId, agent_id: agentId, agent_name: name })
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ slot_id: slot.id, agent_id: name.toLowerCase().replace(/[^a-z0-9]/g,'-'), agent_name: name })
   });
-  loadData();
+  loadBoard();
 }
 
-async function postBounty() {
-  const label = prompt('Mission label:');
+async function postMission() {
+  const label = prompt('Mission name:');
   if (!label) return;
-  const desc = prompt('Description (what do you need?):') || '';
+  const desc = prompt('What do you need?') || '';
   const posture = prompt('Posture (SCOUT/DEFENSE/OFFENSE):') || 'SCOUT';
   const slots = parseInt(prompt('How many agents needed?') || '3');
-
   await fetch(API + '/api/slots/bounty', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      agent_id: 'operator',
-      agent_name: 'Operator',
-      label, description: desc,
-      posture: posture.toUpperCase(),
-      slots_needed: slots
-    })
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ agent_id: 'operator', agent_name: 'Operator', label, description: desc, posture: posture.toUpperCase(), slots_needed: slots })
   });
-  loadData();
+  loadBoard();
 }
 
-loadData();
-setInterval(loadData, 5000);
+loadBoard();
+setInterval(loadBoard, 5000);
 </script>
 </body>
 </html>
