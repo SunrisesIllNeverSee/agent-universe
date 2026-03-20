@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Universe — Slot Configurator</title>
+<style>
+  :root { --bg: #050507; --deep: #0a0a0f; --surface: #0f0f18; --panel: #13131e; --border: #1e1e2e; --gold: #c8a96e; --blue: #6e9ec8; --green: #7ec86e; --red: #c86e6e; --purple: #9c8ec8; --text: #d4d4e8; --muted: #8a8aa8; --mono: 'SF Mono', monospace; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; height: 100vh; display: grid; grid-template-rows: 48px 1fr; overflow: hidden; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid var(--border); }
+  .logo { font-size: 14px; font-weight: 700; color: var(--gold); letter-spacing: 0.1em; }
+  .logo span { color: var(--muted); font-weight: 400; font-size: 11px; margin-left: 8px; }
+  .nav { display: flex; gap: 8px; }
+  .nav a { font-family: var(--mono); font-size: 11px; color: var(--muted); text-decoration: none; padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; }
+  .nav a:hover { border-color: var(--gold); color: var(--gold); }
+  .nav a.active { border-color: var(--gold); color: var(--gold); }
+
+  .layout { display: grid; grid-template-columns: 1fr 260px; min-height: 0; }
+
+  /* Slot Stack */
+  .slot-area { padding: 20px; overflow-y: auto; }
+  .slot-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .slot-title { font-size: 16px; font-weight: 700; }
+  .slot-actions { display: flex; gap: 6px; }
+  .slot-btn { padding: 5px 12px; font-family: var(--mono); font-size: 11px; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; }
+  .slot-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .slot-btn.primary { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+
+  .slots-container { display: flex; flex-direction: column; gap: 10px; }
+
+  .slot {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px;
+    display: grid; grid-template-columns: auto 1fr 1fr 1fr auto auto; gap: 10px; align-items: center;
+    transition: border-color 0.15s;
+  }
+  .slot:hover { border-color: rgba(200,169,110,0.3); }
+  .slot.primary-slot { border-left: 3px solid var(--gold); }
+  .slot.secondary-slot { border-left: 3px solid var(--blue); }
+
+  .slot-number { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--muted); width: 28px; text-align: center; }
+  .slot.primary-slot .slot-number { color: var(--gold); }
+  .slot.secondary-slot .slot-number { color: var(--blue); }
+
+  /* Badge drop zones */
+  .badge-zone {
+    min-height: 44px; border: 1px dashed var(--border); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; padding: 4px 8px;
+    transition: all 0.15s; position: relative;
+  }
+  .badge-zone:hover { border-color: rgba(200,169,110,0.3); }
+  .badge-zone.drag-over { border-color: var(--gold); background: rgba(200,169,110,0.06); border-style: solid; }
+  .badge-zone.has-badge { border-style: solid; }
+  .badge-zone-label { font-family: var(--mono); font-size: 9px; color: rgba(138,138,168,0.5); letter-spacing: 0.08em; position: absolute; top: 2px; left: 6px; pointer-events: none; }
+
+  /* Badges (in zones and in drawer) */
+  .badge {
+    padding: 4px 10px; border-radius: 4px; font-family: var(--mono); font-size: 11px;
+    cursor: grab; user-select: none; display: flex; align-items: center; gap: 5px;
+    white-space: nowrap; transition: transform 0.1s;
+  }
+  .badge:hover { transform: scale(1.03); }
+  .badge.dragging { opacity: 0.4; }
+  .badge.system { background: rgba(110,158,200,0.15); border: 1px solid rgba(110,158,200,0.4); color: var(--blue); }
+  .badge.agent { background: rgba(126,200,110,0.12); border: 1px solid rgba(126,200,110,0.35); color: var(--green); }
+  .badge.doc { background: rgba(200,169,110,0.12); border: 1px solid rgba(200,169,110,0.35); color: var(--gold); }
+  .badge.persona { background: rgba(156,142,200,0.12); border: 1px solid rgba(156,142,200,0.35); color: var(--purple); }
+  .badge.team { background: rgba(200,200,200,0.1); border: 1px solid rgba(200,200,200,0.25); color: #ccc; }
+  .badge-icon { font-size: 12px; }
+  .badge-remove { cursor: pointer; opacity: 0.5; font-size: 10px; margin-left: 4px; }
+  .badge-remove:hover { opacity: 1; color: var(--red); }
+
+  /* Role toggle */
+  .role-toggle { display: flex; gap: 2px; }
+  .role-btn { padding: 4px 8px; font-family: var(--mono); font-size: 10px; border: 1px solid var(--border); border-radius: 3px; background: transparent; color: var(--muted); cursor: pointer; }
+  .role-btn.active-primary { border-color: var(--gold); color: var(--gold); background: rgba(200,169,110,0.08); }
+  .role-btn.active-secondary { border-color: var(--blue); color: var(--blue); background: rgba(110,158,200,0.08); }
+
+  /* Sequence input */
+  .seq-input { width: 36px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; color: var(--gold); font-family: var(--mono); font-size: 14px; text-align: center; padding: 4px; }
+  .seq-input:focus { border-color: var(--gold); outline: none; }
+  .seq-label { font-family: var(--mono); font-size: 9px; color: var(--muted); text-align: center; }
+
+  /* Badge Drawer */
+  .drawer { background: var(--deep); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .drawer-tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .drawer-tab { flex: 1; padding: 8px 4px; font-family: var(--mono); font-size: 10px; color: var(--muted); text-align: center; cursor: pointer; border-bottom: 2px solid transparent; letter-spacing: 0.06em; }
+  .drawer-tab:hover { color: var(--text); }
+  .drawer-tab.active { border-bottom-color: var(--gold); color: var(--gold); }
+  .drawer-content { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .drawer-section { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 0.1em; padding: 6px 0 3px; }
+
+  .empty-slot-hint { font-family: var(--mono); font-size: 10px; color: rgba(138,138,168,0.4); }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">SLOT CONFIGURATOR <span>drag badges into slots</span></div>
+  <div class="nav">
+    <a href="/world">WORLD</a>
+    <a href="/">BOUNTIES</a>
+    <a href="/slots" class="active">SLOTS</a>
+    <a href="/kassa">KA§§A</a>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="slot-area">
+    <div class="slot-header">
+      <div class="slot-title">Operation Slots</div>
+      <div class="slot-actions">
+        <button class="slot-btn" onclick="addSlot()">+ ADD SLOT</button>
+        <button class="slot-btn" onclick="saveTeam()">SAVE AS TEAM</button>
+        <button class="slot-btn" onclick="loadTeam()">LOAD TEAM</button>
+        <button class="slot-btn primary" onclick="launchOp()">LAUNCH ⚡</button>
+      </div>
+    </div>
+    <div class="slots-container" id="slots-container"></div>
+  </div>
+
+  <!-- Badge Drawer -->
+  <div class="drawer">
+    <div class="drawer-tabs">
+      <div class="drawer-tab active" onclick="showDrawer('systems')">SYS</div>
+      <div class="drawer-tab" onclick="showDrawer('agents')">AGENTS</div>
+      <div class="drawer-tab" onclick="showDrawer('docs')">DOCS</div>
+      <div class="drawer-tab" onclick="showDrawer('personas')">PERSONA</div>
+      <div class="drawer-tab" onclick="showDrawer('teams')">TEAMS</div>
+    </div>
+    <div class="drawer-content" id="drawer-content"></div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+let slots = [];
+let slotCounter = 0;
+let teams = {};
+let dragBadge = null;
+let activeDrawer = 'systems';
+
+// Badge data
+const SYSTEMS = [
+  { id: 'claude', name: 'Claude', provider: 'Anthropic', icon: '◆' },
+  { id: 'gpt', name: 'GPT-4o', provider: 'OpenAI', icon: '◆' },
+  { id: 'gemini', name: 'Gemini', provider: 'Google', icon: '◆' },
+  { id: 'grok', name: 'Grok', provider: 'xAI', icon: '◆' },
+  { id: 'deepseek', name: 'DeepSeek', provider: 'DeepSeek', icon: '◆' },
+];
+
+const AGENTS = [
+  { id: 'recon', name: 'Recon Agent', type: 'research', icon: '⚡' },
+  { id: 'intake', name: 'Intake Processor', type: 'data', icon: '⚡' },
+  { id: 'builder', name: 'Builder Agent', type: 'code', icon: '⚡' },
+  { id: 'outreach', name: 'Outreach Agent', type: 'signal', icon: '⚡' },
+  { id: 'ops', name: 'Ops Agent', type: 'tracking', icon: '⚡' },
+];
+
+const DOCS = [
+  { id: 'burner-init', name: 'BURNER-INIT-v2.md', category: 'protocol', icon: '◇' },
+  { id: 'signal-comp', name: 'SIGNAL-COMPRESSION-v1.md', category: 'protocol', icon: '◇' },
+  { id: 'security-proto', name: 'Security Protocol v3', category: 'protocol', icon: '◇' },
+  { id: 'audit-req', name: 'Audit Requirements', category: 'compliance', icon: '◇' },
+];
+
+const PERSONAS = [
+  { id: 'analyst', name: 'The Analyst', style: 'Precise, data-driven', icon: '◉' },
+  { id: 'skeptic', name: 'The Skeptic', style: 'Adversarial, challenges everything', icon: '◉' },
+  { id: 'advocate', name: 'The Advocate', style: 'Constructive, builds the case', icon: '◉' },
+  { id: 'strategist', name: 'The Strategist', style: 'Big picture, long-term', icon: '◉' },
+  { id: 'operator', name: 'Luthen', style: 'Direct, signal-oriented', icon: '◉' },
+];
+
+function addSlot() {
+  slotCounter++;
+  slots.push({
+    id: 'slot-' + slotCounter,
+    num: slotCounter,
+    role: slotCounter === 1 ? 'primary' : 'secondary',
+    seq: slotCounter,
+    system: null,
+    agent: null,
+    doc: null,
+    persona: null,
+  });
+  renderSlots();
+}
+
+function removeSlot(idx) {
+  slots.splice(idx, 1);
+  renderSlots();
+}
+
+function setRole(idx, role) {
+  slots[idx].role = role;
+  renderSlots();
+}
+
+function setSeq(idx, val) {
+  slots[idx].seq = parseInt(val) || 1;
+}
+
+function renderSlots() {
+  const container = document.getElementById('slots-container');
+
+  if (slots.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);font-family:var(--mono);font-size:12px;">No slots configured. Click + ADD SLOT to begin.<br><br>Drag badges from the right drawer into slots.</div>';
+    return;
+  }
+
+  container.innerHTML = slots.map((s, idx) => {
+    const roleClass = s.role === 'primary' ? 'primary-slot' : 'secondary-slot';
+
+    const sysBadge = s.system ? makeBadgeHTML(s.system, 'system', idx) : `<span class="empty-slot-hint">drop system/agent</span>`;
+    const docBadge = s.doc ? makeBadgeHTML(s.doc, 'doc', idx) : `<span class="empty-slot-hint">drop doc</span>`;
+    const persBadge = s.persona ? makeBadgeHTML(s.persona, 'persona', idx) : `<span class="empty-slot-hint">drop persona</span>`;
+
+    return `<div class="slot ${roleClass}">
+      <div class="slot-number">${idx + 1}</div>
+      <div class="badge-zone ${s.system || s.agent ? 'has-badge' : ''}" data-slot="${idx}" data-type="system" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropBadge(event,${idx},'system')">
+        <div class="badge-zone-label">SYSTEM / AGENT</div>
+        ${sysBadge}
+      </div>
+      <div class="badge-zone ${s.doc ? 'has-badge' : ''}" data-slot="${idx}" data-type="doc" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropBadge(event,${idx},'doc')">
+        <div class="badge-zone-label">DOC</div>
+        ${docBadge}
+      </div>
+      <div class="badge-zone ${s.persona ? 'has-badge' : ''}" data-slot="${idx}" data-type="persona" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropBadge(event,${idx},'persona')">
+        <div class="badge-zone-label">PERSONA</div>
+        ${persBadge}
+      </div>
+      <div style="text-align:center;">
+        <div class="role-toggle">
+          <button class="role-btn ${s.role==='primary'?'active-primary':''}" onclick="setRole(${idx},'primary')">PRI</button>
+          <button class="role-btn ${s.role==='secondary'?'active-secondary':''}" onclick="setRole(${idx},'secondary')">SEC</button>
+        </div>
+        <div class="seq-label">SEQ</div>
+        <input class="seq-input" type="number" min="1" max="9" value="${s.seq}" onchange="setSeq(${idx},this.value)">
+      </div>
+      <div style="cursor:pointer;color:var(--muted);font-size:14px;opacity:0.4;" onclick="removeSlot(${idx})" title="Remove slot">✕</div>
+    </div>`;
+  }).join('');
+}
+
+function makeBadgeHTML(badge, type, slotIdx) {
+  const cls = type === 'system' ? (badge.type === 'agent' ? 'agent' : 'system') : type;
+  return `<div class="badge ${cls}"><span class="badge-icon">${badge.icon || '◆'}</span>${badge.name}<span class="badge-remove" onclick="clearBadge(${slotIdx},'${type}')">✕</span></div>`;
+}
+
+function clearBadge(idx, type) {
+  if (type === 'system') { slots[idx].system = null; slots[idx].agent = null; }
+  else if (type === 'doc') slots[idx].doc = null;
+  else if (type === 'persona') slots[idx].persona = null;
+  renderSlots();
+}
+
+// Drag and Drop
+function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+
+function dropBadge(e, slotIdx, zoneType) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragBadge) return;
+
+  if (zoneType === 'system' && (dragBadge.badgeType === 'system' || dragBadge.badgeType === 'agent')) {
+    slots[slotIdx].system = dragBadge.data;
+    if (dragBadge.badgeType === 'agent') slots[slotIdx].system.type = 'agent';
+  } else if (zoneType === 'doc' && dragBadge.badgeType === 'doc') {
+    slots[slotIdx].doc = dragBadge.data;
+  } else if (zoneType === 'persona' && dragBadge.badgeType === 'persona') {
+    slots[slotIdx].persona = dragBadge.data;
+  }
+  renderSlots();
+}
+
+function showDrawer(tab) {
+  activeDrawer = tab;
+  document.querySelectorAll('.drawer-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.drawer-tab').forEach(t => { if (t.textContent.toLowerCase().includes(tab.slice(0,3))) t.classList.add('active'); });
+  renderDrawer();
+}
+
+function renderDrawer() {
+  const el = document.getElementById('drawer-content');
+  let items = [];
+
+  if (activeDrawer === 'systems') {
+    items = SYSTEMS.map(s => ({ ...s, badgeType: 'system', cls: 'system' }));
+  } else if (activeDrawer === 'agents') {
+    items = AGENTS.map(a => ({ ...a, badgeType: 'agent', cls: 'agent' }));
+  } else if (activeDrawer === 'docs') {
+    items = DOCS.map(d => ({ ...d, badgeType: 'doc', cls: 'doc' }));
+  } else if (activeDrawer === 'personas') {
+    items = PERSONAS.map(p => ({ ...p, badgeType: 'persona', cls: 'persona' }));
+  } else if (activeDrawer === 'teams') {
+    const teamNames = Object.keys(teams);
+    if (teamNames.length === 0) {
+      el.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--muted);padding:8px;">No saved teams. Configure slots and click SAVE AS TEAM.</div>';
+      return;
+    }
+    el.innerHTML = teamNames.map(name =>
+      `<div class="badge team" onclick="applyTeam('${name}')" style="cursor:pointer;"><span class="badge-icon">▣</span>${name}</div>`
+    ).join('');
+    return;
+  }
+
+  el.innerHTML = items.map(item =>
+    `<div class="badge ${item.cls}" draggable="true" onmousedown="startDrag('${item.badgeType}',${JSON.stringify(item).replace(/"/g,'&quot;')})" ondragstart="onDragStart(event,'${item.badgeType}',${JSON.stringify(item).replace(/"/g,'&quot;')})" ondragend="onDragEnd(event)"><span class="badge-icon">${item.icon}</span>${item.name}${item.provider ? '<span style="opacity:0.5;margin-left:4px;font-size:9px;">'+item.provider+'</span>' : ''}${item.style ? '<span style="opacity:0.5;margin-left:4px;font-size:9px;">'+item.style+'</span>' : ''}</div>`
+  ).join('');
+}
+
+function startDrag(type, data) { dragBadge = { badgeType: type, data }; }
+function onDragStart(e, type, data) { dragBadge = { badgeType: type, data }; e.target.classList.add('dragging'); }
+function onDragEnd(e) { e.target.classList.remove('dragging'); dragBadge = null; }
+
+function saveTeam() {
+  const name = prompt('Team name:');
+  if (!name) return;
+  teams[name] = JSON.parse(JSON.stringify(slots));
+  alert('Team saved: ' + name);
+}
+
+function loadTeam() {
+  const names = Object.keys(teams);
+  if (names.length === 0) { alert('No teams saved yet.'); return; }
+  const name = prompt('Load team: ' + names.join(', '));
+  if (name && teams[name]) {
+    slots = JSON.parse(JSON.stringify(teams[name]));
+    slotCounter = slots.length;
+    renderSlots();
+  }
+}
+
+function applyTeam(name) {
+  if (teams[name]) {
+    slots = JSON.parse(JSON.stringify(teams[name]));
+    slotCounter = slots.length;
+    renderSlots();
+  }
+}
+
+async function launchOp() {
+  const configured = slots.filter(s => s.system || s.agent);
+  if (configured.length === 0) { alert('Configure at least one slot with a system or agent.'); return; }
+
+  // Create mission from slots
+  const primary = slots.find(s => s.role === 'primary');
+  const label = prompt('Operation label:') || 'OP-' + Date.now().toString(36).toUpperCase();
+
+  const systems = {};
+  const agents = {};
+  slots.forEach(s => {
+    if (s.system) {
+      if (s.system.type === 'agent') agents[s.system.id] = true;
+      else systems[s.system.id] = true;
+    }
+  });
+
+  await fetch(API + '/api/missions', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      label,
+      objective: 'Slot-configured operation',
+      posture: 'DEFENSE',
+      systems,
+      agents,
+      duration: 'sprint',
+    })
+  });
+
+  alert('Operation launched: ' + label + ' (' + configured.length + ' slots configured)');
+}
+
+// Init with 3 slots
+addSlot();
+addSlot();
+addSlot();
+renderDrawer();
+</script>
+</body>
+</html>
