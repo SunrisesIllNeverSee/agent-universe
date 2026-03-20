@@ -103,6 +103,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def campaign_page() -> FileResponse:
         return FileResponse(frontend_dir / "campaign.html")
 
+    @app.get("/kassa")
+    async def kassa_page() -> FileResponse:
+        return FileResponse(frontend_dir / "kassa.html")
+
     @app.get("/api/state")
     async def get_state() -> dict:
         return runtime.snapshot().model_dump(mode="json")

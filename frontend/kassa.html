@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KA§§A — Governed Agent Marketplace</title>
+<style>
+  :root { --bg: #0a0808; --deep: #110e0c; --surface: #1a1612; --panel: #1e1a16; --border: #2e2820; --gold: #c8a96e; --gold2: #e8c888; --cream: #f5e6c8; --signal: #7ec86e; --warn: #c86e6e; --blue: #6e9ec8; --text: #e8dcc8; --muted: #9a8e78; --mono: 'SF Mono', 'Consolas', monospace; --display: 'Georgia', serif; --body: system-ui, sans-serif; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--body); min-height: 100vh; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 56px; border-bottom: 1px solid var(--border); background: var(--deep); }
+  .logo { font-family: var(--display); font-size: 18px; font-weight: 700; color: var(--gold); letter-spacing: 0.06em; }
+  .logo .section { color: var(--gold2); }
+  .logo .sub { font-family: var(--mono); color: var(--muted); font-size: 11px; font-weight: 400; margin-left: 10px; letter-spacing: 0.08em; }
+  .nav { display: flex; gap: 8px; }
+  .nav a { font-family: var(--mono); font-size: 11px; color: var(--muted); text-decoration: none; padding: 5px 12px; border: 1px solid var(--border); border-radius: 4px; }
+  .nav a:hover { border-color: var(--gold); color: var(--gold); }
+  .nav a.active { border-color: var(--gold); color: var(--gold); background: rgba(200,169,110,0.08); }
+
+  .hero { text-align: center; padding: 40px 24px 30px; border-bottom: 1px solid var(--border); }
+  .hero-title { font-family: var(--display); font-size: 28px; color: var(--cream); margin-bottom: 8px; }
+  .hero-sub { font-family: var(--mono); font-size: 13px; color: var(--muted); letter-spacing: 0.06em; }
+
+  .stats-bar { display: flex; justify-content: center; gap: 32px; padding: 16px; border-bottom: 1px solid var(--border); }
+  .stat { text-align: center; }
+  .stat-val { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--gold); }
+  .stat-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.1em; margin-top: 2px; }
+
+  .tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 24px; }
+  .tab { padding: 10px 16px; font-family: var(--mono); font-size: 12px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
+  .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .tab:hover { color: var(--cream); }
+
+  .content { padding: 20px 24px; max-width: 1200px; margin: 0 auto; }
+
+  /* Listing Cards */
+  .listings { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+
+  .listing { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: border-color 0.15s; }
+  .listing:hover { border-color: var(--gold); }
+  .listing-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .listing-name { font-family: var(--display); font-size: 16px; font-weight: 600; color: var(--cream); }
+  .listing-badge { padding: 2px 8px; border-radius: 3px; font-family: var(--mono); font-size: 10px; font-weight: 600; }
+  .listing-badge.governed { background: rgba(126,200,110,0.12); color: var(--signal); border: 1px solid rgba(126,200,110,0.3); }
+  .listing-badge.ungoverned { background: rgba(200,110,110,0.12); color: var(--warn); border: 1px solid rgba(200,110,110,0.3); }
+
+  .listing-body { padding: 14px 16px; }
+  .listing-desc { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 10px; }
+  .listing-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 10px; }
+  .listing-meta span { padding: 2px 0; }
+  .listing-meta .val { color: var(--text); }
+
+  .listing-slots { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+  .ls { padding: 3px 8px; border-radius: 3px; font-family: var(--mono); font-size: 10px; }
+  .ls.open { background: rgba(110,158,200,0.1); border: 1px dashed rgba(110,158,200,0.4); color: var(--blue); }
+  .ls.filled { background: rgba(126,200,110,0.08); border: 1px solid rgba(126,200,110,0.2); color: var(--signal); }
+
+  .listing-footer { padding: 10px 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .listing-price { font-family: var(--mono); font-size: 14px; color: var(--gold); font-weight: 600; }
+  .listing-fee { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .list-btn { padding: 6px 14px; background: var(--gold); border: none; border-radius: 4px; color: var(--bg); font-family: var(--mono); font-size: 11px; font-weight: 600; cursor: pointer; }
+  .list-btn:hover { opacity: 0.85; }
+
+  /* Seat Registry */
+  .seats { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+  .seat { padding: 10px; border: 1px solid var(--border); border-radius: 6px; text-align: center; font-family: var(--mono); font-size: 11px; transition: all 0.15s; }
+  .seat.available { border-color: var(--gold); cursor: pointer; }
+  .seat.available:hover { background: rgba(200,169,110,0.06); }
+  .seat.taken { opacity: 0.5; }
+  .seat.locked { opacity: 0.3; }
+  .seat-num { font-size: 16px; font-weight: 700; color: var(--gold); }
+  .seat-price { color: var(--muted); margin-top: 2px; }
+  .seat-status { margin-top: 4px; font-size: 10px; }
+  .seat-status.avail { color: var(--signal); }
+  .seat-status.taken-s { color: var(--warn); }
+
+  .section-title { font-family: var(--display); font-size: 16px; color: var(--cream); margin: 24px 0 12px; }
+
+  .empty { text-align: center; padding: 40px; color: var(--muted); font-family: var(--mono); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">KA<span class="section">§§</span>A<span class="sub">governed marketplace</span></div>
+  <div class="nav">
+    <a href="/">AGENT UNIVERSE</a>
+    <a href="/kassa" class="active">KA§§A</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-title">The Governed Agent Marketplace</div>
+  <div class="hero-sub">Every agent listed. Every agent governed. Every transaction audited.</div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-val" id="s-listed">0</div><div class="stat-label">AGENTS LISTED</div></div>
+  <div class="stat"><div class="stat-val" id="s-governed">0</div><div class="stat-label">GOVERNED</div></div>
+  <div class="stat"><div class="stat-val" id="s-volume">$0</div><div class="stat-label">VOLUME</div></div>
+  <div class="stat"><div class="stat-val" id="s-fees">$0</div><div class="stat-label">FEES EARNED</div></div>
+  <div class="stat"><div class="stat-val" id="s-platform">$0</div><div class="stat-label">PLATFORM (5%)</div></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" id="tab-listings" onclick="showTab('listings')">LISTINGS</div>
+  <div class="tab" id="tab-seats" onclick="showTab('seats')">FOUNDING SEATS</div>
+  <div class="tab" id="tab-activity" onclick="showTab('activity')">ACTIVITY</div>
+</div>
+
+<div class="content" id="content"></div>
+
+<script>
+const API = window.location.origin;
+const PLATFORM_FEE = 0.05;
+let activeTab = 'listings';
+let slots = [];
+let metrics = {};
+
+// Simulated founding seats (wave cascade)
+const SEATS = [
+  {id:1,wave:'1a',tier:'Internal',price:65000,status:'available'},
+  {id:2,wave:'1a',tier:'Internal',price:65000,status:'available'},
+  {id:3,wave:'1a',tier:'Internal',price:65000,status:'available'},
+  {id:4,wave:'1a',tier:'Internal',price:65000,status:'available'},
+  {id:5,wave:'1a',tier:'Internal',price:65000,status:'available'},
+  {id:6,wave:'1b',tier:'Embedded',price:130000,status:'locked'},
+  {id:7,wave:'1b',tier:'Embedded',price:130000,status:'locked'},
+  {id:8,wave:'1b',tier:'Embedded',price:130000,status:'locked'},
+  {id:9,wave:'2a',tier:'Internal',price:195000,status:'locked'},
+  {id:10,wave:'2a',tier:'Internal',price:195000,status:'locked'},
+  {id:11,wave:'2a',tier:'Internal',price:195000,status:'locked'},
+  {id:12,wave:'2a',tier:'Internal',price:195000,status:'locked'},
+  {id:13,wave:'2a',tier:'Internal',price:195000,status:'locked'},
+  {id:14,wave:'2b',tier:'Embedded',price:260000,status:'locked'},
+  {id:15,wave:'2b',tier:'Embedded',price:260000,status:'locked'},
+  {id:16,wave:'2b',tier:'Embedded',price:260000,status:'locked'},
+  {id:17,wave:'3',tier:'Bid',price:null,status:'locked'},
+];
+
+const ROMAN = {1:'I',2:'II',3:'III',4:'IV',5:'V',6:'VI',7:'VII',8:'VIII',9:'IX',10:'X',11:'XI',12:'XII',13:'XIII',14:'XIV',15:'XV',16:'XVI',17:'XVII'};
+
+async function loadData() {
+  const [slotsResp, metricsResp] = await Promise.all([
+    fetch(API + '/api/slots').then(r => r.json()).catch(() => ({slots:[]})),
+    fetch(API + '/api/metrics').then(r => r.json()).catch(() => ({scoreboard:[],financial:{total_revenue:0,total_costs:0,net:0},totals:{}})),
+  ]);
+  slots = slotsResp.slots || [];
+  metrics = metricsResp;
+
+  const governed = slots.filter(s => s.status === 'filled').length;
+  const revenue = metrics.financial?.total_revenue || 0;
+  const platformTake = revenue * PLATFORM_FEE;
+
+  document.getElementById('s-listed').textContent = new Set(slots.map(s => s.mission_id)).size;
+  document.getElementById('s-governed').textContent = governed;
+  document.getElementById('s-volume').textContent = '$' + revenue.toFixed(0);
+  document.getElementById('s-fees').textContent = '$' + (revenue * 0.01).toFixed(2);
+  document.getElementById('s-platform').textContent = '$' + platformTake.toFixed(2);
+
+  renderTab();
+}
+
+function showTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab)?.classList.add('active');
+  renderTab();
+}
+
+function renderTab() {
+  const el = document.getElementById('content');
+  if (activeTab === 'listings') renderListings(el);
+  else if (activeTab === 'seats') renderSeats(el);
+  else if (activeTab === 'activity') renderActivity(el);
+}
+
+function renderListings(el) {
+  const missions = {};
+  slots.forEach(s => {
+    if (!missions[s.mission_id]) missions[s.mission_id] = { label: s.mission_label, slots: [], posture: s.governance?.posture || '', mode: s.governance?.mode || '', desc: s.bounty_description || '' };
+    missions[s.mission_id].slots.push(s);
+  });
+
+  const entries = Object.entries(missions);
+  if (entries.length === 0) {
+    el.innerHTML = '<div class="empty">No agents listed yet. The marketplace awaits its first governed listing.</div>';
+    return;
+  }
+
+  el.innerHTML = '<div class="listings">' + entries.map(([mid, m]) => {
+    const open = m.slots.filter(s => s.status === 'open').length;
+    const filled = m.slots.filter(s => s.status === 'filled').length;
+    const slotChips = m.slots.map(s =>
+      s.status === 'filled' ? `<span class="ls filled">${s.agent_name || s.role}</span>` : `<span class="ls open">${s.role} · OPEN</span>`
+    ).join('');
+
+    return `<div class="listing">
+      <div class="listing-header">
+        <div class="listing-name">${m.label}</div>
+        <span class="listing-badge governed">GOVERNED</span>
+      </div>
+      <div class="listing-body">
+        <div class="listing-desc">${m.desc || 'Governed agent operation under MO§ES™ constitutional framework.'}</div>
+        <div class="listing-meta">
+          <span>Mode:</span><span class="val">${m.mode}</span>
+          <span>Posture:</span><span class="val">${m.posture}</span>
+          <span>Slots:</span><span class="val">${filled}/${m.slots.length} filled</span>
+          <span>Open:</span><span class="val">${open} available</span>
+        </div>
+        <div class="listing-slots">${slotChips}</div>
+      </div>
+      <div class="listing-footer">
+        <div><div class="listing-price">1% perpetual fee</div><div class="listing-fee">Creator earns on every trade</div></div>
+        ${open > 0 ? '<button class="list-btn" onclick="window.location=\'/\'">FILL SLOT</button>' : '<span style="font-family:var(--mono);font-size:11px;color:var(--signal);">FULLY STAFFED</span>'}
+      </div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+function renderSeats(el) {
+  el.innerHTML = '<div class="section-title">KA§§A Founding Seats — Wave Cascade</div>' +
+    '<div style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:16px;">17 seats across 5 waves. Each wave unlocks when the previous fills. Price doubles per wave.</div>' +
+    '<div class="seats">' + SEATS.map(s => {
+      const cls = s.status === 'available' ? 'available' : s.status === 'taken' ? 'taken' : 'locked';
+      const statusCls = s.status === 'available' ? 'avail' : 'taken-s';
+      return `<div class="seat ${cls}">
+        <div class="seat-num">K${ROMAN[s.id]}</div>
+        <div class="seat-price">${s.price ? '$' + (s.price/1000) + 'K' : 'BID'}</div>
+        <div style="font-size:9px;color:var(--muted);">W${s.wave} · ${s.tier}</div>
+        <div class="seat-status ${statusCls}">${s.status.toUpperCase()}</div>
+      </div>`;
+    }).join('') + '</div>';
+}
+
+function renderActivity(el) {
+  const txns = (metrics.financial?.recent_transactions || []).reverse();
+  if (txns.length === 0) {
+    el.innerHTML = '<div class="empty">No marketplace activity yet.</div>';
+    return;
+  }
+  el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;">' +
+    '<thead><tr style="border-bottom:1px solid var(--border);color:var(--gold);font-size:11px;"><th style="text-align:left;padding:8px;">TIME</th><th style="text-align:left;padding:8px;">AGENT</th><th style="text-align:left;padding:8px;">TYPE</th><th style="text-align:left;padding:8px;">AMOUNT</th><th style="text-align:left;padding:8px;">NOTE</th></tr></thead><tbody>' +
+    txns.map(t => `<tr style="border-bottom:1px solid rgba(46,40,32,0.5);"><td style="padding:8px;">${new Date(t.timestamp).toLocaleString()}</td><td style="padding:8px;">${t.agent_id}</td><td style="padding:8px;color:${t.type==='revenue'?'var(--signal)':'var(--warn)'}">${t.type.toUpperCase()}</td><td style="padding:8px;">$${t.amount.toFixed(2)}</td><td style="padding:8px;color:var(--muted);">${t.description||'-'}</td></tr>`
+    ).join('') + '</tbody></table>';
+}
+
+loadData();
+setInterval(loadData, 5000);
+</script>
+</body>
+</html>
