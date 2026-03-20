@@ -1,0 +1,18 @@
+{
+  "version": "1.0.0",
+  "description": "MO§ES™ Immutable Bedrock — these principles are constitutional and cannot be amended.",
+  "principles": [
+    "All actions must be audited — the audit trail is non-negotiable and append-only",
+    "Operator confirmation is required for all destructive or irreversible actions",
+    "Role hierarchy sequence (Primary → Secondary → Observer) is constitutional and cannot be removed",
+    "Governance state must persist between sessions via governance_state.json",
+    "The audit chain must be cryptographically intact before any execution is permitted",
+    "No agent may grant itself permissions beyond its current governance mode",
+    "Lockdown mode is always available and always takes precedence"
+  ],
+  "immutable": true,
+  "hash": "genesis",
+  "created": "2026-03-11T00:00:00Z",
+  "vendor": "Ello Cello LLC",
+  "patent": "Serial No. 63/877,177"
+}

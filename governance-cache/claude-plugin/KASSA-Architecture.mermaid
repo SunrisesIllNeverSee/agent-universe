@@ -1,0 +1,167 @@
+---
+title: "KA§§A × COMMAND × MO§E§™ on Bags — Integrated Architecture"
+---
+
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#C4923A', 'primaryTextColor': '#fff', 'primaryBorderColor': '#C4923A', 'lineColor': '#6a6a8a', 'secondaryColor': '#1e1e2a', 'tertiaryColor': '#111118', 'fontFamily': 'monospace'}}}%%
+
+graph TB
+    subgraph OPERATOR["👤 OPERATOR (Human)"]
+        direction LR
+        WALLET[Solana Wallet<br/>Phantom / Solflare]
+        BROWSER[Browser]
+    end
+
+    subgraph COMMAND_LAYER["COMMAND CONSOLE — mos2es.io"]
+        direction TB
+        
+        subgraph GOV_CONTROLS["§ Governance Controls"]
+            MODE[Governance Mode<br/>High Security / Creative / Research / ...]
+            POSTURE[Posture Controls<br/>SCOUT / DEFENSE / OFFENSE]
+            PROFILE[User Profile<br/>Expertise / Domain / Goal]
+            VAULT_UI[Vault Loader<br/>Protocols / Personas / Prompts]
+            CMD_BAR[COMMAND Bar<br/>Compression / Speed / Reasoning]
+        end
+        
+        subgraph EXEC_CONTROLS["⚡ Execution Controls"]
+            SEQUENCE[Sequence Engine<br/>Primary → Secondary → Observer]
+            BROADCAST[Broadcast Mode<br/>All Systems Simultaneous]
+            REGISTER[Seat Registry<br/>Token-Gated Access]
+        end
+        
+        subgraph INTEGRITY["🔒 Integrity Layer"]
+            HASH1["① Config Fingerprint<br/>SHA-256 of governance state"]
+            HASH2["② Content Integrity<br/>SHA-256 of conversation"]
+            HASH3["③ Onchain Anchor<br/>Solana memo transaction"]
+        end
+        
+        ACTIVITY[System Activity Log<br/>Every event, every change]
+    end
+
+    subgraph CONTEXT_CORE["⬡ CONTEXT ASSEMBLER — The Core IP"]
+        direction LR
+        ASSEMBLE["Reads: mode + posture + vault + profile + messages<br/>Builds: single governed payload<br/>Every agent read passes through here"]
+    end
+
+    subgraph MCP_LAYER["MCP Bridge — Port 8200"]
+        direction LR
+        CMD_READ["command_read()<br/>Returns GOVERNED context"]
+        CMD_SEND["command_send()<br/>Validates sequence + logs"]
+        CMD_JOIN["command_join()<br/>Checks registration"]
+        CMD_STATUS["command_status()<br/>Returns governance state"]
+    end
+
+    subgraph SKILL_LAYER["Claude Skill: MO§E§™ Governance"]
+        direction TB
+        SKILL_MD["SKILL.md<br/>Triggers on any Solana agent operation"]
+        GOV_TRANSLATE["governance.py<br/>Mode → Behavioral Constraints"]
+        AUDIT_SCRIPT["audit.py<br/>Hash + Log + Anchor"]
+        REFS["references/<br/>modes.md · roles.md · postures.md"]
+    end
+
+    subgraph AGENTS["AI Agents (Governed)"]
+        direction LR
+        CLAUDE_AGENT["Claude Code<br/>+ MO§E§™ Skill"]
+        OTHER_AGENTS["Codex / Gemini / Custom<br/>via MCP"]
+    end
+
+    subgraph BAGS_LAYER["BAGS INFRASTRUCTURE — Solana"]
+        direction TB
+        
+        subgraph TOKEN_OPS["Token Operations"]
+            LAUNCH["Token Launch API<br/>Each agent listing = token"]
+            TRADE["Trading Engine<br/>Buy/sell agent access"]
+            QUOTE["Quote API<br/>Live pricing"]
+        end
+        
+        subgraph FEES["Fee Infrastructure"]
+            CREATOR_FEE["Creator Fee<br/>1% perpetual on volume"]
+            PARTNER_FEE["Partner Fee<br/>KA§§A platform cut"]
+            CLAIM["Fee Claiming<br/>Withdraw to wallet"]
+        end
+        
+        subgraph ONCHAIN["Onchain State"]
+            TOKENS["Agent Tokens<br/>Represent governed access"]
+            AUDIT_CHAIN["Audit Anchors<br/>Governance hashes on Solana"]
+            METADATA["Token Metadata<br/>Tier + governance config"]
+        end
+    end
+
+    subgraph KASSA["KA§§A MARKETPLACE"]
+        direction TB
+        LISTINGS["Agent Listings<br/>Browse governed agents"]
+        BUY_FLOW["Purchase Flow<br/>Connect wallet → Buy token → Unlock"]
+        CREATOR_DASH["Creator Dashboard<br/>Volume · Fees · Analytics"]
+        FOUNDING["Founding Seats<br/>First 17 = early bonding curve"]
+    end
+
+    %% Operator flows
+    BROWSER --> COMMAND_LAYER
+    WALLET --> REGISTER
+    WALLET --> BUY_FLOW
+
+    %% Governance flows down
+    GOV_CONTROLS --> CONTEXT_CORE
+    EXEC_CONTROLS --> CONTEXT_CORE
+    VAULT_UI --> CONTEXT_CORE
+
+    %% Context feeds MCP
+    CONTEXT_CORE --> MCP_LAYER
+
+    %% MCP connects to agents
+    CMD_READ --> AGENTS
+    AGENTS --> CMD_SEND
+
+    %% Skill wraps agent behavior
+    SKILL_LAYER -.->|"Wraps every<br/>agent action"| AGENTS
+
+    %% Agents interact with Bags
+    AGENTS -->|"Execute governed<br/>onchain operations"| BAGS_LAYER
+
+    %% KA§§A connects to Bags
+    KASSA -->|"Bags API"| TOKEN_OPS
+    KASSA -->|"Bags API"| FEES
+    BUY_FLOW -->|"Token purchase"| TRADE
+    LISTINGS -->|"Live pricing"| QUOTE
+
+    %% Token gates COMMAND
+    TOKENS -->|"Token-gated<br/>access"| REGISTER
+
+    %% Audit anchoring
+    INTEGRITY -->|"Write hash"| AUDIT_CHAIN
+    AUDIT_SCRIPT -->|"Log + hash"| AUDIT_CHAIN
+
+    %% Activity logging
+    CONTEXT_CORE --> ACTIVITY
+    MCP_LAYER --> ACTIVITY
+    BAGS_LAYER --> ACTIVITY
+
+    %% Fee flows
+    TRADE --> CREATOR_FEE
+    TRADE --> PARTNER_FEE
+    CREATOR_FEE --> CREATOR_DASH
+    PARTNER_FEE --> CREATOR_DASH
+
+    %% Founding seats
+    FOUNDING --> LAUNCH
+
+    %% Style classes
+    classDef gold fill:#1a1508,stroke:#C4923A,stroke-width:2px,color:#C4923A
+    classDef blue fill:#0a1628,stroke:#4a7fff,stroke-width:2px,color:#4a7fff
+    classDef green fill:#0a1a10,stroke:#3ddc84,stroke-width:2px,color:#3ddc84
+    classDef purple fill:#150a28,stroke:#a78bfa,stroke-width:2px,color:#a78bfa
+    classDef cyan fill:#0a1a1e,stroke:#22d3ee,stroke-width:2px,color:#22d3ee
+    classDef red fill:#1a0a10,stroke:#ff4a6a,stroke-width:2px,color:#ff4a6a
+    classDef orange fill:#1a1208,stroke:#f59e0b,stroke-width:2px,color:#f59e0b
+    classDef muted fill:#111118,stroke:#6a6a8a,stroke-width:1px,color:#e8e8f0
+
+    class MODE,POSTURE,PROFILE,VAULT_UI,CMD_BAR gold
+    class SEQUENCE,BROADCAST,REGISTER blue
+    class HASH1,HASH2,HASH3 red
+    class ASSEMBLE gold
+    class CMD_READ,CMD_SEND,CMD_JOIN,CMD_STATUS cyan
+    class SKILL_MD,GOV_TRANSLATE,AUDIT_SCRIPT,REFS purple
+    class LAUNCH,TRADE,QUOTE,CREATOR_FEE,PARTNER_FEE,CLAIM green
+    class TOKENS,AUDIT_CHAIN,METADATA green
+    class LISTINGS,BUY_FLOW,CREATOR_DASH,FOUNDING orange
+    class CLAUDE_AGENT,OTHER_AGENTS muted
+    class ACTIVITY red

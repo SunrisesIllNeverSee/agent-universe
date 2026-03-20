@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "moses-governance-mcp"
+version = "1.2.0"
+description = "Constitutional governance engine for AI agents — MO§ES™"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+authors = [
+    { name = "Ello Cello LLC", email = "contact@burnmydays.com" },
+]
+keywords = ["mcp", "governance", "ai", "audit", "enterprise", "constitution", "amendment"]
+dependencies = [
+    "fastmcp>=3.0.0",
+    "scikit-learn>=1.0.0",
+    "numpy>=1.21.0",
+    "httpx>=0.24.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+moses-governance = "server:main"
+
+[project.urls]
+Homepage = "https://mos2es.io"
+Repository = "https://github.com/SunrisesIllNeverSee/moses-governance-mcp"

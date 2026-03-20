@@ -1,0 +1,23 @@
+{
+  "id": "6d9042e26ad9",
+  "created": "2026-03-11T16:33:17.659531+00:00",
+  "status": "rejected",
+  "evidence": {
+    "period": "1926-04-05 to 2026-03-11",
+    "entries_analyzed": 19,
+    "blocked_count": 13,
+    "override_count": 0,
+    "block_rate": 0.684,
+    "override_rate": 0.0
+  },
+  "type": "posture_modification",
+  "target": "SCOUT",
+  "rationale": "SCOUT blocked 68.4% of actions with only 0.0% overridden. Most frequent action: 'check_action'. Consider relaxing constraints for 'check_action'.",
+  "suggested_changes": {
+    "action": "relax",
+    "focus_action": "check_action"
+  },
+  "confidence": 0.95,
+  "rejected": "2026-03-11T16:52:11.360299+00:00",
+  "rejection_reason": "Proposal generated from acceptance test data, not production usage. High SCOUT block rate during testing is expected behavior \u2014 tests probe governance boundaries intentionally. 0% override rate confirms posture is working correctly. Relaxing SCOUT constraints based on test traffic would be a governance regression. REJECT."
+}

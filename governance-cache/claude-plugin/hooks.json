@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/claude-code-settings.json",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/pre-execute.sh\""
+          }
+        ],
+        "description": "MO§E§™ governance check — block execution if no governance mode is set"
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/pre-execute.sh\""
+          }
+        ],
+        "description": "MO§E§™ governance check — verify governance before file modifications"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/post-execute.sh\"",
+            "async": true
+          }
+        ],
+        "description": "MO§E§™ audit log — append governance state + action to audit ledger"
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '✓ MO§E§™ Governance active. Use /govern to set mode, /status to check state.'"
+          }
+        ],
+        "description": "MO§E§™ session init — announce governance availability on session start"
+      }
+    ]
+  }
+}

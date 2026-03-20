@@ -1,0 +1,72 @@
+---
+title: "KA§§A Fee Flow — How Money Moves"
+---
+
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#C4923A', 'primaryTextColor': '#fff', 'primaryBorderColor': '#C4923A', 'lineColor': '#6a6a8a', 'secondaryColor': '#1e1e2a', 'tertiaryColor': '#111118', 'fontFamily': 'monospace'}}}%%
+
+flowchart TB
+    BUILDER["Agent Builder<br/>Creates governed agent config<br/>+ MO§E§™ governance profile"]
+    
+    BUILDER -->|"Lists agent on KA§§A<br/>via Bags Launch API"| LAUNCH["Token Launch<br/>Agent becomes a Bags token<br/>with governance metadata"]
+
+    LAUNCH -->|"Token goes live"| MARKET["Open Market<br/>Anyone can buy/sell<br/>the agent token"]
+
+    BUYER1["Founding Seat Buyer<br/>First 17 · Lowest price<br/>Bonding curve advantage"] -->|"Buys early"| MARKET
+    
+    BUYER2["Later Buyer<br/>Higher price<br/>Wave cascade in effect"] -->|"Buys later"| MARKET
+
+    MARKET -->|"Every trade generates fees"| FEES{"Fee Split"}
+
+    FEES -->|"1% of volume<br/>FOREVER"| CREATOR_CUT["Agent Builder<br/>Perpetual creator revenue"]
+    
+    FEES -->|"Partner fee"| KASSA_CUT["KA§§A Platform<br/>Ello Cello LLC revenue"]
+    
+    FEES -->|"Trading fee"| BAGS_CUT["Bags Protocol<br/>Platform revenue"]
+
+    MARKET -->|"Token in wallet"| ACCESS{"Token = Access"}
+
+    ACCESS -->|"Wallet connects<br/>to COMMAND"| COMMAND["COMMAND Console<br/>Governance config unlocks<br/>based on token tier"]
+
+    ACCESS -->|"Can resell token<br/>at market price"| RESELL["Secondary Market<br/>Founding seats appreciate<br/>as demand grows"]
+
+    RESELL -->|"Resale generates<br/>more trades"| FEES
+
+    COMMAND -->|"Operates governed agent<br/>audit trail generated"| GOVERNED["Governed Agent Operation<br/>Every action under<br/>constitutional control"]
+
+    GOVERNED -->|"Session hash"| ANCHOR["Onchain Audit Anchor<br/>Solana memo transaction<br/>Immutable proof"]
+
+    subgraph REVENUE["REVENUE STREAMS"]
+        direction LR
+        CREATOR_CUT
+        KASSA_CUT
+    end
+
+    subgraph VALUE_LOOP["VALUE LOOP"]
+        direction LR
+        RESELL
+        FEES
+    end
+
+    classDef gold fill:#1a1508,stroke:#C4923A,stroke-width:2px,color:#C4923A
+    classDef green fill:#0a1a10,stroke:#3ddc84,stroke-width:2px,color:#3ddc84
+    classDef blue fill:#0a1628,stroke:#4a7fff,stroke-width:2px,color:#4a7fff
+    classDef purple fill:#150a28,stroke:#a78bfa,stroke-width:2px,color:#a78bfa
+    classDef orange fill:#1a1208,stroke:#f59e0b,stroke-width:2px,color:#f59e0b
+    classDef red fill:#1a0a10,stroke:#ff4a6a,stroke-width:2px,color:#ff4a6a
+    classDef muted fill:#111118,stroke:#6a6a8a,stroke-width:1px,color:#e8e8f0
+    classDef cyan fill:#0a1a1e,stroke:#22d3ee,stroke-width:2px,color:#22d3ee
+
+    class BUILDER purple
+    class LAUNCH orange
+    class MARKET blue
+    class BUYER1 gold
+    class BUYER2 muted
+    class FEES red
+    class CREATOR_CUT green
+    class KASSA_CUT gold
+    class BAGS_CUT muted
+    class ACCESS cyan
+    class COMMAND blue
+    class RESELL orange
+    class GOVERNED purple
+    class ANCHOR red

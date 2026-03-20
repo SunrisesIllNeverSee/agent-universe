@@ -1,0 +1,21 @@
+{
+  "id": "14626724a95d",
+  "created": "2026-03-11T17:17:55.813367+00:00",
+  "status": "pending",
+  "evidence": {
+    "period": "1926-04-05 to 2026-03-11",
+    "entries_analyzed": 8,
+    "blocked_count": 6,
+    "override_count": 0,
+    "block_rate": 0.75,
+    "override_rate": 0.0
+  },
+  "type": "posture_modification",
+  "target": "SCOUT",
+  "rationale": "SCOUT blocked 75.0% of actions with only 0.0% overridden. Most frequent action: 'check_action'. Consider relaxing constraints for 'check_action'.",
+  "suggested_changes": {
+    "action": "relax",
+    "focus_action": "check_action"
+  },
+  "confidence": 0.95
+}
