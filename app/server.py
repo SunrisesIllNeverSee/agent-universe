@@ -115,6 +115,14 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def slots_page() -> FileResponse:
         return FileResponse(frontend_dir / "slots.html")
 
+    @app.get("/wave-registry")
+    async def wave_registry_page() -> FileResponse:
+        return FileResponse(frontend_dir / "wave-registry.html")
+
+    @app.get("/economics")
+    async def economics_page() -> FileResponse:
+        return FileResponse(frontend_dir / "economics.html")
+
     @app.get("/api/state")
     async def get_state() -> dict:
         return runtime.snapshot().model_dump(mode="json")
