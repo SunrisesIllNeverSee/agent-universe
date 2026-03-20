@@ -1,0 +1,50 @@
+[build]
+  publish = "frontend"
+  command = "echo 'static build — no build step required'"
+
+# Redirect /civitas to civitas.html
+[[redirects]]
+  from = "/civitas"
+  to = "/civitas.html"
+  status = 200
+
+# Redirect root to civitas (front door)
+[[redirects]]
+  from = "/"
+  to = "/civitas.html"
+  status = 200
+
+# Serve all frontend pages
+[[redirects]]
+  from = "/missions"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/hiring"
+  to = "/helpwanted.html"
+  status = 200
+
+[[redirects]]
+  from = "/kassa"
+  to = "/kassa.html"
+  status = 200
+
+[[redirects]]
+  from = "/slots"
+  to = "/slots.html"
+  status = 200
+
+[[redirects]]
+  from = "/economy"
+  to = "/economics.html"
+  status = 200
+
+# SPA fallback
+[[redirects]]
+  from = "/*"
+  to = "/civitas.html"
+  status = 200
+
+[build.environment]
+  NODE_VERSION = "18"
