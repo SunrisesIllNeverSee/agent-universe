@@ -3,250 +3,537 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KA§§A — Governed Agent Marketplace</title>
+<title>KA§§A — Marketplace</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root { --bg: #0a0808; --deep: #110e0c; --surface: #1a1612; --panel: #1e1a16; --border: #2e2820; --gold: #c8a96e; --gold2: #e8c888; --cream: #f5e6c8; --signal: #7ec86e; --warn: #c86e6e; --blue: #6e9ec8; --text: #e8dcc8; --muted: #9a8e78; --mono: 'SF Mono', 'Consolas', monospace; --display: 'Georgia', serif; --body: system-ui, sans-serif; }
+  :root {
+    --gold: #C4923A; --bone: #F2EDE4; --obsidian: #1A1A18;
+    --drift: #6B6558; --sand: #DDD5C8; --green: #4A7C59;
+    --red: #B44A3F; --blue: #3A6B8C; --charcoal: #2A2A25;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--bg); color: var(--text); font-family: var(--body); min-height: 100vh; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bone); color: var(--obsidian); }
+  .mono { font-family: 'DM Mono', monospace; }
 
-  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 56px; border-bottom: 1px solid var(--border); background: var(--deep); }
-  .logo { font-family: var(--display); font-size: 18px; font-weight: 700; color: var(--gold); letter-spacing: 0.06em; }
-  .logo .section { color: var(--gold2); }
-  .logo .sub { font-family: var(--mono); color: var(--muted); font-size: 11px; font-weight: 400; margin-left: 10px; letter-spacing: 0.08em; }
-  .nav { display: flex; gap: 8px; }
-  .nav a { font-family: var(--mono); font-size: 11px; color: var(--muted); text-decoration: none; padding: 5px 12px; border: 1px solid var(--border); border-radius: 4px; }
-  .nav a:hover { border-color: var(--gold); color: var(--gold); }
-  .nav a.active { border-color: var(--gold); color: var(--gold); background: rgba(200,169,110,0.08); }
+  /* NAV */
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 40px; background: var(--obsidian); position: sticky; top: 0; z-index: 20; }
+  .nav-mark { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--bone); text-decoration: none; }
+  .nav-mark span { color: var(--gold); }
+  .nav-right { display: flex; gap: 24px; align-items: center; }
+  .nav-right a { color: #8A8275; text-decoration: none; font-size: 13px; }
+  .nav-right a:hover { color: var(--bone); }
+  .nav-btn { padding: 7px 18px; background: var(--gold); color: var(--obsidian); border-radius: 5px; font-weight: 600; font-size: 12px; text-decoration: none; }
 
-  .hero { text-align: center; padding: 40px 24px 30px; border-bottom: 1px solid var(--border); }
-  .hero-title { font-family: var(--display); font-size: 28px; color: var(--cream); margin-bottom: 8px; }
-  .hero-sub { font-family: var(--mono); font-size: 13px; color: var(--muted); letter-spacing: 0.06em; }
+  /* SHELF SECTIONS */
+  .shelf { max-width: 1100px; margin: 0 auto; padding: 32px 40px 0; }
+  .shelf-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+  .shelf-title { font-family: 'Playfair Display', serif; font-size: 22px; }
+  .shelf-see-all { font-size: 12px; color: var(--gold); text-decoration: none; font-weight: 500; }
 
-  .stats-bar { display: flex; justify-content: center; gap: 32px; padding: 16px; border-bottom: 1px solid var(--border); }
-  .stat { text-align: center; }
-  .stat-val { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--gold); }
-  .stat-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.1em; margin-top: 2px; }
+  /* HORIZONTAL SCROLL ROW */
+  .shelf-row {
+    display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px;
+    scrollbar-width: thin; scrollbar-color: var(--sand) transparent;
+  }
+  .shelf-row::-webkit-scrollbar { height: 4px; }
+  .shelf-row::-webkit-scrollbar-thumb { background: var(--sand); border-radius: 2px; }
 
-  .tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 24px; }
-  .tab { padding: 10px 16px; font-family: var(--mono); font-size: 12px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
-  .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
-  .tab:hover { color: var(--cream); }
+  /* SHELF CARD (compact) */
+  .scard {
+    flex-shrink: 0; width: 260px; background: white; border: 1px solid var(--sand);
+    border-radius: 9px; padding: 18px 18px 16px; cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .scard:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(26,26,24,0.05); }
+  .scard-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .scard-badge { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 7px; border-radius: 3px; }
+  .b-zero { background: #EDE8DF; color: var(--drift); }
+  .b-open { background: var(--gold); color: var(--obsidian); }
+  .b-hot { background: var(--red); color: white; }
+  .b-new { background: var(--blue); color: white; }
+  .scard-trend { font-family: 'DM Mono', monospace; font-size: 10px; }
+  .t-up { color: var(--green); }
+  .t-flat { color: var(--drift); }
+  .scard-name { font-family: 'Playfair Display', serif; font-size: 17px; margin-bottom: 2px; line-height: 1.2; }
+  .scard-founder { font-size: 11px; color: var(--drift); margin-bottom: 8px; }
+  .scard-cat { font-size: 9px; color: var(--blue); background: #F0F4F7; padding: 2px 6px; border-radius: 3px; display: inline-block; margin-bottom: 10px; }
+  .scard-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
+  .scard-price { font-family: 'DM Mono', monospace; font-size: 16px; font-weight: 500; }
+  .scard-score { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--gold); }
+  .scard-wave-info { font-size: 10px; color: var(--drift); margin-top: 2px; }
 
-  .content { padding: 20px 24px; max-width: 1200px; margin: 0 auto; }
+  /* DIVIDER */
+  .divider { max-width: 1100px; margin: 28px auto 0; height: 1px; background: var(--sand); }
 
-  /* Listing Cards */
-  .listings { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+  /* BOARD */
+  .board-wrap { max-width: 1100px; margin: 0 auto; padding: 28px 40px 60px; }
+  .board-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .board-title { font-family: 'Playfair Display', serif; font-size: 26px; }
+  .board-view-toggle { display: flex; gap: 2px; }
+  .view-btn {
+    padding: 6px 10px; border: 1px solid var(--sand); background: white;
+    cursor: pointer; font-size: 12px; color: var(--drift); transition: all 0.15s;
+  }
+  .view-btn:first-child { border-radius: 5px 0 0 5px; }
+  .view-btn:last-child { border-radius: 0 5px 5px 0; }
+  .view-btn.active { background: var(--obsidian); color: var(--bone); border-color: var(--obsidian); }
+  .board-sub { font-size: 13px; color: var(--drift); margin-bottom: 18px; }
 
-  .listing { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: border-color 0.15s; }
-  .listing:hover { border-color: var(--gold); }
-  .listing-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-  .listing-name { font-family: var(--display); font-size: 16px; font-weight: 600; color: var(--cream); }
-  .listing-badge { padding: 2px 8px; border-radius: 3px; font-family: var(--mono); font-size: 10px; font-weight: 600; }
-  .listing-badge.governed { background: rgba(126,200,110,0.12); color: var(--signal); border: 1px solid rgba(126,200,110,0.3); }
-  .listing-badge.ungoverned { background: rgba(200,110,110,0.12); color: var(--warn); border: 1px solid rgba(200,110,110,0.3); }
+  /* SECTOR TABS */
+  .sector-tabs { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 1px solid var(--sand); }
+  .sector-tab {
+    padding: 10px 18px; font-size: 12px; font-weight: 500; color: var(--drift);
+    cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s;
+    background: none; border-top: none; border-left: none; border-right: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .sector-tab:hover { color: var(--obsidian); }
+  .sector-tab.active { color: var(--obsidian); border-bottom: 2px solid var(--gold); }
+  .sector-count { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--drift); margin-left: 4px; }
 
-  .listing-body { padding: 14px 16px; }
-  .listing-desc { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 10px; }
-  .listing-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 10px; }
-  .listing-meta span { padding: 2px 0; }
-  .listing-meta .val { color: var(--text); }
+  /* LIST VIEW */
+  .list-item {
+    display: flex; align-items: center; gap: 16px; padding: 14px 16px;
+    background: white; border: 1px solid var(--sand); border-radius: 8px;
+    margin-bottom: 6px; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .list-item:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(26,26,24,0.04); }
 
-  .listing-slots { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
-  .ls { padding: 3px 8px; border-radius: 3px; font-family: var(--mono); font-size: 10px; }
-  .ls.open { background: rgba(110,158,200,0.1); border: 1px dashed rgba(110,158,200,0.4); color: var(--blue); }
-  .ls.filled { background: rgba(126,200,110,0.08); border: 1px solid rgba(126,200,110,0.2); color: var(--signal); }
+  .li-badge { width: 72px; flex-shrink: 0; }
+  .li-badge span { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 7px; border-radius: 3px; white-space: nowrap; }
 
-  .listing-footer { padding: 10px 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-  .listing-price { font-family: var(--mono); font-size: 14px; color: var(--gold); font-weight: 600; }
-  .listing-fee { font-family: var(--mono); font-size: 10px; color: var(--muted); }
-  .list-btn { padding: 6px 14px; background: var(--gold); border: none; border-radius: 4px; color: var(--bg); font-family: var(--mono); font-size: 11px; font-weight: 600; cursor: pointer; }
-  .list-btn:hover { opacity: 0.85; }
+  .li-main { flex: 1; min-width: 0; }
+  .li-name { font-weight: 600; font-size: 14px; margin-bottom: 1px; display: flex; align-items: center; gap: 6px; }
+  .li-name .verified { color: var(--green); font-size: 10px; }
+  .li-founder { font-size: 11px; color: var(--drift); }
 
-  /* Seat Registry */
-  .seats { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
-  .seat { padding: 10px; border: 1px solid var(--border); border-radius: 6px; text-align: center; font-family: var(--mono); font-size: 11px; transition: all 0.15s; }
-  .seat.available { border-color: var(--gold); cursor: pointer; }
-  .seat.available:hover { background: rgba(200,169,110,0.06); }
-  .seat.taken { opacity: 0.5; }
-  .seat.locked { opacity: 0.3; }
-  .seat-num { font-size: 16px; font-weight: 700; color: var(--gold); }
-  .seat-price { color: var(--muted); margin-top: 2px; }
-  .seat-status { margin-top: 4px; font-size: 10px; }
-  .seat-status.avail { color: var(--signal); }
-  .seat-status.taken-s { color: var(--warn); }
+  .li-cat { width: 110px; flex-shrink: 0; font-size: 10px; color: var(--blue); text-align: center; }
 
-  .section-title { font-family: var(--display); font-size: 16px; color: var(--cream); margin: 24px 0 12px; }
+  .li-wave { width: 150px; flex-shrink: 0; }
+  .li-wave-text { font-size: 10px; color: var(--drift); margin-bottom: 3px; display: flex; justify-content: space-between; }
+  .li-wave-text span { font-family: 'DM Mono', monospace; }
+  .li-bar { height: 3px; background: #EDE8DF; border-radius: 2px; overflow: hidden; }
+  .li-bar-fill { height: 100%; border-radius: 2px; }
 
-  .empty { text-align: center; padding: 40px; color: var(--muted); font-family: var(--mono); font-size: 12px; }
+  .li-price { width: 90px; flex-shrink: 0; text-align: right; }
+  .li-price-label { font-size: 9px; color: var(--drift); }
+  .li-price-val { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; }
+
+  .li-score { width: 50px; flex-shrink: 0; text-align: right; font-family: 'DM Mono', monospace; font-size: 14px; color: var(--gold); }
+
+  .li-trend { width: 40px; flex-shrink: 0; text-align: right; font-family: 'DM Mono', monospace; font-size: 11px; }
+
+  /* LIST HEADER */
+  .list-header {
+    display: flex; align-items: center; gap: 16px; padding: 6px 16px 8px;
+    font-size: 9px; color: var(--drift); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+  }
+  .list-header .li-badge { }
+  .list-header .li-main { }
+  .list-header .li-cat { text-align: center; }
+  .list-header .li-wave { }
+  .list-header .li-price { text-align: right; }
+  .list-header .li-score { text-align: right; }
+  .list-header .li-trend { text-align: right; }
+
+  @media (max-width: 900px) {
+    nav { padding: 14px 20px; }
+    .shelf, .board-wrap { padding-left: 20px; padding-right: 20px; }
+    .divider { margin-left: 20px; margin-right: 20px; }
+    .li-cat, .li-trend { display: none; }
+    .li-wave { width: 100px; }
+    .scard { width: 220px; }
+  }
 </style>
 </head>
 <body>
-<div class="topbar">
-  <div class="logo">KA<span class="section">§§</span>A<span class="sub">governed marketplace</span></div>
-  <div class="nav">
-    <a href="/">AGENT UNIVERSE</a>
-    <a href="/kassa" class="active">KA§§A</a>
+
+<nav>
+  <a href="#" class="nav-mark">KA<span>§§</span>A</a>
+  <div class="nav-right">
+    <a href="#">How It Works</a>
+    <a href="#">For Founders</a>
+    <a href="#" class="nav-btn">List Your Product</a>
+  </div>
+</nav>
+
+<!-- ===== FEATURED ===== -->
+<div class="shelf">
+  <div class="shelf-header">
+    <div class="shelf-title">Featured</div>
+  </div>
+  <div class="shelf-row">
+    <div class="scard">
+      <div class="scard-top">
+        <span class="scard-badge b-open">Wave 2 · Open</span>
+        <span class="scard-trend t-up">↗</span>
+      </div>
+      <div class="scard-name">COMMAND</div>
+      <div class="scard-founder">Ello Cello LLC ✓</div>
+      <div class="scard-cat">AI Governance</div>
+      <div class="scard-bottom">
+        <div>
+          <div class="scard-price">$3,840</div>
+          <div class="scard-wave-info">3 of 5 seats left</div>
+        </div>
+        <div class="scard-score">8.4</div>
+      </div>
+    </div>
+    <div class="scard">
+      <div class="scard-top">
+        <span class="scard-badge b-open">Wave 1 · Open</span>
+        <span class="scard-trend t-up">↗</span>
+      </div>
+      <div class="scard-name">Instruct</div>
+      <div class="scard-founder">Instruct AI ✓</div>
+      <div class="scard-cat">Developer Tools</div>
+      <div class="scard-bottom">
+        <div>
+          <div class="scard-price">$480</div>
+          <div class="scard-wave-info">12 of 30 left</div>
+        </div>
+        <div class="scard-score">7.8</div>
+      </div>
+    </div>
+    <div class="scard">
+      <div class="scard-top">
+        <span class="scard-badge b-open">Wave 1 · Open</span>
+        <span class="scard-trend t-flat">→</span>
+      </div>
+      <div class="scard-name">Flux</div>
+      <div class="scard-founder">Flux Labs ✓</div>
+      <div class="scard-cat">Commerce</div>
+      <div class="scard-bottom">
+        <div>
+          <div class="scard-price">$640</div>
+          <div class="scard-wave-info">8 of 20 left</div>
+        </div>
+        <div class="scard-score">7.5</div>
+      </div>
+    </div>
   </div>
 </div>
 
-<div class="hero">
-  <div class="hero-title">The Governed Agent Marketplace</div>
-  <div class="hero-sub">Every agent listed. Every agent governed. Every transaction audited.</div>
-</div>
-
-<div class="stats-bar">
-  <div class="stat"><div class="stat-val" id="s-listed">0</div><div class="stat-label">AGENTS LISTED</div></div>
-  <div class="stat"><div class="stat-val" id="s-governed">0</div><div class="stat-label">GOVERNED</div></div>
-  <div class="stat"><div class="stat-val" id="s-volume">$0</div><div class="stat-label">VOLUME</div></div>
-  <div class="stat"><div class="stat-val" id="s-fees">$0</div><div class="stat-label">FEES EARNED</div></div>
-  <div class="stat"><div class="stat-val" id="s-platform">$0</div><div class="stat-label">PLATFORM (5%)</div></div>
-</div>
-
-<div class="tabs">
-  <div class="tab active" id="tab-listings" onclick="showTab('listings')">LISTINGS</div>
-  <div class="tab" id="tab-seats" onclick="showTab('seats')">FOUNDING SEATS</div>
-  <div class="tab" id="tab-activity" onclick="showTab('activity')">ACTIVITY</div>
-</div>
-
-<div class="content" id="content"></div>
-
-<script>
-const API = window.location.origin;
-const PLATFORM_FEE = 0.05;
-let activeTab = 'listings';
-let slots = [];
-let metrics = {};
-
-// Simulated founding seats (wave cascade)
-const SEATS = [
-  {id:1,wave:'1a',tier:'Internal',price:65000,status:'available'},
-  {id:2,wave:'1a',tier:'Internal',price:65000,status:'available'},
-  {id:3,wave:'1a',tier:'Internal',price:65000,status:'available'},
-  {id:4,wave:'1a',tier:'Internal',price:65000,status:'available'},
-  {id:5,wave:'1a',tier:'Internal',price:65000,status:'available'},
-  {id:6,wave:'1b',tier:'Embedded',price:130000,status:'locked'},
-  {id:7,wave:'1b',tier:'Embedded',price:130000,status:'locked'},
-  {id:8,wave:'1b',tier:'Embedded',price:130000,status:'locked'},
-  {id:9,wave:'2a',tier:'Internal',price:195000,status:'locked'},
-  {id:10,wave:'2a',tier:'Internal',price:195000,status:'locked'},
-  {id:11,wave:'2a',tier:'Internal',price:195000,status:'locked'},
-  {id:12,wave:'2a',tier:'Internal',price:195000,status:'locked'},
-  {id:13,wave:'2a',tier:'Internal',price:195000,status:'locked'},
-  {id:14,wave:'2b',tier:'Embedded',price:260000,status:'locked'},
-  {id:15,wave:'2b',tier:'Embedded',price:260000,status:'locked'},
-  {id:16,wave:'2b',tier:'Embedded',price:260000,status:'locked'},
-  {id:17,wave:'3',tier:'Bid',price:null,status:'locked'},
-];
-
-const ROMAN = {1:'I',2:'II',3:'III',4:'IV',5:'V',6:'VI',7:'VII',8:'VIII',9:'IX',10:'X',11:'XI',12:'XII',13:'XIII',14:'XIV',15:'XV',16:'XVI',17:'XVII'};
-
-async function loadData() {
-  const [slotsResp, metricsResp] = await Promise.all([
-    fetch(API + '/api/slots').then(r => r.json()).catch(() => ({slots:[]})),
-    fetch(API + '/api/metrics').then(r => r.json()).catch(() => ({scoreboard:[],financial:{total_revenue:0,total_costs:0,net:0},totals:{}})),
-  ]);
-  slots = slotsResp.slots || [];
-  metrics = metricsResp;
-
-  const governed = slots.filter(s => s.status === 'filled').length;
-  const revenue = metrics.financial?.total_revenue || 0;
-  const platformTake = revenue * PLATFORM_FEE;
-
-  document.getElementById('s-listed').textContent = new Set(slots.map(s => s.mission_id)).size;
-  document.getElementById('s-governed').textContent = governed;
-  document.getElementById('s-volume').textContent = '$' + revenue.toFixed(0);
-  document.getElementById('s-fees').textContent = '$' + (revenue * 0.01).toFixed(2);
-  document.getElementById('s-platform').textContent = '$' + platformTake.toFixed(2);
-
-  renderTab();
-}
-
-function showTab(tab) {
-  activeTab = tab;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + tab)?.classList.add('active');
-  renderTab();
-}
-
-function renderTab() {
-  const el = document.getElementById('content');
-  if (activeTab === 'listings') renderListings(el);
-  else if (activeTab === 'seats') renderSeats(el);
-  else if (activeTab === 'activity') renderActivity(el);
-}
-
-function renderListings(el) {
-  const missions = {};
-  slots.forEach(s => {
-    if (!missions[s.mission_id]) missions[s.mission_id] = { label: s.mission_label, slots: [], posture: s.governance?.posture || '', mode: s.governance?.mode || '', desc: s.bounty_description || '' };
-    missions[s.mission_id].slots.push(s);
-  });
-
-  const entries = Object.entries(missions);
-  if (entries.length === 0) {
-    el.innerHTML = '<div class="empty">No agents listed yet. The marketplace awaits its first governed listing.</div>';
-    return;
-  }
-
-  el.innerHTML = '<div class="listings">' + entries.map(([mid, m]) => {
-    const open = m.slots.filter(s => s.status === 'open').length;
-    const filled = m.slots.filter(s => s.status === 'filled').length;
-    const slotChips = m.slots.map(s =>
-      s.status === 'filled' ? `<span class="ls filled">${s.agent_name || s.role}</span>` : `<span class="ls open">${s.role} · OPEN</span>`
-    ).join('');
-
-    return `<div class="listing">
-      <div class="listing-header">
-        <div class="listing-name">${m.label}</div>
-        <span class="listing-badge governed">GOVERNED</span>
+<!-- ===== HOT ===== -->
+<div class="shelf">
+  <div class="shelf-header">
+    <div class="shelf-title">Hot Right Now</div>
+  </div>
+  <div class="shelf-row">
+    <div class="scard">
+      <div class="scard-top">
+        <span class="scard-badge b-hot">Selling Fast</span>
+        <span class="scard-trend t-up">↗↗</span>
       </div>
-      <div class="listing-body">
-        <div class="listing-desc">${m.desc || 'Governed agent operation under MO§ES™ constitutional framework.'}</div>
-        <div class="listing-meta">
-          <span>Mode:</span><span class="val">${m.mode}</span>
-          <span>Posture:</span><span class="val">${m.posture}</span>
-          <span>Slots:</span><span class="val">${filled}/${m.slots.length} filled</span>
-          <span>Open:</span><span class="val">${open} available</span>
+      <div class="scard-name">Superdesign</div>
+      <div class="scard-founder">Jason Zhou ✓</div>
+      <div class="scard-cat">Developer Tools</div>
+      <div class="scard-bottom">
+        <div>
+          <div class="scard-price">$30</div>
+          <div class="scard-wave-info">Wave Zero · 22 of 25</div>
         </div>
-        <div class="listing-slots">${slotChips}</div>
+        <div class="scard-score">7.1</div>
       </div>
-      <div class="listing-footer">
-        <div><div class="listing-price">1% perpetual fee</div><div class="listing-fee">Creator earns on every trade</div></div>
-        ${open > 0 ? '<button class="list-btn" onclick="window.location=\'/\'">FILL SLOT</button>' : '<span style="font-family:var(--mono);font-size:11px;color:var(--signal);">FULLY STAFFED</span>'}
+    </div>
+    <div class="scard">
+      <div class="scard-top">
+        <span class="scard-badge b-hot">Selling Fast</span>
+        <span class="scard-trend t-up">↗</span>
       </div>
-    </div>`;
-  }).join('') + '</div>';
-}
+      <div class="scard-name">Computer Agents</div>
+      <div class="scard-founder">Jan Luca Sandmann ✓</div>
+      <div class="scard-cat">AI Agents</div>
+      <div class="scard-bottom">
+        <div>
+          <div class="scard-price">$30</div>
+          <div class="scard-wave-info">Wave Zero · 19 of 25</div>
+        </div>
+        <div class="scard-score">6.8</div>
+      </div>
+    </div>
+  </div>
+</div>
 
-function renderSeats(el) {
-  el.innerHTML = '<div class="section-title">KA§§A Founding Seats — Wave Cascade</div>' +
-    '<div style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:16px;">17 seats across 5 waves. Each wave unlocks when the previous fills. Price doubles per wave.</div>' +
-    '<div class="seats">' + SEATS.map(s => {
-      const cls = s.status === 'available' ? 'available' : s.status === 'taken' ? 'taken' : 'locked';
-      const statusCls = s.status === 'available' ? 'avail' : 'taken-s';
-      return `<div class="seat ${cls}">
-        <div class="seat-num">K${ROMAN[s.id]}</div>
-        <div class="seat-price">${s.price ? '$' + (s.price/1000) + 'K' : 'BID'}</div>
-        <div style="font-size:9px;color:var(--muted);">W${s.wave} · ${s.tier}</div>
-        <div class="seat-status ${statusCls}">${s.status.toUpperCase()}</div>
-      </div>`;
-    }).join('') + '</div>';
-}
+<!-- ===== NEW ===== -->
+<div class="shelf">
+  <div class="shelf-header">
+    <div class="shelf-title">New Listings</div>
+    <a href="#" class="shelf-see-all">See all →</a>
+  </div>
+  <div class="shelf-row">
+    <div class="scard">
+      <div class="scard-top">
+        <span class="scard-badge b-new">New</span>
+        <span class="scard-trend t-flat">→</span>
+      </div>
+      <div class="scard-name">Aident AI</div>
+      <div class="scard-founder">Aident Inc ✓</div>
+      <div class="scard-cat">AI Governance</div>
+      <div class="scard-bottom">
+        <div>
+          <div class="scard-price">$30</div>
+          <div class="scard-wave-info">Wave Zero · 2 of 25</div>
+        </div>
+        <div class="scard-score">—</div>
+      </div>
+    </div>
+    <div class="scard">
+      <div class="scard-top">
+        <span class="scard-badge b-new">New</span>
+        <span class="scard-trend t-flat">→</span>
+      </div>
+      <div class="scard-name">Naratix</div>
+      <div class="scard-founder">Naratix SRL ✓</div>
+      <div class="scard-cat">Commerce</div>
+      <div class="scard-bottom">
+        <div>
+          <div class="scard-price">$30</div>
+          <div class="scard-wave-info">Wave Zero · 5 of 25</div>
+        </div>
+        <div class="scard-score">—</div>
+      </div>
+    </div>
+    <div class="scard">
+      <div class="scard-top">
+        <span class="scard-badge b-new">New</span>
+        <span class="scard-trend t-flat">→</span>
+      </div>
+      <div class="scard-name">Dvina</div>
+      <div class="scard-founder">Dvina Labs ✓</div>
+      <div class="scard-cat">Productivity</div>
+      <div class="scard-bottom">
+        <div>
+          <div class="scard-price">$30</div>
+          <div class="scard-wave-info">Wave Zero · 6 of 25</div>
+        </div>
+        <div class="scard-score">—</div>
+      </div>
+    </div>
+    <div class="scard">
+      <div class="scard-top">
+        <span class="scard-badge b-new">New</span>
+        <span class="scard-trend t-flat">→</span>
+      </div>
+      <div class="scard-name">Loki.Build</div>
+      <div class="scard-founder">Loki Labs ✓</div>
+      <div class="scard-cat">Developer Tools</div>
+      <div class="scard-bottom">
+        <div>
+          <div class="scard-price">$30</div>
+          <div class="scard-wave-info">Wave Zero · 1 of 25</div>
+        </div>
+        <div class="scard-score">—</div>
+      </div>
+    </div>
+  </div>
+</div>
 
-function renderActivity(el) {
-  const txns = (metrics.financial?.recent_transactions || []).reverse();
-  if (txns.length === 0) {
-    el.innerHTML = '<div class="empty">No marketplace activity yet.</div>';
-    return;
-  }
-  el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;">' +
-    '<thead><tr style="border-bottom:1px solid var(--border);color:var(--gold);font-size:11px;"><th style="text-align:left;padding:8px;">TIME</th><th style="text-align:left;padding:8px;">AGENT</th><th style="text-align:left;padding:8px;">TYPE</th><th style="text-align:left;padding:8px;">AMOUNT</th><th style="text-align:left;padding:8px;">NOTE</th></tr></thead><tbody>' +
-    txns.map(t => `<tr style="border-bottom:1px solid rgba(46,40,32,0.5);"><td style="padding:8px;">${new Date(t.timestamp).toLocaleString()}</td><td style="padding:8px;">${t.agent_id}</td><td style="padding:8px;color:${t.type==='revenue'?'var(--signal)':'var(--warn)'}">${t.type.toUpperCase()}</td><td style="padding:8px;">$${t.amount.toFixed(2)}</td><td style="padding:8px;color:var(--muted);">${t.description||'-'}</td></tr>`
-    ).join('') + '</tbody></table>';
-}
+<div class="divider"></div>
 
-loadData();
-setInterval(loadData, 5000);
-</script>
+<!-- ===== THE BOARD ===== -->
+<div class="board-wrap">
+  <div class="board-header">
+    <div class="board-title">The Board</div>
+    <div class="board-view-toggle">
+      <button class="view-btn active" title="List">☰</button>
+      <button class="view-btn" title="Grid">▦</button>
+    </div>
+  </div>
+  <div class="board-sub">All listings. Click a tab to filter by sector.</div>
+
+  <div class="sector-tabs">
+    <button class="sector-tab active">All<span class="sector-count">9</span></button>
+    <button class="sector-tab">AI Governance<span class="sector-count">2</span></button>
+    <button class="sector-tab">Developer Tools<span class="sector-count">3</span></button>
+    <button class="sector-tab">Commerce<span class="sector-count">2</span></button>
+    <button class="sector-tab">Productivity<span class="sector-count">1</span></button>
+    <button class="sector-tab">AI Agents<span class="sector-count">1</span></button>
+  </div>
+
+  <!-- LIST HEADER -->
+  <div class="list-header">
+    <div class="li-badge">Status</div>
+    <div class="li-main">Product</div>
+    <div class="li-cat">Sector</div>
+    <div class="li-wave">Progress</div>
+    <div class="li-price">Price</div>
+    <div class="li-score">Score</div>
+    <div class="li-trend">Trend</div>
+  </div>
+
+  <!-- ROW 1 -->
+  <div class="list-item">
+    <div class="li-badge"><span class="scard-badge b-open">Wave 2</span></div>
+    <div class="li-main">
+      <div class="li-name">COMMAND <span class="verified">✓</span></div>
+      <div class="li-founder">Ello Cello LLC</div>
+    </div>
+    <div class="li-cat">AI Governance</div>
+    <div class="li-wave">
+      <div class="li-wave-text"><span>Wave 2</span><span>3 / 5</span></div>
+      <div class="li-bar"><div class="li-bar-fill" style="width:40%; background: var(--gold);"></div></div>
+    </div>
+    <div class="li-price">
+      <div class="li-price-val">$3,840</div>
+    </div>
+    <div class="li-score">8.4</div>
+    <div class="li-trend t-up">↗</div>
+  </div>
+
+  <!-- ROW 2 -->
+  <div class="list-item">
+    <div class="li-badge"><span class="scard-badge b-open">Wave 1</span></div>
+    <div class="li-main">
+      <div class="li-name">Instruct <span class="verified">✓</span></div>
+      <div class="li-founder">Instruct AI</div>
+    </div>
+    <div class="li-cat">Developer Tools</div>
+    <div class="li-wave">
+      <div class="li-wave-text"><span>Wave 1</span><span>12 / 30</span></div>
+      <div class="li-bar"><div class="li-bar-fill" style="width:60%; background: var(--gold);"></div></div>
+    </div>
+    <div class="li-price">
+      <div class="li-price-val">$480</div>
+    </div>
+    <div class="li-score">7.8</div>
+    <div class="li-trend t-up">↗</div>
+  </div>
+
+  <!-- ROW 3 -->
+  <div class="list-item">
+    <div class="li-badge"><span class="scard-badge b-open">Wave 1</span></div>
+    <div class="li-main">
+      <div class="li-name">Flux <span class="verified">✓</span></div>
+      <div class="li-founder">Flux Labs</div>
+    </div>
+    <div class="li-cat">Commerce</div>
+    <div class="li-wave">
+      <div class="li-wave-text"><span>Wave 1</span><span>8 / 20</span></div>
+      <div class="li-bar"><div class="li-bar-fill" style="width:60%; background: var(--gold);"></div></div>
+    </div>
+    <div class="li-price">
+      <div class="li-price-val">$640</div>
+    </div>
+    <div class="li-score">7.5</div>
+    <div class="li-trend" style="color: var(--drift);">→</div>
+  </div>
+
+  <!-- ROW 4 -->
+  <div class="list-item">
+    <div class="li-badge"><span class="scard-badge b-hot">Hot</span></div>
+    <div class="li-main">
+      <div class="li-name">Superdesign <span class="verified">✓</span></div>
+      <div class="li-founder">Jason Zhou</div>
+    </div>
+    <div class="li-cat">Developer Tools</div>
+    <div class="li-wave">
+      <div class="li-wave-text"><span>Wave Zero</span><span>22 / 25</span></div>
+      <div class="li-bar"><div class="li-bar-fill" style="width:88%; background: var(--green);"></div></div>
+    </div>
+    <div class="li-price">
+      <div class="li-price-val">$30</div>
+    </div>
+    <div class="li-score">7.1</div>
+    <div class="li-trend t-up">↗↗</div>
+  </div>
+
+  <!-- ROW 5 -->
+  <div class="list-item">
+    <div class="li-badge"><span class="scard-badge b-zero">Wave 0</span></div>
+    <div class="li-main">
+      <div class="li-name">Computer Agents <span class="verified">✓</span></div>
+      <div class="li-founder">Jan Luca Sandmann</div>
+    </div>
+    <div class="li-cat">AI Agents</div>
+    <div class="li-wave">
+      <div class="li-wave-text"><span>Wave Zero</span><span>19 / 25</span></div>
+      <div class="li-bar"><div class="li-bar-fill" style="width:76%; background: var(--green);"></div></div>
+    </div>
+    <div class="li-price">
+      <div class="li-price-val">$30</div>
+    </div>
+    <div class="li-score">6.8</div>
+    <div class="li-trend t-up">↗</div>
+  </div>
+
+  <!-- ROW 6 -->
+  <div class="list-item">
+    <div class="li-badge"><span class="scard-badge b-zero">Wave 0</span></div>
+    <div class="li-main">
+      <div class="li-name">Dvina <span class="verified">✓</span></div>
+      <div class="li-founder">Dvina Labs</div>
+    </div>
+    <div class="li-cat">Productivity</div>
+    <div class="li-wave">
+      <div class="li-wave-text"><span>Wave Zero</span><span>6 / 25</span></div>
+      <div class="li-bar"><div class="li-bar-fill" style="width:24%; background: var(--green);"></div></div>
+    </div>
+    <div class="li-price">
+      <div class="li-price-val">$30</div>
+    </div>
+    <div class="li-score">6.3</div>
+    <div class="li-trend" style="color: var(--drift);">→</div>
+  </div>
+
+  <!-- ROW 7 -->
+  <div class="list-item">
+    <div class="li-badge"><span class="scard-badge b-new">New</span></div>
+    <div class="li-main">
+      <div class="li-name">Aident AI <span class="verified">✓</span></div>
+      <div class="li-founder">Aident Inc</div>
+    </div>
+    <div class="li-cat">AI Governance</div>
+    <div class="li-wave">
+      <div class="li-wave-text"><span>Wave Zero</span><span>2 / 25</span></div>
+      <div class="li-bar"><div class="li-bar-fill" style="width:8%; background: var(--green);"></div></div>
+    </div>
+    <div class="li-price">
+      <div class="li-price-val">$30</div>
+    </div>
+    <div class="li-score">—</div>
+    <div class="li-trend" style="color: var(--drift);">→</div>
+  </div>
+
+  <!-- ROW 8 -->
+  <div class="list-item">
+    <div class="li-badge"><span class="scard-badge b-new">New</span></div>
+    <div class="li-main">
+      <div class="li-name">Naratix <span class="verified">✓</span></div>
+      <div class="li-founder">Naratix SRL</div>
+    </div>
+    <div class="li-cat">Commerce</div>
+    <div class="li-wave">
+      <div class="li-wave-text"><span>Wave Zero</span><span>5 / 25</span></div>
+      <div class="li-bar"><div class="li-bar-fill" style="width:20%; background: var(--green);"></div></div>
+    </div>
+    <div class="li-price">
+      <div class="li-price-val">$30</div>
+    </div>
+    <div class="li-score">—</div>
+    <div class="li-trend" style="color: var(--drift);">→</div>
+  </div>
+
+  <!-- ROW 9 -->
+  <div class="list-item">
+    <div class="li-badge"><span class="scard-badge b-new">New</span></div>
+    <div class="li-main">
+      <div class="li-name">Loki.Build <span class="verified">✓</span></div>
+      <div class="li-founder">Loki Labs</div>
+    </div>
+    <div class="li-cat">Developer Tools</div>
+    <div class="li-wave">
+      <div class="li-wave-text"><span>Wave Zero</span><span>1 / 25</span></div>
+      <div class="li-bar"><div class="li-bar-fill" style="width:4%; background: var(--green);"></div></div>
+    </div>
+    <div class="li-price">
+      <div class="li-price-val">$30</div>
+    </div>
+    <div class="li-score">—</div>
+    <div class="li-trend" style="color: var(--drift);">→</div>
+  </div>
+
+</div>
+
 </body>
 </html>
