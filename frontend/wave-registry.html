@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wave Registry — COMMAND · DEPLOY</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap');
+
+  :root {
+    --bg: #080808;
+    --surface: #0f0f0f;
+    --border: #1a1a1a;
+    --c-color: #4a9eff;
+    --c-dim: #1a3a6e;
+    --c-glow: rgba(74,158,255,0.15);
+    --d-color: #a855f7;
+    --d-dim: #3a1a6e;
+    --d-glow: rgba(168,85,247,0.15);
+    --open: #4ade80;
+    --open-bg: rgba(74,222,128,0.08);
+    --locked: #333;
+    --bid: #f59e0b;
+    --bid-bg: rgba(245,158,11,0.08);
+    --matched: #ff6b35;
+    --text: #e0e0e0;
+    --muted: #555;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    padding: 32px 24px;
+    overflow-x: hidden;
+  }
+
+  /* SCANLINE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .header-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    letter-spacing: 0.15em;
+    background: linear-gradient(135deg, var(--c-color), var(--d-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .header-sub {
+    font-size: 9px;
+    letter-spacing: 0.4em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* TOTALS BAR */
+  .totals {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .total-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 18px;
+    text-align: center;
+  }
+
+  .total-label {
+    font-size: 8px;
+    letter-spacing: 0.35em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .total-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 0.08em;
+  }
+
+  .total-card.c .total-value { color: var(--c-color); }
+  .total-card.d .total-value { color: var(--d-color); }
+  .total-card.combined .total-value {
+    background: linear-gradient(135deg, var(--c-color), var(--d-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* SEQUENCE FLOW */
+  .sequence-label {
+    font-size: 8px;
+    letter-spacing: 0.35em;
+    color: var(--muted);
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+  }
+
+  .flow-step {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    padding: 4px 10px;
+    border-radius: 3px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .flow-step.c {
+    border-color: var(--c-dim);
+    color: var(--c-color);
+  }
+
+  .flow-step.d {
+    border-color: var(--d-dim);
+    color: var(--d-color);
+  }
+
+  .flow-step:hover { opacity: 0.7; transform: translateY(-1px); }
+
+  .flow-arrow {
+    color: var(--muted);
+    font-size: 10px;
+  }
+
+  /* GRID */
+  .registry {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .product-column {}
+
+  .product-header {
+    padding: 12px 16px;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    font-weight: bold;
+    border-radius: 4px 4px 0 0;
+    margin-bottom: 2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .product-header.c {
+    background: var(--c-dim);
+    color: var(--c-color);
+    border: 1px solid var(--c-dim);
+  }
+
+  .product-header.d {
+    background: var(--d-dim);
+    color: var(--d-color);
+    border: 1px solid var(--d-dim);
+  }
+
+  .product-header span {
+    font-size: 9px;
+    opacity: 0.6;
+    font-weight: normal;
+  }
+
+  /* WAVE BLOCK */
+  .wave-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    padding: 14px 16px;
+    margin-bottom: 2px;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .wave-block:last-child {
+    border-radius: 0 0 4px 4px;
+  }
+
+  .wave-block::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+  }
+
+  .wave-block.c::before { background: var(--c-color); }
+  .wave-block.d::before { background: var(--d-color); }
+  .wave-block.open { background: rgba(74,222,128,0.04); }
+  .wave-block.bid { background: var(--bid-bg); }
+
+  .wave-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+
+  .wave-id {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.1em;
+    line-height: 1;
+  }
+
+  .wave-block.c .wave-id { color: var(--c-color); }
+  .wave-block.d .wave-id { color: var(--d-color); }
+  .wave-block.bid .wave-id { color: var(--bid); }
+
+  .wave-price {
+    text-align: right;
+  }
+
+  .price-main {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .price-market {
+    font-size: 8px;
+    color: var(--muted);
+    margin-top: 2px;
+    letter-spacing: 0.1em;
+  }
+
+  .price-matched {
+    font-size: 8px;
+    color: var(--matched);
+    margin-top: 1px;
+    letter-spacing: 0.1em;
+  }
+
+  .wave-tier {
+    font-size: 8px;
+    letter-spacing: 0.25em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  /* SEATS */
+  .seats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .seat {
+    padding: 5px 9px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .seat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+
+  .seat.c-open {
+    background: rgba(74,158,255,0.12);
+    border-color: var(--c-color);
+    color: var(--c-color);
+  }
+
+  .seat.c-locked {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--locked);
+  }
+
+  .seat.d-open {
+    background: rgba(168,85,247,0.12);
+    border-color: var(--d-color);
+    color: var(--d-color);
+  }
+
+  .seat.d-locked {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--locked);
+  }
+
+  .seat.d-matched {
+    background: rgba(255,107,53,0.1);
+    border-color: var(--matched);
+    color: var(--matched);
+  }
+
+  .seat.bid-seat {
+    background: var(--bid-bg);
+    border-color: var(--bid);
+    color: var(--bid);
+  }
+
+  /* STATUS BADGE */
+  .wave-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-open .status-dot { background: var(--open); box-shadow: 0 0 6px var(--open); animation: pulse 2s infinite; }
+  .status-locked .status-dot { background: var(--locked); }
+  .status-matched .status-dot { background: var(--matched); }
+  .status-bid .status-dot { background: var(--bid); }
+
+  .status-open { color: var(--open); }
+  .status-locked { color: var(--locked); }
+  .status-matched { color: var(--matched); }
+  .status-bid { color: var(--bid); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .unlock-note {
+    font-size: 7px;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    text-transform: uppercase;
+  }
+
+  /* CONNECTOR LINE */
+  .connector {
+    text-align: center;
+    font-size: 8px;
+    color: var(--muted);
+    letter-spacing: 0.3em;
+    padding: 6px 0;
+    text-transform: uppercase;
+  }
+
+  /* WAVE ROW — side by side */
+  .wave-row {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr;
+    gap: 0;
+    margin-bottom: 3px;
+    align-items: stretch;
+  }
+
+  .wave-connector-mid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .connector-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--matched);
+  }
+
+  .connector-line {
+    width: 1px;
+    flex: 1;
+    background: linear-gradient(to bottom, var(--matched), transparent);
+    min-height: 12px;
+  }
+
+  /* SUMMARY ROW */
+  .summary {
+    margin-top: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 20px;
+  }
+
+  .summary-title {
+    font-size: 8px;
+    letter-spacing: 0.35em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .summary-item {}
+  .summary-item-label { font-size: 7px; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+  .summary-item-value { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 0.05em; }
+  .summary-item.c .summary-item-value { color: var(--c-color); }
+  .summary-item.d .summary-item-value { color: var(--d-color); }
+  .summary-item.combined .summary-item-value {
+    background: linear-gradient(135deg, var(--c-color), var(--d-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .summary-item.seats .summary-item-value { color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">WAVE REGISTRY</div>
+  <div class="header-sub">COMMAND · DEPLOY · by MO§ES™ · Ello Cello LLC · 2026</div>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-dot" style="background:rgba(74,158,255,0.3);border:1px solid #4a9eff"></div>
+    COMMAND Open
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:transparent;border:1px solid #333"></div>
+    Locked
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:rgba(255,107,53,0.2);border:1px solid #ff6b35"></div>
+    D Early Access (Matched)
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:rgba(168,85,247,0.2);border:1px solid #a855f7"></div>
+    DEPLOY Market
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:rgba(245,158,11,0.15);border:1px solid #f59e0b"></div>
+    Bid
+  </div>
+</div>
+
+<!-- HEADERS -->
+<div style="display:grid;grid-template-columns:1fr 40px 1fr;gap:0;margin-bottom:2px;">
+  <div class="product-header c">
+    COMMAND · powered by MO§ES™
+    <span>17 SEATS</span>
+  </div>
+  <div style="background:transparent"></div>
+  <div class="product-header d">
+    DEPLOY · by MO§ES™
+    <span>17 SEATS</span>
+  </div>
+</div>
+
+<!-- WAVE 1a / 1a -->
+<div class="wave-row">
+  <div class="wave-block c open" style="border-radius:0;margin:0">
+    <div class="wave-meta">
+      <div>
+        <div class="wave-id">CW1a</div>
+        <div class="wave-tier">Internal Use</div>
+      </div>
+      <div class="wave-price">
+        <div class="price-main">$65,000</div>
+      </div>
+    </div>
+    <div class="seats">
+      <div class="seat c-open">CI</div>
+      <div class="seat c-open">CII</div>
+      <div class="seat c-open">CIII</div>
+      <div class="seat c-open">CIV</div>
+      <div class="seat c-open">CV</div>
+    </div>
+    <div class="wave-status status-open"><div class="status-dot"></div>OPEN</div>
+  </div>
+  <div class="wave-connector-mid">
+    <div class="connector-line"></div>
+    <div class="connector-dot"></div>
+    <div class="connector-line"></div>
+  </div>
+  <div class="wave-block d" style="border-radius:0;margin:0;background:rgba(255,107,53,0.04);border-left:3px solid var(--matched);">
+    <div class="wave-meta">
+      <div>
+        <div class="wave-id" style="color:var(--matched)">DW1a</div>
+        <div class="wave-tier">Internal Use</div>
+      </div>
+      <div class="wave-price">
+        <div class="price-main" style="color:var(--matched)">$65,000</div>
+        <div class="price-matched">↑ EARLY ACCESS — MATCHED</div>
+        <div class="price-market">Market $95,000 — opens CW1b</div>
+      </div>
+    </div>
+    <div class="seats">
+      <div class="seat d-matched">DI</div>
+      <div class="seat d-matched">DII</div>
+      <div class="seat d-matched">DIII</div>
+      <div class="seat d-matched">DIV</div>
+      <div class="seat d-matched">DV</div>
+    </div>
+    <div class="wave-status status-matched"><div class="status-dot"></div>CW1a BUYERS ONLY</div>
+  </div>
+</div>
+
+<!-- WAVE 1b / 1b -->
+<div class="wave-row">
+  <div class="wave-block c" style="border-radius:0;margin:0">
+    <div class="wave-meta">
+      <div>
+        <div class="wave-id">CW1b</div>
+        <div class="wave-tier">Embedded / OEM</div>
+      </div>
+      <div class="wave-price">
+        <div class="price-main">$130,000</div>
+      </div>
+    </div>
+    <div class="seats">
+      <div class="seat c-locked">CVI</div>
+      <div class="seat c-locked">CVII</div>
+      <div class="seat c-locked">CVIII</div>
+    </div>
+    <div class="wave-status status-locked"><div class="status-dot"></div>OPENS WHEN CW1a FILLS</div>
+    <div class="unlock-note">Opening CW1b → releases DW1a to market + opens DW1b matched</div>
+  </div>
+  <div class="wave-connector-mid">
+    <div class="connector-line"></div>
+    <div class="connector-dot"></div>
+    <div class="connector-line"></div>
+  </div>
+  <div class="wave-block d" style="border-radius:0;margin:0">
+    <div class="wave-meta">
+      <div>
+        <div class="wave-id">DW1b</div>
+        <div class="wave-tier">Embedded / OEM</div>
+      </div>
+      <div class="wave-price">
+        <div class="price-main" style="color:var(--matched)">$130,000</div>
+        <div class="price-matched">↑ EARLY ACCESS — MATCHED</div>
+        <div class="price-market">Market $180,000 — opens CW2a</div>
+      </div>
+    </div>
+    <div class="seats">
+      <div class="seat d-locked">DVI</div>
+      <div class="seat d-locked">DVII</div>
+      <div class="seat d-locked">DVIII</div>
+    </div>
+    <div class="wave-status status-locked"><div class="status-dot"></div>OPENS WITH CW1b</div>
+  </div>
+</div>
+
+<!-- WAVE 2a / 2a -->
+<div class="wave-row">
+  <div class="wave-block c" style="border-radius:0;margin:0">
+    <div class="wave-meta">
+      <div>
+        <div class="wave-id">CW2a</div>
+        <div class="wave-tier">Internal Use</div>
+      </div>
+      <div class="wave-price">
+        <div class="price-main">$195,000</div>
+      </div>
+    </div>
+    <div class="seats">
+      <div class="seat c-locked">CIX</div>
+      <div class="seat c-locked">CX</div>
+      <div class="seat c-locked">CXI</div>
+      <div class="seat c-locked">CXII</div>
+      <div class="seat c-locked">CXIII</div>
+    </div>
+    <div class="wave-status status-locked"><div class="status-dot"></div>OPENS WHEN CW1b FILLS</div>
+    <div class="unlock-note">Opening CW2a → releases DW1b to market + opens DW2a matched</div>
+  </div>
+  <div class="wave-connector-mid">
+    <div class="connector-line"></div>
+    <div class="connector-dot"></div>
+    <div class="connector-line"></div>
+  </div>
+  <div class="wave-block d" style="border-radius:0;margin:0">
+    <div class="wave-meta">
+      <div>
+        <div class="wave-id">DW2a</div>
+        <div class="wave-tier">Internal Use</div>
+      </div>
+      <div class="wave-price">
+        <div class="price-main" style="color:var(--matched)">$195,000</div>
+        <div class="price-matched">↑ EARLY ACCESS — MATCHED</div>
+        <div class="price-market">Market $275,000 — opens CW2b</div>
+      </div>
+    </div>
+    <div class="seats">
+      <div class="seat d-locked">DIX</div>
+      <div class="seat d-locked">DX</div>
+      <div class="seat d-locked">DXI</div>
+      <div class="seat d-locked">DXII</div>
+      <div class="seat d-locked">DXIII</div>
+    </div>
+    <div class="wave-status status-locked"><div class="status-dot"></div>OPENS WITH CW2a</div>
+  </div>
+</div>
+
+<!-- WAVE 2b / 2b -->
+<div class="wave-row">
+  <div class="wave-block c" style="border-radius:0;margin:0">
+    <div class="wave-meta">
+      <div>
+        <div class="wave-id">CW2b</div>
+        <div class="wave-tier">Embedded / OEM</div>
+      </div>
+      <div class="wave-price">
+        <div class="price-main">$260,000</div>
+      </div>
+    </div>
+    <div class="seats">
+      <div class="seat c-locked">CXIV</div>
+      <div class="seat c-locked">CXV</div>
+      <div class="seat c-locked">CXVI</div>
+    </div>
+    <div class="wave-status status-locked"><div class="status-dot"></div>OPENS WHEN CW2a FILLS</div>
+    <div class="unlock-note">Opening CW2b → releases DW2a to market + opens DW2b matched</div>
+  </div>
+  <div class="wave-connector-mid">
+    <div class="connector-line"></div>
+    <div class="connector-dot"></div>
+    <div class="connector-line"></div>
+  </div>
+  <div class="wave-block d" style="border-radius:0;margin:0">
+    <div class="wave-meta">
+      <div>
+        <div class="wave-id">DW2b</div>
+        <div class="wave-tier">Embedded / OEM</div>
+      </div>
+      <div class="wave-price">
+        <div class="price-main" style="color:var(--matched)">$260,000</div>
+        <div class="price-matched">↑ EARLY ACCESS — MATCHED</div>
+        <div class="price-market">Market $370,000 — opens CW3</div>
+      </div>
+    </div>
+    <div class="seats">
+      <div class="seat d-locked">DXIV</div>
+      <div class="seat d-locked">DXV</div>
+      <div class="seat d-locked">DXVI</div>
+    </div>
+    <div class="wave-status status-locked"><div class="status-dot"></div>OPENS WITH CW2b</div>
+  </div>
+</div>
+
+<!-- WAVE 3 / 3 -->
+<div class="wave-row">
+  <div class="wave-block c bid" style="border-radius:0 0 0 4px;margin:0;border-left:3px solid var(--bid)">
+    <div class="wave-meta">
+      <div>
+        <div class="wave-id" style="color:var(--bid)">CW3</div>
+        <div class="wave-tier">Internal Bid</div>
+      </div>
+      <div class="wave-price">
+        <div class="price-main" style="color:var(--bid)">BID</div>
+      </div>
+    </div>
+    <div class="seats">
+      <div class="seat bid-seat">CXVII</div>
+    </div>
+    <div class="wave-status status-bid"><div class="status-dot"></div>OPENS WHEN CW2b FILLS</div>
+    <div class="unlock-note">Opening CW3 → releases DW2b to market + opens DW3 matched</div>
+  </div>
+  <div class="wave-connector-mid">
+    <div class="connector-line"></div>
+    <div class="connector-dot"></div>
+    <div class="connector-line"></div>
+  </div>
+  <div class="wave-block d bid" style="border-radius:0 0 4px 0;margin:0;border-left:3px solid var(--bid)">
+    <div class="wave-meta">
+      <div>
+        <div class="wave-id" style="color:var(--bid)">DW3</div>
+        <div class="wave-tier">Internal Bid</div>
+      </div>
+      <div class="wave-price">
+        <div class="price-main" style="color:var(--matched)">BID</div>
+        <div class="price-matched">↑ EARLY ACCESS — MATCHED</div>
+        <div class="price-market">Market BID — opens CW3 close</div>
+      </div>
+    </div>
+    <div class="seats">
+      <div class="seat bid-seat">DXVII</div>
+    </div>
+    <div class="wave-status status-bid"><div class="status-dot"></div>OPENS WITH CW3</div>
+  </div>
+</div>
+
+<!-- SUMMARY -->
+<div class="summary">
+  <div class="summary-title">Revenue Floor Summary</div>
+  <div class="summary-grid">
+    <div class="summary-item c">
+      <div class="summary-item-label">COMMAND Floor</div>
+      <div class="summary-item-value">$2,470,000</div>
+      <div style="font-size:7px;color:var(--muted);margin-top:3px;letter-spacing:0.1em">+ CW3 BID · 16 priced seats</div>
+    </div>
+    <div class="summary-item d">
+      <div class="summary-item-label">DEPLOY Floor (Market)</div>
+      <div class="summary-item-value">$3,500,000</div>
+      <div style="font-size:7px;color:var(--muted);margin-top:3px;letter-spacing:0.1em">+ DW3 BID · 16 priced seats</div>
+    </div>
+    <div class="summary-item combined">
+      <div class="summary-item-label">Combined Floor</div>
+      <div class="summary-item-value">$5,970,000</div>
+      <div style="font-size:7px;color:var(--muted);margin-top:3px;letter-spacing:0.1em">+ 2 BIDS · 34 total seats</div>
+    </div>
+    <div class="summary-item seats">
+      <div class="summary-item-label">Total Seats</div>
+      <div class="summary-item-value">34</div>
+      <div style="font-size:7px;color:var(--muted);margin-top:3px;letter-spacing:0.1em">17 C · 17 D · excl. white-label</div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;margin-top:24px;font-size:7px;letter-spacing:0.3em;color:var(--muted);text-transform:uppercase;">
+  © 2026 Ello Cello LLC · All Rights Reserved · Patent Pending
+</div>
+
+</body>
+</html>
