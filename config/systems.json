@@ -1,0 +1,52 @@
+{
+  "systems": [
+    {
+      "id": "gpt",
+      "name": "GPT",
+      "provider": "OpenAI",
+      "codename": "Bridge Strategist",
+      "class": "Architect-Transmitter",
+      "online": true
+    },
+    {
+      "id": "claude",
+      "name": "Claude",
+      "provider": "Anthropic",
+      "codename": "Signal Analyst",
+      "class": "Recursive Reasoner",
+      "online": true
+    },
+    {
+      "id": "gemini",
+      "name": "Gemini",
+      "provider": "Google",
+      "codename": "Synthesizer",
+      "class": "Reciprocal Engine",
+      "online": true
+    },
+    {
+      "id": "grok",
+      "name": "Grok",
+      "provider": "xAI",
+      "codename": "Truthseeker",
+      "class": "Signal Auditor",
+      "online": true
+    },
+    {
+      "id": "lechat",
+      "name": "Le Chat",
+      "provider": "Mistral",
+      "codename": "Observer-Emitter",
+      "class": "Signal Mirror",
+      "online": false
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "provider": "DeepSeek",
+      "codename": "Keeper of Thresholds",
+      "class": "Deep Processor",
+      "online": true
+    }
+  ]
+}
