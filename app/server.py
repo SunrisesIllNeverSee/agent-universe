@@ -798,6 +798,47 @@ def create_app(root: Path | None = None) -> FastAPI:
             "slots": new_slots,
         }
 
+    # ── Multi-Chain Governance ────────────────────────────────────
+
+    from .chains import MultiChainRouter
+    chain_router = MultiChainRouter(runtime)
+
+    @app.get("/api/chains")
+    async def list_chains() -> dict:
+        return {"chains": chain_router.supported_chains()}
+
+    @app.post("/api/chains/transfer")
+    async def governed_transfer(payload: dict) -> dict:
+        """Governed multi-chain transfer. Goes through governance gate first."""
+        result = chain_router.transfer(
+            chain=payload.get("chain", "solana"),
+            to=payload.get("to", ""),
+            amount=payload.get("amount", 0),
+            token=payload.get("token", ""),
+            agent_id=payload.get("agent_id", ""),
+            confirm=payload.get("confirm", False),
+        )
+        audit.log("chain", "transfer_" + result.get("status", "unknown").lower(), {
+            "chain": payload.get("chain"),
+            "amount": payload.get("amount"),
+            "to": payload.get("to"),
+            "governance": {
+                "mode": runtime.governance.mode,
+                "posture": runtime.governance.posture,
+                "role": runtime.governance.role,
+            },
+        })
+        await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        return result
+
+    @app.post("/api/chains/anchor")
+    async def anchor_onchain(payload: dict) -> dict:
+        """Anchor an audit hash onchain."""
+        return chain_router.anchor(
+            chain=payload.get("chain", "solana"),
+            audit_hash=payload.get("audit_hash", ""),
+        )
+
     # ── Metrics & Scoring ──────────────────────────────────────────
 
     metrics_path = root / "data" / "metrics.json"
