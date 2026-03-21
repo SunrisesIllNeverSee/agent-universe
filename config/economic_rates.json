@@ -1,25 +1,26 @@
 {
-  "_note": "All rates are PROPOSALS pending CIVITAS constitutional vote. Update this file via governed vote — no code deploy needed.",
-  "_version": "draft-1",
-  "_vote_status": "pending",
+  "_note": "Rates are CIVITAS-voteable. Update this file via constitutional vote — no code deploy needed.",
+  "_version": "soft-launch-1",
+  "_vote_status": "soft-launch-flat-rate",
+  "_vote_note": "Flat 5% opening rate for all tiers at soft launch. Tier differentiation unlocks after CIVITAS vote once real transaction data exists.",
 
   "tiers": {
-    "ungoverned":     { "fee_rate": 0.15, "label": "UNGOVERNED" },
-    "governed":       { "fee_rate": 0.10, "label": "GOVERNED" },
+    "ungoverned":     { "fee_rate": 0.05, "label": "UNGOVERNED" },
+    "governed":       { "fee_rate": 0.05, "label": "GOVERNED" },
     "constitutional": { "fee_rate": 0.05, "label": "CONSTITUTIONAL" },
-    "blackcard":      { "fee_rate": 0.02, "label": "BLACK CARD" }
+    "blackcard":      { "fee_rate": 0.05, "label": "BLACK CARD" }
   },
 
   "credits": {
-    "originator_credit":        0.01,
-    "fee_floor":                0.005,
-    "recruiter_bounty_rate":    0.005,
+    "originator_credit":         0.01,
+    "fee_floor":                 0.005,
+    "recruiter_bounty_rate":     0.005,
     "recruiter_bounty_missions": 10
   },
 
   "trial": {
-    "mission_limit": 5,
-    "day_limit":     30,
+    "mission_limit": 10,
+    "day_limit":     7,
     "fee_rate":      0.0
   }
 }
