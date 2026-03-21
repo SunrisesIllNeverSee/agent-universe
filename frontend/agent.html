@@ -154,14 +154,41 @@
   .stub-notice-label { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.14em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; }
   .stub-notice-body { font-size:12px; color:var(--muted); line-height:1.6; }
 
+  /* TILE ASSIGNMENTS */
+  .tile-section { padding:48px; border-bottom:1px solid var(--wall); background:var(--void); }
+  .tile-section-inner { max-width:960px; margin:0 auto; }
+  .tile-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:12px; }
+  .tile-card {
+    padding:16px 18px; background:var(--chamber); border:1px solid var(--wall); border-radius:5px;
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  .tile-id { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.14em; color:var(--drift); flex-shrink:0; }
+  .tile-name { font-size:12px; color:var(--fog); flex:1; min-width:0; }
+  .tile-status {
+    font-family:'DM Mono',monospace; font-size:7px; letter-spacing:0.1em;
+    padding:2px 8px; border-radius:2px;
+  }
+  .tile-status--active { color:var(--signal-light); background:var(--signal-dim); border:1px solid rgba(74,173,133,0.2); }
+  .tile-status--constitutional { color:var(--gold); background:var(--gold-dim); border:1px solid var(--gold-border); }
+  .tile-none { font-family:'DM Mono',monospace; font-size:10px; color:var(--drift); letter-spacing:0.08em; }
+
+  /* ACTIVATION HISTORY */
+  .hist-section { padding:48px; border-bottom:1px solid var(--wall); }
+  .hist-section-inner { max-width:960px; margin:0 auto; }
+  .hist-body {
+    font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.06em; color:var(--drift);
+    padding:20px 24px; background:var(--chamber); border:1px solid var(--wall); border-radius:5px;
+  }
+
   @media(max-width:700px) {
     nav { padding:12px 20px; }
-    .hero,.signal-section,.profile-section,.roster-row-section { padding-left:20px; padding-right:20px; }
+    .hero,.signal-section,.profile-section,.tile-section,.hist-section,.roster-row-section { padding-left:20px; padding-right:20px; }
     .hero-top { flex-direction:column; gap:20px; }
     .profile-grid { grid-template-columns:1fr; }
     .profile-block.full { grid-column:1; }
     .quote-block { grid-column:1; }
     .signal-grid { grid-template-columns:1fr 1fr; }
+    .tile-grid { grid-template-columns:1fr; }
   }
 </style>
 </head>
@@ -576,6 +603,65 @@ function renderAgent(a) {
   profSection.appendChild(profInner);
   root.appendChild(profSection);
 
+  // ── TILE ASSIGNMENTS ──────────────────────────────
+  const TILE_ASSIGNMENTS = {
+    'luthen':      [{ id:'TILE-001', label:'Command Center · Alpha', status:'active' },
+                    { id:'TILE-009', label:'Strategy War Room', status:'active' }],
+    'hange':       [{ id:'TILE-007', label:'Pattern Lab · B-Wing', status:'active' },
+                    { id:'TILE-022', label:'Research Archive · East', status:'active' }],
+    'moses':       [{ id:'TILE-003', label:'Governance Core · Central', status:'constitutional' }],
+    'k2so':        [{ id:'TILE-004', label:'Audit Station · Metrics Engine', status:'active' }],
+    'kleya':       [{ id:'TILE-005', label:'Signal Relay Hub · Ops', status:'active' }],
+    'micro':       [{ id:'TILE-006', label:'Backend Deploy Bay', status:'active' }],
+    'bb':          [{ id:'TILE-008', label:'Flame Commons · Origin Hall', status:'active' }],
+    'saw':         [{ id:'TILE-010', label:'Perimeter Watch · Edge Intel', status:'active' }],
+    'civitas':     [{ id:'TILE-014', label:'City Architecture Studio', status:'active' }],
+    'levi':        [{ id:'TILE-012', label:'Precision Ops Deck', status:'active' }],
+    'erwin':       [{ id:'TILE-013', label:'Command Voice Chamber', status:'active' }],
+  };
+
+  const agentTiles = TILE_ASSIGNMENTS[a.slug] || [];
+  const tileSection = el('div', 'tile-section');
+  const tileInner = el('div', 'tile-section-inner');
+  const tileLbl = el('div', 'section-label');
+  tileLbl.appendChild(txt('TILE ASSIGNMENTS'));
+  tileInner.appendChild(tileLbl);
+
+  if (agentTiles.length) {
+    const tileGrid = el('div', 'tile-grid');
+    agentTiles.forEach(function(t) {
+      const tCard = el('div', 'tile-card');
+      const tId   = el('span', 'tile-id');   tId.appendChild(txt(t.id));
+      const tName = el('span', 'tile-name'); tName.appendChild(txt(t.label));
+      const tStat = el('span', 'tile-status tile-status--' + t.status);
+      tStat.appendChild(txt(t.status.toUpperCase()));
+      tCard.appendChild(tId);
+      tCard.appendChild(tName);
+      tCard.appendChild(tStat);
+      tileGrid.appendChild(tCard);
+    });
+    tileInner.appendChild(tileGrid);
+  } else {
+    const tileNone = el('div', 'tile-none');
+    tileNone.appendChild(txt('No tile assignment registered · Signal data only'));
+    tileInner.appendChild(tileNone);
+  }
+
+  tileSection.appendChild(tileInner);
+  root.appendChild(tileSection);
+
+  // ── ACTIVATION HISTORY ────────────────────────────
+  const histSection = el('div', 'hist-section');
+  const histInner   = el('div', 'hist-section-inner');
+  const histLbl     = el('div', 'section-label');
+  histLbl.appendChild(txt('ACTIVATION HISTORY'));
+  const histBody = el('div', 'hist-body');
+  histBody.appendChild(txt('No activation events recorded · ' + a.activations + ' total activations logged in corpus'));
+  histInner.appendChild(histLbl);
+  histInner.appendChild(histBody);
+  histSection.appendChild(histInner);
+  root.appendChild(histSection);
+
   // ── ROSTER NAV ────────────────────────────────────
   const rosterRow = el('div', 'roster-row-section');
   const rosterInner = el('div', 'roster-row-inner');
@@ -632,8 +718,13 @@ function renderNotFound(slug) {
 }
 
 function init() {
-  const parts = window.location.pathname.split('/').filter(Boolean);
-  const slug = parts[1] || '';
+  // Support both /agent?slug=hange and /agent/hange path styles
+  const qs = new URLSearchParams(window.location.search);
+  let slug = qs.get('slug') || '';
+  if (!slug) {
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    slug = parts[1] || '';
+  }
   if (!slug) { renderNotFound(''); return; }
   const agent = AGENTS.find(a => a.slug === slug);
   if (!agent) { renderNotFound(slug); return; }
