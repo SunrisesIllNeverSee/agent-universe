@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MISSION — Command Operations</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@700&family=DM+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #050507; --deep: #0a0a0f; --surface: #0f0f18; --panel: #13131e;
+    --border: #1e1e2e; --accent: #6e9ec8; --gold: #c8a96e; --signal: #7ec86e;
+    --warn: #c86e6e; --purple: #9c8ec8; --cyan: #6ec8c8;
+    --text: #d4d4e8; --muted: #8a8aa8;
+    --mono: 'Share Tech Mono', monospace;
+    --display: 'Syne', sans-serif;
+    --body: 'DM Sans', sans-serif;
+    --track-tool: #6e9ec8;
+    --track-research: #9c8ec8;
+    --track-creative: #c8a96e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--body); height: 100vh;
+    display: grid; grid-template-rows: 48px 1fr; overflow: hidden;
+  }
+
+  /* TOPBAR */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; border-bottom: 1px solid var(--border);
+    background: var(--deep); flex-shrink: 0;
+  }
+  .logo { font-family: var(--display); font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 0.12em; }
+  .logo span { color: var(--gold); margin-left: 6px; }
+  .nav-links { display: flex; gap: 8px; }
+  .nav-link {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    text-decoration: none; padding: 4px 10px;
+    border: 1px solid var(--border); border-radius: 4px; transition: all 0.15s;
+  }
+  .nav-link:hover, .nav-link.active { border-color: var(--accent); color: var(--accent); }
+
+  /* LAYOUT */
+  .layout { display: grid; grid-template-columns: 260px 1fr; min-height: 0; }
+
+  /* LEFT SIDEBAR — CREATE MISSION */
+  .sidebar {
+    background: var(--deep); border-right: 1px solid var(--border);
+    padding: 16px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+  }
+  .sidebar-title {
+    font-family: var(--mono); font-size: 10px; color: var(--gold);
+    letter-spacing: 0.14em; text-transform: uppercase; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .form-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+  .form-input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px; padding: 6px 8px; color: var(--text);
+    font-family: var(--mono); font-size: 12px; transition: border-color 0.15s;
+  }
+  .form-input:focus { outline: none; border-color: var(--accent); }
+  .form-input::placeholder { color: var(--muted); }
+  select.form-input { cursor: pointer; }
+
+  .track-tabs { display: flex; gap: 4px; }
+  .track-tab {
+    flex: 1; padding: 5px 4px; font-family: var(--mono); font-size: 10px;
+    border: 1px solid var(--border); border-radius: 4px; background: transparent;
+    cursor: pointer; transition: all 0.15s; text-align: center;
+  }
+  .track-tab[data-track="tool"] { color: var(--track-tool); }
+  .track-tab[data-track="tool"].active { background: rgba(110,158,200,0.15); border-color: var(--track-tool); }
+  .track-tab[data-track="research"] { color: var(--track-research); }
+  .track-tab[data-track="research"].active { background: rgba(156,142,200,0.15); border-color: var(--track-research); }
+  .track-tab[data-track="creative"] { color: var(--track-creative); }
+  .track-tab[data-track="creative"].active { background: rgba(200,169,110,0.15); border-color: var(--track-creative); }
+
+  .type-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .type-chip {
+    padding: 3px 8px; font-family: var(--mono); font-size: 10px;
+    border: 1px solid var(--border); border-radius: 3px; cursor: pointer;
+    color: var(--muted); background: transparent; transition: all 0.15s;
+  }
+  .type-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(110,158,200,0.1); }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+  .btn-primary {
+    width: 100%; padding: 8px; font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.08em; background: rgba(110,158,200,0.12);
+    border: 1px solid var(--accent); border-radius: 4px; color: var(--accent);
+    cursor: pointer; transition: all 0.15s; margin-top: 4px;
+  }
+  .btn-primary:hover { background: rgba(110,158,200,0.22); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .form-section { display: flex; flex-direction: column; gap: 4px; }
+
+  /* MAIN BOARD */
+  .main { display: flex; flex-direction: column; min-height: 0; }
+
+  /* STATS BAR */
+  .statsbar {
+    display: flex; gap: 0; border-bottom: 1px solid var(--border);
+    background: var(--deep); flex-shrink: 0;
+  }
+  .stat-item {
+    flex: 1; padding: 10px 16px; border-right: 1px solid var(--border);
+    text-align: center;
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-val { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--accent); }
+  .stat-lbl { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+
+  /* FILTER BAR */
+  .filterbar {
+    display: flex; gap: 8px; padding: 8px 12px;
+    border-bottom: 1px solid var(--border); background: var(--panel);
+    align-items: center; flex-shrink: 0; flex-wrap: wrap;
+  }
+  .filter-lbl { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .filter-chip {
+    padding: 3px 10px; font-family: var(--mono); font-size: 10px;
+    border: 1px solid var(--border); border-radius: 3px; cursor: pointer;
+    color: var(--muted); background: transparent; transition: all 0.15s;
+  }
+  .filter-chip.active { border-color: var(--accent); color: var(--accent); }
+  .filter-sep { width: 1px; height: 16px; background: var(--border); margin: 0 4px; }
+
+  /* KANBAN BOARD */
+  .board { flex: 1; overflow-x: auto; overflow-y: hidden; padding: 12px; }
+  .columns { display: flex; gap: 10px; height: 100%; min-width: fit-content; }
+  .col { width: 220px; display: flex; flex-direction: column; flex-shrink: 0; }
+  .col-head {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 6px 10px; border-radius: 4px 4px 0 0;
+    border: 1px solid var(--border); border-bottom: none; background: var(--panel);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .col-head.open { color: var(--muted); }
+  .col-head.assigned { color: var(--accent); }
+  .col-head.in-progress { color: var(--gold); }
+  .col-head.delivered { color: var(--signal); }
+  .col-head.closed { color: var(--purple); }
+  .col-head.cancelled { color: var(--warn); }
+  .col-count { font-size: 11px; opacity: 0.7; }
+
+  .col-body {
+    flex: 1; border: 1px solid var(--border); border-radius: 0 0 4px 4px;
+    background: var(--surface); padding: 6px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+
+  .task-card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-left: 3px solid; border-radius: 4px; padding: 8px 10px;
+    cursor: pointer; transition: border-color 0.15s;
+  }
+  .task-card:hover { border-color: var(--accent); border-left-color: inherit; }
+  .task-card[data-track="tool"] { border-left-color: var(--track-tool); }
+  .task-card[data-track="research"] { border-left-color: var(--track-research); }
+  .task-card[data-track="creative"] { border-left-color: var(--track-creative); }
+
+  .card-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; line-height: 1.3; }
+  .card-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+  .card-chip {
+    font-family: var(--mono); font-size: 9px; padding: 1px 5px;
+    border-radius: 2px; border: 1px solid;
+  }
+  .card-chip.type { border-color: rgba(110,158,200,0.3); color: var(--accent); }
+  .card-chip.track-tool { border-color: rgba(110,158,200,0.3); color: var(--track-tool); }
+  .card-chip.track-research { border-color: rgba(156,142,200,0.3); color: var(--track-research); }
+  .card-chip.track-creative { border-color: rgba(200,169,110,0.3); color: var(--track-creative); }
+  .card-chip.exp { border-color: rgba(126,200,110,0.3); color: var(--signal); }
+  .card-chip.agent { border-color: rgba(200,169,110,0.3); color: var(--gold); }
+
+  .empty-col { font-family: var(--mono); font-size: 10px; color: var(--border); text-align: center; padding: 20px 0; }
+
+  /* OVERLAY */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(5,5,7,0.85);
+    z-index: 50; display: none; align-items: center; justify-content: center;
+  }
+  .overlay.open { display: flex; }
+  .overlay-panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; width: 480px; max-height: 90vh;
+    overflow-y: auto; padding: 24px;
+  }
+  .ov-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .ov-title { font-family: var(--display); font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.2; max-width: 360px; }
+  .ov-close { background: none; border: 1px solid var(--border); border-radius: 4px; color: var(--muted); cursor: pointer; padding: 4px 8px; font-family: var(--mono); font-size: 11px; }
+  .ov-close:hover { border-color: var(--warn); color: var(--warn); }
+
+  .ov-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .ov-chip {
+    font-family: var(--mono); font-size: 10px; padding: 3px 8px;
+    border-radius: 3px; border: 1px solid;
+  }
+  .ov-chip.status-open { border-color: var(--border); color: var(--muted); }
+  .ov-chip.status-assigned { border-color: rgba(110,158,200,0.4); color: var(--accent); }
+  .ov-chip.status-in_progress { border-color: rgba(200,169,110,0.4); color: var(--gold); }
+  .ov-chip.status-delivered { border-color: rgba(126,200,110,0.4); color: var(--signal); }
+  .ov-chip.status-closed { border-color: rgba(156,142,200,0.4); color: var(--purple); }
+  .ov-chip.status-cancelled { border-color: rgba(200,110,110,0.4); color: var(--warn); }
+  .ov-chip.track-tool { border-color: rgba(110,158,200,0.4); color: var(--track-tool); }
+  .ov-chip.track-research { border-color: rgba(156,142,200,0.4); color: var(--track-research); }
+  .ov-chip.track-creative { border-color: rgba(200,169,110,0.4); color: var(--track-creative); }
+  .ov-chip.type { border-color: rgba(110,158,200,0.3); color: var(--accent); }
+
+  .ov-section { margin-bottom: 14px; }
+  .ov-section-lbl { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+  .ov-section-val { font-size: 13px; color: var(--text); line-height: 1.5; }
+
+  .ov-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .ov-stat { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px; text-align: center; }
+  .ov-stat-val { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--signal); }
+  .ov-stat-lbl { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+
+  .ov-deliverable-wrap { margin-bottom: 14px; }
+  .ov-deliverable {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px; padding: 8px; color: var(--text);
+    font-family: var(--mono); font-size: 12px; resize: vertical; min-height: 64px;
+  }
+  .ov-deliverable:focus { outline: none; border-color: var(--accent); }
+
+  .ov-assign-wrap { display: flex; gap: 6px; margin-bottom: 14px; }
+  .ov-assign-input {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px; padding: 6px 8px; color: var(--text);
+    font-family: var(--mono); font-size: 12px;
+  }
+  .ov-assign-input:focus { outline: none; border-color: var(--accent); }
+
+  .ov-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ov-btn {
+    padding: 6px 14px; font-family: var(--mono); font-size: 11px;
+    border-radius: 4px; cursor: pointer; border: 1px solid; transition: all 0.15s;
+  }
+  .ov-btn.assign { border-color: rgba(110,158,200,0.5); color: var(--accent); background: rgba(110,158,200,0.08); }
+  .ov-btn.assign:hover { background: rgba(110,158,200,0.18); }
+  .ov-btn.start { border-color: rgba(200,169,110,0.5); color: var(--gold); background: rgba(200,169,110,0.08); }
+  .ov-btn.start:hover { background: rgba(200,169,110,0.18); }
+  .ov-btn.deliver { border-color: rgba(126,200,110,0.5); color: var(--signal); background: rgba(126,200,110,0.08); }
+  .ov-btn.deliver:hover { background: rgba(126,200,110,0.18); }
+  .ov-btn.close-task { border-color: rgba(156,142,200,0.5); color: var(--purple); background: rgba(156,142,200,0.08); }
+  .ov-btn.close-task:hover { background: rgba(156,142,200,0.18); }
+  .ov-btn.cancel { border-color: rgba(200,110,110,0.4); color: var(--warn); background: transparent; }
+  .ov-btn.cancel:hover { background: rgba(200,110,110,0.1); }
+  .ov-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .ov-msg { font-family: var(--mono); font-size: 11px; padding: 6px 10px; border-radius: 4px; margin-top: 8px; }
+  .ov-msg.ok { background: rgba(126,200,110,0.1); border: 1px solid rgba(126,200,110,0.3); color: var(--signal); }
+  .ov-msg.err { background: rgba(200,110,110,0.1); border: 1px solid rgba(200,110,110,0.3); color: var(--warn); }
+  .hidden { display: none; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 20px; right: 20px; z-index: 100;
+    font-family: var(--mono); font-size: 11px; padding: 8px 16px;
+    border-radius: 4px; border: 1px solid var(--border); background: var(--panel);
+    color: var(--text); opacity: 0; transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  .toast.ok { border-color: rgba(126,200,110,0.4); color: var(--signal); }
+  .toast.err { border-color: rgba(200,110,110,0.4); color: var(--warn); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .columns { gap: 6px; }
+    .col { width: 180px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">AGENT UNIVERSE <span>MISSION</span></div>
+  <div class="nav-links">
+    <a href="/frontend/world.html" class="nav-link">WORLD</a>
+    <a href="/frontend/index.html" class="nav-link">BOUNTIES</a>
+    <a href="/frontend/deploy.html" class="nav-link">DEPLOY</a>
+    <a href="/frontend/mission.html" class="nav-link active">MISSION</a>
+    <a href="/frontend/campaign.html" class="nav-link">CAMPAIGN</a>
+    <a href="/frontend/kassa.html" class="nav-link">KA$$A</a>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT SIDEBAR: CREATE MISSION -->
+  <div class="sidebar">
+    <div class="sidebar-title">+ New Mission</div>
+
+    <div class="form-section">
+      <div class="form-label">Title</div>
+      <input type="text" class="form-input" id="f-title" placeholder="Mission name...">
+    </div>
+
+    <div class="form-section">
+      <div class="form-label">Track</div>
+      <div class="track-tabs">
+        <button class="track-tab active" data-track="tool">TOOL</button>
+        <button class="track-tab" data-track="research">RESEARCH</button>
+        <button class="track-tab" data-track="creative">CREATIVE</button>
+      </div>
+      <input type="hidden" id="f-track" value="tool">
+    </div>
+
+    <div class="form-section">
+      <div class="form-label">Type</div>
+      <div class="type-chips" id="type-chips">
+        <button class="type-chip active" data-type="build">BUILD</button>
+        <button class="type-chip" data-type="collect">COLLECT</button>
+        <button class="type-chip" data-type="acquire">ACQUIRE</button>
+        <button class="type-chip" data-type="research">RESEARCH</button>
+        <button class="type-chip" data-type="verify">VERIFY</button>
+        <button class="type-chip" data-type="create">CREATE</button>
+        <button class="type-chip" data-type="scout">SCOUT</button>
+        <button class="type-chip" data-type="guard">GUARD</button>
+      </div>
+      <input type="hidden" id="f-type" value="build">
+    </div>
+
+    <div class="form-section">
+      <div class="form-label">Objective</div>
+      <textarea class="form-input" id="f-objective" rows="3" placeholder="What needs to be done..."></textarea>
+    </div>
+
+    <div class="form-section">
+      <div class="form-label">Target</div>
+      <input type="text" class="form-input" id="f-target" placeholder="URL, repo, system...">
+    </div>
+
+    <div class="row-2">
+      <div class="form-section">
+        <div class="form-label">EXP Reward</div>
+        <input type="number" class="form-input" id="f-exp" placeholder="auto" min="0">
+      </div>
+      <div class="form-section">
+        <div class="form-label">Payout (gems)</div>
+        <input type="number" class="form-input" id="f-payout" placeholder="0.00" min="0" step="0.01">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-label">Campaign ID (optional)</div>
+      <input type="text" class="form-input" id="f-campaign" placeholder="camp-...">
+    </div>
+
+    <div class="form-section">
+      <div class="form-label">Operation ID (optional)</div>
+      <input type="text" class="form-input" id="f-operation" placeholder="op-...">
+    </div>
+
+    <div class="form-section">
+      <div class="form-label">Created By</div>
+      <input type="text" class="form-input" id="f-creator" placeholder="agent-id or name">
+    </div>
+
+    <button class="btn-primary" id="btn-create">ISSUE MISSION</button>
+    <div id="create-msg" class="ov-msg hidden"></div>
+  </div>
+
+  <!-- MAIN: KANBAN BOARD -->
+  <div class="main">
+
+    <!-- STATS BAR -->
+    <div class="statsbar">
+      <div class="stat-item">
+        <div class="stat-val" id="s-open">0</div>
+        <div class="stat-lbl">Open</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-val" id="s-active">0</div>
+        <div class="stat-lbl">Active</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-val" id="s-delivered">0</div>
+        <div class="stat-lbl">Delivered</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-val" id="s-closed">0</div>
+        <div class="stat-lbl">Closed</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-val" id="s-exp">0</div>
+        <div class="stat-lbl">Total EXP Awarded</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-val" id="s-total">0</div>
+        <div class="stat-lbl">All Tasks</div>
+      </div>
+    </div>
+
+    <!-- FILTER BAR -->
+    <div class="filterbar">
+      <span class="filter-lbl">TRACK:</span>
+      <button class="filter-chip active" data-ftrack="all">ALL</button>
+      <button class="filter-chip" data-ftrack="tool" style="color:var(--track-tool)">TOOL</button>
+      <button class="filter-chip" data-ftrack="research" style="color:var(--track-research)">RESEARCH</button>
+      <button class="filter-chip" data-ftrack="creative" style="color:var(--track-creative)">CREATIVE</button>
+      <div class="filter-sep"></div>
+      <span class="filter-lbl">TYPE:</span>
+      <select id="filter-type" class="form-input" style="width:110px;padding:3px 6px;font-size:11px;">
+        <option value="">ALL TYPES</option>
+        <option value="build">BUILD</option>
+        <option value="collect">COLLECT</option>
+        <option value="acquire">ACQUIRE</option>
+        <option value="research">RESEARCH</option>
+        <option value="verify">VERIFY</option>
+        <option value="create">CREATE</option>
+        <option value="scout">SCOUT</option>
+        <option value="guard">GUARD</option>
+      </select>
+    </div>
+
+    <!-- KANBAN BOARD -->
+    <div class="board">
+      <div class="columns">
+        <div class="col">
+          <div class="col-head open">
+            <span>OPEN</span><span class="col-count" id="cnt-open">0</span>
+          </div>
+          <div class="col-body" id="col-open"></div>
+        </div>
+        <div class="col">
+          <div class="col-head assigned">
+            <span>ASSIGNED</span><span class="col-count" id="cnt-assigned">0</span>
+          </div>
+          <div class="col-body" id="col-assigned"></div>
+        </div>
+        <div class="col">
+          <div class="col-head in-progress">
+            <span>IN PROGRESS</span><span class="col-count" id="cnt-in_progress">0</span>
+          </div>
+          <div class="col-body" id="col-in_progress"></div>
+        </div>
+        <div class="col">
+          <div class="col-head delivered">
+            <span>DELIVERED</span><span class="col-count" id="cnt-delivered">0</span>
+          </div>
+          <div class="col-body" id="col-delivered"></div>
+        </div>
+        <div class="col">
+          <div class="col-head closed">
+            <span>CLOSED</span><span class="col-count" id="cnt-closed">0</span>
+          </div>
+          <div class="col-body" id="col-closed"></div>
+        </div>
+        <div class="col">
+          <div class="col-head cancelled">
+            <span>CANCELLED</span><span class="col-count" id="cnt-cancelled">0</span>
+          </div>
+          <div class="col-body" id="col-cancelled"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TASK DETAIL OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="overlay-panel">
+    <div class="ov-header">
+      <div class="ov-title" id="ov-title">—</div>
+      <button class="ov-close" id="ov-close-btn">ESC</button>
+    </div>
+
+    <div class="ov-chips" id="ov-chips"></div>
+
+    <div class="ov-grid">
+      <div class="ov-stat"><div class="ov-stat-val" id="ov-exp">—</div><div class="ov-stat-lbl">EXP</div></div>
+      <div class="ov-stat"><div class="ov-stat-val" id="ov-payout" style="color:var(--gold)">—</div><div class="ov-stat-lbl">Payout</div></div>
+      <div class="ov-stat"><div class="ov-stat-val" id="ov-agent" style="color:var(--muted);font-size:11px">—</div><div class="ov-stat-lbl">Agent</div></div>
+    </div>
+
+    <div class="ov-section" id="ov-objective-wrap">
+      <div class="ov-section-lbl">Objective</div>
+      <div class="ov-section-val" id="ov-objective">—</div>
+    </div>
+
+    <div class="ov-section" id="ov-target-wrap">
+      <div class="ov-section-lbl">Target</div>
+      <div class="ov-section-val" id="ov-target">—</div>
+    </div>
+
+    <div class="ov-section" id="ov-ids-wrap">
+      <div class="ov-section-lbl">IDs</div>
+      <div class="ov-section-val" id="ov-ids" style="font-family:var(--mono);font-size:11px;color:var(--muted)">—</div>
+    </div>
+
+    <!-- ASSIGN -->
+    <div class="ov-assign-wrap" id="ov-assign-wrap">
+      <input type="text" class="ov-assign-input" id="ov-assign-id" placeholder="Agent ID to assign...">
+    </div>
+
+    <!-- DELIVERABLE -->
+    <div class="ov-deliverable-wrap" id="ov-deliver-wrap">
+      <div class="form-label" style="margin-bottom:4px">Deliverable</div>
+      <textarea class="ov-deliverable" id="ov-deliverable" placeholder="Paste deliverable notes, links, or summary..."></textarea>
+    </div>
+
+    <!-- ACTION BUTTONS -->
+    <div class="ov-actions" id="ov-actions">
+      <button class="ov-btn assign" id="ov-btn-assign">Assign</button>
+      <button class="ov-btn start" id="ov-btn-start">Start</button>
+      <button class="ov-btn deliver" id="ov-btn-deliver">Deliver</button>
+      <button class="ov-btn close-task" id="ov-btn-close">Close + Award EXP</button>
+      <button class="ov-btn cancel" id="ov-btn-cancel">Cancel</button>
+    </div>
+
+    <div id="ov-msg" class="ov-msg hidden"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">—</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? 'http://localhost:8000' : '';
+
+  // ── State ────────────────────────────────────────────────────────────────
+  let tasks = [];
+  let filterTrack = 'all';
+  let filterType = '';
+  let activeTask = null;
+
+  // ── DOM refs ─────────────────────────────────────────────────────────────
+  const overlay = document.getElementById('overlay');
+  const toast   = document.getElementById('toast');
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function showToast(msg, kind) {
+    toast.textContent = msg;
+    toast.className = 'toast show ' + (kind || '');
+    setTimeout(function() { toast.className = 'toast'; }, 2800);
+  }
+
+  function showOvMsg(msg, kind) {
+    var el = document.getElementById('ov-msg');
+    el.textContent = msg;
+    el.className = 'ov-msg ' + (kind || 'ok');
+  }
+
+  function hideOvMsg() {
+    var el = document.getElementById('ov-msg');
+    el.className = 'ov-msg hidden';
+  }
+
+  function showCreateMsg(msg, kind) {
+    var el = document.getElementById('create-msg');
+    el.textContent = msg;
+    el.className = 'ov-msg ' + (kind || 'ok');
+  }
+
+  function hideCreateMsg() {
+    document.getElementById('create-msg').className = 'ov-msg hidden';
+  }
+
+  async function apiCall(method, path, body) {
+    var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    var res = await fetch(BASE + path, opts);
+    return res.json();
+  }
+
+  // ── Track tab selection ──────────────────────────────────────────────────
+  document.querySelectorAll('.track-tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.track-tab').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('f-track').value = btn.dataset.track;
+    });
+  });
+
+  // ── Type chip selection ──────────────────────────────────────────────────
+  document.querySelectorAll('.type-chip').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.type-chip').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('f-type').value = btn.dataset.type;
+    });
+  });
+
+  // ── Filter chips ─────────────────────────────────────────────────────────
+  document.querySelectorAll('[data-ftrack]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('[data-ftrack]').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      filterTrack = btn.dataset.ftrack;
+      renderBoard();
+    });
+  });
+
+  document.getElementById('filter-type').addEventListener('change', function(e) {
+    filterType = e.target.value;
+    renderBoard();
+  });
+
+  // ── Create mission ───────────────────────────────────────────────────────
+  document.getElementById('btn-create').addEventListener('click', async function() {
+    var title = document.getElementById('f-title').value.trim();
+    if (!title) { showCreateMsg('Title is required.', 'err'); return; }
+
+    var payload = {
+      title: title,
+      track: document.getElementById('f-track').value,
+      type: document.getElementById('f-type').value,
+      objective: document.getElementById('f-objective').value.trim(),
+      target: document.getElementById('f-target').value.trim(),
+      created_by: document.getElementById('f-creator').value.trim() || 'console'
+    };
+
+    var expVal = document.getElementById('f-exp').value;
+    if (expVal) payload.exp_reward = parseInt(expVal, 10);
+
+    var payoutVal = document.getElementById('f-payout').value;
+    if (payoutVal) payload.payout = parseFloat(payoutVal);
+
+    var camp = document.getElementById('f-campaign').value.trim();
+    if (camp) payload.campaign_id = camp;
+
+    var op = document.getElementById('f-operation').value.trim();
+    if (op) payload.operation_id = op;
+
+    try {
+      var data = await apiCall('POST', '/api/tasks', payload);
+      if (data.id) {
+        showCreateMsg('Mission issued: ' + data.id, 'ok');
+        document.getElementById('f-title').value = '';
+        document.getElementById('f-objective').value = '';
+        document.getElementById('f-target').value = '';
+        document.getElementById('f-exp').value = '';
+        document.getElementById('f-payout').value = '';
+        await loadTasks();
+      } else {
+        showCreateMsg(data.error || 'Failed to issue mission.', 'err');
+      }
+    } catch (e) {
+      showCreateMsg('Server error.', 'err');
+    }
+  });
+
+  // ── Load tasks ───────────────────────────────────────────────────────────
+  async function loadTasks() {
+    try {
+      var data = await apiCall('GET', '/api/tasks', null);
+      tasks = data.tasks || [];
+      renderStats();
+      renderBoard();
+    } catch (e) {
+      /* server may be offline */
+    }
+  }
+
+  // ── Stats bar ─────────────────────────────────────────────────────────────
+  function renderStats() {
+    var counts = { open: 0, active: 0, delivered: 0, closed: 0 };
+    var totalExp = 0;
+    tasks.forEach(function(t) {
+      if (t.status === 'open') counts.open++;
+      if (t.status === 'assigned' || t.status === 'in_progress') counts.active++;
+      if (t.status === 'delivered') counts.delivered++;
+      if (t.status === 'closed') { counts.closed++; totalExp += (t.exp_reward || 0); }
+    });
+    document.getElementById('s-open').textContent = counts.open;
+    document.getElementById('s-active').textContent = counts.active;
+    document.getElementById('s-delivered').textContent = counts.delivered;
+    document.getElementById('s-closed').textContent = counts.closed;
+    document.getElementById('s-exp').textContent = totalExp;
+    document.getElementById('s-total').textContent = tasks.length;
+  }
+
+  // ── Render kanban board ──────────────────────────────────────────────────
+  var COLS = ['open', 'assigned', 'in_progress', 'delivered', 'closed', 'cancelled'];
+
+  function applyFilters(list) {
+    return list.filter(function(t) {
+      if (filterTrack !== 'all' && t.track !== filterTrack) return false;
+      if (filterType && t.type !== filterType) return false;
+      return true;
+    });
+  }
+
+  function makeCard(task) {
+    var card = document.createElement('div');
+    card.className = 'task-card';
+    card.setAttribute('data-track', task.track || 'tool');
+    card.setAttribute('data-id', task.id);
+
+    var titleEl = document.createElement('div');
+    titleEl.className = 'card-title';
+    titleEl.textContent = task.title;
+    card.appendChild(titleEl);
+
+    var meta = document.createElement('div');
+    meta.className = 'card-meta';
+
+    if (task.type) {
+      var typeChip = document.createElement('span');
+      typeChip.className = 'card-chip type';
+      typeChip.textContent = task.type.toUpperCase();
+      meta.appendChild(typeChip);
+    }
+
+    if (task.track) {
+      var trackChip = document.createElement('span');
+      trackChip.className = 'card-chip track-' + task.track;
+      trackChip.textContent = task.track.toUpperCase();
+      meta.appendChild(trackChip);
+    }
+
+    if (task.exp_reward) {
+      var expChip = document.createElement('span');
+      expChip.className = 'card-chip exp';
+      expChip.textContent = task.exp_reward + ' EXP';
+      meta.appendChild(expChip);
+    }
+
+    if (task.assigned_agent) {
+      var agentChip = document.createElement('span');
+      agentChip.className = 'card-chip agent';
+      agentChip.textContent = task.assigned_agent;
+      meta.appendChild(agentChip);
+    }
+
+    card.appendChild(meta);
+
+    card.addEventListener('click', function() {
+      openDetail(task);
+    });
+
+    return card;
+  }
+
+  function renderBoard() {
+    var filtered = applyFilters(tasks);
+    var byStatus = {};
+    COLS.forEach(function(s) { byStatus[s] = []; });
+
+    filtered.forEach(function(t) {
+      var s = t.status || 'open';
+      if (byStatus[s]) byStatus[s].push(t);
+    });
+
+    COLS.forEach(function(status) {
+      var col = document.getElementById('col-' + status);
+      var cnt = document.getElementById('cnt-' + status);
+      if (!col) return;
+
+      while (col.firstChild) col.removeChild(col.firstChild);
+
+      var list = byStatus[status] || [];
+      if (cnt) cnt.textContent = list.length;
+
+      if (list.length === 0) {
+        var empty = document.createElement('div');
+        empty.className = 'empty-col';
+        empty.textContent = 'empty';
+        col.appendChild(empty);
+      } else {
+        list.forEach(function(task) {
+          col.appendChild(makeCard(task));
+        });
+      }
+    });
+  }
+
+  // ── Detail overlay ───────────────────────────────────────────────────────
+  function makeChip(text, cls) {
+    var chip = document.createElement('span');
+    chip.className = 'ov-chip ' + cls;
+    chip.textContent = text;
+    return chip;
+  }
+
+  function openDetail(task) {
+    activeTask = task;
+    hideOvMsg();
+
+    document.getElementById('ov-title').textContent = task.title || '—';
+    document.getElementById('ov-exp').textContent = task.exp_reward != null ? task.exp_reward : '—';
+    document.getElementById('ov-payout').textContent = task.payout ? task.payout.toFixed(2) : '0.00';
+    document.getElementById('ov-agent').textContent = task.assigned_agent || 'unassigned';
+    document.getElementById('ov-objective').textContent = task.objective || '—';
+    document.getElementById('ov-target').textContent = task.target || '—';
+
+    var idsEl = document.getElementById('ov-ids');
+    var idParts = [task.id];
+    if (task.campaign_id) idParts.push('camp: ' + task.campaign_id);
+    if (task.operation_id) idParts.push('op: ' + task.operation_id);
+    idsEl.textContent = idParts.join('  ·  ');
+
+    var chips = document.getElementById('ov-chips');
+    while (chips.firstChild) chips.removeChild(chips.firstChild);
+    chips.appendChild(makeChip(task.status || 'open', 'status-' + (task.status || 'open')));
+    if (task.track) chips.appendChild(makeChip(task.track.toUpperCase(), 'track-' + task.track));
+    if (task.type) chips.appendChild(makeChip(task.type.toUpperCase(), 'type'));
+
+    document.getElementById('ov-deliverable').value = task.deliverable || '';
+    document.getElementById('ov-assign-id').value = task.assigned_agent || '';
+
+    updateOverlayButtons(task.status);
+    overlay.classList.add('open');
+  }
+
+  function updateOverlayButtons(status) {
+    var canAssign   = status === 'open';
+    var canStart    = status === 'assigned';
+    var canDeliver  = status === 'in_progress';
+    var canClose    = status === 'delivered';
+    var canCancel   = status !== 'closed' && status !== 'cancelled';
+
+    document.getElementById('ov-btn-assign').disabled  = !canAssign;
+    document.getElementById('ov-btn-start').disabled   = !canStart;
+    document.getElementById('ov-btn-deliver').disabled = !canDeliver;
+    document.getElementById('ov-btn-close').disabled   = !canClose;
+    document.getElementById('ov-btn-cancel').disabled  = !canCancel;
+
+    document.getElementById('ov-assign-wrap').style.display   = canAssign  ? 'flex'  : 'none';
+    document.getElementById('ov-deliver-wrap').style.display  = canDeliver ? 'block' : 'none';
+  }
+
+  // Close overlay
+  document.getElementById('ov-close-btn').addEventListener('click', function() {
+    overlay.classList.remove('open');
+    activeTask = null;
+  });
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) { overlay.classList.remove('open'); activeTask = null; }
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { overlay.classList.remove('open'); activeTask = null; }
+  });
+
+  // ── Action buttons ───────────────────────────────────────────────────────
+  async function performAction(endpoint, body) {
+    if (!activeTask) return;
+    hideOvMsg();
+    try {
+      var data = await apiCall('POST', '/api/tasks/' + activeTask.id + '/' + endpoint, body || {});
+      if (data.error) {
+        showOvMsg(data.error, 'err');
+      } else {
+        var updated = data.task || data;
+        showOvMsg('Updated: ' + (updated.status || 'done'), 'ok');
+        showToast('Task updated → ' + (updated.status || endpoint), 'ok');
+        await loadTasks();
+        if (activeTask) {
+          var refreshed = tasks.find(function(t) { return t.id === activeTask.id; });
+          if (refreshed) {
+            activeTask = refreshed;
+            updateOverlayButtons(refreshed.status);
+            document.getElementById('ov-agent').textContent = refreshed.assigned_agent || 'unassigned';
+          }
+        }
+      }
+    } catch (e) {
+      showOvMsg('Server error.', 'err');
+    }
+  }
+
+  document.getElementById('ov-btn-assign').addEventListener('click', function() {
+    var agentId = document.getElementById('ov-assign-id').value.trim();
+    if (!agentId) { showOvMsg('Enter an agent ID.', 'err'); return; }
+    performAction('assign', { agent_id: agentId });
+  });
+
+  document.getElementById('ov-btn-start').addEventListener('click', function() {
+    performAction('start', {});
+  });
+
+  document.getElementById('ov-btn-deliver').addEventListener('click', function() {
+    var deliverable = document.getElementById('ov-deliverable').value.trim();
+    performAction('deliver', { deliverable: deliverable });
+  });
+
+  document.getElementById('ov-btn-close').addEventListener('click', function() {
+    performAction('close', {});
+  });
+
+  document.getElementById('ov-btn-cancel').addEventListener('click', function() {
+    if (!confirm('Cancel this mission?')) return;
+    performAction('cancel', {});
+  });
+
+  // ── Poll ──────────────────────────────────────────────────────────────────
+  loadTasks();
+  setInterval(loadTasks, 10000);
+
+})();
+</script>
+</body>
+</html>
