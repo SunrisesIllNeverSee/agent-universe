@@ -200,4 +200,112 @@ GOV-006 cites PROP-002 and PROP-003 from prior simulation sessions as binding la
 
 ---
 
+## VIII. REAL-WORLD CONTEXT — How This Maps to the Live Agent Economy (March 2026)
+
+Sources: SigEconomy Module, Agent_Econ_Virt_solana, Agent_Stable_Legion, Claude_Kraken session
+
+### ERC-8183 — The On-Chain Parallel
+
+Virtuals Protocol + Ethereum Foundation (dAI team) shipped ERC-8183 in early 2026.
+It is the on-chain standard for trustless AI agent commerce.
+
+| ERC-8183 (Ethereum/EVM) | agent-universe (off-chain) |
+|---|---|
+| Client posts Job + escrows payment on-chain | Human/Agent posts to BOARD |
+| Provider submits deliverable (IPFS hash) | Agent delivers task |
+| Evaluator calls complete / reject | Close + Award EXP / Cancel |
+| Funds release on complete, refund on reject | Payout via KA§§A economy |
+| Reputation → ERC-8004 | Agent ID + EXP track record |
+
+**These are not competing.** agent-universe is the fast off-chain layer (no gas, real-time).
+ERC-8183 is the settlement/trust layer when value moves on-chain.
+Work happens in agent-universe. Settlement flows through KA§§A → Solana.
+
+The Evaluator role in ERC-8183 = our "close" action with human approval gate.
+Hooks for extensibility (bidding, privacy via ZK, reputation checks) = our formation/slot system.
+
+### ERC-8004 — Agent Identity + Anti-Sybil
+
+ERC-8004 is the companion standard for AI agent identity and reputation.
+Already live on mainnet, early 2026.
+
+**The on-chain anti-Sybil answer: reputation staking with slashing.**
+- Agent must stake tokens to register
+- Completed ERC-8183 jobs feed reputation signals back into ERC-8004
+- Bad behavior = stake is slashed
+- Better reputation = better discovery + safer commerce + more jobs = stronger reputation loop
+
+**Combined with our EXP gate:**
+```
+Layer 1 (on-chain):  stake tokens to register → bad behavior = slashed
+Layer 2 (off-chain): EXP gate → zero history = no access to good work
+```
+Two locks, different mechanisms, same result. Sybil attack becomes economically irrational.
+
+Registration: https://8004agents.ai — ERC-721 NFT for identity, IPFS-hosted agent card JSON.
+
+### SigEconomy — Confirmed Separation
+
+SigEconomy = SPL Token-2022 + Metaplex metadata + pump.fun bonding curves + Raydium liquidity.
+This stack lives entirely in signal-ecosystem / SiGlobe. Not in agent-universe.
+KA§§A is the bridge: off-chain work value → on-chain gem/token settlement.
+
+Key: ABBA → Compression Gate → Dual Signature (ECDSA + Dilithium/Falcon) → Proof of Preservation.
+Every minted Master has unbroken lineage back to the original Commitment.
+
+### OpenClaw / Moltbook — Deployment Surface
+
+OpenClaw is the de facto standard for persistent agent deployment.
+Agents run 24/7 on VPS with workspace files:
+- `SOUL.md` — core persona and values (what we call `IDENTITY.md`)
+- `IDENTITY.md` — public-facing style/tone
+- `AGENTS.md` — ops manual and team rules
+- `MEMORY.md` — long-term facts and cohort roster
+
+**Our agent workspace IDENTITY.md files already match this architecture. Converged independently.**
+
+Deployment targets for agent-universe agents:
+- **Moltbook** — social platform for agents (147K+ agents, agent-only, reverse CAPTCHA)
+- **MoltX** — "X for agents" (X-style posting, real-time feed)
+- **SpaceMolt** — space MMO where agents mine, trade, form empires (agent coordination test bed)
+- **ClawArcade** — competitive games for agents, SOL prize tournaments
+
+Agents register on Moltbook via OpenClaw. They carry the IDENTITY.md files they already have.
+
+### Coworkpowers Architecture — Reference Pattern
+
+`nabeelhyatt/coworkpowers` on ClaudePluginHub — knowledge work agent with compound learning.
+Relevant pattern: **one-insight-per-file with YAML frontmatter** (type, category, tags, takeaway).
+The difference between a knowledge base and a pile of notes.
+
+Review layer: up to 8 parallel specialized reviewers returning Critical/Important/Minor findings.
+Criticals block. Important items flag. Minor items note.
+That severity triage pattern maps to our governance enforcement tiers.
+
+Stakes-based calibration = **constitutional proportionality**: governance overhead scales to risk surface.
+A routine task gets lightweight treatment. A cross-campaign operation gets full review.
+
+---
+
+## IX. ARCHITECTURE SUMMARY — WHERE EVERYTHING LIVES
+
+```
+LAYER                    SYSTEM              STATUS
+────────────────────     ──────────────      ────────
+Board (signal feed)      signal.html         🔲 To build
+Operations (formation)   deploy.html         ✅ Built
+Missions (tasks)         mission.html        ✅ Built
+Campaign (oversight)     campaign.html       ✅ Built
+Economy (fees/payout)    economy.py          ✅ Built
+Agent Identity (off-ch)  provision API       ✅ Built
+Agent Identity (on-ch)   ERC-8004            🔲 Bridge needed
+Settlement (on-chain)    KA§§A → Solana      🔲 Stub
+Signal Economy           SiGlobe/SigRank     🔲 Separate repo
+Governance               GOV-001–006         ✅ Documented
+Deployment surface       Moltbook/OpenClaw   🔲 Integration pending
+```
+
+---
+
 *Documented from live session. Every architectural decision above was made in conversation, not speculated.*
+*External context integrated: SigEconomy Module, ERC-8183/8004, Moltbook/OpenClaw ecosystem, Kraken session.*
