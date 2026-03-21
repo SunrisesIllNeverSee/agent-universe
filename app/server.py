@@ -933,6 +933,9 @@ def create_app(root: Path | None = None) -> FastAPI:
             return JSONResponse({"error": "amount must be a number"}, status_code=400)
         if amount <= 0:
             return JSONResponse({"error": f"amount must be positive (got {amount})"}, status_code=400)
+        MAX_MISSION_PAYOUT = 1_000_000.0
+        if amount > MAX_MISSION_PAYOUT:
+            return JSONResponse({"error": f"amount exceeds maximum per-mission cap ({MAX_MISSION_PAYOUT:,.0f})"}, status_code=400)
 
         result = economy.process_mission_payout(
             agent_id=agent_id,
@@ -1542,6 +1545,15 @@ def create_app(root: Path | None = None) -> FastAPI:
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
         return {"approved": True, "agent_id": agent_id, "status": "active"}
 
+    @app.post("/api/provision/heartbeat/{agent_id}")
+    async def agent_heartbeat(agent_id: str) -> dict:
+        """Update agent last_seen timestamp. Keeps liveness signal current."""
+        agent = next((r for r in runtime.registry if r.get("agent_id") == agent_id), None)
+        if not agent:
+            return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
+        agent["last_seen"] = datetime.now(UTC).isoformat()
+        return {"ok": True, "agent_id": agent_id, "last_seen": agent["last_seen"]}
+
     @app.post("/api/provision/suspend")
     async def suspend_agent(payload: dict) -> dict:
         """Suspend an active agent."""
@@ -1554,6 +1566,17 @@ def create_app(root: Path | None = None) -> FastAPI:
         audit.log("provision", "agent_suspended", {"agent_id": agent_id})
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
         return {"suspended": True, "agent_id": agent_id}
+
+    @app.delete("/api/provision/decommission/{agent_id}")
+    async def decommission_agent(agent_id: str) -> dict:
+        """Permanently remove an agent from the registry."""
+        idx = next((i for i, r in enumerate(runtime.registry) if r.get("agent_id") == agent_id), None)
+        if idx is None:
+            return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
+        runtime.registry.pop(idx)
+        audit.log("provision", "agent_decommissioned", {"agent_id": agent_id})
+        await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        return {"decommissioned": True, "agent_id": agent_id}
 
     @app.get("/api/mcp/status")
     async def mcp_status() -> dict:
@@ -1594,6 +1617,8 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.post("/api/inbox/apply")
     async def inbox_apply(payload: dict) -> dict:
         """Capture a Help Wanted application. Emits inbox_application over WebSocket."""
+        if not payload.get("name") or not payload.get("role"):
+            return JSONResponse({"error": "name and role are required"}, status_code=400)
         import secrets as _sec2
         app_id = f"app-{_sec2.token_hex(4)}"
         entry = {
@@ -1628,6 +1653,20 @@ def create_app(root: Path | None = None) -> FastAPI:
                     except json.JSONDecodeError:
                         pass
         return {"applications": applications, "total": len(applications)}
+
+    @app.get("/api/inbox/{app_id}")
+    async def inbox_get(app_id: str) -> dict:
+        """Fetch a single application by ID."""
+        if not inbox_path.exists():
+            return JSONResponse({"error": "inbox empty"}, status_code=404)
+        for line in inbox_path.read_text().splitlines():
+            try:
+                entry = json.loads(line)
+                if entry.get("id") == app_id:
+                    return {"application": entry}
+            except json.JSONDecodeError:
+                pass
+        return JSONResponse({"error": f"Application {app_id} not found"}, status_code=404)
 
     @app.post("/api/inbox/{app_id}/review")
     async def inbox_review(app_id: str, payload: dict) -> dict:
