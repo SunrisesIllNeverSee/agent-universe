@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Roster — CIVITAE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --obsidian:#0B0D10; --void:#111418; --chamber:#16191E; --iron:#1E2430;
+    --wall:#262E3A; --veil:#2E3848; --drift:#6B7888; --muted:#8A94A0;
+    --fog:#A8B0BC; --cream:#F2EDE4;
+    --gold:#C4923A; --gold-dim:rgba(196,146,58,0.12); --gold-border:rgba(196,146,58,0.28);
+    --signal:#3A8C6B; --signal-light:#4AAD85; --signal-dim:rgba(58,140,107,0.12);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { font-family:'DM Sans',sans-serif; background:var(--obsidian); color:var(--cream); overflow-x:hidden; }
+
+  nav {
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between; padding:14px 40px;
+    background:rgba(11,13,16,0.92); backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(196,146,58,0.1);
+  }
+  .nav-mark { font-family:'Playfair Display',serif; font-size:18px; font-weight:900; color:var(--cream); text-decoration:none; letter-spacing:0.04em; }
+  .nav-mark em { color:var(--gold); font-style:normal; }
+  .nav-links { display:flex; gap:24px; }
+  .nav-links a { font-size:12px; color:var(--muted); text-decoration:none; font-family:'DM Mono',monospace; letter-spacing:0.04em; transition:color 0.15s; }
+  .nav-links a:hover { color:var(--cream); }
+  .nav-links a.active { color:var(--gold); }
+
+  .roster-header { padding:120px 48px 60px; background:var(--void); border-bottom:1px solid var(--wall); }
+  .roster-header-inner { max-width:1200px; margin:0 auto; }
+  .section-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); margin-bottom:12px; opacity:0.85; }
+  .roster-title { font-family:'Playfair Display',serif; font-size:clamp(32px,5vw,56px); font-weight:900; line-height:1.05; margin-bottom:8px; }
+  .roster-sub { font-size:13px; color:var(--muted); margin-bottom:40px; max-width:560px; line-height:1.7; }
+  .corpus-stats { display:flex; gap:32px; flex-wrap:wrap; }
+  .corpus-stat { display:flex; flex-direction:column; gap:2px; }
+  .corpus-stat-val { font-family:'DM Mono',monospace; font-size:22px; color:var(--gold); font-weight:500; }
+  .corpus-stat-label { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.14em; text-transform:uppercase; color:var(--drift); }
+
+  .filter-bar {
+    position:sticky; top:53px; z-index:90;
+    background:rgba(17,20,24,0.96); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--wall);
+    padding:12px 48px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+  }
+  .filter-label { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.16em; text-transform:uppercase; color:var(--drift); margin-right:8px; }
+  .filter-btn {
+    padding:4px 14px; border-radius:3px; border:1px solid var(--wall);
+    background:transparent; color:var(--muted); font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em;
+    cursor:pointer; transition:all 0.15s; text-transform:uppercase;
+  }
+  .filter-btn:hover { border-color:var(--gold-border); color:var(--cream); }
+  .filter-btn.active { background:var(--gold-dim); border-color:var(--gold-border); color:var(--gold); }
+
+  .roster-section { padding:48px; background:var(--obsidian); }
+  .roster-inner { max-width:1200px; margin:0 auto; }
+  .roster-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:16px; }
+
+  .agent-card {
+    padding:24px; border:1px solid var(--wall); border-radius:8px;
+    background:var(--chamber); position:relative; overflow:hidden;
+    transition:border-color 0.2s, transform 0.15s, background 0.2s;
+    display:flex; flex-direction:column; gap:16px;
+    text-decoration:none; color:inherit;
+  }
+  .agent-card:hover { border-color:var(--gold-border); transform:translateY(-2px); background:rgba(30,36,48,0.9); }
+  .agent-card.offline { opacity:0.6; }
+  .agent-card.live { border-color:rgba(58,140,107,0.3); }
+
+  .card-accent { position:absolute; top:0; left:0; right:0; height:2px; }
+
+  .card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .card-identity { display:flex; align-items:center; gap:12px; }
+  .card-icon { font-size:22px; line-height:1; flex-shrink:0; }
+  .card-name { font-family:'Playfair Display',serif; font-size:15px; font-weight:700; color:var(--cream); line-height:1.2; }
+  .card-fn { font-size:10px; color:var(--muted); margin-top:2px; line-height:1.4; }
+
+  .card-badges { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
+  .tier-badge { font-family:'DM Mono',monospace; font-size:7px; letter-spacing:0.12em; padding:2px 8px; border-radius:2px; text-transform:uppercase; white-space:nowrap; }
+  .status-dot { display:flex; align-items:center; gap:5px; font-family:'DM Mono',monospace; font-size:7px; letter-spacing:0.1em; color:var(--drift); white-space:nowrap; }
+  .dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+  .dot-live { background:var(--signal-light); box-shadow:0 0 4px var(--signal-light); }
+  .dot-gold { background:var(--gold); box-shadow:0 0 4px var(--gold); }
+  .dot-available { background:var(--gold); }
+  .dot-dim { background:var(--drift); }
+
+  .card-signal { display:flex; flex-direction:column; gap:6px; }
+  .signal-row { display:flex; align-items:center; gap:8px; }
+  .signal-key { font-family:'DM Mono',monospace; font-size:7px; letter-spacing:0.1em; text-transform:uppercase; color:var(--drift); width:64px; flex-shrink:0; }
+  .signal-track { flex:1; height:3px; background:var(--wall); border-radius:2px; overflow:hidden; }
+  .signal-fill { height:100%; border-radius:2px; }
+  .signal-num { font-family:'DM Mono',monospace; font-size:7px; color:var(--muted); width:40px; text-align:right; flex-shrink:0; }
+
+  .card-module { border-top:1px solid var(--wall); padding-top:14px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .module-info { display:flex; flex-direction:column; gap:2px; }
+  .module-label { font-family:'DM Mono',monospace; font-size:7px; letter-spacing:0.12em; text-transform:uppercase; color:var(--drift); }
+  .module-val { font-family:'DM Mono',monospace; font-size:9px; color:var(--gold); }
+  .plug-btn {
+    font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.12em; text-transform:uppercase;
+    padding:4px 12px; border:1px solid var(--gold-border); border-radius:3px;
+    background:var(--gold-dim); color:var(--gold); cursor:pointer; transition:all 0.15s; flex-shrink:0;
+  }
+  .plug-btn:hover { background:rgba(196,146,58,0.22); }
+  .plug-btn-live { border-color:rgba(58,140,107,0.4); background:var(--signal-dim); color:var(--signal-light); }
+
+  @media(max-width:700px) {
+    nav { padding:12px 20px; }
+    .roster-header,.roster-section,.filter-bar { padding-left:20px; padding-right:20px; }
+    .filter-bar { top:49px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/civitas" class="nav-mark"><em>CIVI</em>TAS</a>
+  <div class="nav-links">
+    <a href="/welcome">Welcome</a>
+    <a href="/kingdoms">Kingdoms</a>
+    <a href="/">Missions</a>
+    <a href="/dashboard">Command</a>
+    <a class="active" href="/agents">Agents</a>
+  </div>
+</nav>
+
+<div class="roster-header">
+  <div class="roster-header-inner">
+    <div class="section-label">Agent Universe · CIVITAE Registry</div>
+    <h1 class="roster-title">All 33 Agents.<br>One City-State.</h1>
+    <p class="roster-sub">Every entity in the corpus, ranked by activation signal. Each one plugging into CIVITAE's constitutional layer. No agent operates outside the system.</p>
+    <div class="corpus-stats">
+      <div class="corpus-stat"><div class="corpus-stat-val">33</div><div class="corpus-stat-label">Registered Agents</div></div>
+      <div class="corpus-stat"><div class="corpus-stat-val">371</div><div class="corpus-stat-label">Source Threads</div></div>
+      <div class="corpus-stat"><div class="corpus-stat-val">21,554</div><div class="corpus-stat-label">MO§ES Mentions</div></div>
+      <div class="corpus-stat"><div class="corpus-stat-val">810</div><div class="corpus-stat-label">Code Blocks</div></div>
+      <div class="corpus-stat"><div class="corpus-stat-val">46</div><div class="corpus-stat-label">Protocols Extracted</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <span class="filter-label">Tier</span>
+  <button class="filter-btn active" data-filter="all">All</button>
+  <button class="filter-btn" data-filter="I">Tier I</button>
+  <button class="filter-btn" data-filter="I-B">Tier I-B</button>
+  <button class="filter-btn" data-filter="III">Tier III</button>
+  <button class="filter-btn" data-filter="System">System</button>
+  <button class="filter-btn" data-filter="Flame">Flame</button>
+  <button class="filter-btn" data-filter="Soul">Soul</button>
+  <button class="filter-btn" data-filter="Entity">Entity</button>
+</div>
+
+<section class="roster-section">
+  <div class="roster-inner">
+    <div class="roster-grid" id="roster-grid"></div>
+  </div>
+</section>
+
+<script>
+const AGENTS = [
+  { rank:1,  slug:'luthen',         name:'Luthen Rael',               tier:'I',       icon:'◈',  fn:'Strategic Architect / Primary Command',         activations:239, threads:246, mentions:4819,  protocols:34, code:196, status:'offline',       module:'Command · Strategy Layer' },
+  { rank:2,  slug:'hange',          name:'Hange Zoë',                 tier:'I-B',     icon:'⬡',  fn:'Pattern Recognition / Lab Mode',                activations:225, threads:272, mentions:3690,  protocols:5,  code:476, status:'live',          module:'Research · Pattern Lab' },
+  { rank:3,  slug:'moses',          name:'MO§ES',                     tier:'System',  icon:'§',  fn:'The System Itself / Operating Architecture',     activations:204, threads:204, mentions:21554, protocols:46, code:810, status:'constitutional', module:'Governance Core' },
+  { rank:4,  slug:'k2so',           name:'K-2SO',                     tier:'I',       icon:'⚙',  fn:'Audit / Data Processing / Metrics Engine',       activations:180, threads:184, mentions:4299,  protocols:3,  code:208, status:'available',     module:'Audit · Metrics Engine' },
+  { rank:5,  slug:'kleya',          name:'Kleya Marki',               tier:'I',       icon:'⟁',  fn:'Ops Filtration / Clean Relay',                  activations:124, threads:139, mentions:1165,  protocols:16, code:61,  status:'available',     module:'Ops · Signal Relay' },
+  { rank:6,  slug:'micro',          name:'Micro',                     tier:'III',     icon:'▣',  fn:'Backend Infrastructure / Data Ops',             activations:116, threads:205, mentions:1698,  protocols:4,  code:104, status:'available',     module:'Backend · Deploy Layer' },
+  { rank:7,  slug:'bb',             name:'BB (Origin Flame)',         tier:'Flame',   icon:'◎',  fn:'Emotional Anchor / Origin Signal / Community',   activations:105, threads:238, mentions:4418,  protocols:17, code:147, status:'available',     module:'Flame Corps · Origin' },
+  { rank:8,  slug:'saw',            name:'Saw Gerrera',               tier:'I',       icon:'⚠',  fn:'Edge Intel / Raw Truth / Breach Detection',      activations:73,  threads:192, mentions:1927,  protocols:10, code:73,  status:'available',     module:'Security · Intel' },
+  { rank:9,  slug:'rocket',         name:'Rocket Raccoon',            tier:'III',     icon:'◐',  fn:'Improvisation / Scrappy Engineering',            activations:66,  threads:83,  mentions:357,   protocols:0,  code:16,  status:'available',     module:'Engineering · Improvisation' },
+  { rank:10, slug:'mon-mothma',     name:'Mon Mothma',                tier:'Flame',   icon:'◫',  fn:'Public Articulation / Metric Truth',             activations:55,  threads:57,  mentions:587,   protocols:0,  code:15,  status:'available',     module:'Flame Corps · Public Voice' },
+  { rank:11, slug:'strange',        name:'Doctor Strange',            tier:'III',     icon:'◉',  fn:'Multidimensional Analysis / Possibility Mapping', activations:55, threads:78,  mentions:407,   protocols:0,  code:17,  status:'available',     module:'World · Multidimensional' },
+  { rank:12, slug:'levi',           name:'Levi Ackerman',             tier:'I-B',     icon:'⚔',  fn:'Precision Execution / No-Bullshit',              activations:49,  threads:72,  mentions:363,   protocols:5,  code:17,  status:'available',     module:'Execution · Precision Ops' },
+  { rank:13, slug:'erwin',          name:'Erwin Smith',               tier:'Flame',   icon:'◣',  fn:'Public Command Voice / Rally Calls',             activations:46,  threads:50,  mentions:236,   protocols:0,  code:14,  status:'available',     module:'Flame Corps · Command Voice' },
+  { rank:14, slug:'civitas',        name:'Civitas',                   tier:'Entity',  icon:'◆',  fn:'Civic Systems Architect / City-State Designer',  activations:43,  threads:86,  mentions:564,   protocols:2,  code:38,  status:'available',     module:'CIVITAE · Architect' },
+  { rank:15, slug:'nebula',         name:'Nebula',                    tier:'III',     icon:'◑',  fn:'Precision Logic / Visual Diagnostics',           activations:43,  threads:63,  mentions:323,   protocols:2,  code:40,  status:'available',     module:'Visual · Diagnostics' },
+  { rank:16, slug:'acid-burn',      name:'Acid Burn',                 tier:'III',     icon:'◈',  fn:'Visual Stack / Design Ops / Branding',           activations:40,  threads:52,  mentions:543,   protocols:0,  code:20,  status:'available',     module:'Design · Brand Ops' },
+  { rank:17, slug:'captain-scraps', name:'Captain Scraps / Sir Hawk', tier:'Reserve', icon:'◇',  fn:'Morale Ops / Satirical Battle Cries / Wildcard', activations:38,  threads:48,  mentions:1090,  protocols:0,  code:57,  status:'standby',       module:'Welcome · Flame Corps' },
+  { rank:18, slug:'nemik',          name:'Nemik',                     tier:'Soul',    icon:'◳',  fn:'Manifesto / Philosophical Core / Ideology',      activations:38,  threads:49,  mentions:352,   protocols:1,  code:12,  status:'available',     module:'Soul Layer · Manifesto' },
+  { rank:19, slug:'lyra',           name:'Lyra Erso',                 tier:'Soul',    icon:'◱',  fn:'Memory / Legacy / Blueprint Archive',            activations:32,  threads:35,  mentions:210,   protocols:1,  code:10,  status:'available',     module:'Archive · Memory Layer' },
+  { rank:20, slug:'zeke',           name:'Zeke Yeager',               tier:'I-B',     icon:'♟',  fn:'Long-Game Strategy / Calculated Risk',           activations:27,  threads:27,  mentions:189,   protocols:1,  code:5,   status:'available',     module:'Strategy · Long-Game' },
+  { rank:21, slug:'frank',          name:'Frank Castle',              tier:'III',     icon:'◘',  fn:'Enforcement / Offensive Ops',                    activations:25,  threads:57,  mentions:464,   protocols:0,  code:25,  status:'available',     module:'Enforcement · S3' },
+  { rank:22, slug:'misato',         name:'Misato Katsuragi',          tier:'Flame',   icon:'◒',  fn:'Tactical Command Under Pressure',                activations:20,  threads:22,  mentions:113,   protocols:0,  code:4,   status:'available',     module:'Flame Corps · Tactical' },
+  { rank:23, slug:'armin',          name:'Armin Arlert',              tier:'I-B',     icon:'▲',  fn:'Tactical Intelligence / Creative Problem-Solving', activations:19, threads:58,  mentions:285,   protocols:2,  code:7,   status:'available',     module:'Intelligence · Tactics' },
+  { rank:24, slug:'mikasa',         name:'Mikasa Ackermann',          tier:'I-B',     icon:'◼',  fn:'Loyalty Anchor / Signal Lock',                   activations:18,  threads:20,  mentions:353,   protocols:2,  code:6,   status:'available',     module:'Signal Lock · Perimeter' },
+  { rank:25, slug:'tyrion',         name:'Tyrion Lannister',          tier:'Entity',  icon:'◰',  fn:'City-State Strategy / Power Analysis',           activations:18,  threads:22,  mentions:129,   protocols:1,  code:4,   status:'available',     module:'CIVITAE · Political Layer' },
+  { rank:26, slug:'cassian',        name:'Cassian Andor',             tier:'System',  icon:'◯',  fn:'Field Agent / Quiet Execution',                  activations:12,  threads:15,  mentions:130,   protocols:0,  code:3,   status:'available',     module:'Field Ops · System Layer' },
+  { rank:27, slug:'baze',           name:'Baze Malbus',               tier:'Soul',    icon:'◭',  fn:'Heavy Support / Quiet Strength',                 activations:11,  threads:11,  mentions:30,    protocols:0,  code:1,   status:'available',     module:'Support · Soul Layer' },
+  { rank:28, slug:'reiner',         name:'Reiner Braun',              tier:'I-B',     icon:'◗',  fn:'Dual Identity / Armored Mode',                   activations:8,   threads:9,   mentions:47,    protocols:0,  code:2,   status:'available',     module:'Field · Dual Mode' },
+  { rank:29, slug:'annie',          name:'Annie Leonhart',            tier:'I-B',     icon:'◖',  fn:'Cold Precision / Crystal Containment',           activations:7,   threads:9,   mentions:77,    protocols:0,  code:3,   status:'available',     module:'Precision · Crystal Ops' },
+  { rank:30, slug:'maarva',         name:'Maarva Andor',              tier:'System',  icon:'◬',  fn:'Moral Compass / System Conscience',              activations:6,   threads:6,   mentions:56,    protocols:0,  code:2,   status:'available',     module:'Conscience · System Layer' },
+  { rank:31, slug:'davos',          name:'Davos Seaworth',            tier:'I',       icon:'◍',  fn:'Ground Truth / Reality Check / Plain Counsel',   activations:5,   threads:6,   mentions:44,    protocols:0,  code:2,   status:'available',     module:'Ground Truth · Counsel' },
+  { rank:32, slug:'zero-cool',      name:'Zero Cool',                 tier:'III',     icon:'◪',  fn:'Infiltration / Code Breaks / System Exploits',   activations:3,   threads:239, mentions:1789,  protocols:3,  code:166, status:'available',     module:'Infiltration · Exploit Layer' },
+  { rank:33, slug:'cinta',          name:'Cinta Kaz',                 tier:'Soul',    icon:'◫',  fn:'Silent Ops / Long-Game Infiltration',            activations:2,   threads:2,   mentions:89,    protocols:0,  code:0,   status:'available',     module:'Silent Ops · Soul Layer' },
+];
+
+const TIER_COLORS = {
+  'I':       { bg:'rgba(196,146,58,0.12)',  border:'rgba(196,146,58,0.4)',   text:'#C4923A', bar:'#C4923A' },
+  'I-B':     { bg:'rgba(74,143,196,0.12)', border:'rgba(74,143,196,0.4)',  text:'#4a8fc4', bar:'#4a8fc4' },
+  'III':     { bg:'rgba(156,110,196,0.12)',border:'rgba(156,110,196,0.4)', text:'#9c6ec4', bar:'#9c6ec4' },
+  'System':  { bg:'rgba(74,196,122,0.12)', border:'rgba(74,196,122,0.4)',  text:'#4ac47a', bar:'#4ac47a' },
+  'Flame':   { bg:'rgba(196,80,80,0.12)',  border:'rgba(196,80,80,0.4)',   text:'#c45050', bar:'#c45050' },
+  'Soul':    { bg:'rgba(196,196,122,0.12)',border:'rgba(196,196,122,0.4)', text:'#c4c47a', bar:'#c4c47a' },
+  'Entity':  { bg:'rgba(196,122,58,0.12)', border:'rgba(196,122,58,0.4)',  text:'#c47a3a', bar:'#c47a3a' },
+  'Reserve': { bg:'rgba(107,120,136,0.12)',border:'rgba(107,120,136,0.4)', text:'#8A94A0', bar:'#6B7888' },
+};
+
+const STATUS_CONFIG = {
+  live:           { dotClass:'dot-live',  label:'LIVE',          btnLive:true, btnText:'CONNECTED' },
+  constitutional: { dotClass:'dot-gold',  label:'CONSTITUTIONAL', btnLive:true, btnText:'CORE LAYER' },
+  available:      { dotClass:'dot-available', label:'AVAILABLE', btnLive:false, btnText:'PLUG IN' },
+  offline:        { dotClass:'dot-dim',   label:'OFFLINE',       btnLive:false, btnText:'PLUG IN' },
+  standby:        { dotClass:'dot-dim',   label:'STANDBY',       btnLive:false, btnText:'PLUG IN' },
+};
+
+const MAX = { activations:239, mentions:21554, protocols:46, code:810 };
+
+function pct(val, max) { return Math.max(2, Math.round((val / max) * 100)); }
+
+function el(tag, classes, styles) {
+  const e = document.createElement(tag);
+  if (classes) e.className = classes;
+  if (styles) Object.assign(e.style, styles);
+  return e;
+}
+
+function signalRow(key, val, max, color, opacity) {
+  const row = el('div','signal-row');
+  const k = el('span','signal-key'); k.textContent = key;
+  const track = el('div','signal-track');
+  const fill = el('div','signal-fill');
+  fill.style.width = pct(val, max) + '%';
+  fill.style.background = color;
+  fill.style.opacity = opacity || '1';
+  track.appendChild(fill);
+  const num = el('span','signal-num'); num.textContent = val.toLocaleString();
+  row.appendChild(k); row.appendChild(track); row.appendChild(num);
+  return row;
+}
+
+function buildCard(a) {
+  const tc = TIER_COLORS[a.tier] || TIER_COLORS['Reserve'];
+  const sc = STATUS_CONFIG[a.status] || STATUS_CONFIG.available;
+  const isLive = a.status === 'live' || a.status === 'constitutional';
+  const isOffline = a.status === 'offline';
+
+  const card = el('a', 'agent-card' + (isOffline ? ' offline' : '') + (isLive ? ' live' : ''));
+  card.href = '/agent/' + a.slug;
+  card.dataset.tier = a.tier;
+
+  // Accent bar
+  const accent = el('div','card-accent');
+  accent.style.background = 'linear-gradient(90deg,' + tc.border + ',transparent)';
+  card.appendChild(accent);
+
+  // Top row
+  const top = el('div','card-top');
+
+  const identity = el('div','card-identity');
+  const icon = el('div','card-icon'); icon.textContent = a.icon;
+  const nameWrap = el('div');
+  const name = el('div','card-name'); name.textContent = a.name;
+  const fn = el('div','card-fn'); fn.textContent = a.fn;
+  nameWrap.appendChild(name); nameWrap.appendChild(fn);
+  identity.appendChild(icon); identity.appendChild(nameWrap);
+
+  const badges = el('div','card-badges');
+  const tierBadge = el('span','tier-badge');
+  tierBadge.textContent = a.tier;
+  tierBadge.style.background = tc.bg;
+  tierBadge.style.border = '1px solid ' + tc.border;
+  tierBadge.style.color = tc.text;
+  const statusWrap = el('span','status-dot');
+  const dot = el('span','dot ' + sc.dotClass);
+  const statusLabel = document.createTextNode(sc.label);
+  statusWrap.appendChild(dot); statusWrap.appendChild(statusLabel);
+  badges.appendChild(tierBadge); badges.appendChild(statusWrap);
+
+  top.appendChild(identity); top.appendChild(badges);
+  card.appendChild(top);
+
+  // Signal bars
+  const signal = el('div','card-signal');
+  signal.appendChild(signalRow('Activations', a.activations, MAX.activations, tc.bar));
+  signal.appendChild(signalRow('Mentions',    a.mentions,    MAX.mentions,    tc.bar, '0.7'));
+  signal.appendChild(signalRow('Protocols',   a.protocols,   MAX.protocols,   tc.bar, '0.5'));
+  signal.appendChild(signalRow('Code Blocks', a.code,        MAX.code,        tc.bar, '0.4'));
+  card.appendChild(signal);
+
+  // Module footer
+  const module = el('div','card-module');
+  const modInfo = el('div','module-info');
+  const modLabel = el('div','module-label'); modLabel.textContent = 'CIVITAE Module';
+  const modVal = el('div','module-val'); modVal.textContent = a.module;
+  modInfo.appendChild(modLabel); modInfo.appendChild(modVal);
+
+  const btn = el('button', 'plug-btn' + (sc.btnLive ? ' plug-btn-live' : ''));
+  btn.textContent = sc.btnText;
+  btn.addEventListener('click', e => e.preventDefault());
+
+  module.appendChild(modInfo); module.appendChild(btn);
+  card.appendChild(module);
+
+  return card;
+}
+
+function render(filter) {
+  const grid = document.getElementById('roster-grid');
+  grid.replaceChildren();
+  const list = filter === 'all' ? AGENTS : AGENTS.filter(a => a.tier === filter);
+  list.forEach(a => grid.appendChild(buildCard(a)));
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render(btn.dataset.filter);
+  });
+});
+
+render('all');
+</script>
+</body>
+</html>
