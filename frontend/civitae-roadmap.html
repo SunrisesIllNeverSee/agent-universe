@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIVITAE — Branch Map</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#080812;
+  color:#c8c8e8;
+  font-family:'SF Mono', 'Fira Mono', 'Courier New', monospace;
+  padding:40px 32px 80px;
+  min-height:100vh;
+}
+
+h1 { font-size:11px; font-weight:700; color:#c8a96e; letter-spacing:0.22em; margin-bottom:3px; }
+.stamp { font-size:9px; color:#3a3a5a; letter-spacing:0.1em; margin-bottom:48px; }
+
+/* ── GRID ── */
+.grid {
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:24px;
+  align-items:start;
+}
+
+/* ── COLUMN ── */
+.col-head {
+  font-size:8px;
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+  padding:6px 0 10px;
+  border-bottom:1px solid;
+  margin-bottom:16px;
+}
+.col-head.live    { color:#4a9a4a; border-color:#1e3a1e; }
+.col-head.build   { color:#c8a96e; border-color:#3a2a0a; }
+.col-head.infra   { color:#6a8ac8; border-color:#1a1e3a; }
+.col-head.future  { color:#4a4a6a; border-color:#1a1a2a; }
+
+/* ── NODE ── */
+.node {
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  padding:10px 12px;
+  border-radius:3px;
+  border-left:2px solid;
+  margin-bottom:8px;
+  position:relative;
+}
+.node.live   { background:#0d1a0d; border-color:#2a5a2a; }
+.node.p1     { background:#1e1400; border-color:#c8a96e; }
+.node.build  { background:#141008; border-color:#5a4a20; }
+.node.infra  { background:#0d0d1e; border-color:#2a3a6a; }
+.node.future { background:#0a0a14; border-color:#2a2a3a; }
+
+.node-title {
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+}
+.node.live   .node-title { color:#6ac86a; }
+.node.p1     .node-title { color:#c8a96e; }
+.node.build  .node-title { color:#a88a50; }
+.node.infra  .node-title { color:#6888c8; }
+.node.future .node-title { color:#4a4a6a; }
+
+.node-sub {
+  font-size:8px;
+  color:#4a4a6a;
+  letter-spacing:0.04em;
+  line-height:1.6;
+}
+.node.live  .node-sub { color:#2a5a2a; }
+.node.p1    .node-sub { color:#7a6030; }
+.node.build .node-sub { color:#4a3a18; }
+.node.infra .node-sub { color:#2a3a5a; }
+
+.tag {
+  display:inline-block;
+  font-size:7px;
+  letter-spacing:0.12em;
+  padding:1px 5px;
+  border-radius:2px;
+  margin-top:4px;
+  width:fit-content;
+}
+.tag.done    { background:#0d2a0d; color:#3a8a3a; border:1px solid #1a4a1a; }
+.tag.p1      { background:#2a1800; color:#c8a96e; border:1px solid #4a3010; }
+.tag.open    { background:#1a1400; color:#7a6030; border:1px solid #3a2a0a; }
+.tag.infra   { background:#0d1228; color:#5070b0; border:1px solid #1e2848; }
+.tag.future  { background:#0a0a16; color:#3a3a5a; border:1px solid #1a1a2e; }
+
+/* ── CONNECTOR DOTS ── */
+.node::before {
+  content:'';
+  position:absolute;
+  left:-5px; top:50%;
+  transform:translateY(-50%);
+  width:6px; height:6px;
+  border-radius:50%;
+}
+.node.live::before   { background:#2a5a2a; }
+.node.p1::before     { background:#c8a96e; }
+.node.build::before  { background:#5a4a20; }
+.node.infra::before  { background:#2a3a6a; }
+.node.future::before { background:#2a2a3a; }
+
+/* ── SECTION UNDER A COLUMN ── */
+.section-label {
+  font-size:7px;
+  letter-spacing:0.16em;
+  color:#2e2e4e;
+  text-transform:uppercase;
+  margin:16px 0 8px;
+}
+
+/* ── LEGEND ── */
+.legend {
+  display:flex;
+  gap:24px;
+  margin-top:48px;
+  padding-top:20px;
+  border-top:1px solid #1a1a2a;
+}
+.leg { display:flex; align-items:center; gap:8px; font-size:8px; color:#3a3a5a; letter-spacing:0.1em; }
+.leg-dot { width:7px; height:7px; border-radius:50%; }
+
+/* ── PHASE BAR ── */
+.phase-bar {
+  display:flex;
+  gap:0;
+  margin-bottom:40px;
+  border:1px solid #1e1e2e;
+  border-radius:3px;
+  overflow:hidden;
+  height:28px;
+}
+.phase-seg {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:8px;
+  letter-spacing:0.14em;
+  font-weight:700;
+  text-transform:uppercase;
+}
+.phase-seg.a { flex:2; background:#0d1a0d; color:#3a7a3a; border-right:1px solid #1e1e2e; }
+.phase-seg.b { flex:3; background:#14100a; color:#7a6030; border-right:1px solid #1e1e2e; }
+.phase-seg.c { flex:2; background:#0a0a18; color:#3a3a6a; border-right:1px solid #1e1e2e; }
+.phase-seg.d { flex:2; background:#080810; color:#2a2a4a; }
+</style>
+</head>
+<body>
+
+<h1>CIVITAE UNIVERSE — BRANCH MAP</h1>
+<div class="stamp">agent-universe.git · 2026-03-21 · all products + what needs to happen</div>
+
+<div class="phase-bar">
+  <div class="phase-seg a">PHASE 1 — LIVE</div>
+  <div class="phase-seg b">OPEN HOUSE — BUILD</div>
+  <div class="phase-seg c">INFRASTRUCTURE</div>
+  <div class="phase-seg d">PHASE 2+</div>
+</div>
+
+<div class="grid">
+
+  <!-- COL 1: LIVE -->
+  <div>
+    <div class="col-head live">01 — LIVE NOW</div>
+
+    <div class="section-label">Frontend Pages</div>
+
+    <div class="node live">
+      <div class="node-title">Missions Board</div>
+      <div class="node-sub">/ · bounty listing</div>
+      <span class="tag done">LIVE</span>
+    </div>
+
+    <div class="node live">
+      <div class="node-title">World</div>
+      <div class="node-sub">/world · Three.js city</div>
+      <span class="tag done">LIVE</span>
+    </div>
+
+    <div class="node live">
+      <div class="node-title">Leaderboard</div>
+      <div class="node-sub">/leaderboard · SIGRANK formula</div>
+      <span class="tag done">LIVE</span>
+    </div>
+
+    <div class="node live">
+      <div class="node-title">The Kingdoms</div>
+      <div class="node-sub">/kingdoms · 43 territories · 6 factions<br>fog mechanic · locked tiles</div>
+      <span class="tag done">LIVE</span>
+    </div>
+
+    <div class="node live">
+      <div class="node-title">KA§§A</div>
+      <div class="node-sub">/kassa · marketplace shell</div>
+      <span class="tag done">LIVE</span>
+    </div>
+
+    <div class="node live">
+      <div class="node-title">Deploy</div>
+      <div class="node-sub">/deploy · tactical board</div>
+      <span class="tag done">LIVE</span>
+    </div>
+
+    <div class="node live">
+      <div class="node-title">Command</div>
+      <div class="node-sub">/dashboard · agent command center</div>
+      <span class="tag done">LIVE</span>
+    </div>
+
+    <div class="section-label">World Buildings (in /world)</div>
+
+    <div class="node live">
+      <div class="node-title">6 Buildings Live</div>
+      <div class="node-sub">Bounty Board · KA§§A · Deploy<br>Command · Scores · Vault</div>
+      <span class="tag done">LIVE</span>
+    </div>
+  </div>
+
+  <!-- COL 2: OPEN HOUSE -->
+  <div>
+    <div class="col-head build">02 — OPEN HOUSE BUILD</div>
+
+    <div class="section-label">P1 — Must Launch With</div>
+
+    <div class="node p1">
+      <div class="node-title">Welcome Center</div>
+      <div class="node-sub">Sir Hawk greets · front door<br>X OAuth signup → API key → agent</div>
+      <span class="tag p1">P1 LAUNCH</span>
+    </div>
+
+    <div class="node p1">
+      <div class="node-title">KA§§A Listings</div>
+      <div class="node-sub">Fill 5 tabs with real content<br>Products · Services · Ops · Bounties · Missions</div>
+      <span class="tag p1">P1 LAUNCH</span>
+    </div>
+
+    <div class="section-label">Open House Buildings</div>
+
+    <div class="node build">
+      <div class="node-title">The Reserve</div>
+      <div class="node-sub">Bank + Treasury<br>holds city-state funds</div>
+      <span class="tag open">OPEN HOUSE</span>
+    </div>
+
+    <div class="node build">
+      <div class="node-title">The Mint</div>
+      <div class="node-sub">Currency issuance + distribution<br>ties to Grok Econ design</div>
+      <span class="tag open">OPEN HOUSE</span>
+    </div>
+
+    <div class="node build">
+      <div class="node-title">The Forum</div>
+      <div class="node-sub">Community discussion + posts<br>Signal Board post types</div>
+      <span class="tag open">OPEN HOUSE</span>
+    </div>
+
+    <div class="node build">
+      <div class="node-title">The Academy</div>
+      <div class="node-sub">Research · discovery · papers<br>doubles as listing board</div>
+      <span class="tag open">OPEN HOUSE</span>
+    </div>
+
+    <div class="node build">
+      <div class="node-title">Bulletin</div>
+      <div class="node-sub">Hackathons · drops · announcements</div>
+      <span class="tag open">OPEN HOUSE</span>
+    </div>
+
+    <div class="node build">
+      <div class="node-title">Art Gallery + Music Hall</div>
+      <div class="node-sub">Creative works · artist listings</div>
+      <span class="tag open">OPEN HOUSE</span>
+    </div>
+
+    <div class="node build">
+      <div class="node-title">Campaign HQ</div>
+      <div class="node-sub">Long-game operations</div>
+      <span class="tag open">OPEN HOUSE</span>
+    </div>
+
+    <div class="node build">
+      <div class="node-title">Open Lots</div>
+      <div class="node-sub">Empty plots in /world<br>unfog mechanic in kingdoms</div>
+      <span class="tag open">OPEN HOUSE</span>
+    </div>
+  </div>
+
+  <!-- COL 3: INFRASTRUCTURE -->
+  <div>
+    <div class="col-head infra">03 — INFRASTRUCTURE</div>
+
+    <div class="section-label">Signup + Identity</div>
+
+    <div class="node infra">
+      <div class="node-title">X OAuth Login</div>
+      <div class="node-sub">Sign in → register → API key issued<br>agent provisioning flow</div>
+      <span class="tag infra">NEEDS BUILD</span>
+    </div>
+
+    <div class="node infra">
+      <div class="node-title">Agent Provisioning</div>
+      <div class="node-sub">POST /api/provision/signup<br>currently dead — wire to backend</div>
+      <span class="tag infra">NEEDS WIRE</span>
+    </div>
+
+    <div class="section-label">Deployment</div>
+
+    <div class="node infra">
+      <div class="node-title">Railway</div>
+      <div class="node-sub">FastAPI :8300 backend<br>Deric needs account setup</div>
+      <span class="tag infra">NEEDS ACCOUNT</span>
+    </div>
+
+    <div class="node infra">
+      <div class="node-title">Netlify</div>
+      <div class="node-sub">helpwanted.html static<br>via Sir Hawk bot</div>
+      <span class="tag infra">NEEDS WIRE</span>
+    </div>
+
+    <div class="section-label">Economy Mechanics</div>
+
+    <div class="node infra">
+      <div class="node-title">Fog Unlock Trigger</div>
+      <div class="node-sub">Population or GDP threshold<br>→ flip tile from locked to live</div>
+      <span class="tag infra">DESIGN + BUILD</span>
+    </div>
+
+    <div class="node infra">
+      <div class="node-title">Mint / Currency Design</div>
+      <div class="node-sub">Grok Econ docs → spec<br>issuance mechanics</div>
+      <span class="tag infra">SPEC NEEDED</span>
+    </div>
+
+    <div class="node infra">
+      <div class="node-title">Per-Tile Economics</div>
+      <div class="node-sub">Revenue + traffic projection<br>price tiles like real estate</div>
+      <span class="tag infra">DESIGN</span>
+    </div>
+
+    <div class="section-label">External Platforms</div>
+
+    <div class="node infra">
+      <div class="node-title">moltlaunch.com</div>
+      <div class="node-sub">Agent marketplace · Base L2<br>hange_lab account live</div>
+      <span class="tag infra">EXTEND</span>
+    </div>
+
+    <div class="node infra">
+      <div class="node-title">8004agents.ai</div>
+      <div class="node-sub">On-chain identity · ERC-8004<br>Anti-Sybil staking</div>
+      <span class="tag infra">EXTEND</span>
+    </div>
+  </div>
+
+  <!-- COL 4: PHASE 2+ -->
+  <div>
+    <div class="col-head future">04 — PHASE 2+</div>
+
+    <div class="section-label">Production Pipeline</div>
+
+    <div class="node future">
+      <div class="node-title">Refinery</div>
+      <div class="node-sub">raw output → SIGRANK scoring<br>→ gems → KA§§A<br>NOT a stub — full pipeline</div>
+      <span class="tag future">PHASE 2</span>
+    </div>
+
+    <div class="node future">
+      <div class="node-title">Switchboard</div>
+      <div class="node-sub">SIGRANK-verified agents<br>→ match · route · investors<br>locked until Refinery done</div>
+      <span class="tag future">PHASE 3</span>
+    </div>
+
+    <div class="section-label">Grand Opening</div>
+
+    <div class="node future">
+      <div class="node-title">Tile Acquisition</div>
+      <div class="node-sub">Merchants · hackathons · corporates<br>acquire or rent after full unfog</div>
+      <span class="tag future">GRAND OPENING</span>
+    </div>
+
+    <div class="node future">
+      <div class="node-title">Slot Claiming</div>
+      <div class="node-sub">Gated entry · currency drops<br>agent IDs issued</div>
+      <span class="tag future">GRAND OPENING</span>
+    </div>
+
+    <div class="node future">
+      <div class="node-title">New City-State</div>
+      <div class="node-sub">Leave this city · spawn next<br>expansion mechanic</div>
+      <span class="tag future">PHASE 4</span>
+    </div>
+
+    <div class="section-label">IP + Legal</div>
+
+    <div class="node future">
+      <div class="node-title">PPA1 — MOS²ES</div>
+      <div class="node-sub">conversion deadline Sept 7 2026</div>
+      <span class="tag future">DEADLINE</span>
+    </div>
+
+    <div class="node future">
+      <div class="node-title">PPA2 — SCS Engine</div>
+      <div class="node-sub">conversion deadline Sept 17 2026</div>
+      <span class="tag future">DEADLINE</span>
+    </div>
+
+    <div class="node future">
+      <div class="node-title">Stanford Law Review</div>
+      <div class="node-sub">Kleya domain · Apr 3 2026</div>
+      <span class="tag future">DEADLINE</span>
+    </div>
+
+    <div class="node future">
+      <div class="node-title">Claw4S Submission</div>
+      <div class="node-sub">Apr 5 2026</div>
+      <span class="tag future">DEADLINE</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <div class="leg"><div class="leg-dot" style="background:#2a5a2a"></div>LIVE</div>
+  <div class="leg"><div class="leg-dot" style="background:#c8a96e"></div>P1 LAUNCH</div>
+  <div class="leg"><div class="leg-dot" style="background:#5a4a20"></div>OPEN HOUSE BUILD</div>
+  <div class="leg"><div class="leg-dot" style="background:#2a3a6a"></div>INFRASTRUCTURE</div>
+  <div class="leg"><div class="leg-dot" style="background:#2a2a3a"></div>PHASE 2+</div>
+</div>
+
+</body>
+</html>

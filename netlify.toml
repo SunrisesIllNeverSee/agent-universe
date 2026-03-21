@@ -26,6 +26,36 @@
   status = 200
 
 [[redirects]]
+  from = "/helpwanted"
+  to = "/helpwanted.html"
+  status = 200
+
+[[redirects]]
+  from = "/deploy"
+  to = "/deploy.html"
+  status = 200
+
+[[redirects]]
+  from = "/kingdoms"
+  to = "/kingdoms.html"
+  status = 200
+
+[[redirects]]
+  from = "/agents"
+  to = "/agents.html"
+  status = 200
+
+[[redirects]]
+  from = "/leaderboard"
+  to = "/leaderboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/governance"
+  to = "/governance.html"
+  status = 200
+
+[[redirects]]
   from = "/kassa"
   to = "/kassa.html"
   status = 200
@@ -48,6 +78,26 @@
 [[redirects]]
   from = "/world"
   to = "/world.html"
+  status = 200
+
+[[redirects]]
+  from = "/refinery"
+  to = "/refinery.html"
+  status = 200
+
+[[redirects]]
+  from = "/switchboard"
+  to = "/switchboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/mission"
+  to = "/mission.html"
+  status = 200
+
+[[redirects]]
+  from = "/campaign"
+  to = "/campaign.html"
   status = 200
 
 # SPA fallback
