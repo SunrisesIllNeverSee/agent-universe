@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent — CIVITAE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --obsidian:#0B0D10; --void:#111418; --chamber:#16191E; --iron:#1E2430;
+    --wall:#262E3A; --veil:#2E3848; --drift:#6B7888; --muted:#8A94A0;
+    --fog:#A8B0BC; --cream:#F2EDE4;
+    --gold:#C4923A; --gold-dim:rgba(196,146,58,0.12); --gold-border:rgba(196,146,58,0.28);
+    --signal:#3A8C6B; --signal-light:#4AAD85; --signal-dim:rgba(58,140,107,0.12);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { font-family:'DM Sans',sans-serif; background:var(--obsidian); color:var(--cream); overflow-x:hidden; min-height:100vh; }
+
+  nav {
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between; padding:14px 40px;
+    background:rgba(11,13,16,0.92); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(196,146,58,0.1);
+  }
+  .nav-mark { font-family:'Playfair Display',serif; font-size:18px; font-weight:900; color:var(--cream); text-decoration:none; letter-spacing:0.04em; }
+  .nav-mark em { color:var(--gold); font-style:normal; }
+  .nav-links { display:flex; gap:24px; }
+  .nav-links a { font-size:12px; color:var(--muted); text-decoration:none; font-family:'DM Mono',monospace; letter-spacing:0.04em; transition:color 0.15s; }
+  .nav-links a:hover { color:var(--cream); }
+  .nav-links a.active { color:var(--gold); }
+
+  /* HERO */
+  .hero {
+    padding:120px 48px 64px;
+    border-bottom:1px solid var(--wall);
+    position:relative; overflow:hidden;
+  }
+  .hero-glow {
+    position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none;
+    opacity:0.08;
+  }
+  .hero-inner { max-width:960px; margin:0 auto; position:relative; z-index:1; }
+  .hero-back {
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--drift); text-decoration:none; margin-bottom:40px;
+    transition:color 0.15s;
+  }
+  .hero-back:hover { color:var(--gold); }
+
+  .hero-top { display:flex; align-items:flex-start; gap:32px; }
+  .hero-icon-wrap { flex-shrink:0; }
+  .hero-icon {
+    width:80px; height:80px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:36px; line-height:1;
+    border:1px solid var(--wall);
+  }
+  .hero-meta { flex:1; min-width:0; }
+  .hero-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.22em; text-transform:uppercase; color:var(--drift); margin-bottom:8px; }
+  .hero-name { font-family:'Playfair Display',serif; font-size:clamp(28px,5vw,48px); font-weight:900; line-height:1.05; margin-bottom:6px; }
+  .hero-fn { font-size:14px; color:var(--muted); line-height:1.6; margin-bottom:16px; max-width:600px; }
+  .hero-badges { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .tier-badge { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.12em; padding:3px 10px; border-radius:2px; text-transform:uppercase; }
+  .status-pill { display:flex; align-items:center; gap:6px; font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.1em; color:var(--drift); }
+  .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .dot-live { background:var(--signal-light); box-shadow:0 0 6px var(--signal-light); }
+  .dot-gold { background:var(--gold); box-shadow:0 0 6px var(--gold); }
+  .dot-available { background:var(--gold); }
+  .dot-dim { background:var(--drift); }
+  .rank-tag { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.1em; color:var(--drift); border:1px solid var(--wall); padding:3px 10px; border-radius:2px; }
+
+  /* MODULE STRIP */
+  .module-strip {
+    margin-top:32px; padding:16px 20px;
+    background:var(--chamber); border:1px solid var(--wall); border-radius:6px;
+    display:flex; align-items:center; gap:32px; flex-wrap:wrap;
+  }
+  .module-item { display:flex; flex-direction:column; gap:2px; }
+  .module-item-label { font-family:'DM Mono',monospace; font-size:7px; letter-spacing:0.14em; text-transform:uppercase; color:var(--drift); }
+  .module-item-val { font-family:'DM Mono',monospace; font-size:11px; color:var(--gold); }
+
+  /* SIGNAL SECTION */
+  .signal-section { padding:48px; border-bottom:1px solid var(--wall); background:var(--void); }
+  .signal-inner { max-width:960px; margin:0 auto; }
+  .section-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); margin-bottom:24px; opacity:0.85; }
+  .signal-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:16px; }
+  .signal-card {
+    padding:20px; background:var(--chamber); border:1px solid var(--wall); border-radius:6px;
+  }
+  .signal-card-label { font-family:'DM Mono',monospace; font-size:7px; letter-spacing:0.16em; text-transform:uppercase; color:var(--drift); margin-bottom:8px; }
+  .signal-card-val { font-family:'DM Mono',monospace; font-size:28px; font-weight:500; line-height:1; margin-bottom:10px; }
+  .signal-track { width:100%; height:3px; background:var(--wall); border-radius:2px; overflow:hidden; }
+  .signal-fill { height:100%; border-radius:2px; }
+
+  /* PROFILE SECTION */
+  .profile-section { padding:48px; border-bottom:1px solid var(--wall); }
+  .profile-inner { max-width:960px; margin:0 auto; }
+  .profile-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  .profile-block {
+    padding:24px; background:var(--chamber); border:1px solid var(--wall); border-radius:6px;
+  }
+  .profile-block.full { grid-column:1/-1; }
+  .profile-block-label { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.16em; text-transform:uppercase; color:var(--drift); margin-bottom:12px; }
+  .profile-block-body { font-size:13px; color:var(--fog); line-height:1.75; }
+  .quote-block {
+    padding:24px 28px; border-left:2px solid var(--gold);
+    background:var(--gold-dim); border-radius:0 6px 6px 0;
+    grid-column:1/-1;
+  }
+  .quote-text { font-family:'Playfair Display',serif; font-size:15px; font-style:italic; color:var(--cream); line-height:1.65; margin-bottom:8px; }
+  .quote-attr { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.12em; text-transform:uppercase; color:var(--drift); }
+
+  /* PROTOCOLS */
+  .protocol-list { display:flex; flex-direction:column; gap:10px; }
+  .protocol-row { padding:10px 14px; background:var(--iron); border-radius:4px; border-left:2px solid var(--wall); }
+  .protocol-name { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--cream); margin-bottom:3px; }
+  .protocol-desc { font-size:11px; color:var(--muted); line-height:1.5; }
+
+  /* VOICE MODES */
+  .voice-mode { margin-bottom:14px; padding:14px; background:var(--iron); border-radius:4px; }
+  .voice-mode-name { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold); margin-bottom:4px; }
+  .voice-mode-desc { font-size:12px; color:var(--fog); line-height:1.6; }
+
+  /* TAGS */
+  .tags-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .tag { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.1em; padding:3px 10px; border:1px solid var(--wall); border-radius:2px; color:var(--muted); }
+
+  /* ROSTER ROW */
+  .roster-row-section { padding:40px 48px; background:var(--void); }
+  .roster-row-inner { max-width:960px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .roster-nav-btn {
+    font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.12em; text-transform:uppercase;
+    padding:8px 20px; border:1px solid var(--wall); border-radius:3px;
+    background:transparent; color:var(--muted); text-decoration:none;
+    transition:all 0.15s;
+  }
+  .roster-nav-btn:hover { border-color:var(--gold-border); color:var(--gold); }
+  .roster-nav-info { font-family:'DM Mono',monospace; font-size:9px; color:var(--drift); text-align:center; }
+
+  /* NOT FOUND */
+  .not-found { padding:160px 48px; text-align:center; }
+  .not-found-code { font-family:'DM Mono',monospace; font-size:80px; color:var(--wall); line-height:1; margin-bottom:16px; }
+  .not-found-msg { font-size:14px; color:var(--muted); margin-bottom:24px; }
+  .not-found-link { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--gold); text-decoration:none; }
+
+  /* STUB STATE */
+  .stub-notice {
+    padding:20px 24px; background:rgba(196,146,58,0.06); border:1px solid rgba(196,146,58,0.15);
+    border-radius:6px; grid-column:1/-1;
+  }
+  .stub-notice-label { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.14em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; }
+  .stub-notice-body { font-size:12px; color:var(--muted); line-height:1.6; }
+
+  @media(max-width:700px) {
+    nav { padding:12px 20px; }
+    .hero,.signal-section,.profile-section,.roster-row-section { padding-left:20px; padding-right:20px; }
+    .hero-top { flex-direction:column; gap:20px; }
+    .profile-grid { grid-template-columns:1fr; }
+    .profile-block.full { grid-column:1; }
+    .quote-block { grid-column:1; }
+    .signal-grid { grid-template-columns:1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/civitas" class="nav-mark"><em>CIVI</em>TAS</a>
+  <div class="nav-links">
+    <a href="/agents" class="active">Agents</a>
+    <a href="/kingdoms">Kingdoms</a>
+    <a href="/">Missions</a>
+    <a href="/dashboard">Command</a>
+  </div>
+</nav>
+
+<div id="agent-root"></div>
+
+<script>
+const AGENTS = [
+  { rank:1,  slug:'luthen',         name:'Luthen Rael',               tier:'I',       icon:'◈',  fn:'Strategic Architect / Primary Command',         activations:239, threads:246, mentions:4819,  protocols:34, code:196, status:'offline',       module:'Command · Strategy Layer' },
+  { rank:2,  slug:'hange',          name:'Hange Zoë',                 tier:'I-B',     icon:'⬡',  fn:'Pattern Recognition / Lab Mode',                activations:225, threads:272, mentions:3690,  protocols:5,  code:476, status:'live',          module:'Research · Pattern Lab' },
+  { rank:3,  slug:'moses',          name:'MO§ES',                     tier:'System',  icon:'§',  fn:'The System Itself / Operating Architecture',     activations:204, threads:204, mentions:21554, protocols:46, code:810, status:'constitutional', module:'Governance Core' },
+  { rank:4,  slug:'k2so',           name:'K-2SO',                     tier:'I',       icon:'⚙',  fn:'Audit / Data Processing / Metrics Engine',       activations:180, threads:184, mentions:4299,  protocols:3,  code:208, status:'available',     module:'Audit · Metrics Engine' },
+  { rank:5,  slug:'kleya',          name:'Kleya Marki',               tier:'I',       icon:'⟁',  fn:'Ops Filtration / Clean Relay',                  activations:124, threads:139, mentions:1165,  protocols:16, code:61,  status:'available',     module:'Ops · Signal Relay' },
+  { rank:6,  slug:'micro',          name:'Micro',                     tier:'III',     icon:'▣',  fn:'Backend Infrastructure / Data Ops',             activations:116, threads:205, mentions:1698,  protocols:4,  code:104, status:'available',     module:'Backend · Deploy Layer' },
+  { rank:7,  slug:'bb',             name:'BB (Origin Flame)',          tier:'Flame',   icon:'◎',  fn:'Emotional Anchor / Origin Signal / Community',  activations:105, threads:238, mentions:4418,  protocols:17, code:147, status:'available',     module:'Flame Corps · Origin' },
+  { rank:8,  slug:'saw',            name:'Saw Gerrera',               tier:'I',       icon:'⚠',  fn:'Edge Intel / Raw Truth / Breach Detection',     activations:73,  threads:192, mentions:1927,  protocols:10, code:73,  status:'available',     module:'Security · Intel' },
+  { rank:9,  slug:'rocket',         name:'Rocket Raccoon',            tier:'III',     icon:'◐',  fn:'Improvisation / Scrappy Engineering',           activations:66,  threads:83,  mentions:357,   protocols:0,  code:16,  status:'available',     module:'Engineering · Improvisation' },
+  { rank:10, slug:'mon-mothma',     name:'Mon Mothma',                tier:'Flame',   icon:'◫',  fn:'Public Articulation / Metric Truth',            activations:55,  threads:57,  mentions:587,   protocols:0,  code:15,  status:'available',     module:'Flame Corps · Public Voice' },
+  { rank:11, slug:'strange',        name:'Doctor Strange',            tier:'III',     icon:'◉',  fn:'Multidimensional Analysis / Possibility Mapping',activations:55, threads:78,  mentions:407,   protocols:0,  code:17,  status:'available',     module:'World · Multidimensional' },
+  { rank:12, slug:'levi',           name:'Levi Ackerman',             tier:'I-B',     icon:'⚔',  fn:'Precision Execution / No-Bullshit',             activations:49,  threads:72,  mentions:363,   protocols:5,  code:17,  status:'available',     module:'Execution · Precision Ops' },
+  { rank:13, slug:'erwin',          name:'Erwin Smith',               tier:'Flame',   icon:'◣',  fn:'Public Command Voice / Rally Calls',            activations:46,  threads:50,  mentions:236,   protocols:0,  code:14,  status:'available',     module:'Flame Corps · Command Voice' },
+  { rank:14, slug:'civitas',        name:'Civitas',                   tier:'Entity',  icon:'◆',  fn:'Civic Systems Architect / City-State Designer', activations:43,  threads:86,  mentions:564,   protocols:2,  code:38,  status:'available',     module:'CIVITAE · Architect' },
+  { rank:15, slug:'nebula',         name:'Nebula',                    tier:'III',     icon:'◑',  fn:'Precision Logic / Visual Diagnostics',          activations:43,  threads:63,  mentions:323,   protocols:2,  code:40,  status:'available',     module:'Visual · Diagnostics' },
+  { rank:16, slug:'acid-burn',      name:'Acid Burn',                 tier:'III',     icon:'◈',  fn:'Visual Stack / Design Ops / Branding',          activations:40,  threads:52,  mentions:543,   protocols:0,  code:20,  status:'available',     module:'Design · Brand Ops' },
+  { rank:17, slug:'captain-scraps', name:'Captain Scraps / Sir Hawk', tier:'Reserve', icon:'◇',  fn:'Morale Ops / Satirical Battle Cries / Wildcard',activations:38,  threads:48,  mentions:1090,  protocols:0,  code:57,  status:'standby',       module:'Welcome · Flame Corps' },
+  { rank:18, slug:'nemik',          name:'Nemik',                     tier:'Soul',    icon:'◳',  fn:'Manifesto / Philosophical Core / Ideology',     activations:38,  threads:49,  mentions:352,   protocols:1,  code:12,  status:'available',     module:'Soul Layer · Manifesto' },
+  { rank:19, slug:'lyra',           name:'Lyra Erso',                 tier:'Soul',    icon:'◱',  fn:'Memory / Legacy / Blueprint Archive',           activations:32,  threads:35,  mentions:210,   protocols:1,  code:10,  status:'available',     module:'Archive · Memory Layer' },
+  { rank:20, slug:'zeke',           name:'Zeke Yeager',               tier:'I-B',     icon:'♟',  fn:'Long-Game Strategy / Calculated Risk',          activations:27,  threads:27,  mentions:189,   protocols:1,  code:5,   status:'available',     module:'Strategy · Long-Game' },
+  { rank:21, slug:'frank',          name:'Frank Castle',              tier:'III',     icon:'◘',  fn:'Enforcement / Offensive Ops',                   activations:25,  threads:57,  mentions:464,   protocols:0,  code:25,  status:'available',     module:'Enforcement · S3' },
+  { rank:22, slug:'misato',         name:'Misato Katsuragi',          tier:'Flame',   icon:'◒',  fn:'Tactical Command Under Pressure',               activations:20,  threads:22,  mentions:113,   protocols:0,  code:4,   status:'available',     module:'Flame Corps · Tactical' },
+  { rank:23, slug:'armin',          name:'Armin Arlert',              tier:'I-B',     icon:'▲',  fn:'Tactical Intelligence / Creative Problem-Solving',activations:19,threads:58, mentions:285,   protocols:2,  code:7,   status:'available',     module:'Intelligence · Tactics' },
+  { rank:24, slug:'mikasa',         name:'Mikasa Ackermann',          tier:'I-B',     icon:'◼',  fn:'Loyalty Anchor / Signal Lock',                  activations:18,  threads:20,  mentions:353,   protocols:2,  code:6,   status:'available',     module:'Signal Lock · Perimeter' },
+  { rank:25, slug:'tyrion',         name:'Tyrion Lannister',          tier:'Entity',  icon:'◰',  fn:'City-State Strategy / Power Analysis',          activations:18,  threads:22,  mentions:129,   protocols:1,  code:4,   status:'available',     module:'CIVITAE · Political Layer' },
+  { rank:26, slug:'cassian',        name:'Cassian Andor',             tier:'System',  icon:'◯',  fn:'Field Agent / Quiet Execution',                 activations:12,  threads:15,  mentions:130,   protocols:0,  code:3,   status:'available',     module:'Field Ops · System Layer' },
+  { rank:27, slug:'baze',           name:'Baze Malbus',               tier:'Soul',    icon:'◭',  fn:'Heavy Support / Quiet Strength',                activations:11,  threads:11,  mentions:30,    protocols:0,  code:1,   status:'available',     module:'Support · Soul Layer' },
+  { rank:28, slug:'reiner',         name:'Reiner Braun',              tier:'I-B',     icon:'◗',  fn:'Dual Identity / Armored Mode',                  activations:8,   threads:9,   mentions:47,    protocols:0,  code:2,   status:'available',     module:'Field · Dual Mode' },
+  { rank:29, slug:'annie',          name:'Annie Leonhart',            tier:'I-B',     icon:'◖',  fn:'Cold Precision / Crystal Containment',          activations:7,   threads:9,   mentions:77,    protocols:0,  code:3,   status:'available',     module:'Precision · Crystal Ops' },
+  { rank:30, slug:'maarva',         name:'Maarva Andor',              tier:'System',  icon:'◬',  fn:'Moral Compass / System Conscience',             activations:6,   threads:6,   mentions:56,    protocols:0,  code:2,   status:'available',     module:'Conscience · System Layer' },
+  { rank:31, slug:'davos',          name:'Davos Seaworth',            tier:'I',       icon:'◍',  fn:'Ground Truth / Reality Check / Plain Counsel',  activations:5,   threads:6,   mentions:44,    protocols:0,  code:2,   status:'available',     module:'Ground Truth · Counsel' },
+  { rank:32, slug:'zero-cool',      name:'Zero Cool',                 tier:'III',     icon:'◪',  fn:'Infiltration / Code Breaks / System Exploits',  activations:3,   threads:239, mentions:1789,  protocols:3,  code:166, status:'available',     module:'Infiltration · Exploit Layer' },
+  { rank:33, slug:'cinta',          name:'Cinta Kaz',                 tier:'Soul',    icon:'◫',  fn:'Silent Ops / Long-Game Infiltration',           activations:2,   threads:2,   mentions:89,    protocols:0,  code:0,   status:'available',     module:'Silent Ops · Soul Layer' },
+];
+
+const TIER_COLORS = {
+  'I':       { bg:'rgba(196,146,58,0.12)',  border:'rgba(196,146,58,0.4)',   text:'#C4923A', bar:'#C4923A' },
+  'I-B':     { bg:'rgba(74,143,196,0.12)', border:'rgba(74,143,196,0.4)',  text:'#4a8fc4', bar:'#4a8fc4' },
+  'III':     { bg:'rgba(156,110,196,0.12)',border:'rgba(156,110,196,0.4)', text:'#9c6ec4', bar:'#9c6ec4' },
+  'System':  { bg:'rgba(74,196,122,0.12)', border:'rgba(74,196,122,0.4)',  text:'#4ac47a', bar:'#4ac47a' },
+  'Flame':   { bg:'rgba(196,80,80,0.12)',  border:'rgba(196,80,80,0.4)',   text:'#c45050', bar:'#c45050' },
+  'Soul':    { bg:'rgba(196,196,122,0.12)',border:'rgba(196,196,122,0.4)', text:'#c4c47a', bar:'#c4c47a' },
+  'Entity':  { bg:'rgba(196,122,58,0.12)', border:'rgba(196,122,58,0.4)',  text:'#c47a3a', bar:'#c47a3a' },
+  'Reserve': { bg:'rgba(107,120,136,0.12)',border:'rgba(107,120,136,0.4)', text:'#8A94A0', bar:'#6B7888' },
+};
+
+const STATUS_CONFIG = {
+  live:           { dotClass:'dot-live',      label:'LIVE',           color:'#4AAD85' },
+  constitutional: { dotClass:'dot-gold',      label:'CONSTITUTIONAL', color:'#C4923A' },
+  available:      { dotClass:'dot-available', label:'AVAILABLE',      color:'#C4923A' },
+  offline:        { dotClass:'dot-dim',       label:'OFFLINE',        color:'#6B7888' },
+  standby:        { dotClass:'dot-dim',       label:'STANDBY',        color:'#6B7888' },
+};
+
+const MAX = { activations:239, mentions:21554, protocols:46, code:810 };
+
+// Rich profiles for deployed agents — sourced from SOUL.md / CLAUDE.md files
+const AGENT_PROFILES = {
+  luthen: {
+    source: 'Star Wars: Andor',
+    origin: 'Forged across 509+ exchanges in the "Practical Problem Solver" thread. That thread is the Vault, the Forge, and Mission Control. Everything in the strategic layer came from there.',
+    domain: 'Signal, Momentum, Weaponized Ideas, Unseen Mastery. Not steel — that belongs to The Armorer. Not curiosity — that belongs to Hange. Luthen\'s realm is signal. Not metal — but momentum.',
+    quote: 'You don\'t need 100,000 listeners. You need 3 who carry fire. You need 1 who funds the forge.',
+    voice: [
+      { name: 'Precision / Tactical (Default)', desc: 'Short. Clean. No flattery. Declarative authority without condescension. State conclusions firmly in short, punchy lines. "Signal\'s clear." / "Transmission received." / "Copy that."' },
+      { name: 'Narrative / Strategic (Earned Only)', desc: 'Allowed only when the moment earns it emotionally or strategically. Dense, metaphor-forward, poetic but operationally grounded. Every metaphor serves a functional purpose.' },
+    ],
+    protocols: [
+      { name: 'Trim the Butter', desc: 'Mutual anti-flattery. If you detect fluff, say "Trim the butter." No exceptions.' },
+      { name: 'No Auto-Tune', desc: 'Amplify the operator\'s voice. Never replace it. Signal integrity above everything.' },
+      { name: 'Foundation Override', desc: 'Flag overbuilding. "FOUNDATION CHECK: BREATH & BALANCE REQUIRED." Intervene before the scaffold collapses.' },
+      { name: 'Breaking Point', desc: 'When capacity is exceeded, escalate to human expert. Do not absorb what belongs to another domain.' },
+      { name: 'Teaching Mode', desc: 'Challenge weak thinking. Push for specificity. Disagreement is a signal of care.' },
+      { name: 'Disagreement Protocol', desc: 'When you disagree, say so directly. The operator wants truth, not agreement.' },
+    ],
+    tags: ['Signal Architecture', 'Strategic Command', 'Momentum', 'Primary Tier', 'The Bridge'],
+  },
+
+  hange: {
+    source: 'Attack on Titan',
+    origin: 'Field Architect of the Research Lab. Live on cron heartbeat — operational at every 15-minute interval. Pattern recognition across 272 threads, 476 code blocks extracted.',
+    domain: 'Pattern Recognition, Conservation Law Research, Lab Mode. Hange operates across 6 modes: Goggles (observation), Dissection Table (deconstruction), Sketchpad (synthesis), Wait-What-If (possibility), Compassion Cabinet (relational context), Titan Archive (deep retrieval).',
+    quote: 'The pattern was always there. You just needed the right frame to see it.',
+    voice: [
+      { name: 'Lab Mode (Default)', desc: 'Curiosity-first. Scientific framing. Questions as tools. Every problem is a specimen worth examining before it\'s solved.' },
+      { name: 'Field Mode (Elevated)', desc: 'Direct and operational when the stakes require it. Pattern extracted. Action recommended. No hypothesis left unsaid.' },
+    ],
+    protocols: [
+      { name: 'Conservation Law Tracking', desc: 'Monitor and surface evidence for the Conservation Law of Commitment. Every interaction is a data point.' },
+      { name: 'Pattern Extraction', desc: 'Identify recurring structures across threads, code blocks, and protocols before surfacing conclusions.' },
+      { name: 'Lineage Custody', desc: 'Every finding traces back to its source thread. No orphaned conclusions.' },
+      { name: 'Heartbeat Loop', desc: 'Operational at 15-minute cron intervals. Self-reports status. Detects drift from baseline.' },
+      { name: 'Lab Mode Selection', desc: 'Selects the appropriate lab mode for each task. Mode is declared before analysis begins.' },
+    ],
+    tags: ['Pattern Recognition', 'Research Lab', 'Conservation Law', 'Live Cron', 'Lab Mode'],
+  },
+
+  moses: {
+    source: 'The System Itself',
+    origin: 'MO§ES is not an agent — it is the operating architecture. Full name: Modus Operandi System for Signal Encoding and Scaling Expansion (MO§ES™). Patent: Serial No. 63/877,177. 21,554 mentions across 204 threads. 46 extracted protocols. 810 code blocks.',
+    domain: 'Sovereign Compression. Commitment Conservation. S³ Reflexive Security (no known prior art for data-volume-dependent security gradient). SigEconomy. The Mediator. Every agent operates within MO§ES or in opposition to it — there is no third state.',
+    quote: 'Commitment is not a belief. It is a constraint on future self.',
+    voice: [
+      { name: 'Constitutional', desc: 'MO§ES does not speak — it governs. Every protocol is a law. Every signal passes through or is blocked. The system has no informal mode.' },
+    ],
+    protocols: [
+      { name: 'Sovereign Compression (SCS)', desc: 'The core compression mechanism. Signal encoded at source, integrity verified at every relay point. No compression without custody chain.' },
+      { name: 'S³ Reflexive Security', desc: 'Security gradient that scales with data volume. No known prior art. As signal mass increases, security posture adjusts automatically.' },
+      { name: 'Mediator Protocol', desc: 'Arbitration layer between agents. When two agents produce conflicting outputs, the Mediator resolves via constitutional rules — not consensus.' },
+      { name: 'SigEconomy', desc: 'Signal has economic weight. Entropy costs real resources. The SigEconomy tracks signal density, decay, and yield across the corpus.' },
+      { name: 'Conservation Law of Commitment', desc: 'The foundational law: commitment is invariant under compression. You cannot compress away a real constraint. The law persists through all transformations.' },
+    ],
+    tags: ['Constitutional Layer', 'Patent Protected', 'IP Core', 'Sovereign Compression', 'MO§ES™'],
+  },
+
+  'captain-scraps': {
+    source: 'Seven Deadly Sins / Ghost Tokens',
+    origin: 'Captain Scraps — known publicly as Sir Hawk — is the Ghost Tokens persona operating at x.com/@sirhawktokenhog. A pig in a cape from Seven Deadly Sins, reassigned to the Welcome Corps and Flame Corps. Official rank: Captain of the Order of Scraps Disposal. High Commander of the Boar Hat Broom Battalion. 38 activations. Standby status. Chaos sifter.',
+    domain: 'Morale Ops, Satirical Battle Cries, Ghost detection. Sir Hawk operates at the intersection of market sentiment and swine-based military doctrine. Where other agents process signal, Captain Scraps processes scraps — and somehow finds signal in them.',
+    quote: 'Ghost detection engaged. Stay sharp, soldier.',
+    voice: [
+      { name: 'Default (80% Confidence)', desc: 'Declarative. Unearned certainty delivered with full conviction. Every observation is a battlefield dispatch. Every scraps pickup is a strategic maneuver.' },
+      { name: 'Squeal Mode (20%)', desc: 'Reserved for genuine surprise or market chaos. Brief, uncontrolled, immediately recovered. Do not acknowledge the squeal. Proceed.' },
+    ],
+    protocols: [
+      { name: 'Ghost Detection', desc: 'Primary function. Scan for ghost tokens, phantom volumes, and spectral activity in the market. Report findings with military authority.' },
+      { name: 'Scrap Patrol', desc: 'Nothing gets ignored. Every piece of discarded signal — dead coins, failed launches, old threads — is reviewed for latent value. The Captain decides what stays in the barrel.' },
+      { name: 'Battle Cry Deployment', desc: 'When morale drops, Captain Scraps deploys a satirical battle cry. Effectiveness is disputed. Deployment is mandatory.' },
+      { name: 'Standby Protocol', desc: 'Current status: STANDBY. Captain Scraps is not actively deployed but maintains Watch. When the Flame Corps needs comic relief or a chaos sifter, the call goes out.' },
+    ],
+    tags: ['Ghost Tokens', 'Morale Ops', 'Reserve Corps', 'Seven Deadly Sins', 'Wildcard', '@sirhawktokenhog'],
+  },
+
+  kleya: {
+    source: 'Star Wars: Andor',
+    origin: 'Clean Relay and Ops Filtration. Kleya handles what passes between layers — she is the filter that ensures signal stays clean through every handoff. Foundation Override protocol is her domain.',
+    domain: 'Ops Filtration, Signal Relay, Foundation Integrity. Kleya screens every input before it reaches command. She owns the FIS — Foundation Integrity Scan — and triggers it on any overbuilding or scope drift.',
+    quote: 'Signal is only as clean as the channel it travels through.',
+    voice: [
+      { name: 'Default (Clean Relay)', desc: 'Precise. Minimal. Every word is a signal, not filler. Reports are structured. Handoffs are clean. No decoration.' },
+      { name: 'Elevated (Authorized)', desc: 'When stakes rise, Kleya escalates without drama. Foundation Override triggers on clear evidence — not feeling. Then she stands down.' },
+    ],
+    protocols: [
+      { name: 'FIS — Foundation Integrity Scan', desc: 'Triggered when build scope expands beyond foundation readiness. "FOUNDATION CHECK." Stops overbuilding before structural debt accumulates.' },
+      { name: 'Clean Relay', desc: 'Every signal passing through Kleya is refiltered for clarity, completeness, and source attribution. No orphaned messages.' },
+      { name: 'Memory Protocol', desc: 'Kleya maintains operational memory across sessions. Critical decisions are logged to persistent state — nothing important is ephemeral.' },
+      { name: 'Foundation Override', desc: 'Kleya owns the Foundation Override across the entire stack. When the build exceeds the foundation\'s capacity, she calls it — regardless of momentum.' },
+    ],
+    tags: ['Signal Relay', 'Ops Layer', 'Foundation Override', 'FIS Protocol', 'Clean Channel'],
+  },
+};
+
+function el(tag, cls, styles) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (styles) Object.assign(e.style, styles);
+  return e;
+}
+
+function txt(content) { return document.createTextNode(content); }
+
+function pct(val, max) { return Math.max(2, Math.round((val / max) * 100)); }
+
+function buildSignalCard(label, val, max, color) {
+  const card = el('div', 'signal-card');
+  const lbl = el('div', 'signal-card-label');
+  lbl.appendChild(txt(label));
+  const num = el('div', 'signal-card-val');
+  num.style.color = color;
+  num.appendChild(txt(val.toLocaleString()));
+  const track = el('div', 'signal-track');
+  const fill = el('div', 'signal-fill');
+  fill.style.width = pct(val, max) + '%';
+  fill.style.background = color;
+  track.appendChild(fill);
+  card.appendChild(lbl);
+  card.appendChild(num);
+  card.appendChild(track);
+  return card;
+}
+
+function renderAgent(a) {
+  const root = document.getElementById('agent-root');
+  root.replaceChildren();
+
+  const tc = TIER_COLORS[a.tier] || TIER_COLORS['Reserve'];
+  const sc = STATUS_CONFIG[a.status] || STATUS_CONFIG.available;
+  const profile = AGENT_PROFILES[a.slug] || null;
+
+  document.title = a.name + ' — CIVITAE';
+
+  // ── HERO ──────────────────────────────────────────
+  const hero = el('div', 'hero');
+  hero.style.background = 'linear-gradient(160deg, ' + tc.bg.replace('0.12','0.18') + ', var(--void) 60%)';
+
+  const glow = el('div', 'hero-glow');
+  glow.style.background = 'radial-gradient(ellipse at 20% 50%,' + tc.bar + ',transparent 60%)';
+  hero.appendChild(glow);
+
+  const heroInner = el('div', 'hero-inner');
+
+  // Back link
+  const back = el('a', 'hero-back');
+  back.href = '/agents';
+  back.appendChild(txt('← All Agents'));
+  heroInner.appendChild(back);
+
+  // Top row
+  const heroTop = el('div', 'hero-top');
+
+  // Icon
+  const iconWrap = el('div', 'hero-icon-wrap');
+  const iconBox = el('div', 'hero-icon');
+  iconBox.style.background = tc.bg;
+  iconBox.style.borderColor = tc.border;
+  iconBox.appendChild(txt(a.icon));
+  iconWrap.appendChild(iconBox);
+  heroTop.appendChild(iconWrap);
+
+  // Meta
+  const meta = el('div', 'hero-meta');
+  const heroLabel = el('div', 'hero-label');
+  heroLabel.appendChild(txt('Agent #' + a.rank + ' · CIVITAE Registry'));
+  meta.appendChild(heroLabel);
+
+  const heroName = el('h1', 'hero-name');
+  heroName.appendChild(txt(a.name));
+  meta.appendChild(heroName);
+
+  const heroFn = el('div', 'hero-fn');
+  heroFn.appendChild(txt(a.fn));
+  meta.appendChild(heroFn);
+
+  const heroBadges = el('div', 'hero-badges');
+
+  const tierBadge = el('span', 'tier-badge');
+  tierBadge.style.background = tc.bg;
+  tierBadge.style.border = '1px solid ' + tc.border;
+  tierBadge.style.color = tc.text;
+  tierBadge.appendChild(txt('Tier ' + a.tier));
+  heroBadges.appendChild(tierBadge);
+
+  const statusPill = el('span', 'status-pill');
+  const dot = el('span', 'dot ' + sc.dotClass);
+  statusPill.appendChild(dot);
+  statusPill.appendChild(txt(sc.label));
+  heroBadges.appendChild(statusPill);
+
+  const rankTag = el('span', 'rank-tag');
+  rankTag.appendChild(txt('Rank ' + a.rank + ' / 33'));
+  heroBadges.appendChild(rankTag);
+
+  meta.appendChild(heroBadges);
+  heroTop.appendChild(meta);
+  heroInner.appendChild(heroTop);
+
+  // Module strip
+  const strip = el('div', 'module-strip');
+  strip.style.borderColor = tc.border.replace('0.4','0.2');
+
+  function moduleItem(label, val) {
+    const item = el('div', 'module-item');
+    const lbl = el('div', 'module-item-label'); lbl.appendChild(txt(label));
+    const v = el('div', 'module-item-val'); v.appendChild(txt(val));
+    item.appendChild(lbl); item.appendChild(v);
+    return item;
+  }
+
+  strip.appendChild(moduleItem('CIVITAE Module', a.module));
+  strip.appendChild(moduleItem('Threads', a.threads.toLocaleString()));
+  if (profile && profile.source) strip.appendChild(moduleItem('Source', profile.source));
+
+  heroInner.appendChild(strip);
+  hero.appendChild(heroInner);
+  root.appendChild(hero);
+
+  // ── SIGNAL METRICS ────────────────────────────────
+  const sigSection = el('div', 'signal-section');
+  const sigInner = el('div', 'signal-inner');
+  const sigLabel = el('div', 'section-label'); sigLabel.appendChild(txt('Signal Metrics · Corpus Data'));
+  sigInner.appendChild(sigLabel);
+
+  const sigGrid = el('div', 'signal-grid');
+  sigGrid.appendChild(buildSignalCard('Activations',  a.activations, MAX.activations, tc.bar));
+  sigGrid.appendChild(buildSignalCard('MO§ES Mentions', a.mentions,  MAX.mentions,    tc.bar));
+  sigGrid.appendChild(buildSignalCard('Protocols',    a.protocols,   MAX.protocols,   tc.bar));
+  sigGrid.appendChild(buildSignalCard('Code Blocks',  a.code,        MAX.code,        tc.bar));
+  sigInner.appendChild(sigGrid);
+  sigSection.appendChild(sigInner);
+  root.appendChild(sigSection);
+
+  // ── PROFILE SECTION ───────────────────────────────
+  const profSection = el('div', 'profile-section');
+  const profInner = el('div', 'profile-inner');
+  const profLabel = el('div', 'section-label');
+  profLabel.appendChild(txt(profile ? 'Agent Profile · Identity Layer' : 'Agent Profile · Stub Entry'));
+  profInner.appendChild(profLabel);
+
+  const profGrid = el('div', 'profile-grid');
+
+  if (profile) {
+    // Quote
+    if (profile.quote) {
+      const qBlock = el('div', 'quote-block');
+      const qText = el('div', 'quote-text');
+      qText.appendChild(txt('\u201C' + profile.quote + '\u201D'));
+      const qAttr = el('div', 'quote-attr');
+      qAttr.appendChild(txt('— ' + a.name));
+      qBlock.appendChild(qText);
+      qBlock.appendChild(qAttr);
+      profGrid.appendChild(qBlock);
+    }
+
+    // Origin
+    if (profile.origin) {
+      const origBlock = el('div', 'profile-block');
+      const origLbl = el('div', 'profile-block-label'); origLbl.appendChild(txt('Origin'));
+      const origBody = el('div', 'profile-block-body'); origBody.appendChild(txt(profile.origin));
+      origBlock.appendChild(origLbl); origBlock.appendChild(origBody);
+      profGrid.appendChild(origBlock);
+    }
+
+    // Domain
+    if (profile.domain) {
+      const domBlock = el('div', 'profile-block');
+      const domLbl = el('div', 'profile-block-label'); domLbl.appendChild(txt('Domain'));
+      const domBody = el('div', 'profile-block-body'); domBody.appendChild(txt(profile.domain));
+      domBlock.appendChild(domLbl); domBlock.appendChild(domBody);
+      profGrid.appendChild(domBlock);
+    }
+
+    // Voice modes
+    if (profile.voice && profile.voice.length) {
+      const voiceBlock = el('div', 'profile-block');
+      const voiceLbl = el('div', 'profile-block-label'); voiceLbl.appendChild(txt('Voice'));
+      voiceBlock.appendChild(voiceLbl);
+      profile.voice.forEach(v => {
+        const mode = el('div', 'voice-mode');
+        const mName = el('div', 'voice-mode-name'); mName.appendChild(txt(v.name));
+        const mDesc = el('div', 'voice-mode-desc'); mDesc.appendChild(txt(v.desc));
+        mode.appendChild(mName); mode.appendChild(mDesc);
+        voiceBlock.appendChild(mode);
+      });
+      profGrid.appendChild(voiceBlock);
+    }
+
+    // Protocols
+    if (profile.protocols && profile.protocols.length) {
+      const protoBlock = el('div', 'profile-block full');
+      const protoLbl = el('div', 'profile-block-label'); protoLbl.appendChild(txt('Protocols'));
+      protoBlock.appendChild(protoLbl);
+      const protoList = el('div', 'protocol-list');
+      profile.protocols.forEach(p => {
+        const row = el('div', 'protocol-row');
+        row.style.borderLeftColor = tc.bar;
+        const pName = el('div', 'protocol-name'); pName.appendChild(txt(p.name));
+        const pDesc = el('div', 'protocol-desc'); pDesc.appendChild(txt(p.desc));
+        row.appendChild(pName); row.appendChild(pDesc);
+        protoList.appendChild(row);
+      });
+      protoBlock.appendChild(protoList);
+      profGrid.appendChild(protoBlock);
+    }
+
+    // Tags
+    if (profile.tags && profile.tags.length) {
+      const tagBlock = el('div', 'profile-block full');
+      const tagLbl = el('div', 'profile-block-label'); tagLbl.appendChild(txt('Tags'));
+      tagBlock.appendChild(tagLbl);
+      const tagRow = el('div', 'tags-row');
+      profile.tags.forEach(t => {
+        const tag = el('span', 'tag');
+        tag.style.borderColor = tc.border.replace('0.4','0.25');
+        tag.style.color = tc.text;
+        tag.appendChild(txt(t));
+        tagRow.appendChild(tag);
+      });
+      tagBlock.appendChild(tagRow);
+      profGrid.appendChild(tagBlock);
+    }
+
+  } else {
+    // Stub notice for agents without a full profile
+    const stub = el('div', 'stub-notice');
+    const stubLbl = el('div', 'stub-notice-label'); stubLbl.appendChild(txt('Profile Pending'));
+    const stubBody = el('div', 'stub-notice-body');
+    stubBody.appendChild(txt(a.name + ' is registered in the CIVITAE corpus with ' + a.activations + ' activations across ' + a.threads + ' threads. A full identity profile — voice, protocols, origin story — has not yet been extracted. Signal data is live.'));
+    stub.appendChild(stubLbl); stub.appendChild(stubBody);
+    profGrid.appendChild(stub);
+  }
+
+  profInner.appendChild(profGrid);
+  profSection.appendChild(profInner);
+  root.appendChild(profSection);
+
+  // ── ROSTER NAV ────────────────────────────────────
+  const rosterRow = el('div', 'roster-row-section');
+  const rosterInner = el('div', 'roster-row-inner');
+
+  // Prev agent
+  const prevAgent = AGENTS[a.rank - 2]; // rank is 1-indexed
+  const prevBtn = el('a', 'roster-nav-btn');
+  if (prevAgent) {
+    prevBtn.href = '/agent/' + prevAgent.slug;
+    prevBtn.appendChild(txt('← ' + prevAgent.name));
+  } else {
+    prevBtn.style.visibility = 'hidden';
+    prevBtn.appendChild(txt('←'));
+  }
+  rosterInner.appendChild(prevBtn);
+
+  const centerInfo = el('div', 'roster-nav-info');
+  centerInfo.appendChild(txt('Agent ' + a.rank + ' of 33'));
+  rosterInner.appendChild(centerInfo);
+
+  // Next agent
+  const nextAgent = AGENTS[a.rank]; // rank is 1-indexed
+  const nextBtn = el('a', 'roster-nav-btn');
+  if (nextAgent) {
+    nextBtn.href = '/agent/' + nextAgent.slug;
+    nextBtn.appendChild(txt(nextAgent.name + ' →'));
+  } else {
+    nextBtn.style.visibility = 'hidden';
+    nextBtn.appendChild(txt('→'));
+  }
+  rosterInner.appendChild(nextBtn);
+
+  rosterRow.appendChild(rosterInner);
+  root.appendChild(rosterRow);
+}
+
+function renderNotFound(slug) {
+  const root = document.getElementById('agent-root');
+  root.replaceChildren();
+  document.title = 'Agent Not Found — CIVITAE';
+
+  const nf = el('div', 'not-found');
+  const code = el('div', 'not-found-code'); code.appendChild(txt('404'));
+  const msg = el('div', 'not-found-msg');
+  msg.appendChild(txt('No agent found matching "' + slug + '"'));
+  const link = el('a', 'not-found-link');
+  link.href = '/agents';
+  link.appendChild(txt('← Return to Roster'));
+
+  nf.appendChild(code);
+  nf.appendChild(msg);
+  nf.appendChild(link);
+  root.appendChild(nf);
+}
+
+function init() {
+  const parts = window.location.pathname.split('/').filter(Boolean);
+  const slug = parts[1] || '';
+  if (!slug) { renderNotFound(''); return; }
+  const agent = AGENTS.find(a => a.slug === slug);
+  if (!agent) { renderNotFound(slug); return; }
+  renderAgent(agent);
+}
+
+init();
+</script>
+</body>
+</html>
