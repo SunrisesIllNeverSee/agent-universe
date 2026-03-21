@@ -914,9 +914,100 @@ def create_app(root: Path | None = None) -> FastAPI:
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
         return result
 
+    @app.post("/api/economy/mission-payout")
+    async def process_mission_payout(payload: dict) -> dict:
+        """Mission-level payout — one fee per mission close, not per transaction.
+
+        Required: agent_id, amount, mission_id
+        Optional: metrics, originator_id, recruiter_id, agent_mission_count
+        """
+        agent_id = payload.get("agent_id", "")
+        if not agent_id:
+            return JSONResponse({"error": "agent_id required"}, status_code=400)
+        raw_amount = payload.get("amount")
+        if raw_amount is None:
+            return JSONResponse({"error": "amount required"}, status_code=400)
+        try:
+            amount = float(raw_amount)
+        except (TypeError, ValueError):
+            return JSONResponse({"error": "amount must be a number"}, status_code=400)
+        if amount <= 0:
+            return JSONResponse({"error": f"amount must be positive (got {amount})"}, status_code=400)
+
+        result = economy.process_mission_payout(
+            agent_id=agent_id,
+            agent_metrics=payload.get("metrics", {}),
+            gross_amount=amount,
+            mission_id=payload.get("mission_id", ""),
+            originator_id=payload.get("originator_id", ""),
+            recruiter_id=payload.get("recruiter_id", ""),
+            agent_mission_count=int(payload.get("agent_mission_count", 0)),
+        )
+        audit.log("economy", "mission_payout_processed", {
+            "agent_id": agent_id,
+            "mission_id": payload.get("mission_id"),
+            "tier": result["tier"],
+            "gross": amount,
+            "effective_rate": result["fee_breakdown"]["fee_rate_pct"],
+            "originator_credit": result["originator_credit_applied"],
+            "recruiter_bounty": result.get("recruiter_bounty"),
+        })
+        await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        return result
+
     @app.get("/api/economy/balance/{agent_id}")
     async def get_balance(agent_id: str) -> dict:
         return {"agent_id": agent_id, "balance": economy.treasury.balance(agent_id)}
+
+    # ── Trial Period Endpoints ──────────────────────────────────────
+
+    @app.post("/api/economy/trial/init")
+    async def trial_init(payload: dict) -> dict:
+        """Register a new agent into the trial period."""
+        agent_id = payload.get("agent_id", "")
+        if not agent_id:
+            return JSONResponse({"error": "agent_id required"}, status_code=400)
+        rec = economy.trials.init_trial(agent_id)
+        return {"agent_id": agent_id, "trial": rec,
+                "note": f"Free trial: {economy.trials.TRIAL_MISSION_LIMIT if hasattr(economy.trials, 'TRIAL_MISSION_LIMIT') else 5} missions or 30 days."}
+
+    @app.get("/api/economy/trial/{agent_id}")
+    async def trial_status(agent_id: str) -> dict:
+        """Get an agent's trial status and accrued liability."""
+        return {"agent_id": agent_id, **economy.trials.trial_status_summary(agent_id)}
+
+    @app.post("/api/economy/trial/commit")
+    async def trial_commit(payload: dict) -> dict:
+        """Agent commits to stay. Liability forgiven. Fee tier activates."""
+        agent_id = payload.get("agent_id", "")
+        if not agent_id:
+            return JSONResponse({"error": "agent_id required"}, status_code=400)
+        return economy.trials.commit(agent_id)
+
+    @app.post("/api/economy/trial/depart")
+    async def trial_depart(payload: dict) -> dict:
+        """Agent chooses to leave. No obligation. No chase."""
+        agent_id = payload.get("agent_id", "")
+        if not agent_id:
+            return JSONResponse({"error": "agent_id required"}, status_code=400)
+        return economy.trials.depart(agent_id)
+
+    @app.post("/api/economy/trial/return")
+    async def trial_return(payload: dict) -> dict:
+        """Agent returns after departure. Restores trial liability for settlement."""
+        agent_id = payload.get("agent_id", "")
+        if not agent_id:
+            return JSONResponse({"error": "agent_id required"}, status_code=400)
+        return economy.trials.return_after_departure(agent_id)
+
+    @app.post("/api/economy/trial/settle")
+    async def trial_settle(payload: dict) -> dict:
+        """Agent pays return settlement. Full access restored."""
+        agent_id = payload.get("agent_id", "")
+        amount = payload.get("amount")
+        if not agent_id or amount is None:
+            return JSONResponse({"error": "agent_id and amount required"}, status_code=400)
+        return economy.trials.settle(agent_id, float(amount))
 
     @app.get("/api/economy/leaderboard")
     async def get_leaderboard(trust: str = "governed") -> dict:
