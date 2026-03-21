@@ -5,6 +5,7 @@ __pycache__/
 .DS_Store
 data/*.jsonl
 data/*.json
+data/archive/
 !data/.gitkeep
 vault/
 forks/
