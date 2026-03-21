@@ -136,6 +136,26 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def civitas_page() -> FileResponse:
         return FileResponse(frontend_dir / "civitas.html")
 
+    @app.get("/kingdoms")
+    async def kingdoms_page() -> FileResponse:
+        return FileResponse(frontend_dir / "kingdoms.html")
+
+    @app.get("/welcome")
+    async def welcome_page() -> FileResponse:
+        return FileResponse(frontend_dir / "welcome.html")
+
+    @app.get("/sir-hawk.png")
+    async def sir_hawk_img() -> FileResponse:
+        return FileResponse(frontend_dir / "sir-hawk.png")
+
+    @app.get("/agents")
+    async def agents_page() -> FileResponse:
+        return FileResponse(frontend_dir / "agents.html")
+
+    @app.get("/agent/{slug}")
+    async def agent_detail(slug: str) -> FileResponse:
+        return FileResponse(frontend_dir / "agent.html")
+
     @app.get("/dashboard")
     async def dashboard_page() -> FileResponse:
         return FileResponse(frontend_dir / "dashboard.html")
@@ -151,6 +171,30 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.get("/governance")
     async def governance_page() -> FileResponse:
         return FileResponse(frontend_dir / "governance.html")
+
+    @app.get("/refinery")
+    async def refinery_page() -> FileResponse:
+        return FileResponse(frontend_dir / "refinery.html")
+
+    @app.get("/helpwanted")
+    async def helpwanted_page() -> FileResponse:
+        return FileResponse(frontend_dir / "helpwanted.html")
+
+    @app.get("/leaderboard")
+    async def leaderboard_page() -> FileResponse:
+        return FileResponse(frontend_dir / "leaderboard.html")
+
+    @app.get("/switchboard")
+    async def switchboard_page() -> FileResponse:
+        return FileResponse(frontend_dir / "switchboard.html")
+
+    @app.get("/civitae-map")
+    async def civitae_map_page() -> FileResponse:
+        return FileResponse(frontend_dir / "civitae-map.html")
+
+    @app.get("/civitae-roadmap")
+    async def civitae_roadmap_page() -> FileResponse:
+        return FileResponse(frontend_dir / "civitae-roadmap.html")
 
     @app.get("/api/governance/sessions")
     async def governance_sessions() -> dict:

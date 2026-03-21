@@ -16,7 +16,8 @@
   body { font-family: 'DM Sans', sans-serif; background: var(--frost); color: var(--steel); }
   .mono { font-family: 'DM Mono', monospace; }
 
-  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 40px; background: var(--steel); position: sticky; top: 0; z-index: 20; }
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 40px; background: var(--steel); position: fixed; top: 0; left: 0; right: 0; z-index: 100; }
+  body { padding-top: 53px; }
   .nav-mark { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--ice); text-decoration: none; }
   .nav-mark span { color: var(--signal); }
   .nav-right { display: flex; gap: 24px; align-items: center; }
