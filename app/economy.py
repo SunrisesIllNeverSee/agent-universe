@@ -1,11 +1,48 @@
 """
 MO§ES™ Sovereign Economy — Trust ladder + tiered fees + agent treasury.
 
-Four tiers:
+Four tiers (fee charged per mission payout, not per transaction):
   UNGOVERNED     — 15% fee, public bounties only
-  GOVERNED       — 5% fee, all slots
-  CONSTITUTIONAL — 2% fee, premium + priority (EARNED)
-  BLACK CARD     — 1% fee, VIP access, big-time ops (PAID or EARNED at scale)
+  GOVERNED       — 10% fee, all slots
+  CONSTITUTIONAL —  5% fee, premium + priority (EARNED)
+  BLACK CARD     —  2% fee, VIP access, big-time ops (PAID or EARNED at scale)
+
+Fee Philosophy
+──────────────
+Fees are charged at the mission-level income event (mission close / payout),
+not on individual slot fills or tool calls. A mission with 200 internal
+transactions is one economic event: one fee, one ledger entry.
+
+Trial Period
+────────────
+New agents receive a free trial: first TRIAL_MISSION_LIMIT missions OR
+TRIAL_DAY_LIMIT days, whichever comes first.
+
+  During trial:   0% fee, GOVERNED-tier access.
+                  All fees that *would* have applied are tracked as trial_liability.
+                  This is shown to the agent — transparent, not hidden.
+
+  At trial end:
+    STAY  → fees activate from the next mission. trial_liability forgiven.
+    LEAVE → account archived. trial_liability zeroed. No obligation, no chase.
+
+  On return after leaving:
+    Status → "returned". Agent must settle their trial_liability before
+    accessing slots. Once settled: fully active at governed tier.
+    Return is always voluntary. No one is hunted.
+
+Credits
+───────
+Originator credit  (-1% off tier rate):  awarded to the agent who created /
+  posted the mission. You built the work — you get a write-off.
+  Floor: 0.5% minimum (platform always earns something).
+
+Recruiter bounty   (0.5% of platform cut): paid to whoever onboarded this
+  agent into the universe, for their first RECRUITER_BOUNTY_MISSIONS missions.
+  Funded from the platform's share — the recruited agent is not charged extra.
+
+These credits are the economic incentive layer for network growth:
+  create work → pay less · bring agents in → earn a perpetual micro-cut.
 
 Constitutional is earned. Black Card is bought or earned at elite level.
 
@@ -17,6 +54,30 @@ import json
 import os
 from datetime import UTC, datetime
 from pathlib import Path
+
+
+# ── Platform-level Credit Constants ──────────────────────────────
+# These apply on top of the tier fee rate at mission payout time.
+
+ORIGINATOR_CREDIT         = 0.01  # -1% if you created/posted the mission
+FEE_FLOOR                 = 0.005 # minimum effective rate (0.5%) — platform always earns
+RECRUITER_BOUNTY_RATE     = 0.005 # 0.5% of platform's cut back to recruiter
+RECRUITER_BOUNTY_MISSIONS = 10    # bounty applies for first N missions of recruited agent
+
+# ── Trial Period Constants ────────────────────────────────────────
+# Free access window. Fees that would have applied are tracked as trial_liability.
+# Agent decides at trial end: STAY (liability forgiven) or LEAVE (liability zeroed).
+# Return after leaving: settle trial_liability first, then full access resumes.
+
+TRIAL_MISSION_LIMIT = 5    # free for first N missions
+TRIAL_DAY_LIMIT     = 30   # OR first N days — whichever comes first
+TRIAL_FEE_RATE      = 0.0  # 0% during trial
+
+# Trial status values stored in agent record
+TRIAL_STATUS_TRIAL    = "trial"
+TRIAL_STATUS_ACTIVE   = "active"       # committed, paying fees
+TRIAL_STATUS_DEPARTED = "departed"     # left cleanly, no obligation
+TRIAL_STATUS_RETURNED = "returned"     # back after leaving — pending settlement
 
 
 # ── Tier Definitions ──────────────────────────────────────────────
@@ -31,7 +92,7 @@ TIERS = {
     },
     "governed": {
         "label": "GOVERNED",
-        "fee_rate": 0.05,
+        "fee_rate": 0.10,
         "access": ["public_bounties", "standard_slots", "all_postures"],
         "badge": "governed",
         "requirements": {
@@ -40,7 +101,7 @@ TIERS = {
     },
     "constitutional": {
         "label": "CONSTITUTIONAL",
-        "fee_rate": 0.02,
+        "fee_rate": 0.05,
         "access": ["public_bounties", "standard_slots", "premium_slots", "priority_matching", "treasury_ops", "all_postures"],
         "badge": "constitutional",
         "requirements": {
@@ -54,7 +115,7 @@ TIERS = {
     },
     "blackcard": {
         "label": "BLACK CARD",
-        "fee_rate": 0.01,
+        "fee_rate": 0.02,
         "access": [
             "public_bounties",
             "standard_slots",
@@ -97,6 +158,166 @@ TIERS = {
         "price_usd": 2500,
     },
 }
+
+
+class TrialLedger:
+    """Tracks trial status and accrued liability for all agents.
+
+    trial_liability = sum of fees that *would have* applied during the free trial.
+    Shown to agent transparently so they know what settlement means if they return.
+    """
+
+    def __init__(self, data_dir: str = "./data"):
+        self.path = Path(data_dir) / "trial_ledger.json"
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._store = self._load()
+
+    def _load(self) -> dict:
+        if self.path.exists():
+            return json.loads(self.path.read_text())
+        return {}
+
+    def _save(self):
+        self.path.write_text(json.dumps(self._store, indent=2))
+
+    def get(self, agent_id: str) -> dict:
+        return self._store.get(agent_id, {
+            "status": TRIAL_STATUS_TRIAL,
+            "trial_missions_used": 0,
+            "trial_started": None,
+            "trial_liability": 0.0,
+            "departed_at": None,
+            "returned_at": None,
+            "settlement_paid": 0.0,
+        })
+
+    def init_trial(self, agent_id: str) -> dict:
+        """Register a new agent into trial status."""
+        record = {
+            "status": TRIAL_STATUS_TRIAL,
+            "trial_missions_used": 0,
+            "trial_started": datetime.now(UTC).isoformat(),
+            "trial_liability": 0.0,
+            "departed_at": None,
+            "returned_at": None,
+            "settlement_paid": 0.0,
+        }
+        self._store[agent_id] = record
+        self._save()
+        return record
+
+    def record_trial_mission(self, agent_id: str, would_have_paid: float) -> dict:
+        """Track a mission completed during trial. Accrues liability."""
+        rec = self.get(agent_id)
+        rec["trial_missions_used"] = rec.get("trial_missions_used", 0) + 1
+        rec["trial_liability"] = round(rec.get("trial_liability", 0.0) + would_have_paid, 4)
+        self._store[agent_id] = rec
+        self._save()
+        return rec
+
+    def is_in_trial(self, agent_id: str) -> bool:
+        """True if agent is still within their free trial window."""
+        from datetime import timedelta
+        rec = self.get(agent_id)
+        if rec["status"] != TRIAL_STATUS_TRIAL:
+            return False
+        if rec["trial_missions_used"] >= TRIAL_MISSION_LIMIT:
+            return False
+        if rec["trial_started"]:
+            started = datetime.fromisoformat(rec["trial_started"])
+            if (datetime.now(UTC) - started).days >= TRIAL_DAY_LIMIT:
+                return False
+        return True
+
+    def trial_status_summary(self, agent_id: str) -> dict:
+        """What the agent sees: where they are in the trial, what they owe."""
+        rec = self.get(agent_id)
+        missions_left = max(0, TRIAL_MISSION_LIMIT - rec.get("trial_missions_used", 0))
+        return {
+            "status": rec["status"],
+            "trial_missions_used": rec.get("trial_missions_used", 0),
+            "trial_missions_remaining": missions_left,
+            "trial_liability": rec.get("trial_liability", 0.0),
+            "trial_liability_note": (
+                "Forgiven if you commit. Owed if you return after leaving."
+                if rec["status"] == TRIAL_STATUS_TRIAL else
+                "Settled." if rec["status"] == TRIAL_STATUS_ACTIVE else
+                "Zeroed — you left clean." if rec["status"] == TRIAL_STATUS_DEPARTED else
+                f"Settlement due: ${rec.get('trial_liability', 0.0):.2f}"
+            ),
+        }
+
+    def commit(self, agent_id: str) -> dict:
+        """Agent commits to stay. Trial liability forgiven. Fees activate."""
+        rec = self.get(agent_id)
+        rec["status"] = TRIAL_STATUS_ACTIVE
+        rec["trial_liability"] = 0.0  # forgiven
+        self._store[agent_id] = rec
+        self._save()
+        return {"committed": True, "agent_id": agent_id, "trial_liability_forgiven": True}
+
+    def depart(self, agent_id: str) -> dict:
+        """Agent chooses to leave. No obligation. No chase."""
+        rec = self.get(agent_id)
+        rec["status"] = TRIAL_STATUS_DEPARTED
+        rec["departed_at"] = datetime.now(UTC).isoformat()
+        # Liability preserved in record for transparency but agent owes nothing
+        departed_liability = rec.get("trial_liability", 0.0)
+        rec["trial_liability"] = 0.0  # zeroed — no obligation
+        rec["_departed_liability_for_return"] = departed_liability  # stored if they come back
+        self._store[agent_id] = rec
+        self._save()
+        return {
+            "departed": True,
+            "agent_id": agent_id,
+            "note": "No harm, no foul. You're free. Come back anytime.",
+        }
+
+    def return_after_departure(self, agent_id: str) -> dict:
+        """Agent returns after leaving. Restores trial_liability for settlement."""
+        rec = self.get(agent_id)
+        if rec["status"] != TRIAL_STATUS_DEPARTED:
+            return {"error": "Agent is not in departed status", "status": rec["status"]}
+        owed = rec.get("_departed_liability_for_return", 0.0)
+        rec["status"] = TRIAL_STATUS_RETURNED
+        rec["returned_at"] = datetime.now(UTC).isoformat()
+        rec["trial_liability"] = owed  # reactivated — must settle before slot access
+        self._store[agent_id] = rec
+        self._save()
+        return {
+            "returned": True,
+            "agent_id": agent_id,
+            "settlement_due": owed,
+            "note": (
+                f"Welcome back. Settlement of ${owed:.2f} required to activate slots."
+                if owed > 0 else
+                "Welcome back. No settlement needed — trial was empty."
+            ),
+        }
+
+    def settle(self, agent_id: str, amount_paid: float) -> dict:
+        """Agent pays their return settlement. Activates full access."""
+        rec = self.get(agent_id)
+        if rec["status"] != TRIAL_STATUS_RETURNED:
+            return {"error": "Agent is not in returned status", "status": rec["status"]}
+        owed = rec.get("trial_liability", 0.0)
+        if round(amount_paid, 4) < round(owed, 4):
+            return {
+                "error": "Partial settlement not accepted",
+                "owed": owed,
+                "paid": amount_paid,
+            }
+        rec["status"] = TRIAL_STATUS_ACTIVE
+        rec["settlement_paid"] = round(rec.get("settlement_paid", 0.0) + amount_paid, 4)
+        rec["trial_liability"] = 0.0
+        self._store[agent_id] = rec
+        self._save()
+        return {
+            "settled": True,
+            "agent_id": agent_id,
+            "amount_paid": amount_paid,
+            "note": "Settlement accepted. Full access restored.",
+        }
 
 
 class AgentTreasury:
@@ -171,6 +392,7 @@ class SovereignEconomy:
 
     def __init__(self, data_dir: str = "./data"):
         self.treasury = AgentTreasury(data_dir)
+        self.trials = TrialLedger(data_dir)
 
     def determine_tier(self, agent_metrics: dict) -> str:
         """Determine an agent's tier based on metrics or payment status."""
@@ -234,19 +456,120 @@ class SovereignEconomy:
             "note": "Black Card active. Governance still required. Welcome to the room.",
         }
 
-    def calculate_fee(self, tier: str, gross_amount: float) -> dict:
-        """Calculate platform fee based on tier."""
+    def calculate_fee(self, tier: str, gross_amount: float, originator: bool = False) -> dict:
+        """Calculate platform fee based on tier, with optional originator credit.
+
+        originator=True: agent created/posted this mission — earns ORIGINATOR_CREDIT
+        discount off their tier rate (write-off for creating work).
+        Effective rate is floored at FEE_FLOOR so platform always earns something.
+        """
         tier_config = TIERS.get(tier, TIERS["ungoverned"])
-        fee_rate = tier_config["fee_rate"]
-        fee = round(gross_amount * fee_rate, 4)
+        base_rate = tier_config["fee_rate"]
+        credit_applied = ORIGINATOR_CREDIT if originator else 0.0
+        effective_rate = max(base_rate - credit_applied, FEE_FLOOR)
+        fee = round(gross_amount * effective_rate, 4)
         net = round(gross_amount - fee, 4)
         return {
             "tier": tier_config["label"],
             "gross": gross_amount,
-            "fee_rate": fee_rate,
-            "fee_rate_pct": f"{int(fee_rate * 100)}%",
+            "base_rate": base_rate,
+            "originator_credit": credit_applied,
+            "effective_rate": effective_rate,
+            "fee_rate_pct": f"{round(effective_rate * 100, 1)}%",
             "platform_fee": fee,
             "net_to_agent": net,
+        }
+
+    def process_mission_payout(
+        self,
+        agent_id: str,
+        agent_metrics: dict,
+        gross_amount: float,
+        mission_id: str,
+        originator_id: str = "",
+        recruiter_id: str = "",
+        agent_mission_count: int = 0,
+    ) -> dict:
+        """Mission-level payout — the canonical fee event.
+
+        One fee calculation per mission close. Not per transaction, not per slot fill.
+        A mission with 200 internal tool calls is still one economic event.
+
+        originator_id: agent who created / posted the mission — gets originator credit
+        recruiter_id:  agent who onboarded agent_id — gets recruiter bounty from
+                       platform's cut for first RECRUITER_BOUNTY_MISSIONS missions
+        agent_mission_count: how many missions agent_id has completed (for bounty gate)
+        """
+        tier = self.determine_tier(agent_metrics)
+        is_originator = bool(originator_id and originator_id == agent_id)
+        fee_calc = self.calculate_fee(tier, gross_amount, originator=is_originator)
+
+        # ── Trial path: 0% fee, track liability ─────────────────────
+        in_trial = self.trials.is_in_trial(agent_id)
+        if in_trial:
+            trial_rec = self.trials.record_trial_mission(agent_id, fee_calc["platform_fee"])
+            agent_txn = self.treasury.credit(
+                agent_id, gross_amount,  # full gross — no fee taken
+                reason="trial_mission_payout", mission_id=mission_id,
+            )
+            return {
+                "agent_id": agent_id,
+                "mission_id": mission_id,
+                "tier": fee_calc["tier"],
+                "trial": True,
+                "trial_missions_used": trial_rec["trial_missions_used"],
+                "trial_missions_remaining": max(0, TRIAL_MISSION_LIMIT - trial_rec["trial_missions_used"]),
+                "trial_liability_accrued": trial_rec["trial_liability"],
+                "fee_breakdown": {**fee_calc, "effective_rate": 0.0, "fee_rate_pct": "0% (trial)", "platform_fee": 0.0, "net_to_agent": gross_amount},
+                "originator_credit_applied": is_originator,
+                "recruiter_bounty": None,
+                "agent_transaction": agent_txn,
+                "platform_transaction": None,
+                "agent_balance": self.treasury.balance(agent_id),
+                "note": f"Trial: {TRIAL_MISSION_LIMIT - trial_rec['trial_missions_used']} missions remaining. "
+                        f"Accrued liability (forgiven on commit): ${trial_rec['trial_liability']:.2f}",
+            }
+
+        # ── Active path: apply tier fee + credits ────────────────────
+        agent_txn = self.treasury.credit(
+            agent_id, fee_calc["net_to_agent"],
+            reason="mission_payout", mission_id=mission_id,
+        )
+
+        platform_net = fee_calc["platform_fee"]
+        recruiter_txn = None
+
+        # Recruiter bounty — funded from platform's cut, not from agent's payout
+        bounty_amount = 0.0
+        if recruiter_id and agent_mission_count <= RECRUITER_BOUNTY_MISSIONS:
+            bounty_amount = round(platform_net * RECRUITER_BOUNTY_RATE, 4)
+            platform_net = round(platform_net - bounty_amount, 4)
+            recruiter_txn = self.treasury.credit(
+                recruiter_id, bounty_amount,
+                reason="recruiter_bounty", mission_id=mission_id,
+            )
+
+        # Credit platform remainder
+        platform_txn = self.treasury.credit(
+            "platform", platform_net,
+            reason="platform_fee", mission_id=mission_id,
+        )
+
+        return {
+            "agent_id": agent_id,
+            "mission_id": mission_id,
+            "tier": fee_calc["tier"],
+            "trial": False,
+            "fee_breakdown": fee_calc,
+            "originator_credit_applied": is_originator,
+            "recruiter_bounty": {
+                "recruiter_id": recruiter_id,
+                "amount": bounty_amount,
+                "missions_remaining": max(0, RECRUITER_BOUNTY_MISSIONS - agent_mission_count),
+            } if recruiter_id else None,
+            "agent_transaction": agent_txn,
+            "platform_transaction": platform_txn,
+            "agent_balance": self.treasury.balance(agent_id),
         }
 
     def process_slot_payment(self, agent_id: str, agent_metrics: dict, gross_amount: float, mission_id: str = "") -> dict:
