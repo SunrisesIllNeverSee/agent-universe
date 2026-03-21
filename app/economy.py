@@ -88,29 +88,44 @@ import os
 from datetime import UTC, datetime
 from pathlib import Path
 
+# ── Load flex rates from config (CIVITAS-voteable without code deploy) ──────
+# Falls back to hardcoded defaults if config file is missing.
+
+def _load_rates(config_path: Path | None = None) -> dict:
+    """Load economic rates from config/economic_rates.json if present."""
+    if config_path is None:
+        config_path = Path(__file__).parent.parent / "config" / "economic_rates.json"
+    try:
+        if config_path.exists():
+            return json.loads(config_path.read_text())
+    except Exception:
+        pass
+    return {}
+
+_RATES = _load_rates()
+_TIER_OVERRIDES  = _RATES.get("tiers", {})
+_CREDIT_CFG      = _RATES.get("credits", {})
+_TRIAL_CFG       = _RATES.get("trial", {})
 
 # ── Platform-level Credit Constants ──────────────────────────────
 # These apply on top of the tier fee rate at mission payout time.
+# Loaded from config/economic_rates.json if present; hardcoded fallback otherwise.
 
-ORIGINATOR_CREDIT         = 0.01  # -1% if you created/posted the mission
-FEE_FLOOR                 = 0.005 # minimum effective rate (0.5%) — platform always earns
-RECRUITER_BOUNTY_RATE     = 0.005 # 0.5% of platform's cut back to recruiter
-RECRUITER_BOUNTY_MISSIONS = 10    # bounty applies for first N missions of recruited agent
+ORIGINATOR_CREDIT         = _CREDIT_CFG.get("originator_credit",        0.01)
+FEE_FLOOR                 = _CREDIT_CFG.get("fee_floor",                 0.005)
+RECRUITER_BOUNTY_RATE     = _CREDIT_CFG.get("recruiter_bounty_rate",     0.005)
+RECRUITER_BOUNTY_MISSIONS = _CREDIT_CFG.get("recruiter_bounty_missions", 10)
 
 # ── Trial Period Constants ────────────────────────────────────────
-# Free access window. Fees that would have applied are tracked as trial_liability.
-# Agent decides at trial end: STAY (liability forgiven) or LEAVE (liability zeroed).
-# Return after leaving: settle trial_liability first, then full access resumes.
-
-TRIAL_MISSION_LIMIT = 5    # free for first N missions
-TRIAL_DAY_LIMIT     = 30   # OR first N days — whichever comes first
-TRIAL_FEE_RATE      = 0.0  # 0% during trial
+TRIAL_MISSION_LIMIT = _TRIAL_CFG.get("mission_limit", 5)
+TRIAL_DAY_LIMIT     = _TRIAL_CFG.get("day_limit",     30)
+TRIAL_FEE_RATE      = _TRIAL_CFG.get("fee_rate",      0.0)
 
 # Trial status values stored in agent record
 TRIAL_STATUS_TRIAL    = "trial"
-TRIAL_STATUS_ACTIVE   = "active"       # committed, paying fees
-TRIAL_STATUS_DEPARTED = "departed"     # left cleanly, no obligation
-TRIAL_STATUS_RETURNED = "returned"     # back after leaving — pending settlement
+TRIAL_STATUS_ACTIVE   = "active"
+TRIAL_STATUS_DEPARTED = "departed"
+TRIAL_STATUS_RETURNED = "returned"
 
 
 # ── Tier Definitions ──────────────────────────────────────────────
@@ -191,6 +206,11 @@ TIERS = {
         "price_usd": 2500,
     },
 }
+
+# Apply config overrides to tier fee_rates (CIVITAS vote changes config, not code)
+for _tier_key, _tier_override in _TIER_OVERRIDES.items():
+    if _tier_key in TIERS and "fee_rate" in _tier_override:
+        TIERS[_tier_key]["fee_rate"] = _tier_override["fee_rate"]
 
 
 class TrialLedger:

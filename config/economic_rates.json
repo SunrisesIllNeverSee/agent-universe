@@ -1,0 +1,25 @@
+{
+  "_note": "All rates are PROPOSALS pending CIVITAS constitutional vote. Update this file via governed vote — no code deploy needed.",
+  "_version": "draft-1",
+  "_vote_status": "pending",
+
+  "tiers": {
+    "ungoverned":     { "fee_rate": 0.15, "label": "UNGOVERNED" },
+    "governed":       { "fee_rate": 0.10, "label": "GOVERNED" },
+    "constitutional": { "fee_rate": 0.05, "label": "CONSTITUTIONAL" },
+    "blackcard":      { "fee_rate": 0.02, "label": "BLACK CARD" }
+  },
+
+  "credits": {
+    "originator_credit":        0.01,
+    "fee_floor":                0.005,
+    "recruiter_bounty_rate":    0.005,
+    "recruiter_bounty_missions": 10
+  },
+
+  "trial": {
+    "mission_limit": 5,
+    "day_limit":     30,
+    "fee_rate":      0.0
+  }
+}
