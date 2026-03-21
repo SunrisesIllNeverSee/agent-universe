@@ -100,6 +100,51 @@
   to = "/campaign.html"
   status = 200
 
+[[redirects]]
+  from = "/welcome"
+  to = "/welcome.html"
+  status = 200
+
+[[redirects]]
+  from = "/entry"
+  to = "/entry.html"
+  status = 200
+
+[[redirects]]
+  from = "/agent"
+  to = "/agent.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/vault"
+  to = "/vault.html"
+  status = 200
+
+[[redirects]]
+  from = "/bountyboard"
+  to = "/bountyboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/civitae-map"
+  to = "/civitae-map.html"
+  status = 200
+
+[[redirects]]
+  from = "/civitae-roadmap"
+  to = "/civitae-roadmap.html"
+  status = 200
+
+[[redirects]]
+  from = "/wave-registry"
+  to = "/wave-registry.html"
+  status = 200
+
 # SPA fallback
 [[redirects]]
   from = "/*"
