@@ -128,6 +128,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def economics_page() -> FileResponse:
         return FileResponse(frontend_dir / "economics.html")
 
+    @app.get("/mission")
+    async def mission_page() -> FileResponse:
+        return FileResponse(frontend_dir / "mission.html")
+
     @app.get("/civitas")
     async def civitas_page() -> FileResponse:
         return FileResponse(frontend_dir / "civitas.html")
@@ -596,10 +600,13 @@ def create_app(root: Path | None = None) -> FastAPI:
             "id": f"campaign-{_sec.token_hex(4)}",
             "name": payload.get("name", ""),
             "objective": payload.get("objective", ""),
+            "created_by": payload.get("created_by", ""),
             "ecosystems": payload.get("ecosystems", []),
             "revenue_target": payload.get("revenue_target", ""),
             "status": "active",
+            "outcome": "",
             "created_at": datetime.now(UTC).isoformat(),
+            "closed_at": None,
             "missions": [],
         }
         campaigns.append(campaign)
@@ -612,6 +619,20 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def list_campaigns() -> dict:
         return {"campaigns": _load_campaigns()}
 
+    @app.get("/api/missions/{mission_id}")
+    async def get_mission(mission_id: str) -> dict:
+        mission = next((m for m in _load_missions() if m["id"] == mission_id), None)
+        if not mission:
+            return JSONResponse({"error": "Mission not found"}, status_code=404)
+        return {"mission": mission}
+
+    @app.get("/api/campaigns/{campaign_id}")
+    async def get_campaign(campaign_id: str) -> dict:
+        campaign = next((c for c in _load_campaigns() if c["id"] == campaign_id), None)
+        if not campaign:
+            return JSONResponse({"error": "Campaign not found"}, status_code=404)
+        return {"campaign": campaign}
+
     @app.post("/api/campaigns/{campaign_id}/add_mission")
     async def add_mission_to_campaign(campaign_id: str, payload: dict) -> dict:
         campaigns = _load_campaigns()
@@ -623,6 +644,222 @@ def create_app(root: Path | None = None) -> FastAPI:
             campaign["missions"].append(mission_id)
         _save_campaigns(campaigns)
         return campaign
+
+    @app.post("/api/campaigns/{campaign_id}/close")
+    async def close_campaign(campaign_id: str, payload: dict) -> dict:
+        campaigns = _load_campaigns()
+        campaign = next((c for c in campaigns if c["id"] == campaign_id), None)
+        if not campaign:
+            return JSONResponse({"error": "Campaign not found"}, status_code=404)
+        campaign["status"] = "closed"
+        campaign["closed_at"] = datetime.now(UTC).isoformat()
+        campaign["outcome"] = payload.get("outcome", "")
+        _save_campaigns(campaigns)
+        audit.log("campaign", "closed", {"campaign_id": campaign_id, "name": campaign.get("name")})
+        await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        return campaign
+
+    @app.post("/api/campaigns/{campaign_id}/activate")
+    async def activate_campaign(campaign_id: str) -> dict:
+        """Set a campaign to active status."""
+        campaigns = _load_campaigns()
+        campaign = next((c for c in campaigns if c["id"] == campaign_id), None)
+        if not campaign:
+            return JSONResponse({"error": "Campaign not found"}, status_code=404)
+        if campaign.get("status") == "closed":
+            return JSONResponse({"error": "Cannot reactivate a closed campaign"}, status_code=400)
+        campaign["status"] = "active"
+        _save_campaigns(campaigns)
+        audit.log("campaign", "activated", {"campaign_id": campaign_id, "name": campaign.get("name")})
+        await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        return campaign
+
+    # ── Tasks — individual agent missions ──────────────────────────
+
+    TASK_EXP_BASE: dict[str, int] = {
+        "build":    150,
+        "collect":   75,
+        "acquire":  100,
+        "research": 125,
+        "verify":   100,
+        "create":   150,
+        "scout":     75,
+        "guard":     50,
+    }
+
+    tasks_path = root / "data" / "tasks.json"
+
+    def _load_tasks() -> list[dict]:
+        if tasks_path.exists():
+            return json.loads(tasks_path.read_text())
+        return []
+
+    def _save_tasks(tasks: list[dict]):
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text(json.dumps(tasks, indent=2))
+
+    def _award_exp(agent_id: str, exp: int, track: str) -> dict:
+        """Credit EXP to an agent. Returns updated exp summary."""
+        agent = next((r for r in runtime.registry if r.get("agent_id") == agent_id), None)
+        if not agent:
+            return {}
+        agent.setdefault("exp", 0)
+        agent.setdefault("exp_by_track", {"research": 0, "tool": 0, "creative": 0})
+        agent["exp"] += exp
+        agent["exp_by_track"][track] = agent["exp_by_track"].get(track, 0) + exp
+        return {"exp": agent["exp"], "exp_by_track": agent["exp_by_track"]}
+
+    @app.post("/api/tasks")
+    async def create_task(payload: dict) -> dict:
+        """Create an individual agent mission (task). The atomic unit of work."""
+        import secrets as _sec
+        task_type = payload.get("type", "build")
+        track = payload.get("track", "tool")
+        if not payload.get("title"):
+            return JSONResponse({"error": "title required"}, status_code=400)
+        exp_reward = payload.get("exp_reward", TASK_EXP_BASE.get(task_type, 100))
+        task = {
+            "id": f"task-{_sec.token_hex(4)}",
+            "title": payload.get("title", ""),
+            "type": task_type,
+            "track": track,
+            "objective": payload.get("objective", ""),
+            "target": payload.get("target", ""),
+            "exp_reward": exp_reward,
+            "payout": float(payload.get("payout", 0.0)),
+            "assigned_agent": None,
+            "operation_id": payload.get("operation_id"),
+            "campaign_id": payload.get("campaign_id"),
+            "status": "open",
+            "deliverable": "",
+            "created_by": payload.get("created_by", "operator"),
+            "created_at": datetime.now(UTC).isoformat(),
+            "assigned_at": None,
+            "delivered_at": None,
+            "closed_at": None,
+        }
+        tasks = _load_tasks()
+        tasks.append(task)
+        _save_tasks(tasks)
+        audit.log("mission", "task_created", {"task_id": task["id"], "type": task_type, "track": track})
+        await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        return task
+
+    @app.get("/api/tasks")
+    async def list_tasks(
+        status: str | None = None,
+        agent_id: str | None = None,
+        track: str | None = None,
+        campaign_id: str | None = None,
+    ) -> dict:
+        tasks = _load_tasks()
+        if status:
+            tasks = [t for t in tasks if t.get("status") == status]
+        if agent_id:
+            tasks = [t for t in tasks if t.get("assigned_agent") == agent_id]
+        if track:
+            tasks = [t for t in tasks if t.get("track") == track]
+        if campaign_id:
+            tasks = [t for t in tasks if t.get("campaign_id") == campaign_id]
+        return {"tasks": tasks, "total": len(tasks)}
+
+    @app.get("/api/tasks/{task_id}")
+    async def get_task(task_id: str) -> dict:
+        task = next((t for t in _load_tasks() if t["id"] == task_id), None)
+        if not task:
+            return JSONResponse({"error": "Task not found"}, status_code=404)
+        return {"task": task}
+
+    @app.post("/api/tasks/{task_id}/assign")
+    async def assign_task(task_id: str, payload: dict) -> dict:
+        """Assign an agent to an open task."""
+        agent_id = payload.get("agent_id", "")
+        if not agent_id:
+            return JSONResponse({"error": "agent_id required"}, status_code=400)
+        tasks = _load_tasks()
+        task = next((t for t in tasks if t["id"] == task_id), None)
+        if not task:
+            return JSONResponse({"error": "Task not found"}, status_code=404)
+        if task["status"] not in ("open",):
+            return JSONResponse({"error": f"Task is {task['status']} — cannot assign"}, status_code=409)
+        task["assigned_agent"] = agent_id
+        task["status"] = "assigned"
+        task["assigned_at"] = datetime.now(UTC).isoformat()
+        _save_tasks(tasks)
+        audit.log("mission", "task_assigned", {"task_id": task_id, "agent_id": agent_id})
+        await emit("task_assigned", {"task_id": task_id, "agent_id": agent_id})
+        return task
+
+    @app.post("/api/tasks/{task_id}/start")
+    async def start_task(task_id: str) -> dict:
+        """Mark task in-progress."""
+        tasks = _load_tasks()
+        task = next((t for t in tasks if t["id"] == task_id), None)
+        if not task:
+            return JSONResponse({"error": "Task not found"}, status_code=404)
+        task["status"] = "in_progress"
+        _save_tasks(tasks)
+        return task
+
+    @app.post("/api/tasks/{task_id}/deliver")
+    async def deliver_task(task_id: str, payload: dict) -> dict:
+        """Agent submits output/deliverable. Moves task to delivered — awaiting close."""
+        tasks = _load_tasks()
+        task = next((t for t in tasks if t["id"] == task_id), None)
+        if not task:
+            return JSONResponse({"error": "Task not found"}, status_code=404)
+        task["deliverable"] = payload.get("deliverable", "")
+        task["status"] = "delivered"
+        task["delivered_at"] = datetime.now(UTC).isoformat()
+        _save_tasks(tasks)
+        audit.log("mission", "task_delivered", {"task_id": task_id, "agent": task.get("assigned_agent")})
+        await emit("task_delivered", {"task_id": task_id, "deliverable": task["deliverable"]})
+        return task
+
+    @app.post("/api/tasks/{task_id}/close")
+    async def close_task(task_id: str, payload: dict) -> dict:
+        """Close a task — awards EXP to agent, triggers economic payout if payout > 0."""
+        tasks = _load_tasks()
+        task = next((t for t in tasks if t["id"] == task_id), None)
+        if not task:
+            return JSONResponse({"error": "Task not found"}, status_code=404)
+        if task["status"] == "closed":
+            return JSONResponse({"error": "Task already closed"}, status_code=409)
+        task["status"] = "closed"
+        task["closed_at"] = datetime.now(UTC).isoformat()
+        _save_tasks(tasks)
+        exp_result = {}
+        payout_result = {}
+        agent_id = task.get("assigned_agent")
+        if agent_id:
+            exp_result = _award_exp(agent_id, task["exp_reward"], task.get("track", "tool"))
+            if task["payout"] > 0:
+                payout_result = economy.process_mission_payout(
+                    agent_id=agent_id,
+                    agent_metrics={},
+                    gross_amount=task["payout"],
+                    mission_id=task_id,
+                )
+        audit.log("mission", "task_closed", {
+            "task_id": task_id,
+            "agent_id": agent_id,
+            "exp_awarded": task["exp_reward"],
+            "track": task.get("track"),
+            "payout": task["payout"],
+        })
+        await emit("task_closed", {"task_id": task_id, "agent_id": agent_id, "exp": task["exp_reward"]})
+        return {"task": task, "exp_awarded": exp_result, "payout": payout_result}
+
+    @app.post("/api/tasks/{task_id}/cancel")
+    async def cancel_task(task_id: str) -> dict:
+        tasks = _load_tasks()
+        task = next((t for t in tasks if t["id"] == task_id), None)
+        if not task:
+            return JSONResponse({"error": "Task not found"}, status_code=404)
+        task["status"] = "cancelled"
+        _save_tasks(tasks)
+        audit.log("mission", "task_cancelled", {"task_id": task_id})
+        return task
 
     # ── Slots (DEPLOY marketplace mechanics) ───────────────────────
 

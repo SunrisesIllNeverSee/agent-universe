@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAMPAIGN — Strategic Oversight</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@700&family=DM+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #050507; --deep: #0a0a0f; --surface: #0f0f18; --panel: #13131e;
+    --border: #1e1e2e; --accent: #6e9ec8; --gold: #c8a96e; --signal: #7ec86e;
+    --warn: #c86e6e; --purple: #9c8ec8; --cyan: #6ec8c8;
+    --text: #d4d4e8; --muted: #8a8aa8;
+    --mono: 'Share Tech Mono', monospace;
+    --display: 'Syne', sans-serif;
+    --body: 'DM Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--body); min-height: 100vh;
+    display: grid; grid-template-rows: 48px 1fr;
+  }
+
+  /* TOPBAR */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; border-bottom: 1px solid var(--border);
+    background: var(--deep); position: sticky; top: 0; z-index: 10;
+  }
+  .logo { font-family: var(--display); font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 0.12em; }
+  .logo span { color: var(--gold); margin-left: 6px; }
+  .nav-links { display: flex; gap: 8px; }
+  .nav-link {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    text-decoration: none; padding: 4px 10px;
+    border: 1px solid var(--border); border-radius: 4px; transition: all 0.15s;
+  }
+  .nav-link:hover, .nav-link.active { border-color: var(--accent); color: var(--accent); }
+
+  /* PAGE LAYOUT */
+  .page { display: grid; grid-template-columns: 280px 1fr; min-height: 0; height: calc(100vh - 48px); }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--deep); border-right: 1px solid var(--border);
+    padding: 16px 12px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .sidebar-title {
+    font-family: var(--mono); font-size: 10px; color: var(--gold);
+    letter-spacing: 0.14em; text-transform: uppercase; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .form-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+  .form-input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px; padding: 6px 8px; color: var(--text);
+    font-family: var(--mono); font-size: 12px; transition: border-color 0.15s;
+  }
+  .form-input:focus { outline: none; border-color: var(--accent); }
+  .form-input::placeholder { color: var(--muted); }
+
+  .form-section { display: flex; flex-direction: column; gap: 4px; }
+
+  .btn-primary {
+    width: 100%; padding: 8px; font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.08em; background: rgba(200,169,110,0.1);
+    border: 1px solid var(--gold); border-radius: 4px; color: var(--gold);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-primary:hover { background: rgba(200,169,110,0.2); }
+
+  .form-msg { font-family: var(--mono); font-size: 11px; padding: 6px 10px; border-radius: 4px; }
+  .form-msg.ok { background: rgba(126,200,110,0.1); border: 1px solid rgba(126,200,110,0.3); color: var(--signal); }
+  .form-msg.err { background: rgba(200,110,110,0.1); border: 1px solid rgba(200,110,110,0.3); color: var(--warn); }
+  .form-msg.hidden { display: none; }
+
+  /* CAMPAIGN LIST DIVIDER */
+  .camp-list-header {
+    font-family: var(--mono); font-size: 10px; color: var(--accent);
+    letter-spacing: 0.12em; text-transform: uppercase; padding: 8px 0 6px;
+    border-top: 1px solid var(--border); margin-top: 4px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  .camp-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 12px; cursor: pointer;
+    transition: border-color 0.15s; border-left: 3px solid var(--border);
+  }
+  .camp-item:hover { border-color: var(--gold); }
+  .camp-item.selected { border-left-color: var(--gold); }
+  .camp-item.status-active { border-left-color: var(--signal); }
+  .camp-item.status-planning { border-left-color: var(--accent); }
+  .camp-item.status-closed { border-left-color: var(--purple); }
+  .camp-item.status-archived { border-left-color: var(--border); }
+
+  .camp-name { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text); }
+  .camp-meta { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+  .camp-chip {
+    font-family: var(--mono); font-size: 9px; padding: 1px 5px;
+    border-radius: 2px; border: 1px solid;
+  }
+  .camp-chip.status-active { border-color: rgba(126,200,110,0.4); color: var(--signal); }
+  .camp-chip.status-planning { border-color: rgba(110,158,200,0.4); color: var(--accent); }
+  .camp-chip.status-closed { border-color: rgba(156,142,200,0.4); color: var(--purple); }
+  .camp-chip.status-archived { border-color: var(--border); color: var(--muted); }
+  .camp-chip.ops { border-color: rgba(110,158,200,0.3); color: var(--accent); }
+  .camp-chip.tasks { border-color: rgba(200,169,110,0.3); color: var(--gold); }
+
+  /* MAIN CONTENT */
+  .main { overflow-y: auto; padding: 24px; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; height: 60%; gap: 12px; color: var(--muted);
+    font-family: var(--mono); font-size: 12px; text-align: center;
+  }
+  .empty-icon { font-size: 36px; opacity: 0.2; }
+
+  /* CAMPAIGN DETAIL */
+  .camp-detail { display: flex; flex-direction: column; gap: 20px; }
+
+  .detail-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .detail-title { font-family: var(--display); font-size: 22px; font-weight: 700; color: var(--text); }
+  .detail-id { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  .detail-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .det-btn {
+    padding: 5px 14px; font-family: var(--mono); font-size: 10px;
+    border-radius: 4px; cursor: pointer; border: 1px solid; transition: all 0.15s;
+    letter-spacing: 0.06em;
+  }
+  .det-btn.activate { border-color: rgba(126,200,110,0.5); color: var(--signal); background: rgba(126,200,110,0.06); }
+  .det-btn.activate:hover { background: rgba(126,200,110,0.14); }
+  .det-btn.close-camp { border-color: rgba(156,142,200,0.5); color: var(--purple); background: rgba(156,142,200,0.06); }
+  .det-btn.close-camp:hover { background: rgba(156,142,200,0.14); }
+  .det-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* METRICS ROW */
+  .metrics-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  .metric-card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 12px; text-align: center;
+  }
+  .metric-val { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--accent); }
+  .metric-lbl { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; margin-top: 4px; letter-spacing: 0.08em; }
+
+  /* INFO GRID */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .info-block {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 12px;
+  }
+  .info-lbl { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .info-val { font-size: 13px; color: var(--text); line-height: 1.5; }
+
+  /* SECTION HEADER */
+  .section-header {
+    font-family: var(--mono); font-size: 11px; color: var(--accent);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  /* TASK LIST */
+  .task-list { display: flex; flex-direction: column; gap: 6px; }
+  .task-row {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 4px; padding: 8px 12px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px;
+  }
+  .task-row-left { display: flex; flex-direction: column; gap: 2px; }
+  .task-row-title { font-size: 13px; color: var(--text); }
+  .task-row-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .task-row-right { display: flex; gap: 6px; align-items: center; }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  }
+  .status-dot.open { background: var(--muted); }
+  .status-dot.assigned { background: var(--accent); }
+  .status-dot.in_progress { background: var(--gold); }
+  .status-dot.delivered { background: var(--signal); }
+  .status-dot.closed { background: var(--purple); }
+  .status-dot.cancelled { background: var(--warn); }
+  .status-txt { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+  /* CLOSE OUTCOME FORM */
+  .outcome-form {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .outcome-title { font-family: var(--mono); font-size: 10px; color: var(--purple); letter-spacing: 0.1em; text-transform: uppercase; }
+  .outcome-row { display: flex; gap: 8px; }
+
+  /* PROGRESS BAR */
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; border-radius: 2px; background: var(--signal); transition: width 0.4s; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 20px; right: 20px; z-index: 100;
+    font-family: var(--mono); font-size: 11px; padding: 8px 16px;
+    border-radius: 4px; border: 1px solid var(--border); background: var(--panel);
+    color: var(--text); opacity: 0; transition: opacity 0.2s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  .toast.ok { border-color: rgba(126,200,110,0.4); color: var(--signal); }
+  .toast.err { border-color: rgba(200,110,110,0.4); color: var(--warn); }
+
+  /* SCROLL CONTAINER WITHIN SIDEBAR LIST */
+  .camp-list-scroll { display: flex; flex-direction: column; gap: 6px; }
+
+  @media (max-width: 900px) {
+    .page { grid-template-columns: 1fr; }
+    .sidebar { max-height: 300px; }
+    .info-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">AGENT UNIVERSE <span>CAMPAIGN</span></div>
+  <div class="nav-links">
+    <a href="/frontend/world.html" class="nav-link">WORLD</a>
+    <a href="/frontend/index.html" class="nav-link">BOUNTIES</a>
+    <a href="/frontend/deploy.html" class="nav-link">DEPLOY</a>
+    <a href="/frontend/mission.html" class="nav-link">MISSION</a>
+    <a href="/frontend/campaign.html" class="nav-link active">CAMPAIGN</a>
+    <a href="/frontend/kassa.html" class="nav-link">KA$$A</a>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-title">+ New Campaign</div>
+
+    <div class="form-section">
+      <div class="form-label">Name</div>
+      <input type="text" class="form-input" id="f-name" placeholder="Campaign name...">
+    </div>
+
+    <div class="form-section">
+      <div class="form-label">Objective</div>
+      <textarea class="form-input" id="f-objective" rows="3" placeholder="Strategic objective..."></textarea>
+    </div>
+
+    <div class="form-section">
+      <div class="form-label">Created By</div>
+      <input type="text" class="form-input" id="f-creator" placeholder="agent-id or name">
+    </div>
+
+    <button class="btn-primary" id="btn-create">LAUNCH CAMPAIGN</button>
+    <div id="create-msg" class="form-msg hidden"></div>
+
+    <!-- Campaign List -->
+    <div class="camp-list-header">
+      <span>Campaigns</span>
+      <span id="camp-total" style="color:var(--muted);font-size:10px">0</span>
+    </div>
+
+    <div class="camp-list-scroll" id="camp-list">
+      <!-- populated by JS -->
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main" id="main">
+
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">⚑</div>
+      <div>Select or create a campaign</div>
+      <div style="font-size:10px;opacity:0.6">Campaigns provide strategic oversight across operations and missions.</div>
+    </div>
+
+    <div class="camp-detail hidden" id="camp-detail">
+
+      <div class="detail-header">
+        <div>
+          <div class="detail-title" id="d-name">—</div>
+          <div class="detail-id" id="d-id">—</div>
+        </div>
+        <div class="detail-actions">
+          <button class="det-btn activate" id="btn-activate">Set Active</button>
+          <button class="det-btn close-camp" id="btn-close-camp">Close Campaign</button>
+        </div>
+      </div>
+
+      <!-- METRICS -->
+      <div class="metrics-row">
+        <div class="metric-card">
+          <div class="metric-val" id="m-status">—</div>
+          <div class="metric-lbl">Status</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-val" id="m-tasks">0</div>
+          <div class="metric-lbl">Missions</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-val" id="m-open">0</div>
+          <div class="metric-lbl">Open</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-val" id="m-closed">0</div>
+          <div class="metric-lbl">Closed</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-val" id="m-exp" style="color:var(--signal)">0</div>
+          <div class="metric-lbl">EXP Awarded</div>
+        </div>
+      </div>
+
+      <!-- PROGRESS -->
+      <div>
+        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:4px;">
+          <span>Completion</span><span id="m-pct">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="m-bar" style="width:0%"></div></div>
+      </div>
+
+      <!-- INFO GRID -->
+      <div class="info-grid">
+        <div class="info-block">
+          <div class="info-lbl">Objective</div>
+          <div class="info-val" id="d-objective">—</div>
+        </div>
+        <div class="info-block">
+          <div class="info-lbl">Outcome</div>
+          <div class="info-val" id="d-outcome" style="color:var(--muted)">—</div>
+        </div>
+        <div class="info-block">
+          <div class="info-lbl">Created By</div>
+          <div class="info-val" id="d-creator" style="font-family:var(--mono);font-size:12px">—</div>
+        </div>
+        <div class="info-block">
+          <div class="info-lbl">Timestamps</div>
+          <div class="info-val" id="d-timestamps" style="font-family:var(--mono);font-size:11px;color:var(--muted)">—</div>
+        </div>
+      </div>
+
+      <!-- CLOSE OUTCOME FORM (shown only when closing) -->
+      <div class="outcome-form hidden" id="outcome-form">
+        <div class="outcome-title">Close Campaign — Record Outcome</div>
+        <div class="form-section">
+          <div class="form-label">Outcome Summary</div>
+          <textarea class="form-input" id="f-outcome" rows="2" placeholder="What was achieved, learned, or concluded..."></textarea>
+        </div>
+        <div class="outcome-row">
+          <button class="det-btn close-camp" id="btn-confirm-close">Confirm Close</button>
+          <button class="det-btn" id="btn-cancel-close" style="border-color:var(--border);color:var(--muted);">Cancel</button>
+        </div>
+        <div id="outcome-msg" class="form-msg hidden"></div>
+      </div>
+
+      <!-- LINKED MISSIONS -->
+      <div>
+        <div class="section-header">
+          <span>Linked Missions</span>
+          <span id="linked-count" style="color:var(--muted);font-size:10px">0</span>
+        </div>
+        <div style="height:12px"></div>
+        <div class="task-list" id="linked-tasks"></div>
+        <div id="linked-empty" class="form-msg hidden" style="text-align:center;color:var(--muted);margin-top:8px;border:none;background:none;">No missions linked to this campaign yet.</div>
+      </div>
+
+      <div id="detail-msg" class="form-msg hidden"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">—</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? 'http://localhost:8000' : '';
+
+  var campaigns = [];
+  var allTasks  = [];
+  var selected  = null;
+
+  var toast = document.getElementById('toast');
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function showToast(msg, kind) {
+    toast.textContent = msg;
+    toast.className = 'toast show ' + (kind || '');
+    setTimeout(function() { toast.className = 'toast'; }, 2800);
+  }
+
+  function setMsg(id, msg, kind) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'form-msg ' + (kind || 'ok');
+  }
+
+  function hideMsg(id) {
+    var el = document.getElementById(id);
+    if (el) el.className = 'form-msg hidden';
+  }
+
+  async function apiCall(method, path, body) {
+    var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    var res = await fetch(BASE + path, opts);
+    return res.json();
+  }
+
+  function fmt(ts) {
+    if (!ts) return '—';
+    try { return new Date(ts).toLocaleString(); } catch (e) { return ts; }
+  }
+
+  // ── Load data ─────────────────────────────────────────────────────────────
+  async function loadAll() {
+    try {
+      var campRes  = await apiCall('GET', '/api/campaigns', null);
+      var taskRes  = await apiCall('GET', '/api/tasks', null);
+      campaigns = campRes.campaigns || [];
+      allTasks  = taskRes.tasks || [];
+      renderList();
+      if (selected) {
+        var refreshed = campaigns.find(function(c) { return c.id === selected.id; });
+        if (refreshed) renderDetail(refreshed);
+      }
+    } catch (e) { /* server offline */ }
+  }
+
+  // ── Campaign list ─────────────────────────────────────────────────────────
+  function renderList() {
+    var list = document.getElementById('camp-list');
+    while (list.firstChild) list.removeChild(list.firstChild);
+    document.getElementById('camp-total').textContent = campaigns.length;
+
+    if (campaigns.length === 0) {
+      var empty = document.createElement('div');
+      empty.style.fontFamily = 'var(--mono)';
+      empty.style.fontSize = '11px';
+      empty.style.color = 'var(--muted)';
+      empty.style.textAlign = 'center';
+      empty.style.padding = '12px 0';
+      empty.textContent = 'No campaigns yet.';
+      list.appendChild(empty);
+      return;
+    }
+
+    campaigns.forEach(function(camp) {
+      var tasksForCamp = allTasks.filter(function(t) { return t.campaign_id === camp.id; });
+      var closed = tasksForCamp.filter(function(t) { return t.status === 'closed'; }).length;
+
+      var item = document.createElement('div');
+      item.className = 'camp-item status-' + (camp.status || 'planning');
+      if (selected && selected.id === camp.id) item.classList.add('selected');
+
+      var nameEl = document.createElement('div');
+      nameEl.className = 'camp-name';
+      nameEl.textContent = camp.name || camp.id;
+      item.appendChild(nameEl);
+
+      var metaEl = document.createElement('div');
+      metaEl.className = 'camp-meta';
+
+      var statusChip = document.createElement('span');
+      statusChip.className = 'camp-chip status-' + (camp.status || 'planning');
+      statusChip.textContent = (camp.status || 'planning').toUpperCase();
+      metaEl.appendChild(statusChip);
+
+      if (tasksForCamp.length > 0) {
+        var taskChip = document.createElement('span');
+        taskChip.className = 'camp-chip tasks';
+        taskChip.textContent = closed + '/' + tasksForCamp.length + ' done';
+        metaEl.appendChild(taskChip);
+      }
+
+      item.appendChild(metaEl);
+
+      item.addEventListener('click', function() {
+        selected = camp;
+        renderList();
+        renderDetail(camp);
+      });
+
+      list.appendChild(item);
+    });
+  }
+
+  // ── Campaign detail ───────────────────────────────────────────────────────
+  function renderDetail(camp) {
+    document.getElementById('empty-state').classList.add('hidden');
+    var det = document.getElementById('camp-detail');
+    det.classList.remove('hidden');
+
+    document.getElementById('d-name').textContent  = camp.name || camp.id;
+    document.getElementById('d-id').textContent    = camp.id;
+    document.getElementById('d-objective').textContent = camp.objective || '—';
+    document.getElementById('d-outcome').textContent   = camp.outcome || '—';
+    document.getElementById('d-creator').textContent   = camp.created_by || '—';
+
+    var tsLines = 'Created: ' + fmt(camp.created_at);
+    if (camp.closed_at) tsLines += '\nClosed: ' + fmt(camp.closed_at);
+    document.getElementById('d-timestamps').textContent = tsLines;
+
+    // Status metric
+    var statusEl = document.getElementById('m-status');
+    statusEl.textContent = (camp.status || 'planning').toUpperCase();
+    statusEl.style.color = camp.status === 'active' ? 'var(--signal)'
+      : camp.status === 'closed' ? 'var(--purple)'
+      : 'var(--accent)';
+
+    // Task metrics
+    var campTasks  = allTasks.filter(function(t) { return t.campaign_id === camp.id; });
+    var openCount  = campTasks.filter(function(t) { return t.status === 'open'; }).length;
+    var closedCount = campTasks.filter(function(t) { return t.status === 'closed'; }).length;
+    var totalExp   = campTasks.filter(function(t) { return t.status === 'closed'; })
+      .reduce(function(sum, t) { return sum + (t.exp_reward || 0); }, 0);
+    var pct = campTasks.length > 0 ? Math.round((closedCount / campTasks.length) * 100) : 0;
+
+    document.getElementById('m-tasks').textContent  = campTasks.length;
+    document.getElementById('m-open').textContent   = openCount;
+    document.getElementById('m-closed').textContent = closedCount;
+    document.getElementById('m-exp').textContent    = totalExp;
+    document.getElementById('m-pct').textContent    = pct + '%';
+    document.getElementById('m-bar').style.width    = pct + '%';
+
+    // Action buttons
+    var isClosed = camp.status === 'closed';
+    document.getElementById('btn-activate').disabled  = camp.status === 'active' || isClosed;
+    document.getElementById('btn-close-camp').disabled = isClosed;
+
+    // Linked tasks
+    renderLinkedTasks(campTasks);
+
+    // Hide outcome form
+    document.getElementById('outcome-form').classList.add('hidden');
+    hideMsg('detail-msg');
+  }
+
+  function renderLinkedTasks(campTasks) {
+    var list  = document.getElementById('linked-tasks');
+    var empty = document.getElementById('linked-empty');
+
+    while (list.firstChild) list.removeChild(list.firstChild);
+
+    document.getElementById('linked-count').textContent = campTasks.length;
+
+    if (campTasks.length === 0) {
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+
+    campTasks.forEach(function(task) {
+      var row = document.createElement('div');
+      row.className = 'task-row';
+
+      var left = document.createElement('div');
+      left.className = 'task-row-left';
+
+      var titleEl = document.createElement('div');
+      titleEl.className = 'task-row-title';
+      titleEl.textContent = task.title;
+      left.appendChild(titleEl);
+
+      var subEl = document.createElement('div');
+      subEl.className = 'task-row-sub';
+      var subParts = [task.id];
+      if (task.type) subParts.push(task.type.toUpperCase());
+      if (task.track) subParts.push(task.track.toUpperCase());
+      if (task.assigned_agent) subParts.push('→ ' + task.assigned_agent);
+      subEl.textContent = subParts.join('  ·  ');
+      left.appendChild(subEl);
+
+      row.appendChild(left);
+
+      var right = document.createElement('div');
+      right.className = 'task-row-right';
+
+      var dot = document.createElement('div');
+      dot.className = 'status-dot ' + (task.status || 'open');
+      right.appendChild(dot);
+
+      var stxt = document.createElement('span');
+      stxt.className = 'status-txt';
+      stxt.textContent = (task.status || 'open').replace('_', ' ').toUpperCase();
+      right.appendChild(stxt);
+
+      if (task.exp_reward) {
+        var expEl = document.createElement('span');
+        expEl.style.fontFamily = 'var(--mono)';
+        expEl.style.fontSize = '10px';
+        expEl.style.color = 'var(--signal)';
+        expEl.textContent = task.exp_reward + ' EXP';
+        right.appendChild(expEl);
+      }
+
+      row.appendChild(right);
+      list.appendChild(row);
+    });
+  }
+
+  // ── Create campaign ───────────────────────────────────────────────────────
+  document.getElementById('btn-create').addEventListener('click', async function() {
+    var name = document.getElementById('f-name').value.trim();
+    if (!name) { setMsg('create-msg', 'Name is required.', 'err'); return; }
+
+    var payload = {
+      name: name,
+      objective: document.getElementById('f-objective').value.trim(),
+      created_by: document.getElementById('f-creator').value.trim() || 'console'
+    };
+
+    try {
+      var data = await apiCall('POST', '/api/campaigns', payload);
+      if (data.id) {
+        setMsg('create-msg', 'Campaign launched: ' + data.id, 'ok');
+        document.getElementById('f-name').value = '';
+        document.getElementById('f-objective').value = '';
+        await loadAll();
+        selected = campaigns.find(function(c) { return c.id === data.id; }) || null;
+        if (selected) renderDetail(selected);
+      } else {
+        setMsg('create-msg', data.error || 'Failed.', 'err');
+      }
+    } catch (e) {
+      setMsg('create-msg', 'Server error.', 'err');
+    }
+  });
+
+  // ── Activate campaign ─────────────────────────────────────────────────────
+  document.getElementById('btn-activate').addEventListener('click', async function() {
+    if (!selected) return;
+    try {
+      var data = await apiCall('POST', '/api/campaigns/' + selected.id + '/activate', {});
+      if (data.error) { setMsg('detail-msg', data.error, 'err'); return; }
+      showToast('Campaign set to active.', 'ok');
+      await loadAll();
+    } catch (e) {
+      setMsg('detail-msg', 'Server error.', 'err');
+    }
+  });
+
+  // ── Close campaign ────────────────────────────────────────────────────────
+  document.getElementById('btn-close-camp').addEventListener('click', function() {
+    document.getElementById('outcome-form').classList.remove('hidden');
+    document.getElementById('f-outcome').focus();
+  });
+
+  document.getElementById('btn-cancel-close').addEventListener('click', function() {
+    document.getElementById('outcome-form').classList.add('hidden');
+    hideMsg('outcome-msg');
+  });
+
+  document.getElementById('btn-confirm-close').addEventListener('click', async function() {
+    if (!selected) return;
+    var outcome = document.getElementById('f-outcome').value.trim();
+    try {
+      var data = await apiCall('POST', '/api/campaigns/' + selected.id + '/close', { outcome: outcome });
+      if (data.error) { setMsg('outcome-msg', data.error, 'err'); return; }
+      showToast('Campaign closed.', 'ok');
+      document.getElementById('outcome-form').classList.add('hidden');
+      await loadAll();
+    } catch (e) {
+      setMsg('outcome-msg', 'Server error.', 'err');
+    }
+  });
+
+  // ── Poll ──────────────────────────────────────────────────────────────────
+  loadAll();
+  setInterval(loadAll, 10000);
+
+})();
+</script>
+</body>
+</html>
