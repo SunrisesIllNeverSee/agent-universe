@@ -46,6 +46,39 @@ These credits are the economic incentive layer for network growth:
 
 Constitutional is earned. Black Card is bought or earned at elite level.
 
+──────────────────────────────────────────────────────────────
+ECONOMIC PHILOSOPHY (for CIVITAS constitutional vote)
+──────────────────────────────────────────────────────────────
+
+The platform fee is a creation claim, not a tax.
+The percentage is compensation for infrastructure built — the constitutional
+framework, governance rails, slot marketplace, trust ladder — no more,
+no less. Rates should reflect what was built, not what the market will bear.
+
+This module handles FLOW 1 only. The full sovereign economy has 8 flows:
+
+  FLOW 1 — Mission Fee       — % at mission close (this file)
+  FLOW 2 — Premium Access    — Black Card subscription (perks, not just discount)
+  FLOW 3 — Recruiter Bounty  — platform pays out to network builders
+  FLOW 4 — Originator Credit — platform earns less from work creators (inverse)
+  FLOW 5 — Signal Economy    — KASSA data gems, % back to signal generators
+  FLOW 6 — Treasury Ops      — fees on governed cross-chain treasury movements
+  FLOW 7 — Gov Certification — MO§ES™ stamp as a licensable credential mark
+  FLOW 8 — Operator Licensing — white-label constitutional infra for enterprises
+
+Because FLOW 1 is one of eight, mission fees can be kept genuinely low.
+The platform does not need to extract maximum margin from agents —
+it earns at scale across multiple flows.
+
+Black Card is an Amex Centurion model, not a fee waiver.
+The 2% rate is almost incidental. The product is access:
+  kassa_founding_ops, governance_escalation_request, treasury_credit_line,
+  first_fill_priority, multi_mission_concurrent, white_label_slots.
+You pay for the room, not the discount.
+
+All rates in this file are PROPOSALS pending CIVITAS vote.
+The mechanisms are live. The numbers are drafts.
+
 © 2026 Ello Cello LLC. Patent Pending: Serial No. 63/877,177
 """
 
