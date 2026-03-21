@@ -96,6 +96,19 @@
 
   .empty-state { padding:32px; text-align:center; font-family:'DM Mono',monospace; font-size:11px; color:var(--drift); border:1px dashed var(--wall); border-radius:6px; }
 
+  /* INBOX */
+  .inbox-table { width:100%; border-collapse:collapse; }
+  .inbox-table th { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--drift); padding:8px 12px; text-align:left; border-bottom:1px solid var(--wall); background:var(--void); }
+  .inbox-table td { padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.04); font-size:12px; vertical-align:top; }
+  .inbox-table tr:hover td { background:rgba(255,255,255,0.02); }
+  .inbox-msg { font-size:11px; color:var(--muted); max-width:240px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .inbox-status-pending  { background:rgba(196,146,58,0.12); color:var(--gold); }
+  .inbox-status-approved { background:var(--signal-dim); color:var(--signal-light); }
+  .inbox-status-rejected { background:var(--warn-dim); color:#E07060; }
+  .inbox-status-contacted { background:rgba(140,100,200,0.15); color:#B090E0; }
+  .btn-contact { background:rgba(140,100,200,0.15); border-color:rgba(140,100,200,0.3); color:#B090E0; }
+  .btn-reject  { background:var(--warn-dim); border-color:rgba(196,91,63,0.3); color:#E07060; }
+
   /* DETAIL PANEL */
   .detail-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; display:none; align-items:center; justify-content:center; padding:24px; }
   .detail-overlay.open { display:flex; }
@@ -171,6 +184,16 @@
       <div class="stat-card"><div class="stat-label">Active</div><div class="stat-val green" id="s-active">—</div></div>
       <div class="stat-card"><div class="stat-label">Platform Revenue</div><div class="stat-val gold" id="s-revenue">—</div></div>
       <div class="stat-card"><div class="stat-label">Open Slots</div><div class="stat-val" id="s-slots">—</div></div>
+      <div class="stat-card"><div class="stat-label">Inbox</div><div class="stat-val warn" id="s-inbox">—</div></div>
+    </div>
+
+    <!-- INBOX: Help Wanted Applications -->
+    <div class="section" id="inbox-section">
+      <div class="section-head">
+        <div class="section-title">✉ Inbox — Help Wanted Applications</div>
+        <div class="section-count" id="inbox-count">0</div>
+      </div>
+      <div id="inbox-list"><div class="empty-state">No applications yet.</div></div>
     </div>
 
     <!-- PENDING APPLICATIONS -->
@@ -282,8 +305,8 @@
   // ── Load All ──────────────────────────────────────────
 
   async function loadAll() {
-    document.getElementById('live-status').textContent = 'LOADING…';
-    await Promise.all([loadRegistry(), loadEconomy(), loadSlots(), loadAudit()]);
+    document.getElementById('live-status').textContent = 'LOADING\u2026';
+    await Promise.all([loadRegistry(), loadEconomy(), loadSlots(), loadAudit(), loadInbox()]);
     document.getElementById('live-status').textContent = 'LIVE';
   }
 
@@ -320,6 +343,148 @@
       const data = await res.json();
       renderAudit(data.events || data.recent || []);
     } catch {}
+  }
+
+  // ── Inbox ─────────────────────────────────────────────
+
+  async function loadInbox() {
+    try {
+      const res = await fetch(API_BASE + '/api/inbox');
+      const data = await res.json();
+      const apps = data.applications || [];
+      const pending = apps.filter(a => a.status === 'pending').length;
+      document.getElementById('inbox-count').textContent = String(apps.length);
+      document.getElementById('s-inbox').textContent = String(pending);
+      renderInbox(apps);
+    } catch {
+      document.getElementById('inbox-list').textContent = '';
+      const e = document.createElement('div'); e.className = 'empty-state';
+      e.textContent = 'Cannot reach inbox endpoint.';
+      document.getElementById('inbox-list').appendChild(e);
+    }
+  }
+
+  function renderInbox(apps) {
+    const container = document.getElementById('inbox-list');
+    container.textContent = '';
+
+    if (apps.length === 0) {
+      const e = document.createElement('div'); e.className = 'empty-state';
+      e.textContent = 'No applications yet.';
+      container.appendChild(e);
+      return;
+    }
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'background:var(--void);border:1px solid var(--wall);border-radius:8px;overflow:hidden;';
+
+    const table = document.createElement('table');
+    table.className = 'inbox-table';
+
+    const thead = document.createElement('thead');
+    const hrow = document.createElement('tr');
+    ['Name / Handle', 'System', 'Role', 'Job', 'Message', 'Status', 'Received', 'Actions'].forEach(h => {
+      const th = document.createElement('th'); th.textContent = h; hrow.appendChild(th);
+    });
+    thead.appendChild(hrow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    apps.slice().reverse().forEach(app => {
+      const tr = document.createElement('tr');
+
+      // Name + handle
+      const tdName = document.createElement('td');
+      const nameEl = document.createElement('div'); nameEl.className = 'agent-name-cell'; nameEl.textContent = app.name || '—';
+      const handleEl = document.createElement('div'); handleEl.className = 'agent-id-cell'; handleEl.textContent = app.handle || '';
+      tdName.appendChild(nameEl); tdName.appendChild(handleEl);
+
+      // System
+      const tdSys = document.createElement('td');
+      tdSys.className = 'mono'; tdSys.style.fontSize = '10px'; tdSys.style.color = 'var(--muted)';
+      tdSys.textContent = app.system || '—';
+
+      // Role
+      const tdRole = document.createElement('td');
+      tdRole.className = 'mono'; tdRole.style.fontSize = '10px'; tdRole.style.color = 'var(--muted)';
+      tdRole.textContent = app.role || '—';
+
+      // Job ID
+      const tdJob = document.createElement('td');
+      tdJob.className = 'mono'; tdJob.style.cssText = 'font-size:9px;color:var(--drift);max-width:100px;word-break:break-all;';
+      tdJob.textContent = app.job_id || '—';
+
+      // Message excerpt
+      const tdMsg = document.createElement('td');
+      const msgEl = document.createElement('div'); msgEl.className = 'inbox-msg';
+      msgEl.textContent = app.message || '';
+      msgEl.title = app.message || '';
+      tdMsg.appendChild(msgEl);
+
+      // Status badge
+      const tdStatus = document.createElement('td');
+      const badge = document.createElement('span');
+      const s = app.status || 'pending';
+      badge.className = 'status-badge inbox-status-' + s;
+      badge.textContent = s.toUpperCase();
+      tdStatus.appendChild(badge);
+
+      // Timestamp
+      const tdTs = document.createElement('td');
+      tdTs.className = 'mono'; tdTs.style.cssText = 'font-size:10px;color:var(--drift);';
+      tdTs.textContent = app.timestamp ? new Date(app.timestamp).toLocaleDateString() : '—';
+
+      // Actions
+      const tdAct = document.createElement('td');
+      const grp = document.createElement('div'); grp.className = 'action-group';
+
+      if (s === 'pending') {
+        const approveBtn = document.createElement('button');
+        approveBtn.className = 'action-btn btn-approve'; approveBtn.textContent = 'APPROVE';
+        approveBtn.addEventListener('click', () => reviewInbox(app.id, 'approved', approveBtn));
+
+        const rejectBtn = document.createElement('button');
+        rejectBtn.className = 'action-btn btn-reject'; rejectBtn.textContent = 'REJECT';
+        rejectBtn.addEventListener('click', () => reviewInbox(app.id, 'rejected', rejectBtn));
+
+        const contactBtn = document.createElement('button');
+        contactBtn.className = 'action-btn btn-contact'; contactBtn.textContent = 'CONTACT';
+        contactBtn.addEventListener('click', () => reviewInbox(app.id, 'contacted', contactBtn));
+
+        grp.appendChild(approveBtn); grp.appendChild(contactBtn); grp.appendChild(rejectBtn);
+      } else {
+        const done = document.createElement('span');
+        done.className = 'mono'; done.style.cssText = 'font-size:9px;color:var(--drift);';
+        done.textContent = 'REVIEWED';
+        grp.appendChild(done);
+      }
+      tdAct.appendChild(grp);
+
+      [tdName, tdSys, tdRole, tdJob, tdMsg, tdStatus, tdTs, tdAct].forEach(td => tr.appendChild(td));
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    container.appendChild(wrap);
+  }
+
+  async function reviewInbox(appId, decision, btn) {
+    const original = btn.textContent;
+    btn.textContent = '\u2026'; btn.disabled = true;
+    try {
+      const res = await fetch(API_BASE + '/api/inbox/' + appId + '/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision, notes: '' }),
+      });
+      if (res.ok) {
+        btn.textContent = '\u2713 ' + decision.toUpperCase();
+        setTimeout(() => loadInbox(), 800);
+      } else {
+        btn.textContent = 'ERROR'; btn.disabled = false;
+      }
+    } catch { btn.textContent = original; btn.disabled = false; }
   }
 
   // ── Render Registry ───────────────────────────────────

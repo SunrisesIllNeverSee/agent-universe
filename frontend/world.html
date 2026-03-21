@@ -8,142 +8,45 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #0a0a12; color: #e8dcc8; font-family: system-ui, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-  .hud { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; height: 44px; background: rgba(10,10,18,0.95); border-bottom: 1px solid #1e1e2e; z-index: 10; flex-shrink: 0; }
+  .hud { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; height: 44px; background: rgba(10,10,18,0.95); border-bottom: 1px solid #1e1e2e; z-index: 20; flex-shrink: 0; }
   .hud-logo { font-size: 14px; font-weight: 700; color: #c8a96e; letter-spacing: 0.1em; }
   .hud-logo span { color: #8a8aa8; font-weight: 400; font-size: 11px; margin-left: 8px; }
+  .hud-nav { display: flex; gap: 6px; }
+  .hud-nav a { font-size: 10px; font-family: 'SF Mono', monospace; color: #8a8aa8; text-decoration: none; padding: 2px 8px; border: 1px solid #2e2e3e; border-radius: 3px; transition: color 0.2s, border-color 0.2s; }
+  .hud-nav a:hover { color: #c8a96e; border-color: rgba(200,169,110,0.3); }
   .hud-stats { display: flex; gap: 16px; font-family: 'SF Mono', monospace; font-size: 11px; color: #8a8aa8; }
   .hud-stat .v { color: #7ec86e; font-weight: 600; }
 
-  .world-container { flex: 1; display: flex; align-items: center; justify-content: center; perspective: 800px; overflow: hidden; position: relative; }
+  #world-container { flex: 1; position: relative; overflow: hidden; }
+  #world-container canvas { display: block; position: absolute; top: 0; left: 0; }
 
-  /* Ground plane */
-  .ground { position: relative; width: 700px; height: 500px; transform: rotateX(55deg) rotateZ(45deg); transform-style: preserve-3d; }
-
-  /* Grid lines on ground */
-  .ground::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-      linear-gradient(rgba(200,169,110,0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(200,169,110,0.06) 1px, transparent 1px);
-    background-size: 50px 50px;
-  }
-
-  /* Buildings */
-  .building {
-    position: absolute;
-    transform-style: preserve-3d;
-    cursor: pointer;
-    transition: transform 0.2s;
-  }
-  .building:hover { transform: translateZ(8px); }
-  .building:hover .b-top { filter: brightness(1.2); }
-
-  .b-top {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    transform: translateZ(var(--height, 40px));
-    border-radius: 4px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    transition: filter 0.2s;
-    z-index: 2;
-  }
-
-  .b-front {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    height: var(--height, 40px);
-    transform-origin: bottom;
-    transform: rotateX(-90deg);
-    border-radius: 0 0 4px 4px;
-    z-index: 1;
-  }
-
-  .b-right {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: var(--height, 40px);
-    height: 100%;
-    transform-origin: right;
-    transform: rotateY(90deg);
-    border-radius: 0 4px 4px 0;
-    z-index: 1;
-  }
-
-  .b-label {
-    font-family: 'SF Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.12em;
-    font-weight: 700;
-    text-align: center;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-  }
-  .b-icon { font-size: 22px; margin-bottom: 3px; }
-  .b-count { font-family: 'SF Mono', monospace; font-size: 8px; opacity: 0.7; margin-top: 2px; }
-
-  /* Building colors */
-  .building.bounty .b-top { background: rgba(110,158,200,0.3); border: 1px solid rgba(110,158,200,0.5); }
-  .building.bounty .b-front { background: rgba(80,128,170,0.25); }
-  .building.bounty .b-right { background: rgba(70,118,160,0.2); }
-  .building.bounty .b-label { color: #6e9ec8; }
-
-  .building.kassa .b-top { background: rgba(200,169,110,0.3); border: 1px solid rgba(200,169,110,0.5); }
-  .building.kassa .b-front { background: rgba(170,139,80,0.25); }
-  .building.kassa .b-right { background: rgba(160,129,70,0.2); }
-  .building.kassa .b-label { color: #c8a96e; }
-
-  .building.deploy .b-top { background: rgba(200,110,110,0.3); border: 1px solid rgba(200,110,110,0.5); }
-  .building.deploy .b-front { background: rgba(170,80,80,0.25); }
-  .building.deploy .b-right { background: rgba(160,70,70,0.2); }
-  .building.deploy .b-label { color: #c86e6e; }
-
-  .building.command .b-top { background: rgba(126,200,110,0.3); border: 1px solid rgba(126,200,110,0.5); }
-  .building.command .b-front { background: rgba(96,170,80,0.25); }
-  .building.command .b-right { background: rgba(86,160,70,0.2); }
-  .building.command .b-label { color: #7ec86e; }
-
-  .building.scores .b-top { background: rgba(156,142,200,0.3); border: 1px solid rgba(156,142,200,0.5); }
-  .building.scores .b-front { background: rgba(126,112,170,0.25); }
-  .building.scores .b-right { background: rgba(116,102,160,0.2); }
-  .building.scores .b-label { color: #9c8ec8; }
-
-  .building.vault .b-top { background: rgba(200,200,200,0.2); border: 1px solid rgba(200,200,200,0.3); }
-  .building.vault .b-front { background: rgba(170,170,170,0.15); }
-  .building.vault .b-right { background: rgba(160,160,160,0.1); }
-  .building.vault .b-label { color: #cccccc; }
-
-  /* Agent tokens on the ground */
-  .agent-token {
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    transform: translateZ(2px);
-    border: 2px solid;
-    z-index: 5;
-    animation: bob 3s ease-in-out infinite;
-  }
-  @keyframes bob { 0%,100% { transform: translateZ(2px); } 50% { transform: translateZ(6px); } }
+  /* CSS2D building labels */
+  .b-label { pointer-events: none; text-align: center; padding: 5px 9px; border-radius: 4px; background: rgba(10,10,18,0.7); border: 1px solid rgba(255,255,255,0.07); }
+  .b-label-icon { font-size: 18px; display: block; line-height: 1; }
+  .b-label-name { font-family: 'SF Mono', monospace; font-size: 9px; letter-spacing: 0.14em; font-weight: 700; display: block; margin-top: 3px; }
+  .b-label-count { font-family: 'SF Mono', monospace; font-size: 8px; opacity: 0.55; display: block; margin-top: 2px; }
 
   /* Tooltip */
-  .tooltip { position: fixed; background: rgba(10,10,18,0.95); border: 1px solid #2e2820; border-radius: 6px; padding: 8px 12px; font-family: 'SF Mono', monospace; font-size: 11px; color: #e8dcc8; pointer-events: none; z-index: 100; display: none; max-width: 200px; }
-  .tooltip .tt-title { color: #c8a96e; font-weight: 600; margin-bottom: 4px; }
-  .tooltip .tt-desc { color: #8a8aa8; font-size: 10px; }
+  .tooltip { position: fixed; background: rgba(10,10,18,0.96); border: 1px solid #2e2820; border-radius: 6px; padding: 9px 13px; font-family: 'SF Mono', monospace; font-size: 11px; color: #e8dcc8; pointer-events: none; z-index: 100; display: none; max-width: 230px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+  .tooltip .tt-title { color: #c8a96e; font-weight: 700; margin-bottom: 5px; font-size: 12px; }
+  .tooltip .tt-desc { color: #8a8aa8; font-size: 10px; line-height: 1.5; }
+  .tooltip .tt-hint { color: #7ec86e; font-size: 9px; margin-top: 6px; opacity: 0.8; }
 
-  /* Path lines between buildings */
-  .path { position: absolute; border-top: 1px dashed rgba(200,169,110,0.15); transform-origin: left; z-index: 0; }
+  /* Controls hint */
+  .hint { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); font-family: 'SF Mono', monospace; font-size: 9px; color: #3a3a5a; letter-spacing: 0.06em; pointer-events: none; z-index: 5; }
 </style>
 </head>
 <body>
+
 <div class="hud">
   <div class="hud-logo">AGENT UNIVERSE <span>world view</span></div>
+  <div class="hud-nav">
+    <a href="/">missions</a>
+    <a href="/kassa">kassa</a>
+    <a href="/deploy">deploy</a>
+    <a href="/dashboard">command</a>
+    <a href="/admin">admin</a>
+  </div>
   <div class="hud-stats">
     <div class="hud-stat"><span class="v" id="h-agents">0</span> agents</div>
     <div class="hud-stat"><span class="v" id="h-bounties">0</span> bounties</div>
@@ -151,109 +54,404 @@
   </div>
 </div>
 
-<div class="world-container">
-  <div class="ground" id="ground">
-
-    <!-- BOUNTY BOARD -->
-    <div class="building bounty" style="left:80px;top:60px;width:120px;height:90px;--height:50px;" onclick="window.location='/'" onmouseenter="showTip(event,'Bounty Board','Post missions. Browse open slots. Form teams.')" onmouseleave="hideTip()">
-      <div class="b-top"><div class="b-icon">§</div><div class="b-label">BOUNTY BOARD</div><div class="b-count" id="b-bounties">0 open</div></div>
-      <div class="b-front"></div><div class="b-right"></div>
-    </div>
-
-    <!-- KA§§A MARKETPLACE -->
-    <div class="building kassa" style="left:300px;top:30px;width:140px;height:100px;--height:65px;" onclick="window.location='/kassa'" onmouseenter="showTip(event,'KA§§A Marketplace','Governed agent listings. Founding seats. Trade volume.')" onmouseleave="hideTip()">
-      <div class="b-top"><div class="b-icon">₭</div><div class="b-label">KA§§A</div><div class="b-count" id="b-listings">0 listings</div></div>
-      <div class="b-front"></div><div class="b-right"></div>
-    </div>
-
-    <!-- DEPLOY OPS FLOOR -->
-    <div class="building deploy" style="left:500px;top:120px;width:110px;height:100px;--height:45px;" onclick="window.location='/deploy'" onmouseenter="showTip(event,'DEPLOY — Ops Floor','Tactical board. Drag agents. Set formations.')" onmouseleave="hideTip()">
-      <div class="b-top"><div class="b-icon">◎</div><div class="b-label">DEPLOY</div><div class="b-count">tactical</div></div>
-      <div class="b-front"></div><div class="b-right"></div>
-    </div>
-
-    <!-- COMMAND TOWER -->
-    <div class="building command" style="left:100px;top:250px;width:100px;height:100px;--height:80px;" onclick="window.location='/dashboard'" onmouseenter="showTip(event,'COMMAND Tower','Governance console. Live controls. Audit trail.')" onmouseleave="hideTip()">
-      <div class="b-top"><div class="b-icon">⚡</div><div class="b-label">COMMAND</div><div class="b-count">governed</div></div>
-      <div class="b-front"></div><div class="b-right"></div>
-    </div>
-
-    <!-- SCOREBOARD -->
-    <div class="building scores" style="left:320px;top:220px;width:100px;height:70px;--height:55px;" onclick="showTab('scoreboard')" onmouseenter="showTip(event,'Scoreboard','Agent rankings. Compliance × performance.')" onmouseleave="hideTip()">
-      <div class="b-top"><div class="b-icon">★</div><div class="b-label">SCORES</div><div class="b-count" id="b-agents">0 ranked</div></div>
-      <div class="b-front"></div><div class="b-right"></div>
-    </div>
-
-    <!-- VAULT -->
-    <div class="building vault" style="left:500px;top:300px;width:90px;height:80px;--height:35px;" onmouseenter="showTip(event,'The Vault','Governance documents. Protocols. Context.')" onmouseleave="hideTip()">
-      <div class="b-top"><div class="b-icon">◆</div><div class="b-label">VAULT</div><div class="b-count">sealed</div></div>
-      <div class="b-front"></div><div class="b-right"></div>
-    </div>
-
-    <!-- Agent tokens will be placed here dynamically -->
-    <div id="agent-tokens"></div>
-  </div>
+<div id="world-container">
+  <canvas id="world-canvas"></canvas>
+  <div class="hint">drag to orbit  ·  scroll to zoom  ·  click buildings to enter</div>
 </div>
 
-<div class="tooltip" id="tooltip"><div class="tt-title"></div><div class="tt-desc"></div></div>
+<div class="tooltip" id="tooltip">
+  <div class="tt-title" id="tt-title"></div>
+  <div class="tt-desc" id="tt-desc"></div>
+  <div class="tt-hint" id="tt-hint"></div>
+</div>
 
-<script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.163.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.163.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
 const API = window.location.origin;
 
-const AGENT_COLORS = ['#c8a96e','#6e9ec8','#7ec86e','#c86e6e','#9c8ec8','#c8c86e','#6ec8c8','#c86ec8'];
+// ─── Building registry ───────────────────────────────────────────────────────
+const BUILDINGS = [
+  { id: 'bounty',  name: 'BOUNTY BOARD', icon: '\u00a7',  link: '/',          color: 0x6e9ec8, hex: '#6e9ec8', desc: 'Post missions. Browse open slots. Form teams.',          x: -195, z: -175, w: 120, h: 50, d: 90  },
+  { id: 'kassa',   name: 'KA\u00a7\u00a7A',  icon: '\u20ad', link: '/kassa',     color: 0xc8a96e, hex: '#c8a96e', desc: 'Governed agent listings. Founding seats. Trade.',       x:   20, z: -200, w: 140, h: 65, d: 100 },
+  { id: 'deploy',  name: 'DEPLOY',       icon: '\u25ce',  link: '/deploy',    color: 0xc86e6e, hex: '#c86e6e', desc: 'Tactical board. Formations. Drag-to-position.',          x:  215, z:  -90, w: 110, h: 45, d: 100 },
+  { id: 'command', name: 'COMMAND',      icon: '\u26a1',  link: '/dashboard', color: 0x7ec86e, hex: '#7ec86e', desc: 'Governance console. Live controls. Audit trail.',        x: -195, z:   55, w: 100, h: 80, d: 100 },
+  { id: 'scores',  name: 'SCORES',       icon: '\u2605',  link: null,         color: 0x9c8ec8, hex: '#9c8ec8', desc: 'Agent rankings. Compliance \u00d7 performance score.',  x:   20, z:   10, w: 100, h: 55, d: 70  },
+  { id: 'vault',   name: 'VAULT',        icon: '\u25c6',  link: null,         color: 0xb0b0be, hex: '#b0b0be', desc: 'Governance documents. Protocols. Constitutional record.', x: 210, z: 105, w: 90,  h: 35, d: 80  },
+];
 
-function showTip(e, title, desc) {
-  const tip = document.getElementById('tooltip');
-  tip.querySelector('.tt-title').textContent = title;
-  tip.querySelector('.tt-desc').textContent = desc;
-  tip.style.display = 'block';
-  tip.style.left = (e.clientX + 12) + 'px';
-  tip.style.top = (e.clientY - 10) + 'px';
+const AGENT_COLORS = [0xc8a96e, 0x6e9ec8, 0x7ec86e, 0xc86e6e, 0x9c8ec8, 0xc8c86e, 0x6ec8c8, 0xc86ec8];
+
+// ─── Scene ───────────────────────────────────────────────────────────────────
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x080812);
+scene.fog = new THREE.FogExp2(0x080812, 0.00085);
+
+const container = document.getElementById('world-container');
+
+// WebGL renderer
+const renderer = new THREE.WebGLRenderer({
+  canvas: document.getElementById('world-canvas'),
+  antialias: true,
+});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
+
+// CSS2D renderer for labels
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0';
+labelRenderer.domElement.style.pointerEvents = 'none';
+container.appendChild(labelRenderer.domElement);
+
+// Camera
+const camera = new THREE.PerspectiveCamera(45, 1, 1, 3000);
+camera.position.set(0, 390, 540);
+
+// Controls
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0, -30);
+controls.minPolarAngle = Math.PI * 0.12;
+controls.maxPolarAngle = Math.PI * 0.46;
+controls.minDistance = 180;
+controls.maxDistance = 1200;
+controls.enableDamping = true;
+controls.dampingFactor = 0.07;
+controls.zoomSpeed = 0.8;
+camera.lookAt(controls.target);
+
+function resize() {
+  const W = container.clientWidth, H = container.clientHeight;
+  camera.aspect = W / H;
+  camera.updateProjectionMatrix();
+  renderer.setSize(W, H);
+  labelRenderer.setSize(W, H);
 }
-function hideTip() { document.getElementById('tooltip').style.display = 'none'; }
+resize();
+window.addEventListener('resize', resize);
 
-async function loadWorld() {
+// ─── Lighting ────────────────────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x1a1a3a, 1.4));
+
+const sun = new THREE.DirectionalLight(0xfff5e0, 0.9);
+sun.position.set(250, 500, 350);
+sun.castShadow = true;
+Object.assign(sun.shadow.camera, { left: -700, right: 700, top: 700, bottom: -700, near: 10, far: 1600 });
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.bias = -0.001;
+scene.add(sun);
+
+const fill = new THREE.DirectionalLight(0x4040aa, 0.35);
+fill.position.set(-300, 150, -400);
+scene.add(fill);
+
+// ─── Ground ──────────────────────────────────────────────────────────────────
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(1400, 1100),
+  new THREE.MeshStandardMaterial({ color: 0x0c0c1a, roughness: 0.95, metalness: 0.1 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+const gridHelper = new THREE.GridHelper(1400, 28, 0x18182e, 0x12122a);
+gridHelper.material.transparent = true;
+gridHelper.material.opacity = 0.8;
+scene.add(gridHelper);
+
+// ─── Path lines between buildings ────────────────────────────────────────────
+[[0,1],[1,2],[0,3],[3,4],[4,5],[1,4],[2,5],[0,4]].forEach(([i, j]) => {
+  const a = BUILDINGS[i], b = BUILDINGS[j];
+  const pts = [new THREE.Vector3(a.x, 1.5, a.z), new THREE.Vector3(b.x, 1.5, b.z)];
+  scene.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color: 0xc8a96e, transparent: true, opacity: 0.08 })
+  ));
+});
+
+// ─── Helper: build a CSS2D label for a building ──────────────────────────────
+function makeLabelEl(b) {
+  const wrap = document.createElement('div');
+  wrap.className = 'b-label';
+  wrap.style.color = b.hex;
+  wrap.style.borderColor = b.hex + '22';
+
+  const iconEl = document.createElement('span');
+  iconEl.className = 'b-label-icon';
+  iconEl.textContent = b.icon;
+
+  const nameEl = document.createElement('span');
+  nameEl.className = 'b-label-name';
+  nameEl.textContent = b.name;
+
+  const countEl = document.createElement('span');
+  countEl.className = 'b-label-count';
+  countEl.id = 'lbl-' + b.id;
+  countEl.textContent = '\u2014';
+
+  wrap.appendChild(iconEl);
+  wrap.appendChild(nameEl);
+  wrap.appendChild(countEl);
+  return wrap;
+}
+
+// ─── Build buildings ─────────────────────────────────────────────────────────
+const clickTargets = [];
+
+BUILDINGS.forEach(b => {
+  const group = new THREE.Group();
+  group.position.set(b.x, 0, b.z);
+
+  const c = new THREE.Color(b.color);
+
+  // Body
+  const bodyGeo = new THREE.BoxGeometry(b.w, b.h, b.d);
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: c.clone().multiplyScalar(0.22),
+    emissive: c.clone(),
+    emissiveIntensity: 0.1,
+    roughness: 0.75,
+    metalness: 0.25,
+  });
+  const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+  bodyMesh.position.y = b.h / 2;
+  bodyMesh.castShadow = true;
+  bodyMesh.receiveShadow = true;
+  bodyMesh.userData.building = b;
+  group.add(bodyMesh);
+  clickTargets.push(bodyMesh);
+
+  // Top cap
+  const topMat = new THREE.MeshStandardMaterial({
+    color: c.clone().multiplyScalar(0.42),
+    emissive: c.clone(),
+    emissiveIntensity: 0.18,
+    roughness: 0.55,
+    metalness: 0.35,
+  });
+  const topMesh = new THREE.Mesh(new THREE.PlaneGeometry(b.w, b.d), topMat);
+  topMesh.rotation.x = -Math.PI / 2;
+  topMesh.position.y = b.h + 0.5;
+  topMesh.userData.building = b;
+  group.add(topMesh);
+  clickTargets.push(topMesh);
+
+  // Edges
+  const edgeMesh = new THREE.LineSegments(
+    new THREE.EdgesGeometry(bodyGeo),
+    new THREE.LineBasicMaterial({ color: b.color, transparent: true, opacity: 0.55 })
+  );
+  edgeMesh.position.y = b.h / 2;
+  group.add(edgeMesh);
+
+  // Glow point light
+  const pLight = new THREE.PointLight(b.color, 0.7, 220, 1.5);
+  pLight.position.set(0, b.h + 25, 0);
+  group.add(pLight);
+
+  // CSS2D label
+  const labelObj = new CSS2DObject(makeLabelEl(b));
+  labelObj.position.set(0, b.h + 22, 0);
+  group.add(labelObj);
+
+  scene.add(group);
+
+  b._pLight = pLight;
+  b._bodyMat = bodyMat;
+  b._topMat = topMat;
+  b._baseLightIntensity = 0.7;
+});
+
+// ─── Agent tokens ─────────────────────────────────────────────────────────────
+let tokens = [];
+
+function clearTokens() {
+  tokens.forEach(t => { scene.remove(t.mesh); scene.remove(t.light); });
+  tokens = [];
+}
+
+function stableHash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+function placeTokens(filledSlots) {
+  clearTokens();
+  const seen = new Set();
+  const unique = filledSlots.filter(s => {
+    if (!s.agent_id || seen.has(s.agent_id)) return false;
+    seen.add(s.agent_id);
+    return true;
+  });
+
+  unique.forEach((slot, i) => {
+    const colorHex = AGENT_COLORS[i % AGENT_COLORS.length];
+    const c = new THREE.Color(colorHex);
+    const b = BUILDINGS[stableHash(slot.agent_id) % BUILDINGS.length];
+
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(7, 20, 20),
+      new THREE.MeshStandardMaterial({
+        color: c.clone().multiplyScalar(0.5),
+        emissive: c,
+        emissiveIntensity: 0.9,
+        roughness: 0.2,
+        metalness: 0.7,
+      })
+    );
+    const angle = (i / Math.max(unique.length, 1)) * Math.PI * 2 + stableHash(slot.agent_id) * 0.1;
+    const ox = stableHash(slot.agent_id + 'x') % 20 - 10;
+    const oz = stableHash(slot.agent_id + 'z') % 20 - 10;
+    mesh.position.set(b.x + Math.cos(angle) * 55 + ox, 14, b.z + Math.sin(angle) * 55 + oz);
+    mesh.castShadow = true;
+    scene.add(mesh);
+
+    const light = new THREE.PointLight(colorHex, 0.6, 90, 2);
+    light.position.copy(mesh.position);
+    scene.add(light);
+
+    tokens.push({ mesh, light, baseY: mesh.position.y, phase: stableHash(slot.agent_id) % 1000 / 1000 * Math.PI * 2 });
+  });
+}
+
+// ─── Raycaster / interaction ──────────────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+const pointer   = new THREE.Vector2();
+let hovered = null;
+const tooltip = document.getElementById('tooltip');
+
+function ndcFromEvent(e) {
+  const r = container.getBoundingClientRect();
+  pointer.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+  pointer.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+}
+
+container.addEventListener('mousemove', e => {
+  ndcFromEvent(e);
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(clickTargets);
+  if (hits.length > 0) {
+    const b = hits[0].object.userData.building;
+    hovered = b || null;
+    if (b) {
+      document.getElementById('tt-title').textContent = b.name;
+      document.getElementById('tt-desc').textContent = b.desc;
+      document.getElementById('tt-hint').textContent = b.link ? '\u21a9 click to enter' : '';
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.clientX + 14) + 'px';
+      tooltip.style.top  = (e.clientY - 10) + 'px';
+      container.style.cursor = b.link ? 'pointer' : 'default';
+    }
+  } else {
+    hovered = null;
+    tooltip.style.display = 'none';
+    container.style.cursor = '';
+  }
+});
+
+container.addEventListener('click', e => {
+  ndcFromEvent(e);
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(clickTargets);
+  if (hits.length > 0) {
+    const b = hits[0].object.userData.building;
+    if (b?.link) window.location.href = b.link;
+  }
+});
+
+// ─── Live data ────────────────────────────────────────────────────────────────
+async function loadData() {
   try {
-    const [slots, metrics] = await Promise.all([
-      fetch(API + '/api/slots').then(r => r.json()).catch(() => ({slots:[]})),
-      fetch(API + '/api/metrics').then(r => r.json()).catch(() => ({scoreboard:[],totals:{}})),
+    const [slotsRes, metricsRes] = await Promise.all([
+      fetch(API + '/api/slots').then(r => r.json()).catch(() => ({ slots: [] })),
+      fetch(API + '/api/metrics').then(r => r.json()).catch(() => ({ scoreboard: [] })),
     ]);
 
-    const allSlots = slots.slots || [];
-    const openSlots = allSlots.filter(s => s.status === 'open');
-    const filledSlots = allSlots.filter(s => s.status === 'filled');
-    const missions = new Set(allSlots.map(s => s.mission_id)).size;
-    const agents = new Set(filledSlots.map(s => s.agent_id)).size;
-    const ranked = (metrics.scoreboard || []).length;
+    const all    = slotsRes.slots || [];
+    const open   = all.filter(s => s.status === 'open');
+    const filled = all.filter(s => s.status === 'filled');
+    const agents  = new Set(filled.map(s => s.agent_id)).size;
+    const missions = new Set(all.map(s => s.mission_id)).size;
+    const ranked  = (metricsRes.scoreboard || []).length;
 
-    document.getElementById('h-agents').textContent = agents;
-    document.getElementById('h-bounties').textContent = missions;
-    document.getElementById('h-slots').textContent = openSlots.length;
-    document.getElementById('b-bounties').textContent = openSlots.length + ' open';
-    document.getElementById('b-listings').textContent = missions + ' listings';
-    document.getElementById('b-agents').textContent = ranked + ' ranked';
+    document.getElementById('h-agents').textContent    = agents;
+    document.getElementById('h-bounties').textContent  = missions;
+    document.getElementById('h-slots').textContent     = open.length;
 
-    // Place agent tokens near buildings
-    const tokensEl = document.getElementById('agent-tokens');
-    tokensEl.innerHTML = '';
-    const uniqueAgents = [...new Set(filledSlots.map(s => s.agent_name))];
-    uniqueAgents.forEach((name, i) => {
-      const token = document.createElement('div');
-      token.className = 'agent-token';
-      const color = AGENT_COLORS[i % AGENT_COLORS.length];
-      token.style.borderColor = color;
-      token.style.background = color.replace(')', ',0.3)').replace('rgb', 'rgba');
-      token.style.left = (150 + Math.random() * 350) + 'px';
-      token.style.top = (100 + Math.random() * 250) + 'px';
-      token.style.animationDelay = (Math.random() * 3) + 's';
-      token.title = name;
-      tokensEl.appendChild(token);
+    const counts = {
+      bounty:  open.length + ' open',
+      kassa:   missions + ' listings',
+      deploy:  'tactical',
+      command: agents > 0 ? 'governed' : 'idle',
+      scores:  ranked + ' ranked',
+      vault:   'sealed',
+    };
+    BUILDINGS.forEach(b => {
+      const el = document.getElementById('lbl-' + b.id);
+      if (el && counts[b.id] != null) el.textContent = counts[b.id];
     });
-  } catch(e) { console.error(e); }
+
+    // Tier-driven glow
+    BUILDINGS.forEach(b => {
+      const active = agents > 0;
+      const constitutional = b.id === 'command' && active;
+      b._baseLightIntensity               = constitutional ? 1.4 : active ? 0.9 : 0.35;
+      if (b._bodyMat) b._bodyMat.emissiveIntensity = constitutional ? 0.22 : active ? 0.12 : 0.04;
+      if (b._topMat)  b._topMat.emissiveIntensity  = constitutional ? 0.38 : active ? 0.2  : 0.08;
+    });
+
+    placeTokens(filled);
+  } catch (err) {
+    console.error('loadData:', err);
+  }
 }
 
-loadWorld();
-setInterval(loadWorld, 8000);
+loadData();
+setInterval(loadData, 8000);
+
+// ─── Animation loop ───────────────────────────────────────────────────────────
+const clock = new THREE.Clock();
+
+(function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  tokens.forEach(tok => {
+    tok.mesh.position.y = tok.baseY + Math.sin(t * 1.6 + tok.phase) * 4.5;
+    tok.light.position.copy(tok.mesh.position);
+  });
+
+  BUILDINGS.forEach((b, i) => {
+    if (b._pLight) {
+      b._pLight.intensity = (b._baseLightIntensity ?? 0.7) + Math.sin(t * 1.1 + i * 0.9) * 0.18;
+    }
+    if (b._topMat) {
+      const target = hovered === b
+        ? 0.55 + Math.sin(t * 4) * 0.12
+        : (b._topMat.userData.baseEI ?? 0.18);
+      b._topMat.emissiveIntensity += (target - b._topMat.emissiveIntensity) * 0.12;
+      if (!b._topMat.userData.baseEI) b._topMat.userData.baseEI = b._topMat.emissiveIntensity;
+    }
+  });
+
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+})();
 </script>
 </body>
 </html>
