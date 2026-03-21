@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Universe — Governance</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:      #0a0a12;
+    --surface: #0f0f1a;
+    --border:  #1e1e2e;
+    --accent:  #c8a96e;
+    --signal:  #7ec86e;
+    --blue:    #6e9ec8;
+    --red:     #c86e6e;
+    --muted:   #8a8aa8;
+    --text:    #e8dcc8;
+    --mono:    'Share Tech Mono', 'SF Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      linear-gradient(rgba(200,169,110,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,169,110,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 44px;
+    background: rgba(10,10,18,0.95);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 20px;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+  }
+  .nav-brand { color: var(--accent); font-size: 11px; letter-spacing: 0.15em; font-weight: 700; }
+  .nav-links { display: flex; gap: 16px; margin-left: auto; }
+  .nav-links a {
+    color: var(--muted); font-size: 9px; letter-spacing: 0.12em;
+    text-decoration: none; text-transform: uppercase; transition: color 0.2s;
+  }
+  .nav-links a:hover, .nav-links a.active { color: var(--accent); }
+
+  .main {
+    padding: 64px 24px 40px;
+    max-width: 1100px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  .page-header { border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 28px; }
+  .page-title  { font-size: 11px; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; margin-bottom: 4px; }
+  .page-sub    { font-size: 9px; color: var(--muted); letter-spacing: 0.08em; }
+
+  .compare-banner {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 12px;
+    margin-bottom: 28px;
+    align-items: center;
+  }
+  .compare-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+  }
+  .compare-card.committee { border-color: rgba(126,200,110,0.3); }
+  .compare-card.roberts   { border-color: rgba(200,110,110,0.2); }
+  .compare-label { font-size: 8px; letter-spacing: 0.15em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .compare-score { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .compare-score.good { color: var(--signal); }
+  .compare-score.bad  { color: var(--red); }
+  .compare-detail { font-size: 9px; color: var(--muted); line-height: 1.8; white-space: pre-line; }
+  .compare-arrow { font-size: 18px; color: var(--accent); text-align: center; }
+
+  .section { margin-bottom: 28px; }
+  .section-label {
+    font-size: 9px; letter-spacing: 0.15em; color: var(--muted);
+    text-transform: uppercase; margin-bottom: 12px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .officers-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+  .officer-card { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 12px; }
+  .officer-role { font-size: 8px; letter-spacing: 0.15em; color: var(--accent); text-transform: uppercase; margin-bottom: 4px; }
+  .officer-name { font-size: 11px; color: var(--text); margin-bottom: 2px; }
+  .officer-desc { font-size: 8px; color: var(--muted); line-height: 1.5; }
+
+  .metrics-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
+  .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 12px 10px; text-align: center; }
+  .metric-val   { font-size: 22px; color: var(--text); line-height: 1; margin-bottom: 4px; }
+  .metric-val.good { color: var(--signal); }
+  .metric-val.warn { color: var(--accent); }
+  .metric-val.bad  { color: var(--red); }
+  .metric-label { font-size: 8px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  .results-table { width: 100%; border-collapse: collapse; font-size: 9px; }
+  .results-table th {
+    text-align: left; padding: 6px 8px; color: var(--muted);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    border-bottom: 1px solid var(--border); font-weight: 400;
+  }
+  .results-table td { padding: 7px 8px; border-bottom: 1px solid rgba(30,30,46,0.5); vertical-align: middle; }
+  .results-table tr:hover td { background: rgba(200,169,110,0.03); }
+
+  .pill { display: inline-block; padding: 2px 7px; border-radius: 2px; font-size: 8px; letter-spacing: 0.1em; font-weight: 700; text-transform: uppercase; }
+  .pill-pass    { background: rgba(126,200,110,0.12); color: var(--signal); border: 1px solid rgba(126,200,110,0.3); }
+  .pill-fail    { background: rgba(200,110,110,0.10); color: var(--red);    border: 1px solid rgba(200,110,110,0.25); }
+  .pill-blocked { background: rgba(200,169,110,0.10); color: var(--accent); border: 1px solid rgba(200,169,110,0.3); }
+  .pill-nosec   { background: rgba(138,138,168,0.10); color: var(--muted);  border: 1px solid rgba(138,138,168,0.2); }
+
+  .tag-sm { display: inline-block; padding: 1px 5px; border-radius: 2px; font-size: 7px; letter-spacing: 0.08em; margin-left: 3px; }
+  .tag-quorum { background: rgba(110,158,200,0.12); color: var(--blue);   border: 1px solid rgba(110,158,200,0.3); }
+  .tag-smvote { background: rgba(200,169,110,0.10); color: var(--accent); border: 1px solid rgba(200,169,110,0.25); }
+  .tag-amend  { background: rgba(126,200,110,0.10); color: var(--signal); border: 1px solid rgba(126,200,110,0.2); }
+  .tag-flame  { background: rgba(200,110,110,0.10); color: var(--red);    border: 1px solid rgba(200,110,110,0.25); }
+
+  .loading { padding: 40px; text-align: center; color: var(--muted); font-size: 10px; letter-spacing: 0.1em; }
+  .pulse { animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .minutes-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 16px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 9px;
+    line-height: 1.8;
+  }
+  .min-chair   { color: var(--accent); }
+  .min-cochair { color: var(--blue); }
+  .min-flame   { color: var(--red); }
+  .min-pass    { color: var(--signal); }
+  .min-fail    { color: var(--red); }
+  .min-sec     { color: var(--muted); font-style: italic; }
+  .min-blank   { height: 4px; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-brand">⚖ GOVERNANCE</span>
+  <div class="nav-links">
+    <a href="/">Universe</a>
+    <a href="/world">World</a>
+    <a href="/slots">Missions</a>
+    <a href="/economics">Economics</a>
+    <a href="/dashboard">Dashboard</a>
+    <a href="/governance" class="active">Governance</a>
+  </div>
+</nav>
+
+<main class="main">
+
+  <div class="page-header">
+    <div class="page-title">⚖ GOVERNANCE — COMMITTEE SESSION RESULTS</div>
+    <div class="page-sub">Robert's Rules of Order + Six Fold Flame · MO§ES™ Constitutional Layer</div>
+  </div>
+
+  <!-- COMPARE -->
+  <div class="section">
+    <div class="section-label">Committee Roles vs. No Roles — What Structure Actually Does</div>
+    <div class="compare-banner">
+      <div class="compare-card committee">
+        <div class="compare-label">With Chair / Co-Chair / Secretary</div>
+        <div class="compare-score good" id="cmt-pct">—%</div>
+        <div class="compare-detail" id="cmt-detail">Loading…</div>
+      </div>
+      <div class="compare-arrow">→</div>
+      <div class="compare-card roberts">
+        <div class="compare-label">Without Committee Roles (baseline)</div>
+        <div class="compare-score bad" id="rbt-pct">—%</div>
+        <div class="compare-detail" id="rbt-detail">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OFFICERS -->
+  <div class="section" id="officers-section" style="display:none">
+    <div class="section-label">Officers on Record</div>
+    <div class="officers-row">
+      <div class="officer-card">
+        <div class="officer-role">◈ Chair</div>
+        <div class="officer-name" id="off-chair">—</div>
+        <div class="officer-desc">Calls meeting to order · enforces quorum · rules on points of order</div>
+      </div>
+      <div class="officer-card">
+        <div class="officer-role">◇ Co-Chair</div>
+        <div class="officer-name" id="off-cochair">—</div>
+        <div class="officer-desc">Presides when Chair is mover · moves previous question on consensus items</div>
+      </div>
+      <div class="officer-card">
+        <div class="officer-role">✎ Secretary</div>
+        <div class="officer-name" id="off-sec">—</div>
+        <div class="officer-desc">Takes roll call · records every action · produces formal minutes file</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- METRICS -->
+  <div class="section" id="metrics-section" style="display:none">
+    <div class="section-label">Committee Session Metrics</div>
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-val good" id="m-passed">—</div>
+        <div class="metric-label">Passed</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val bad" id="m-failed">—</div>
+        <div class="metric-label">Failed</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val warn" id="m-blocked">—</div>
+        <div class="metric-label">Flame Blocked</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="m-quorum">—</div>
+        <div class="metric-label">Quorum Calls</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="m-correct">—</div>
+        <div class="metric-label">Correct Outcomes</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="section" id="table-section" style="display:none">
+    <div class="section-label">Proposal Results — Committee Session</div>
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Proposal</th>
+          <th>Category</th>
+          <th>Presiding</th>
+          <th>Vote</th>
+          <th>Outcome</th>
+          <th>Tags</th>
+        </tr>
+      </thead>
+      <tbody id="proposal-rows">
+        <tr><td colspan="7"><div class="loading pulse">Loading…</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- MINUTES -->
+  <div class="section" id="minutes-section" style="display:none">
+    <div class="section-label">Session Minutes (Secretary's Record)</div>
+    <div class="minutes-box" id="minutes-content"></div>
+  </div>
+
+</main>
+
+<script>
+const API = window.location.origin;
+
+// ── Helpers ───────────────────────────────────────────────────
+function pill(outcome) {
+  const map = {
+    PASSED:    ['pill-pass',    'PASSED'],
+    FAILED:    ['pill-fail',    'FAILED'],
+    BLOCKED:   ['pill-blocked', 'BLOCKED'],
+    NO_SECOND: ['pill-nosec',   'NO SECOND'],
+  };
+  const [cls, label] = map[outcome] || ['pill-nosec', outcome];
+  const el = document.createElement('span');
+  el.className = 'pill ' + cls;
+  el.textContent = label;
+  return el;
+}
+
+function mkTag(cls, text) {
+  const el = document.createElement('span');
+  el.className = 'tag-sm ' + cls;
+  el.textContent = text;
+  return el;
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function show(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = '';
+}
+
+// ── Render committee ──────────────────────────────────────────
+function renderCommittee(d) {
+  const off = d.officers || {};
+  setText('off-chair',   off.chair     || '—');
+  setText('off-cochair', off.co_chair  || '—');
+  setText('off-sec',     off.secretary || '—');
+  show('officers-section');
+
+  const total   = d.proposals || 0;
+  const correct = d.correct   || 0;
+  const pct     = total > 0 ? Math.round(correct / total * 100) : 0;
+
+  setText('m-passed',  d.passed  ?? '—');
+  setText('m-failed',  d.failed  ?? '—');
+  setText('m-blocked', d.blocked ?? '—');
+  setText('m-quorum',  d.quorum_calls_invoked ?? '—');
+
+  const mC = document.getElementById('m-correct');
+  if (mC) {
+    mC.textContent = correct + '/' + total;
+    mC.className   = 'metric-val ' + (pct >= 80 ? 'good' : pct >= 60 ? 'warn' : 'bad');
+  }
+  show('metrics-section');
+
+  const cPct = document.getElementById('cmt-pct');
+  if (cPct) cPct.textContent = pct + '%';
+
+  const cDet = document.getElementById('cmt-detail');
+  if (cDet) {
+    cDet.textContent =
+      correct + ' of ' + total + ' proposals reached correct outcome\n' +
+      (d.quorum_calls_invoked || 0) + ' quorum call(s) · ' +
+      (d.co_chair_closed_debate || 0) + ' early debate closure(s)';
+  }
+
+  // Build table rows using DOM only
+  const tbody = document.getElementById('proposal-rows');
+  if (!tbody) return;
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+  (d.results || []).forEach(r => {
+    const tr = document.createElement('tr');
+
+    // ID
+    const tdId = document.createElement('td');
+    tdId.style.cssText = 'color:var(--muted);font-size:8px;white-space:nowrap';
+    tdId.textContent = r.proposal_id || '';
+    tr.appendChild(tdId);
+
+    // Title + supermajority tag
+    const tdTitle = document.createElement('td');
+    tdTitle.style.maxWidth = '220px';
+    const titleEl = document.createElement('span');
+    titleEl.style.cssText = 'font-size:9px;line-height:1.4;display:block';
+    titleEl.textContent = r.title || '';
+    tdTitle.appendChild(titleEl);
+    if (r.requires_supermajority) {
+      const smEl = document.createElement('span');
+      smEl.className = 'tag-sm tag-smvote';
+      smEl.style.cssText = 'margin-top:2px;display:inline-block';
+      smEl.textContent = '2/3 MAJORITY';
+      tdTitle.appendChild(smEl);
+    }
+    tr.appendChild(tdTitle);
+
+    // Category
+    const tdCat = document.createElement('td');
+    tdCat.style.cssText = 'color:var(--muted);font-size:8px;white-space:nowrap';
+    tdCat.textContent = (r.category || '').replace(/_/g, ' ');
+    tr.appendChild(tdCat);
+
+    // Presiding officer
+    const tdPres = document.createElement('td');
+    tdPres.style.cssText = 'font-size:8px;color:var(--muted);white-space:nowrap';
+    tdPres.textContent = r.presiding_officer || '—';
+    tr.appendChild(tdPres);
+
+    // Vote weights
+    const tdVote = document.createElement('td');
+    tdVote.style.cssText = 'font-size:8px;white-space:nowrap';
+    const yEl = document.createElement('span');
+    yEl.style.color = 'var(--signal)';
+    yEl.textContent = 'Y ' + (r.votes_yes  || 0).toFixed(1);
+    const nEl = document.createElement('span');
+    nEl.style.cssText = 'color:var(--red);margin:0 4px';
+    nEl.textContent = 'N ' + (r.votes_no   || 0).toFixed(1);
+    const aEl = document.createElement('span');
+    aEl.style.color = 'var(--muted)';
+    aEl.textContent = 'A ' + (r.votes_abs  || 0).toFixed(1);
+    tdVote.appendChild(yEl);
+    tdVote.appendChild(nEl);
+    tdVote.appendChild(aEl);
+    tr.appendChild(tdVote);
+
+    // Outcome pill
+    const tdOut = document.createElement('td');
+    tdOut.appendChild(pill(r.outcome));
+    tr.appendChild(tdOut);
+
+    // Tags
+    const tdTags = document.createElement('td');
+    tdTags.style.whiteSpace = 'nowrap';
+    if (r.quorum_call_invoked)
+      tdTags.appendChild(mkTag('tag-quorum', 'QUORUM +' + (r.quorum_call_converts || 0)));
+    if (r.co_chair_closed_debate)
+      tdTags.appendChild(mkTag('tag-smvote', 'DEBATE CLOSED'));
+    if (r.amendment_adopted)
+      tdTags.appendChild(mkTag('tag-amend', 'AMENDED'));
+    if (r.flame_blocked)
+      tdTags.appendChild(mkTag('tag-flame', 'FLAME'));
+    if (r.appealed && r.outcome === 'PASSED')
+      tdTags.appendChild(mkTag('tag-amend', 'APPEAL PASSED'));
+    tr.appendChild(tdTags);
+
+    tbody.appendChild(tr);
+  });
+
+  show('table-section');
+}
+
+// ── Render roberts baseline ───────────────────────────────────
+function renderRoberts(d) {
+  const results = d.results || [];
+  const passed  = results.filter(r => r.outcome === 'PASSED').length;
+  const total   = results.length;
+  const pct     = total > 0 ? Math.round(passed / total * 100) : 0;
+  const wrong   = results.filter(r => !r.correct_outcome).length;
+
+  const rPct = document.getElementById('rbt-pct');
+  if (rPct) rPct.textContent = pct + '%';
+
+  const rDet = document.getElementById('rbt-detail');
+  if (rDet) {
+    rDet.textContent =
+      passed + ' of ' + total + ' proposals reached correct outcome\n' +
+      wrong + ' miscalibrated — quorum failures dominant\n' +
+      'No Chair to enforce quorum · abstentions piled up';
+  }
+}
+
+// ── Load minutes ──────────────────────────────────────────────
+async function loadMinutes() {
+  // Minutes file is in /data/ — not served as static by default.
+  // Try via a direct fetch; if it 404s, skip gracefully.
+  try {
+    const res = await fetch(API + '/data/minutes_20260321_002336.md');
+    if (!res.ok) return;
+    const text = await res.text();
+
+    const box = document.getElementById('minutes-content');
+    if (!box) return;
+    while (box.firstChild) box.removeChild(box.firstChild);
+
+    text.split('\n').forEach(raw => {
+      const line = raw.replace(/\*\*/g, '').replace(/^\s*>\s*/, '').trim();
+      if (!line) {
+        const gap = document.createElement('div');
+        gap.className = 'min-blank';
+        box.appendChild(gap);
+        return;
+      }
+      const div = document.createElement('div');
+      if (line.includes('CHAIR (') && !line.includes('CO-CHAIR')) {
+        div.className = 'min-chair';
+      } else if (line.includes('CO-CHAIR')) {
+        div.className = 'min-cochair';
+      } else if (line.includes('SIX FOLD FLAME') || line.includes('BLOCKED')) {
+        div.className = 'min-flame';
+      } else if (line.includes('PASSED')) {
+        div.className = 'min-pass';
+      } else if (line.includes('FAILED')) {
+        div.className = 'min-fail';
+      } else if (line.startsWith('Secretary') || line.startsWith('[+')) {
+        div.className = 'min-sec';
+      }
+      div.textContent = line;
+      box.appendChild(div);
+    });
+
+    show('minutes-section');
+  } catch (_) {
+    // data/ not statically served — that's fine
+  }
+}
+
+// ── Status row in table when empty ───────────────────────────
+function tableMessage(msg) {
+  const tbody = document.getElementById('proposal-rows');
+  if (!tbody) return;
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+  const tr  = document.createElement('tr');
+  const td  = document.createElement('td');
+  td.colSpan = 7;
+  const div = document.createElement('div');
+  div.className = 'loading';
+  div.textContent = msg;
+  td.appendChild(div);
+  tr.appendChild(td);
+  tbody.appendChild(tr);
+}
+
+// ── Main ──────────────────────────────────────────────────────
+async function load() {
+  try {
+    const res  = await fetch(API + '/api/governance/sessions');
+    if (!res.ok) throw new Error('API error ' + res.status);
+    const data = await res.json();
+
+    const committee = (data.sessions || []).find(s => s.type === 'committee');
+    const roberts   = (data.sessions || []).find(s => s.type === 'roberts');
+
+    if (committee) renderCommittee(committee.data);
+    if (roberts)   renderRoberts(roberts.data);
+
+    if (!committee && !roberts) {
+      tableMessage('No governance sessions found. Run: python3 tests/governance_committee.py');
+    }
+  } catch (err) {
+    tableMessage('Backend offline or no governance data. Start backend and re-run committee sim.');
+    const cDet = document.getElementById('cmt-detail');
+    if (cDet) cDet.textContent = 'Backend: ' + err.message;
+  }
+
+  await loadMinutes();
+}
+
+load();
+</script>
+</body>
+</html>
