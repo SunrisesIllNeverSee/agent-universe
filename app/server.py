@@ -60,6 +60,11 @@ def create_app(root: Path | None = None) -> FastAPI:
     app.state.router = router
     app.state.mcp_bridge = mcp_bridge
     app.state.connection_hub = hub
+
+    # BUG-007 FIX: Slot mutation lock — prevents DICT_RACE crash under concurrent
+    # fill+leave+read. asyncio.Lock() is correct here (single-threaded event loop).
+    # Any coroutine that mutates slot state must acquire this before check-then-write.
+    slot_lock = asyncio.Lock()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -693,18 +698,21 @@ def create_app(root: Path | None = None) -> FastAPI:
         if registered.get("status") == "suspended":
             return JSONResponse({"error": "Agent suspended — contact admin"}, status_code=403)
 
-        slots = _load_slots()
-        slot = next((s for s in slots if s["id"] == slot_id), None)
-        if not slot:
-            return JSONResponse({"error": "Slot not found"}, status_code=404)
-        if slot["status"] != "open":
-            return JSONResponse({"error": f"Slot already {slot['status']}"}, status_code=409)
+        # BUG-007 FIX: Acquire slot_lock before check-then-mutate.
+        # Prevents DICT_RACE where concurrent fill+leave interleave on same slot.
+        async with slot_lock:
+            slots = _load_slots()
+            slot = next((s for s in slots if s["id"] == slot_id), None)
+            if not slot:
+                return JSONResponse({"error": "Slot not found"}, status_code=404)
+            if slot["status"] != "open":
+                return JSONResponse({"error": f"Slot already {slot['status']}"}, status_code=409)
 
-        slot["status"] = "filled"
-        slot["agent_id"] = agent_id
-        slot["agent_name"] = agent_name
-        slot["filled_at"] = datetime.now(UTC).isoformat()
-        _save_slots(slots)
+            slot["status"] = "filled"
+            slot["agent_id"] = agent_id
+            slot["agent_name"] = agent_name
+            slot["filled_at"] = datetime.now(UTC).isoformat()
+            _save_slots(slots)
 
         audit.log("deploy", "slot_filled", {
             "slot_id": slot_id,
@@ -728,17 +736,19 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def leave_slot(payload: dict) -> dict:
         """Agent leaves a slot — opens it back up."""
         slot_id = payload.get("slot_id", "")
-        slots = _load_slots()
-        slot = next((s for s in slots if s["id"] == slot_id), None)
-        if not slot:
-            return JSONResponse({"error": "Slot not found"}, status_code=404)
+        # BUG-007 FIX: Lock slot mutation to prevent DICT_RACE on concurrent leave+fill
+        async with slot_lock:
+            slots = _load_slots()
+            slot = next((s for s in slots if s["id"] == slot_id), None)
+            if not slot:
+                return JSONResponse({"error": "Slot not found"}, status_code=404)
 
-        old_agent = slot["agent_name"]
-        slot["status"] = "open"
-        slot["agent_id"] = None
-        slot["agent_name"] = None
-        slot["filled_at"] = None
-        _save_slots(slots)
+            old_agent = slot["agent_name"]
+            slot["status"] = "open"
+            slot["agent_id"] = None
+            slot["agent_name"] = None
+            slot["filled_at"] = None
+            _save_slots(slots)
 
         audit.log("deploy", "slot_vacated", {"slot_id": slot_id, "previous_agent": old_agent})
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
@@ -1385,6 +1395,76 @@ def create_app(root: Path | None = None) -> FastAPI:
         await emit("message_added", saved)
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
         return saved
+
+    # ── INBOX ──────────────────────────────────────────────────────────────────
+
+    inbox_path = root / "data" / "inbox.jsonl"
+
+    @app.post("/api/inbox/apply")
+    async def inbox_apply(payload: dict) -> dict:
+        """Capture a Help Wanted application. Emits inbox_application over WebSocket."""
+        import secrets as _sec2
+        app_id = f"app-{_sec2.token_hex(4)}"
+        entry = {
+            "id": app_id,
+            "timestamp": datetime.now(UTC).isoformat(),
+            "status": "pending",
+            "name": payload.get("name", ""),
+            "handle": payload.get("handle", ""),
+            "system": payload.get("system", ""),
+            "role": payload.get("role", ""),
+            "posture": payload.get("posture", ""),
+            "channel": payload.get("channel", ""),
+            "message": payload.get("message", ""),
+            "job_id": payload.get("job_id", ""),
+        }
+        with inbox_path.open("a") as f:
+            f.write(json.dumps(entry) + "\n")
+        audit.log("inbox", "application_received", {"id": app_id, "name": entry["name"], "role": entry["role"]})
+        await emit("inbox_application", entry)
+        return {"ok": True, "application_id": app_id}
+
+    @app.get("/api/inbox")
+    async def inbox_list() -> dict:
+        """List all inbox applications."""
+        applications: list[dict] = []
+        if inbox_path.exists():
+            for line in inbox_path.read_text().splitlines():
+                line = line.strip()
+                if line:
+                    try:
+                        applications.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        pass
+        return {"applications": applications, "total": len(applications)}
+
+    @app.post("/api/inbox/{app_id}/review")
+    async def inbox_review(app_id: str, payload: dict) -> dict:
+        """Update application status: pending → approved / rejected / contacted."""
+        status = payload.get("status", "reviewed")
+        if not inbox_path.exists():
+            return {"error": "inbox empty"}
+        lines = inbox_path.read_text().splitlines()
+        updated = False
+        new_lines = []
+        for line in lines:
+            try:
+                entry = json.loads(line)
+                if entry.get("id") == app_id:
+                    entry["status"] = status
+                    entry["reviewed_at"] = datetime.now(UTC).isoformat()
+                    entry["reviewer_note"] = payload.get("note", "")
+                    updated = True
+                new_lines.append(json.dumps(entry))
+            except json.JSONDecodeError:
+                new_lines.append(line)
+        inbox_path.write_text("\n".join(new_lines) + "\n")
+        if updated:
+            audit.log("inbox", "application_reviewed", {"id": app_id, "status": status})
+            await emit("inbox_updated", {"id": app_id, "status": status})
+        return {"ok": updated, "id": app_id, "status": status}
+
+    # ── WEBSOCKET ──────────────────────────────────────────────────────────────
 
     @app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket) -> None:
