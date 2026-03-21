@@ -144,6 +144,32 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def entry_page() -> FileResponse:
         return FileResponse(frontend_dir / "entry.html")
 
+    @app.get("/governance")
+    async def governance_page() -> FileResponse:
+        return FileResponse(frontend_dir / "governance.html")
+
+    @app.get("/api/governance/sessions")
+    async def governance_sessions() -> dict:
+        """Return available governance sim results for the /governance dashboard."""
+        import glob as _glob
+        data_dir = root / "data"
+        sessions = []
+        for path in sorted(_glob.glob(str(data_dir / "committee_*.json")), reverse=True):
+            try:
+                with open(path) as f:
+                    d = json.load(f)
+                sessions.append({"type": "committee", "file": Path(path).name, "data": d})
+            except Exception:
+                pass
+        for path in sorted(_glob.glob(str(data_dir / "governance_roberts_*.json")), reverse=True):
+            try:
+                with open(path) as f:
+                    d = json.load(f)
+                sessions.append({"type": "roberts", "file": Path(path).name, "data": d})
+            except Exception:
+                pass
+        return {"sessions": sessions, "count": len(sessions)}
+
     @app.get("/api/state")
     async def get_state() -> dict:
         return runtime.snapshot().model_dump(mode="json")
