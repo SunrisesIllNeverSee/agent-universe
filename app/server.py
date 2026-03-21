@@ -959,6 +959,63 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def get_balance(agent_id: str) -> dict:
         return {"agent_id": agent_id, "balance": economy.treasury.balance(agent_id)}
 
+    @app.get("/api/treasury")
+    async def sovereign_treasury(since: str = "") -> dict:
+        """Sovereign platform treasury — mission fee collection summary.
+
+        since: ISO timestamp filter (default: all). At launch, set to launch date.
+        Rates loaded from config/economic_rates.json (CIVITAS-voteable, no redeploy).
+        Note: current data includes stress-test runs. Will be clean at soft open.
+        """
+        ledger = economy.treasury._ledger
+        all_txns = ledger.get("transactions", [])
+
+        # Filter by date if provided — isolates real production data from test runs
+        def _after(t: dict) -> bool:
+            if not since:
+                return True
+            ts = t.get("timestamp", "")
+            return ts >= since
+
+        fee_txns    = [t for t in all_txns if t.get("reason") == "platform_fee"    and _after(t)]
+        bounty_txns = [t for t in all_txns if t.get("reason") == "recruiter_bounty" and _after(t)]
+        mission_txns = [t for t in all_txns if t.get("reason") == "mission_payout"  and _after(t)]
+
+        total_fees     = round(sum(t["amount"] for t in fee_txns if t["amount"] < 1e6), 4)
+        total_bounties = round(sum(t["amount"] for t in bounty_txns), 4)
+        total_missions = round(sum(t["amount"] for t in mission_txns if t["amount"] < 1e6), 4)
+        net_treasury   = round(total_fees - total_bounties, 4)
+
+        # Rate config
+        rates_path = root / "config" / "economic_rates.json"
+        rate_config: dict = {}
+        if rates_path.exists():
+            try:
+                rate_config = json.loads(rates_path.read_text())
+            except Exception:
+                pass
+
+        return {
+            "treasury": {
+                "net_balance":           net_treasury,
+                "fees_collected":        total_fees,
+                "bounties_paid":         total_bounties,
+                "agent_earnings":        total_missions,
+                "fee_transaction_count": len(fee_txns),
+                "since_filter":          since or "all (includes stress-test data)",
+                "note": "Use ?since=YYYY-MM-DD to scope to real production activity.",
+            },
+            "rate_config": {
+                "version":     rate_config.get("_version", "hardcoded-defaults"),
+                "vote_status": rate_config.get("_vote_status", "pending"),
+                "tiers":       {
+                    k: {"label": v.get("label", k), "fee_rate": v.get("fee_rate")}
+                    for k, v in rate_config.get("tiers", {}).items()
+                },
+            },
+            "recent_activity": fee_txns[-5:],
+        }
+
     # ── Trial Period Endpoints ──────────────────────────────────────
 
     @app.post("/api/economy/trial/init")
