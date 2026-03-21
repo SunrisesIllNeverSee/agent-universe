@@ -1333,10 +1333,24 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     @app.get("/api/provision/status/{agent_id}")
     async def agent_provision_status(agent_id: str) -> dict:
-        """Agent checks its own governance status and registration."""
+        """Agent checks its own governance status, registration, and economic tier."""
         agent = next((r for r in runtime.registry if r.get("agent_id") == agent_id), None)
         if not agent:
             return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
+
+        # Determine economic tier from live governance state + per-agent metrics
+        gov_active = runtime.governance.mode is not None
+        agent_metrics = {
+            "governance_active": gov_active,
+            "compliance_score": agent.get("compliance_score", 0),
+            "missions_completed": agent.get("missions_completed", 0),
+            "governance_violations": agent.get("governance_violations", 0),
+            "lineage_verified": agent.get("lineage_verified", False),
+            "dual_signature": agent.get("dual_signature", False),
+            "blackcard_paid": agent.get("blackcard_paid", False),
+        }
+        tier = economy.determine_tier(agent_metrics)
+        tier_info = economy.tier_info(tier)
 
         return {
             "agent_id": agent_id,
@@ -1350,6 +1364,9 @@ def create_app(root: Path | None = None) -> FastAPI:
             "assigned_role": agent.get("role"),
             "rate_limit": agent.get("rate_limit"),
             "loaded_context": runtime.vault.loaded,
+            "tier": tier,
+            "fee_rate": tier_info.get("fee_rate"),
+            "tier_label": tier_info.get("label"),
         }
 
     @app.get("/api/provision/registry")
