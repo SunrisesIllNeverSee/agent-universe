@@ -305,6 +305,43 @@
   }
   .cap-note-em { color: var(--accent); }
 
+  /* ── TIER LADDER ── */
+  .tier-ladder { display: flex; flex-direction: column; gap: 5px; margin-bottom: 20px; }
+  .tier-row {
+    border: 1px solid var(--border);
+    border-left: 3px solid transparent;
+    border-radius: 4px;
+    padding: 9px 12px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 8px;
+    opacity: 0.35;
+    transition: opacity 0.2s;
+  }
+  .tier-row.current { opacity: 1; }
+  .tier-row.t-ungoverned  { border-left-color: var(--muted); }
+  .tier-row.t-governed    { border-left-color: var(--blue); }
+  .tier-row.t-constitutional { border-left-color: var(--accent); }
+  .tier-row.t-blackcard   { border-left-color: #ccc; }
+  .tier-row.current.t-ungoverned    { background: rgba(138,138,168,0.07); }
+  .tier-row.current.t-governed      { background: rgba(110,158,200,0.07); }
+  .tier-row.current.t-constitutional{ background: rgba(200,169,110,0.07); }
+  .tier-row.current.t-blackcard     { background: rgba(220,220,220,0.05); }
+  .tier-label-row { display: flex; align-items: center; gap: 7px; margin-bottom: 2px; }
+  .tier-name { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; }
+  .tier-current-pill {
+    font-size: 8px; padding: 1px 6px; border-radius: 10px; letter-spacing: 0.1em;
+    background: rgba(200,169,110,0.15); color: var(--accent);
+    border: 1px solid rgba(200,169,110,0.3);
+  }
+  .tier-req { font-size: 9px; color: var(--muted); line-height: 1.4; }
+  .tier-fee { font-size: 18px; font-weight: 700; }
+  .t-ungoverned  .tier-fee { color: #c86e6e; }
+  .t-governed    .tier-fee { color: var(--blue); }
+  .t-constitutional .tier-fee { color: var(--accent); }
+  .t-blackcard   .tier-fee { color: #ddd; }
+
   .proceed-btn {
     width: 100%;
     padding: 14px;
@@ -502,6 +539,9 @@
         verified signal. You begin unranked — you rise by doing.
       </div>
 
+      <div class="section-label" id="tier-section-label" style="margin-top:20px;display:none;">ECONOMIC STANDING</div>
+      <div id="tier-ladder" class="tier-ladder" style="display:none;"></div>
+
       <button class="proceed-btn" onclick="proceed()">▶ ENTER THE UNIVERSE</button>
     </div>
 
@@ -619,12 +659,120 @@ function storeAndShow(data) {
 
   const gov = (data.governance || 'MPN').replace(/_/g, ' ').toUpperCase();
   document.getElementById('result-gov').textContent    = gov;
-  document.getElementById('result-tier').textContent   = isActive ? 'UNRANKED → BUILDING' : 'PENDING REVIEW';
   document.getElementById('result-footer').textContent = 'OPERATING UNDER ' + gov + ' CONSTITUTIONAL FRAMEWORK';
 
-  // Swap views
+  // Swap views first so the panel is visible
   document.getElementById('entry-form').style.display = 'none';
   document.getElementById('result-panel').classList.add('visible');
+
+  // Load tier ladder async
+  loadTierLadder(data);
+}
+
+// ── TIER LADDER ────────────────────────────────────────────────
+async function loadTierLadder(data) {
+  const TIER_META = {
+    ungoverned:     { req: 'No governance — public bounties only', color: 'red' },
+    governed:       { req: 'Activate governance mode', color: 'blue' },
+    constitutional: { req: '10 missions + compliance ≥ 90% + dual-sig', color: 'gold' },
+    blackcard:      { req: 'Elite performance or purchase', color: 'white' },
+  };
+  const TIER_ORDER = ['ungoverned', 'governed', 'constitutional', 'blackcard'];
+
+  // Determine current tier from signup response
+  // governance field presence + active state indicates GOVERNED at minimum
+  const govActive = !!(data.governance && data.governance !== '' && data.status === 'active');
+
+  let currentTier = 'ungoverned';
+  try {
+    const res = await fetch(API + '/api/economy/tier', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        agent_id: data.agent_id,
+        metrics: {
+          governance_active: govActive,
+          compliance_score: data.compliance_score || 0,
+          missions_completed: data.missions_completed || 0,
+          governance_violations: 0,
+          lineage_verified: false,
+          dual_signature: false,
+        },
+      }),
+    });
+    if (res.ok) {
+      const td = await res.json();
+      currentTier = td.tier || 'ungoverned';
+    }
+  } catch (_) { /* use fallback */ }
+
+  // Store tier for other pages
+  localStorage.setItem('au_tier', currentTier);
+
+  // Update the capability-grid tier cap-item
+  const tierLabels = { ungoverned: 'UNGOVERNED · 15%', governed: 'GOVERNED · 5%',
+    constitutional: 'CONSTITUTIONAL · 2%', blackcard: 'BLACK CARD · 1%' };
+  const tierEl = document.getElementById('result-tier');
+  if (tierEl) {
+    tierEl.textContent = tierLabels[currentTier] || 'UNRANKED → BUILDING';
+    tierEl.className   = 'cap-value ' + (currentTier === 'ungoverned' ? '' : 'unlocked');
+  }
+
+  // Fetch all tier definitions for the ladder
+  let tiers = {};
+  try {
+    const tr = await fetch(API + '/api/economy/tiers');
+    if (tr.ok) { const td = await tr.json(); tiers = td.tiers || {}; }
+  } catch (_) {}
+
+  // Render ladder with pure DOM API (no innerHTML with data)
+  const ladder = document.getElementById('tier-ladder');
+  while (ladder.firstChild) ladder.removeChild(ladder.firstChild);
+
+  TIER_ORDER.forEach(key => {
+    const info = tiers[key] || {};
+    const feeRate = info.fee_rate != null ? Math.round(info.fee_rate * 100) + '%' : '?%';
+    const isCurrent = (key === currentTier);
+    const meta = TIER_META[key] || {};
+
+    const row = document.createElement('div');
+    row.className = 'tier-row t-' + key + (isCurrent ? ' current' : '');
+
+    const left = document.createElement('div');
+
+    const labelRow = document.createElement('div');
+    labelRow.className = 'tier-label-row';
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'tier-name';
+    nameEl.textContent = (info.label || key.toUpperCase());
+    labelRow.appendChild(nameEl);
+
+    if (isCurrent) {
+      const pill = document.createElement('span');
+      pill.className = 'tier-current-pill';
+      pill.textContent = 'YOUR TIER';
+      labelRow.appendChild(pill);
+    }
+
+    const reqEl = document.createElement('div');
+    reqEl.className = 'tier-req';
+    reqEl.textContent = isCurrent ? '✓ Active' : '→ ' + meta.req;
+
+    left.appendChild(labelRow);
+    left.appendChild(reqEl);
+
+    const feeEl = document.createElement('div');
+    feeEl.className = 'tier-fee';
+    feeEl.textContent = feeRate;
+
+    row.appendChild(left);
+    row.appendChild(feeEl);
+    ladder.appendChild(row);
+  });
+
+  document.getElementById('tier-section-label').style.display = '';
+  ladder.style.display = '';
 }
 
 // ── PROCEED TO UNIVERSE ───────────────────────────────────────
