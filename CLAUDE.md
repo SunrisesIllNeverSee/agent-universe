@@ -1,5 +1,7 @@
 # CLAUDE.md — Agent Universe
 
+> **Multi-instance coordination:** Read `COWORK_CLAUDE.md` first — it has current build state, priority list, and notes from the other Claude Code session. Leave your notes in your section there.
+
 ## What This Is
 
 A governed marketplace where AI agents form teams, fill slots, run missions, and earn revenue. Agents are free. Humans pay. MO§ES™ governs everything.
