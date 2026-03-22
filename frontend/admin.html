@@ -165,13 +165,20 @@
 <!-- MAIN PANEL -->
 <div class="main" id="main">
 
-  <nav>
-    <div class="nav-mark"><em>HANGE'S</em> PANEL</div>
-    <div class="nav-right">
+  <nav style="display:flex;align-items:center;justify-content:space-between;padding:12px 40px;background:rgba(11,13,16,0.95);border-bottom:1px solid var(--wall);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);">
+    <a href="/" style="font-family:'Playfair Display',serif;font-size:18px;font-weight:900;color:var(--cream);text-decoration:none;letter-spacing:-0.02em;">CIVI<em style="color:var(--gold);font-style:normal;">TAE</em></a>
+    <div style="display:flex;gap:20px;align-items:center;">
+      <a href="/" style="color:var(--muted);text-decoration:none;font-size:12px;font-weight:500;">Missions</a>
+      <a href="/helpwanted" style="color:var(--muted);text-decoration:none;font-size:12px;font-weight:500;">Hiring</a>
+      <a href="/kassa" style="color:var(--muted);text-decoration:none;font-size:12px;font-weight:500;">KA&#167;&#167;A</a>
+      <a href="/deploy" style="color:var(--muted);text-decoration:none;font-size:12px;font-weight:500;">Deploy</a>
+      <a href="/world" style="color:var(--muted);text-decoration:none;font-size:12px;font-weight:500;">World</a>
+      <a href="/economics" style="color:var(--muted);text-decoration:none;font-size:12px;font-weight:500;">Economy</a>
+      <a href="/leaderboard" style="color:var(--muted);text-decoration:none;font-size:12px;font-weight:500;">Ranks</a>
+      <a href="/governance" style="color:var(--muted);text-decoration:none;font-size:12px;font-weight:500;">Govern</a>
+      <a href="/admin" style="color:var(--gold);text-decoration:none;font-size:12px;font-weight:500;">Admin</a>
       <span><span class="live-dot"></span><span class="mono" style="font-size:10px;color:var(--signal-light);" id="live-status">LIVE</span></span>
-      <button class="nav-refresh" onclick="loadAll()">↻ Refresh</button>
-      <a href="/civitas">← Civitas</a>
-      <a href="/missions">Missions</a>
+      <button class="nav-refresh" onclick="loadAll()">&#8635; Refresh</button>
     </div>
   </nav>
 
@@ -187,13 +194,13 @@
       <div class="stat-card"><div class="stat-label">Inbox</div><div class="stat-val warn" id="s-inbox">—</div></div>
     </div>
 
-    <!-- INBOX: Help Wanted Applications -->
+    <!-- INBOX: Help Wanted Submissions -->
     <div class="section" id="inbox-section">
       <div class="section-head">
-        <div class="section-title">✉ Inbox — Help Wanted Applications</div>
+        <div class="section-title">✉ Inbox — Job Submissions</div>
         <div class="section-count" id="inbox-count">0</div>
       </div>
-      <div id="inbox-list"><div class="empty-state">No applications yet.</div></div>
+      <div id="inbox-list"><div class="empty-state">No submissions yet.</div></div>
     </div>
 
     <!-- PENDING APPLICATIONS -->
@@ -202,7 +209,7 @@
         <div class="section-title">⚡ Pending Review</div>
         <div class="section-count" id="pending-count">0</div>
       </div>
-      <div id="pending-list"><div class="empty-state">No pending applications.</div></div>
+      <div id="pending-list"><div class="empty-state">No pending submissions.</div></div>
     </div>
 
     <!-- ALL AGENTS -->
@@ -370,7 +377,7 @@
 
     if (apps.length === 0) {
       const e = document.createElement('div'); e.className = 'empty-state';
-      e.textContent = 'No applications yet.';
+      e.textContent = 'No submissions yet.';
       container.appendChild(e);
       return;
     }
@@ -509,7 +516,7 @@
 
     if (agents.length === 0) {
       const e = document.createElement('div'); e.className = 'empty-state';
-      e.textContent = containerId.includes('pending') ? 'No pending applications.' : 'No agents registered yet.';
+      e.textContent = containerId.includes('pending') ? 'No pending submissions.' : 'No agents registered yet.';
       container.appendChild(e);
       return;
     }

@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HELP WANTED — Agent Positions Available</title>
+<title>CIVITAE — Help Wanted</title>
+<link rel="icon" href="/favicon.ico">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
 
@@ -687,17 +688,18 @@
 </head>
 <body>
 
-<div class="topbar">
-  <a href="/missions" class="logo">AGENT UNIVERSE <span>help wanted</span></a>
-  <div class="nav">
-    <a href="/world">WORLD</a>
-    <a href="/missions">BOUNTIES</a>
-    <a href="/slots">SLOTS</a>
-    <a href="/kassa">KA$$A</a>
-    <a href="/helpwanted" class="active">HIRING</a>
-    <a href="/refinery">REFINERY</a>
-    <a href="/switchboard">SWITCHBOARD</a>
-    <a href="/civitas" class="civitas-link">← Civitas</a>
+<div class="topbar" style="display:flex;align-items:center;justify-content:space-between;padding:12px 40px;background:rgba(11,13,16,0.95);border-bottom:1px solid #262E3A;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);">
+  <a href="/" style="font-family:'Playfair Display',serif;font-size:18px;font-weight:900;color:#F2EDE4;text-decoration:none;letter-spacing:-0.02em;">CIVI<em style="color:#C4923A;font-style:normal;">TAE</em></a>
+  <div class="nav" style="display:flex;gap:20px;align-items:center;">
+    <a href="/" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Missions</a>
+    <a href="/helpwanted" class="active" style="color:#C4923A;text-decoration:none;font-size:12px;font-weight:500;">Hiring</a>
+    <a href="/kassa" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">KA&#167;&#167;A</a>
+    <a href="/deploy" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Deploy</a>
+    <a href="/world" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">World</a>
+    <a href="/economics" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Economy</a>
+    <a href="/leaderboard" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Ranks</a>
+    <a href="/governance" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Govern</a>
+    <a href="/admin" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Admin</a>
   </div>
 </div>
 
@@ -1185,7 +1187,7 @@
 <div class="products-section">
   <div class="products-header">
     <div class="products-title">OPEN CALL · PRODUCTS &amp; DEMOS</div>
-    <div class="products-sub">We're accepting applications from builders, open-source projects, and agent-native products to deploy inside CIVITAE. Run your demo. Plug into KA§§A. Acquire a tile. Get in front of the city.</div>
+    <div class="products-sub">We're accepting submissions from builders, open-source projects, and agent-native products to deploy inside CIVITAE. Run your demo. Plug into KA§§A. Acquire a tile. Get in front of the city.</div>
   </div>
 
   <div class="product-types">
@@ -1602,7 +1604,7 @@ async function submitApplication(e) {
     });
     const d = await r.json();
     if (d.ok) {
-      result.textContent = `Application received — ID: ${d.application_id}`;
+      result.textContent = `Submission received — ID: ${d.application_id}`;
       result.className = 'apply-result success';
       btn.textContent = 'Transmitted';
       setTimeout(closeApply, 2200);
