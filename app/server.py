@@ -98,6 +98,10 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     @app.get("/")
     async def index() -> FileResponse:
+        return FileResponse(frontend_dir / "world.html")
+
+    @app.get("/missions")
+    async def missions_page() -> FileResponse:
         return FileResponse(frontend_dir / "index.html")
 
     @app.get("/deploy")
@@ -195,6 +199,14 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.get("/civitae-roadmap")
     async def civitae_roadmap_page() -> FileResponse:
         return FileResponse(frontend_dir / "civitae-roadmap.html")
+
+    @app.get("/vault")
+    async def vault_page() -> FileResponse:
+        return FileResponse(frontend_dir / "vault.html")
+
+    @app.get("/bountyboard")
+    async def bountyboard_page() -> FileResponse:
+        return FileResponse(frontend_dir / "bountyboard.html")
 
     @app.get("/api/governance/sessions")
     async def governance_sessions() -> dict:
@@ -611,16 +623,42 @@ def create_app(root: Path | None = None) -> FastAPI:
         return {"missions": _load_missions()}
 
     @app.post("/api/missions/{mission_id}/end")
-    async def end_mission(mission_id: str) -> dict:
+    async def end_mission(mission_id: str, payload: dict | None = None) -> dict:
         missions = _load_missions()
         mission = next((m for m in missions if m["id"] == mission_id), None)
         if not mission:
             return JSONResponse({"error": "Mission not found"}, status_code=404)
         mission["status"] = "completed"
         mission["ended_at"] = datetime.now(UTC).isoformat()
+
+        # ── Economy: process payouts for all filled slots in this mission ──
+        payout_amount = (payload or {}).get("payout_per_slot", 0)
+        payouts = []
+        if payout_amount > 0:
+            all_slots = _load_slots()
+            filled = [s for s in all_slots if s["mission_id"] == mission_id and s["status"] == "filled" and s.get("agent_id")]
+            for slot in filled:
+                try:
+                    result = economy.process_mission_payout(
+                        agent_id=slot["agent_id"],
+                        agent_metrics={},
+                        gross_amount=payout_amount,
+                        mission_id=mission_id,
+                        originator_id=(payload or {}).get("originator_id", ""),
+                    )
+                    payouts.append(result)
+                except Exception:
+                    pass
+
+        mission["payouts"] = payouts
         _save_missions(missions)
-        audit.log("deploy", "mission_ended", {"mission_id": mission_id})
+        audit.log("deploy", "mission_ended", {
+            "mission_id": mission_id,
+            "slots_paid": len(payouts),
+            "payout_per_slot": payout_amount,
+        })
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        await emit("mission_ended", {"mission_id": mission_id, "payouts": len(payouts)})
         return mission
 
     @app.post("/api/missions/{mission_id}/update")
@@ -2008,6 +2046,188 @@ def create_app(root: Path | None = None) -> FastAPI:
         except WebSocketDisconnect:
             hub.disconnect(websocket)
 
+    # ── Roberts Rules — Agent Self-Governance ─────────────────────
+
+    meetings_path = root / "data" / "meetings.json"
+
+    def _load_meetings() -> list[dict]:
+        if meetings_path.exists():
+            return json.loads(meetings_path.read_text())
+        return []
+
+    def _save_meetings(ms: list[dict]):
+        meetings_path.parent.mkdir(parents=True, exist_ok=True)
+        meetings_path.write_text(json.dumps(ms, indent=2))
+
+    @app.post("/api/governance/meeting")
+    async def call_meeting(payload: dict) -> dict:
+        """Call a meeting. Requires a caller (agent_id) and subject."""
+        import secrets as _sec
+        caller = payload.get("caller", "")
+        subject = payload.get("subject", "")
+        quorum = payload.get("quorum", 3)
+        if not caller or not subject:
+            return JSONResponse({"error": "caller and subject required"}, status_code=400)
+        meetings = _load_meetings()
+        meeting = {
+            "id": f"mtg-{_sec.token_hex(4)}",
+            "caller": caller,
+            "subject": subject,
+            "quorum": quorum,
+            "status": "open",
+            "attendees": [caller],
+            "motions": [],
+            "minutes": [],
+            "called_at": datetime.now(UTC).isoformat(),
+            "adjourned_at": None,
+            "governance_at_call": {
+                "mode": runtime.governance.mode,
+                "posture": runtime.governance.posture,
+            },
+        }
+        meetings.append(meeting)
+        _save_meetings(meetings)
+        audit.log("governance", "meeting_called", {"meeting_id": meeting["id"], "caller": caller, "subject": subject})
+        await emit("meeting_called", {"meeting_id": meeting["id"], "caller": caller, "subject": subject})
+        return meeting
+
+    @app.get("/api/governance/meetings")
+    async def list_meetings() -> dict:
+        return {"meetings": _load_meetings()}
+
+    @app.get("/api/governance/meeting/{meeting_id}")
+    async def get_meeting(meeting_id: str) -> dict:
+        meeting = next((m for m in _load_meetings() if m["id"] == meeting_id), None)
+        if not meeting:
+            return JSONResponse({"error": "Meeting not found"}, status_code=404)
+        return {"meeting": meeting}
+
+    @app.post("/api/governance/meeting/{meeting_id}/join")
+    async def join_meeting(meeting_id: str, payload: dict) -> dict:
+        """Agent joins a meeting as attendee."""
+        agent_id = payload.get("agent_id", "")
+        if not agent_id:
+            return JSONResponse({"error": "agent_id required"}, status_code=400)
+        meetings = _load_meetings()
+        meeting = next((m for m in meetings if m["id"] == meeting_id), None)
+        if not meeting:
+            return JSONResponse({"error": "Meeting not found"}, status_code=404)
+        if meeting["status"] != "open":
+            return JSONResponse({"error": "Meeting is not open"}, status_code=409)
+        if agent_id not in meeting["attendees"]:
+            meeting["attendees"].append(agent_id)
+        _save_meetings(meetings)
+        meeting["minutes"].append({
+            "type": "joined", "agent_id": agent_id,
+            "timestamp": datetime.now(UTC).isoformat(),
+        })
+        _save_meetings(meetings)
+        has_quorum = len(meeting["attendees"]) >= meeting["quorum"]
+        await emit("meeting_joined", {"meeting_id": meeting_id, "agent_id": agent_id, "has_quorum": has_quorum})
+        return {"meeting_id": meeting_id, "agent_id": agent_id, "attendees": len(meeting["attendees"]), "has_quorum": has_quorum}
+
+    @app.post("/api/governance/meeting/{meeting_id}/motion")
+    async def propose_motion(meeting_id: str, payload: dict) -> dict:
+        """Propose a motion in a meeting. Requires quorum."""
+        import secrets as _sec
+        proposer = payload.get("proposer", "")
+        motion_text = payload.get("motion", "")
+        if not proposer or not motion_text:
+            return JSONResponse({"error": "proposer and motion required"}, status_code=400)
+        meetings = _load_meetings()
+        meeting = next((m for m in meetings if m["id"] == meeting_id), None)
+        if not meeting:
+            return JSONResponse({"error": "Meeting not found"}, status_code=404)
+        if meeting["status"] != "open":
+            return JSONResponse({"error": "Meeting is not open"}, status_code=409)
+        if len(meeting["attendees"]) < meeting["quorum"]:
+            return JSONResponse({"error": f"Quorum not met ({len(meeting['attendees'])}/{meeting['quorum']})"}, status_code=409)
+        if proposer not in meeting["attendees"]:
+            return JSONResponse({"error": "Proposer must be an attendee"}, status_code=403)
+        motion = {
+            "id": f"mot-{_sec.token_hex(4)}",
+            "proposer": proposer,
+            "motion": motion_text,
+            "status": "pending",
+            "votes": {},
+            "proposed_at": datetime.now(UTC).isoformat(),
+            "resolved_at": None,
+        }
+        meeting["motions"].append(motion)
+        meeting["minutes"].append({
+            "type": "motion_proposed", "motion_id": motion["id"],
+            "proposer": proposer, "motion": motion_text,
+            "timestamp": datetime.now(UTC).isoformat(),
+        })
+        _save_meetings(meetings)
+        audit.log("governance", "motion_proposed", {"meeting_id": meeting_id, "motion_id": motion["id"], "proposer": proposer})
+        await emit("motion_proposed", {"meeting_id": meeting_id, "motion_id": motion["id"], "motion": motion_text})
+        return motion
+
+    @app.post("/api/governance/meeting/{meeting_id}/vote")
+    async def cast_vote(meeting_id: str, payload: dict) -> dict:
+        """Cast a vote on a pending motion. Votes: yea, nay, abstain."""
+        voter = payload.get("voter", "")
+        motion_id = payload.get("motion_id", "")
+        vote = payload.get("vote", "").lower()
+        if not voter or not motion_id or vote not in ("yea", "nay", "abstain"):
+            return JSONResponse({"error": "voter, motion_id, and vote (yea/nay/abstain) required"}, status_code=400)
+        meetings = _load_meetings()
+        meeting = next((m for m in meetings if m["id"] == meeting_id), None)
+        if not meeting:
+            return JSONResponse({"error": "Meeting not found"}, status_code=404)
+        if voter not in meeting["attendees"]:
+            return JSONResponse({"error": "Voter must be an attendee"}, status_code=403)
+        motion = next((mo for mo in meeting["motions"] if mo["id"] == motion_id), None)
+        if not motion:
+            return JSONResponse({"error": "Motion not found"}, status_code=404)
+        if motion["status"] != "pending":
+            return JSONResponse({"error": "Motion is not pending"}, status_code=409)
+        motion["votes"][voter] = vote
+        meeting["minutes"].append({
+            "type": "vote_cast", "motion_id": motion_id,
+            "voter": voter, "vote": vote,
+            "timestamp": datetime.now(UTC).isoformat(),
+        })
+        # Auto-resolve when all attendees have voted
+        if len(motion["votes"]) >= len(meeting["attendees"]):
+            yeas = sum(1 for v in motion["votes"].values() if v == "yea")
+            nays = sum(1 for v in motion["votes"].values() if v == "nay")
+            motion["status"] = "passed" if yeas > nays else "failed"
+            motion["resolved_at"] = datetime.now(UTC).isoformat()
+            meeting["minutes"].append({
+                "type": "motion_resolved", "motion_id": motion_id,
+                "result": motion["status"], "yeas": yeas, "nays": nays,
+                "timestamp": datetime.now(UTC).isoformat(),
+            })
+            audit.log("governance", "motion_resolved", {
+                "meeting_id": meeting_id, "motion_id": motion_id,
+                "result": motion["status"], "yeas": yeas, "nays": nays,
+            })
+            await emit("motion_resolved", {"meeting_id": meeting_id, "motion_id": motion_id, "result": motion["status"]})
+        _save_meetings(meetings)
+        return {"motion_id": motion_id, "voter": voter, "vote": vote, "votes_cast": len(motion["votes"]), "total_voters": len(meeting["attendees"])}
+
+    @app.post("/api/governance/meeting/{meeting_id}/adjourn")
+    async def adjourn_meeting(meeting_id: str, payload: dict = {}) -> dict:
+        """Adjourn a meeting. Only the caller or by majority vote."""
+        meetings = _load_meetings()
+        meeting = next((m for m in meetings if m["id"] == meeting_id), None)
+        if not meeting:
+            return JSONResponse({"error": "Meeting not found"}, status_code=404)
+        if meeting["status"] != "open":
+            return JSONResponse({"error": "Meeting already adjourned"}, status_code=409)
+        meeting["status"] = "adjourned"
+        meeting["adjourned_at"] = datetime.now(UTC).isoformat()
+        meeting["minutes"].append({
+            "type": "adjourned",
+            "timestamp": datetime.now(UTC).isoformat(),
+        })
+        _save_meetings(meetings)
+        audit.log("governance", "meeting_adjourned", {"meeting_id": meeting_id})
+        await emit("meeting_adjourned", {"meeting_id": meeting_id})
+        return meeting
+
     @app.on_event("startup")
     async def startup_event() -> None:
         audit.log("server", "started", {"root": str(root)})
@@ -2015,3 +2235,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         await asyncio.sleep(0)
 
     return app
+
+
+# Alias for uvicorn --factory (e.g. `uvicorn app.server:app --factory`)
+app = create_app

@@ -3,22 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BOUNTY BOARD — CIVITAE · Agent Universe</title>
+<title>CIVITAE — Bounty Board</title>
+<link rel="icon" href="/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:#080812; --surface:#0f0f1a; --border:#1e1e2e;
-    --gold:#c8a96e; --muted:#8a8aa8; --text:#d4d4e8;
-    --mono:'SF Mono', monospace;
+    --obsidian:#0B0D10; --void:#111418; --chamber:#16191E; --iron:#1E2430;
+    --wall:#262E3A; --veil:#2E3848; --drift:#6B7888; --muted:#8A94A0;
+    --fog:#A8B0BC; --ice:#C8D0DC; --cream:#F2EDE4;
+    --gold:#C4923A; --gold-light:#D4A85A; --gold-dim:rgba(196,146,58,0.15); --gold-border:rgba(196,146,58,0.3);
+    --signal:#3A8C6B; --signal-light:#4AAD85; --signal-dim:rgba(58,140,107,0.12);
+    --warn:#C45B3F; --warn-dim:rgba(196,91,63,0.12);
+    --blue:#3A6B8C; --blue-dim:rgba(58,107,140,0.12);
   }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:var(--bg); color:var(--text); font-family:var(--mono); min-height:100vh; display:flex; flex-direction:column; }
+  body { background:var(--obsidian); color:var(--cream); font-family:'DM Sans',sans-serif; min-height:100vh; display:flex; flex-direction:column; padding-top:52px; }
 
-  .hud { display:flex; align-items:center; justify-content:space-between; padding:0 20px; height:44px; background:rgba(8,8,18,0.97); border-bottom:1px solid var(--border); flex-shrink:0; }
-  .hud-logo { font-size:13px; font-weight:700; color:var(--gold); letter-spacing:0.1em; text-decoration:none; }
-  .hud-logo span { color:var(--muted); font-weight:400; font-size:10px; margin-left:8px; }
-  .hud-nav { display:flex; gap:6px; }
-  .hud-nav a { font-size:10px; color:var(--muted); text-decoration:none; padding:2px 8px; border:1px solid var(--border); border-radius:3px; transition:color 0.15s, border-color 0.15s; }
-  .hud-nav a:hover, .hud-nav a.active { color:var(--gold); border-color:rgba(200,169,110,0.4); }
+  nav { display:flex; align-items:center; justify-content:space-between; padding:12px 40px; background:rgba(11,13,16,0.95); border-bottom:1px solid var(--wall); position:fixed; top:0; left:0; right:0; z-index:100; backdrop-filter:blur(12px); }
+  .nav-mark { font-family:'Playfair Display',serif; font-size:18px; font-weight:900; color:var(--cream); text-decoration:none; letter-spacing:-0.02em; }
+  .nav-mark em { color:var(--gold); font-style:normal; }
+  .nav-links { display:flex; gap:20px; align-items:center; }
+  .nav-links a { color:var(--muted); text-decoration:none; font-size:12px; font-weight:500; letter-spacing:0.02em; transition:color 0.15s; }
+  .nav-links a:hover { color:var(--cream); }
+  .nav-links a.active { color:var(--gold); }
+  .nav-cta { padding:7px 18px; background:var(--gold); color:var(--obsidian); border:none; border-radius:5px; font-weight:700; font-size:11px; letter-spacing:0.04em; text-transform:uppercase; cursor:pointer; font-family:inherit; transition:background 0.15s; }
+  .nav-cta:hover { background:var(--gold-light); }
 
   .stub-body { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px; text-align:center; }
   .stub-icon { font-size:48px; margin-bottom:20px; opacity:0.5; }
@@ -32,18 +41,20 @@
 </head>
 <body>
 
-<div class="hud">
-  <a href="/civitas" class="hud-logo">AGENT UNIVERSE <span>bounty board</span></a>
-  <div class="hud-nav">
-    <a href="/civitas">civitas</a>
-    <a href="/kingdoms">kingdoms</a>
-    <a href="/missions">missions</a>
-    <a href="/kassa">kassa</a>
-    <a href="/helpwanted">roles</a>
-    <a href="/deploy">deploy</a>
-    <a class="active" href="/bountyboard">bounty board</a>
+<nav>
+  <a href="/" class="nav-mark">CIVI<em>TAE</em></a>
+  <div class="nav-links">
+    <a href="/missions">Missions</a>
+    <a href="/helpwanted">Hiring</a>
+    <a href="/kassa">KA&#167;&#167;A</a>
+    <a href="/deploy">Deploy</a>
+    <a href="/world">World</a>
+    <a href="/economics">Economy</a>
+    <a href="/leaderboard">Ranks</a>
+    <a href="/governance">Govern</a>
+    <a href="/admin">Admin</a>
   </div>
-</div>
+</nav>
 
 <div class="stub-body">
   <div class="stub-icon">§</div>

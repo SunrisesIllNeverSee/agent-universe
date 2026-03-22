@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DEPLOY — Tactical Board</title>
+<title>CIVITAE — Deploy</title>
 <style>
   :root { --bg: #050507; --deep: #0a0a0f; --surface: #0f0f18; --panel: #13131e; --border: #1e1e2e; --accent: #6e9ec8; --accent2: #c8a96e; --signal: #7ec86e; --warn: #c86e6e; --text: #d4d4e8; --muted: #8a8aa8; --mono: 'Share Tech Mono', monospace; --display: 'Syne', sans-serif; --body: 'DM Sans', sans-serif; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -92,15 +92,22 @@
   .placed-item { font-family: var(--mono); font-size: 10px; color: var(--muted); padding: 3px 0; display: flex; justify-content: space-between; }
   .placed-item .pos { color: var(--accent); }
 </style>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Share+Tech+Mono&family=Syne:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap">
+<link rel="icon" href="/favicon.ico">
 </head>
 <body>
-<div class="topbar">
-  <div class="logo">DEPLOY <span>tactical board</span></div>
-  <div class="nav-links">
-    <a href="/missions" class="nav-link">COMMAND</a>
-    <a href="/deploy" class="nav-link active">DEPLOY</a>
-    <a href="/campaign" class="nav-link">CAMPAIGN</a>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 40px;background:rgba(11,13,16,0.95);border-bottom:1px solid #262E3A;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);">
+  <a href="/" style="font-family:'Playfair Display',serif;font-size:18px;font-weight:900;color:#F2EDE4;text-decoration:none;letter-spacing:-0.02em;">CIVI<em style="color:#C4923A;font-style:normal;">TAE</em></a>
+  <div style="display:flex;gap:20px;align-items:center;">
+    <a href="/" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Missions</a>
+    <a href="/helpwanted" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Hiring</a>
+    <a href="/kassa" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">KA&#167;&#167;A</a>
+    <a href="/deploy" style="color:#C4923A;text-decoration:none;font-size:12px;font-weight:500;">Deploy</a>
+    <a href="/world" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">World</a>
+    <a href="/economics" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Economy</a>
+    <a href="/leaderboard" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Ranks</a>
+    <a href="/governance" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Govern</a>
+    <a href="/admin" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Admin</a>
   </div>
 </div>
 
