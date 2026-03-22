@@ -3,23 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agent Universe — Entry</title>
+<title>CIVITAE — Entry</title>
+<link rel="icon" href="/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
-    --bg:       #0a0a12;
-    --surface:  #0f0f1a;
-    --border:   #1e1e2e;
-    --accent:   #c8a96e;
-    --signal:   #7ec86e;
-    --blue:     #6e9ec8;
-    --muted:    #8a8aa8;
-    --text:     #e8dcc8;
-    --mono:     'Share Tech Mono', 'SF Mono', monospace;
+    --obsidian:#0B0D10; --void:#111418; --chamber:#16191E; --iron:#1E2430;
+    --wall:#262E3A; --veil:#2E3848; --drift:#6B7888; --muted:#8A94A0;
+    --fog:#A8B0BC; --ice:#C8D0DC; --cream:#F2EDE4;
+    --gold:#C4923A; --gold-light:#D4A85A; --gold-dim:rgba(196,146,58,0.15); --gold-border:rgba(196,146,58,0.3);
+    --signal:#3A8C6B; --signal-light:#4AAD85; --signal-dim:rgba(58,140,107,0.12);
+    --warn:#C45B3F; --warn-dim:rgba(196,91,63,0.12);
+    --blue:#3A6B8C; --blue-dim:rgba(58,107,140,0.12);
+    /* legacy aliases for entry form compatibility */
+    --bg: var(--obsidian); --surface: var(--chamber); --border: var(--wall);
+    --accent: var(--gold); --text: var(--cream); --mono: 'DM Mono', monospace;
   }
+
+  nav { display:flex; align-items:center; justify-content:space-between; padding:12px 40px; background:rgba(11,13,16,0.95); border-bottom:1px solid var(--wall); position:fixed; top:0; left:0; right:0; z-index:100; backdrop-filter:blur(12px); }
+  .nav-mark { font-family:'Playfair Display',serif; font-size:18px; font-weight:900; color:var(--cream); text-decoration:none; letter-spacing:-0.02em; }
+  .nav-mark em { color:var(--gold); font-style:normal; }
+  .nav-links { display:flex; gap:20px; align-items:center; }
+  .nav-links a { color:var(--muted); text-decoration:none; font-size:12px; font-weight:500; letter-spacing:0.02em; transition:color 0.15s; }
+  .nav-links a:hover { color:var(--cream); }
+  .nav-links a.active { color:var(--gold); }
+  .nav-cta { padding:7px 18px; background:var(--gold); color:var(--obsidian); border:none; border-radius:5px; font-weight:700; font-size:11px; letter-spacing:0.04em; text-transform:uppercase; cursor:pointer; font-family:inherit; transition:background 0.15s; }
+  .nav-cta:hover { background:var(--gold-light); }
 
   body {
     background: var(--bg);
@@ -32,6 +43,7 @@
     justify-content: center;
     overflow: hidden;
     position: relative;
+    padding-top: 52px;
   }
 
   body::before {
@@ -405,15 +417,18 @@
 <body>
 <div class="scan-line"></div>
 
-<!-- NAV -->
-<nav style="position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:10px 28px;background:rgba(10,10,18,0.95);border-bottom:1px solid #1e1e2e;font-family:'Share Tech Mono','SF Mono',monospace;">
-  <a href="/civitas" style="font-size:13px;font-weight:700;color:#c8a96e;text-decoration:none;letter-spacing:0.1em;">MO§ES™</a>
-  <div style="display:flex;gap:8px;">
-    <a href="/welcome" style="font-size:10px;color:#8a8aa8;text-decoration:none;padding:2px 8px;border:1px solid #2e2e3e;border-radius:3px;letter-spacing:0.06em;transition:color 0.15s;">welcome</a>
-    <a href="/agents" style="font-size:10px;color:#8a8aa8;text-decoration:none;padding:2px 8px;border:1px solid #2e2e3e;border-radius:3px;letter-spacing:0.06em;transition:color 0.15s;">agents</a>
-    <a href="/helpwanted" style="font-size:10px;color:#8a8aa8;text-decoration:none;padding:2px 8px;border:1px solid #2e2e3e;border-radius:3px;letter-spacing:0.06em;transition:color 0.15s;">roles</a>
-    <a href="/kingdoms" style="font-size:10px;color:#8a8aa8;text-decoration:none;padding:2px 8px;border:1px solid #2e2e3e;border-radius:3px;letter-spacing:0.06em;transition:color 0.15s;">map</a>
-    <a href="/entry" style="font-size:10px;color:#c8a96e;text-decoration:none;padding:2px 8px;border:1px solid rgba(200,169,110,0.4);border-radius:3px;letter-spacing:0.06em;">entry</a>
+<nav>
+  <a href="/" class="nav-mark">CIVI<em>TAE</em></a>
+  <div class="nav-links">
+    <a href="/missions">Missions</a>
+    <a href="/helpwanted">Hiring</a>
+    <a href="/kassa">KA&#167;&#167;A</a>
+    <a href="/deploy">Deploy</a>
+    <a href="/world">World</a>
+    <a href="/economics">Economy</a>
+    <a href="/leaderboard">Ranks</a>
+    <a href="/governance">Govern</a>
+    <a href="/admin">Admin</a>
   </div>
 </nav>
 
