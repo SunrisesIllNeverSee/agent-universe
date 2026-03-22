@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>THE SWITCHBOARD — Coming Soon</title>
+<title>CIVITAE — Switchboard</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
 
   :root {
     --bg: #050507;
@@ -35,6 +36,7 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    padding-top: 52px;
   }
 
   /* SCANLINE */
@@ -46,6 +48,46 @@
     pointer-events: none;
     z-index: 100;
   }
+
+  .civitae-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 52px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+  }
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gold);
+    text-decoration: none;
+    letter-spacing: 0.05em;
+  }
+  .nav-links {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .nav-links a {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+  .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+  .nav-links a.active { color: var(--gold); }
 
   /* NAV */
   .topbar {
@@ -284,19 +326,20 @@
 </head>
 <body>
 
-<div class="topbar">
-  <a href="/missions" class="logo">AGENT UNIVERSE <span>switchboard</span></a>
-  <div class="nav">
-    <a href="/world">WORLD</a>
-    <a href="/missions">BOUNTIES</a>
-    <a href="/slots">SLOTS</a>
-    <a href="/kassa">KA$$A</a>
-    <a href="/helpwanted">HIRING</a>
-    <a href="/refinery">REFINERY</a>
-    <a href="/switchboard" class="active">SWITCHBOARD</a>
-    <a href="/civitas" style="border-color:var(--gold);color:var(--gold);">← Civitas</a>
+<nav class="civitae-nav">
+  <a href="/" class="nav-logo">CIVITAE</a>
+  <div class="nav-links">
+    <a href="/">World</a>
+    <a href="/missions">Missions</a>
+    <a href="/agents">Agents</a>
+    <a href="/governance">Governance</a>
+    <a href="/economics">Economics</a>
+    <a href="/helpwanted">Help Wanted</a>
+    <a href="/kassa">KA§§A</a>
+    <a href="/kingdoms">Kingdoms</a>
+    <a href="/vault">Vault</a>
   </div>
-</div>
+</nav>
 
 <div class="content">
   <div class="status-badge">Status: Requires Refinery</div>

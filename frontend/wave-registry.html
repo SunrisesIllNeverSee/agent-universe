@@ -3,14 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wave Registry — COMMAND · DEPLOY</title>
+<title>CIVITAE — Wave Registry</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
 
   :root {
-    --bg: #080808;
+    --bg: #0B0D10;
+    --border: #1e2028;
+    --gold: #C4923A;
+    --muted: #6b7280;
+    --text: #d1d5db;
     --surface: #0f0f0f;
-    --border: #1a1a1a;
     --c-color: #4a9eff;
     --c-dim: #1a3a6e;
     --c-glow: rgba(74,158,255,0.15);
@@ -34,7 +38,7 @@
     color: var(--text);
     font-family: 'Space Mono', monospace;
     min-height: 100vh;
-    padding: 32px 24px;
+    padding: 52px 24px 32px;
     overflow-x: hidden;
   }
 
@@ -489,11 +493,51 @@
   }
   .summary-item.seats .summary-item-value { color: var(--text); }
 
+  .civitae-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 52px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+  }
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gold);
+    text-decoration: none;
+    letter-spacing: 0.05em;
+  }
+  .nav-links {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .nav-links a {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+  .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+  .nav-links a.active { color: var(--gold); }
+
   /* ── TOP NAV ── */
   .top-nav {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 24px; background: #0f0f0f; border-bottom: 1px solid #1a1a1a;
-    margin: -32px -24px 24px;
+    padding: 10px 24px; background: rgba(8,8,18,0.97); border-bottom: 1px solid #1a1a1a;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
   }
   .top-nav-title { font-size: 9px; letter-spacing: 0.35em; color: #555; text-transform: uppercase; }
   .top-nav-link { color: #f59e0b; font-size: 11px; text-decoration: none; font-weight: 700; letter-spacing: 0.05em; }
@@ -514,11 +558,20 @@
 </head>
 <body>
 
-<!-- TOP NAV -->
-<div class="top-nav">
-  <span class="top-nav-title">COMMAND · DEPLOY · Wave Registry</span>
-  <a href="/civitas" class="top-nav-link">← Civitas</a>
-</div>
+<nav class="civitae-nav">
+  <a href="/" class="nav-logo">CIVITAE</a>
+  <div class="nav-links">
+    <a href="/">World</a>
+    <a href="/missions">Missions</a>
+    <a href="/agents">Agents</a>
+    <a href="/governance">Governance</a>
+    <a href="/economics">Economics</a>
+    <a href="/helpwanted">Help Wanted</a>
+    <a href="/kassa">KA§§A</a>
+    <a href="/kingdoms">Kingdoms</a>
+    <a href="/vault">Vault</a>
+  </div>
+</nav>
 
 <div class="header">
   <div class="header-title">WAVE REGISTRY</div>

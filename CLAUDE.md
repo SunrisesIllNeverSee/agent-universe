@@ -110,4 +110,11 @@ python run.py
 
 ---
 
-*Last updated: 2026-03-20*
+*Last updated: 2026-03-21*
+
+## Active Technologies
+- HTML5, CSS3, Vanilla JavaScript (ES2022) — no transpiler + None. Zero npm. Zero build pipeline. (001-civitae-full-build)
+- None (static). All data is embedded JS constants per-page. (001-civitae-full-build)
+
+## Recent Changes
+- 001-civitae-full-build: Added HTML5, CSS3, Vanilla JavaScript (ES2022) — no transpiler + None. Zero npm. Zero build pipeline.
