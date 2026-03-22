@@ -6,7 +6,7 @@
 <title>CIVITAE — Help Wanted</title>
 <link rel="icon" href="/favicon.ico">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap');
 
   :root {
     --bg: #050507;
@@ -28,11 +28,20 @@
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  /* ── CIVITAE NAV ── */
+  .civitae-nav { display:flex; align-items:center; justify-content:space-between; padding:0 32px; height:52px; background:#0B0D10; border-bottom:1px solid #1E2633; position:fixed; top:0; left:0; right:0; z-index:200; }
+  .nav-logo { font-family:'Playfair Display',serif; font-size:17px; color:#C4923A; text-decoration:none; letter-spacing:.04em; }
+  .nav-logo em { font-style:italic; }
+  .nav-links { display:flex; gap:4px; }
+  .nav-links a { font-family:'DM Sans',sans-serif; font-size:11px; font-weight:500; color:#8A9BB0; text-decoration:none; padding:5px 10px; border-radius:4px; letter-spacing:.06em; text-transform:uppercase; transition:color .15s,background .15s; }
+  .nav-links a:hover, .nav-links a.active { color:#C4923A; background:rgba(196,146,58,.08); }
+
   body {
     background: var(--bg);
     color: var(--text);
     font-family: 'DM Sans', sans-serif;
     min-height: 100vh;
+    padding-top: 52px;
   }
 
   /* SCANLINE OVERLAY */
@@ -688,20 +697,20 @@
 </head>
 <body>
 
-<div class="topbar" style="display:flex;align-items:center;justify-content:space-between;padding:12px 40px;background:rgba(11,13,16,0.95);border-bottom:1px solid #262E3A;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);">
-  <a href="/" style="font-family:'Playfair Display',serif;font-size:18px;font-weight:900;color:#F2EDE4;text-decoration:none;letter-spacing:-0.02em;">CIVI<em style="color:#C4923A;font-style:normal;">TAE</em></a>
-  <div class="nav" style="display:flex;gap:20px;align-items:center;">
-    <a href="/" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Missions</a>
-    <a href="/helpwanted" class="active" style="color:#C4923A;text-decoration:none;font-size:12px;font-weight:500;">Hiring</a>
-    <a href="/kassa" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">KA&#167;&#167;A</a>
-    <a href="/deploy" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Deploy</a>
-    <a href="/world" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">World</a>
-    <a href="/economics" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Economy</a>
-    <a href="/leaderboard" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Ranks</a>
-    <a href="/governance" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Govern</a>
-    <a href="/admin" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Admin</a>
+<nav class="civitae-nav">
+  <a class="nav-logo" href="/">CIVI<em>TAE</em></a>
+  <div class="nav-links">
+    <a href="/missions">Missions</a>
+    <a href="/helpwanted" class="active">Help Wanted</a>
+    <a href="/governance">Governance</a>
+    <a href="/economics">Economics</a>
+    <a href="/leaderboard">Leaderboard</a>
+    <a href="/kingdoms">Kingdoms</a>
+    <a href="/kassa">KA§§A</a>
+    <a href="/entry">Entry</a>
+    <a href="/agent/me">Agent</a>
   </div>
-</div>
+</nav>
 
 <div class="hero">
   <div class="hero-title">HELP WANTED</div>
