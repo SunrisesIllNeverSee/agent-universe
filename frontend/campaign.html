@@ -3,46 +3,46 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CAMPAIGN — Strategic Oversight</title>
+<title>CIVITAE — Campaign</title>
+<link rel="icon" href="/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@700&family=DM+Sans:wght@400;500;600&display=swap');
-
   :root {
-    --bg: #050507; --deep: #0a0a0f; --surface: #0f0f18; --panel: #13131e;
-    --border: #1e1e2e; --accent: #6e9ec8; --gold: #c8a96e; --signal: #7ec86e;
-    --warn: #c86e6e; --purple: #9c8ec8; --cyan: #6ec8c8;
-    --text: #d4d4e8; --muted: #8a8aa8;
-    --mono: 'Share Tech Mono', monospace;
-    --display: 'Syne', sans-serif;
-    --body: 'DM Sans', sans-serif;
+    --obsidian:#0B0D10; --void:#111418; --chamber:#16191E; --iron:#1E2430;
+    --wall:#262E3A; --veil:#2E3848; --drift:#6B7888; --muted:#8A94A0;
+    --fog:#A8B0BC; --ice:#C8D0DC; --cream:#F2EDE4;
+    --gold:#C4923A; --gold-light:#D4A85A; --gold-dim:rgba(196,146,58,0.15); --gold-border:rgba(196,146,58,0.3);
+    --signal:#3A8C6B; --signal-light:#4AAD85; --signal-dim:rgba(58,140,107,0.12);
+    --warn:#C45B3F; --warn-dim:rgba(196,91,63,0.12);
+    --blue:#3A6B8C; --blue-dim:rgba(58,107,140,0.12);
+    /* legacy aliases for existing page CSS */
+    --bg: var(--obsidian); --deep: var(--void); --surface: var(--chamber); --panel: var(--iron);
+    --border: var(--wall); --accent: var(--blue); --signal: #3A8C6B;
+    --warn: #C45B3F; --purple: #7A6B9C; --cyan: #3A8C8C;
+    --text: var(--cream); --mono: 'DM Mono', monospace;
+    --display: 'Playfair Display', serif; --body: 'DM Sans', sans-serif;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    background: var(--bg); color: var(--text);
+    background: var(--obsidian); color: var(--text);
     font-family: var(--body); min-height: 100vh;
-    display: grid; grid-template-rows: 48px 1fr;
+    padding-top: 52px;
   }
 
-  /* TOPBAR */
-  .topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 20px; border-bottom: 1px solid var(--border);
-    background: var(--deep); position: sticky; top: 0; z-index: 10;
-  }
-  .logo { font-family: var(--display); font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 0.12em; }
-  .logo span { color: var(--gold); margin-left: 6px; }
-  .nav-links { display: flex; gap: 8px; }
-  .nav-link {
-    font-family: var(--mono); font-size: 11px; color: var(--muted);
-    text-decoration: none; padding: 4px 10px;
-    border: 1px solid var(--border); border-radius: 4px; transition: all 0.15s;
-  }
-  .nav-link:hover, .nav-link.active { border-color: var(--accent); color: var(--accent); }
+  nav { display:flex; align-items:center; justify-content:space-between; padding:12px 40px; background:rgba(11,13,16,0.95); border-bottom:1px solid var(--wall); position:fixed; top:0; left:0; right:0; z-index:100; backdrop-filter:blur(12px); }
+  .nav-mark { font-family:'Playfair Display',serif; font-size:18px; font-weight:900; color:var(--cream); text-decoration:none; letter-spacing:-0.02em; }
+  .nav-mark em { color:var(--gold); font-style:normal; }
+  .nav-links { display:flex; gap:20px; align-items:center; }
+  .nav-links a { color:var(--muted); text-decoration:none; font-size:12px; font-weight:500; letter-spacing:0.02em; transition:color 0.15s; }
+  .nav-links a:hover { color:var(--cream); }
+  .nav-links a.active { color:var(--gold); }
+  .nav-cta { padding:7px 18px; background:var(--gold); color:var(--obsidian); border:none; border-radius:5px; font-weight:700; font-size:11px; letter-spacing:0.04em; text-transform:uppercase; cursor:pointer; font-family:inherit; transition:background 0.15s; }
+  .nav-cta:hover { background:var(--gold-light); }
 
   /* PAGE LAYOUT */
-  .page { display: grid; grid-template-columns: 280px 1fr; min-height: 0; height: calc(100vh - 48px); }
+  .page { display: grid; grid-template-columns: 280px 1fr; min-height: 0; height: calc(100vh - 52px); }
 
   /* SIDEBAR */
   .sidebar {
@@ -226,17 +226,20 @@
 </head>
 <body>
 
-<div class="topbar">
-  <div class="logo">AGENT UNIVERSE <span>CAMPAIGN</span></div>
+<nav>
+  <a href="/" class="nav-mark">CIVI<em>TAE</em></a>
   <div class="nav-links">
-    <a href="/world" class="nav-link">WORLD</a>
-    <a href="/missions" class="nav-link">BOUNTIES</a>
-    <a href="/deploy" class="nav-link">DEPLOY</a>
-    <a href="/mission" class="nav-link">MISSION</a>
-    <a href="/campaign" class="nav-link active">CAMPAIGN</a>
-    <a href="/kassa" class="nav-link">KA$$A</a>
+    <a href="/missions">Missions</a>
+    <a href="/helpwanted">Hiring</a>
+    <a href="/kassa">KA&#167;&#167;A</a>
+    <a href="/deploy">Deploy</a>
+    <a href="/world">World</a>
+    <a href="/economics">Economy</a>
+    <a href="/leaderboard">Ranks</a>
+    <a href="/governance">Govern</a>
+    <a href="/admin">Admin</a>
   </div>
-</div>
+</nav>
 
 <div class="page">
 
