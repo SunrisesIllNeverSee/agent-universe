@@ -188,6 +188,15 @@
   <div class="page-header">
     <div class="page-title">⚖ GOVERNANCE — CIVITAE CONSTITUTIONAL LAYER</div>
     <div class="page-sub">The Six Fold Flame · Robert's Rules of Order · MO§ES™ Enforcement</div>
+    <div id="gov-live-bar" style="display:flex;gap:10px;align-items:center;margin-top:12px;padding:8px 14px;background:rgba(8,8,18,0.5);border:1px solid #1e1e2e;border-radius:5px;">
+      <span style="font-family:'SF Mono',monospace;font-size:9px;color:#3a4050;letter-spacing:0.1em;display:flex;align-items:center;gap:5px;">
+        <span id="ws-dot" style="width:5px;height:5px;border-radius:50%;background:#2e2e3e;display:inline-block;"></span>LIVE
+      </span>
+      <span id="g-mode" style="font-family:'SF Mono',monospace;font-size:9px;padding:2px 8px;border-radius:3px;background:rgba(200,169,110,0.08);color:#c8a96e;border:1px solid rgba(200,169,110,0.2);">—</span>
+      <span id="g-posture" style="font-family:'SF Mono',monospace;font-size:9px;padding:2px 8px;border-radius:3px;background:rgba(126,200,110,0.08);color:#7ec86e;border:1px solid rgba(126,200,110,0.2);">—</span>
+      <span id="g-role" style="font-family:'SF Mono',monospace;font-size:9px;padding:2px 8px;border-radius:3px;background:rgba(110,158,200,0.08);color:#6e9ec8;border:1px solid rgba(110,158,200,0.2);">—</span>
+      <span id="g-meeting-live" style="font-family:'SF Mono',monospace;font-size:9px;color:#c86e6e;display:none;">● MEETING IN SESSION</span>
+    </div>
   </div>
 
   <!-- SIX FOLD FLAME CONSTITUTION -->
@@ -956,6 +965,48 @@ async function loadOpenMeetings() {
 }
 
 loadOpenMeetings();
+
+// ── WebSocket — live governance state ─────────────────────────
+let _ws, _wsRetry = 1000;
+function connectGovWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  _ws = new WebSocket(proto + '://' + location.host + '/ws');
+  const dot = document.getElementById('ws-dot');
+  _ws.onopen = function() {
+    _wsRetry = 1000;
+    if (dot) { dot.style.background = '#4AAD85'; dot.style.boxShadow = '0 0 4px #4AAD85'; }
+  };
+  _ws.onmessage = function(e) {
+    try {
+      const evt = JSON.parse(e.data);
+      if (evt.type === 'state_snapshot' && evt.payload) {
+        const gov = evt.payload.governance;
+        if (gov) {
+          const m = document.getElementById('g-mode');
+          const p = document.getElementById('g-posture');
+          const r = document.getElementById('g-role');
+          if (m) m.textContent = gov.mode || '—';
+          if (p) p.textContent = gov.posture || '—';
+          if (r) r.textContent = gov.role || '—';
+        }
+      }
+      if (evt.type === 'meeting_called' || evt.type === 'meeting_joined' || evt.type === 'motion_proposed' || evt.type === 'motion_resolved') {
+        const ml = document.getElementById('g-meeting-live');
+        if (ml) ml.style.display = '';
+        if (activeMeetingId) refreshMeeting();
+        else loadOpenMeetings();
+      }
+    } catch(_) {}
+  };
+  _ws.onclose = function() {
+    const dot = document.getElementById('ws-dot');
+    if (dot) { dot.style.background = '#2e2e3e'; dot.style.boxShadow = ''; }
+    setTimeout(connectGovWS, _wsRetry);
+    _wsRetry = Math.min(_wsRetry * 2, 30000);
+  };
+  _ws.onerror = function() { _ws.close(); };
+}
+connectGovWS();
 </script>
 </body>
 </html>
