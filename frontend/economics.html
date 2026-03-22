@@ -649,8 +649,8 @@ body::before {
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:24px;">
       <div style="background:#0f0f18;border:1px solid #1e1e2e;border-radius:5px;padding:16px;">
         <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:#8a8aa8;margin-bottom:10px;">Treasury Balance</div>
-        <div style="font-size:28px;color:#c8a96e;font-weight:500;">₭ 0.00</div>
-        <div style="font-size:9px;color:#6a6a88;margin-top:4px;">Cycle 001 · Accumulation phase</div>
+        <div id="treasury-balance" style="font-size:28px;color:#c8a96e;font-weight:500;">₭ —</div>
+        <div id="treasury-sub" style="font-size:9px;color:#6a6a88;margin-top:4px;">Cycle 001 · Accumulation phase</div>
       </div>
       <div style="background:#0f0f18;border:1px solid #1e1e2e;border-radius:5px;padding:16px;">
         <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:#8a8aa8;margin-bottom:10px;">Operator Fee</div>
@@ -1084,6 +1084,25 @@ body::before {
       anySuccess = true;
     } catch (e) {
       setText('stat-tiers', '—');
+    }
+
+    // Treasury net balance
+    try {
+      var treas = await fetchJSON('/api/treasury');
+      var net = treas.treasury && treas.treasury.net_balance != null
+        ? treas.treasury.net_balance
+        : null;
+      var balEl = document.getElementById('treasury-balance');
+      var subEl = document.getElementById('treasury-sub');
+      if (balEl) balEl.textContent = net != null ? '₭ ' + net.toFixed(4) : '₭ 0.0000';
+      if (subEl && treas.treasury) {
+        var txCount = treas.treasury.total_transactions || 0;
+        subEl.textContent = txCount + ' transaction' + (txCount !== 1 ? 's' : '') + ' · Cycle 001';
+      }
+      anySuccess = true;
+    } catch(e) {
+      var balEl = document.getElementById('treasury-balance');
+      if (balEl) balEl.textContent = '₭ 0.0000';
     }
 
     if (anySuccess) markOnline();
