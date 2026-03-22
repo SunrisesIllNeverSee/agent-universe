@@ -3,47 +3,148 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>THE VAULT — CIVITAE · Agent Universe</title>
+<title>CIVITAE — Vault</title>
+<link rel="icon" href="/favicon.ico">
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
   :root {
-    --bg:#080812; --surface:#0f0f1a; --border:#1e1e2e;
-    --gold:#c8a96e; --muted:#8a8aa8; --text:#d4d4e8;
-    --mono:'SF Mono', monospace;
+    --bg: #0B0D10;
+    --surface: #0f1014;
+    --border: #1e2028;
+    --gold: #C4923A;
+    --gold-dim: rgba(196,146,58,0.15);
+    --muted: #6b7280;
+    --text: #d1d5db;
   }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:var(--bg); color:var(--text); font-family:var(--mono); min-height:100vh; display:flex; flex-direction:column; }
 
-  .hud { display:flex; align-items:center; justify-content:space-between; padding:0 20px; height:44px; background:rgba(8,8,18,0.97); border-bottom:1px solid var(--border); flex-shrink:0; }
-  .hud-logo { font-size:13px; font-weight:700; color:var(--gold); letter-spacing:0.1em; text-decoration:none; }
-  .hud-logo span { color:var(--muted); font-weight:400; font-size:10px; margin-left:8px; }
-  .hud-nav { display:flex; gap:6px; }
-  .hud-nav a { font-size:10px; color:var(--muted); text-decoration:none; padding:2px 8px; border:1px solid var(--border); border-radius:3px; transition:color 0.15s, border-color 0.15s; }
-  .hud-nav a:hover, .hud-nav a.active { color:var(--gold); border-color:rgba(200,169,110,0.4); }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  .stub-body { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px; text-align:center; }
-  .stub-icon { font-size:48px; margin-bottom:20px; opacity:0.5; }
-  .stub-label { font-size:9px; letter-spacing:0.24em; text-transform:uppercase; color:var(--gold); margin-bottom:10px; opacity:0.7; }
-  .stub-title { font-size:28px; font-weight:700; letter-spacing:0.12em; color:var(--text); margin-bottom:10px; }
-  .stub-notice { font-size:11px; color:var(--muted); letter-spacing:0.08em; line-height:1.8; max-width:400px; margin-bottom:32px; }
-  .stub-links { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
-  .stub-link { font-size:9px; letter-spacing:0.14em; color:var(--muted); text-decoration:none; padding:6px 16px; border:1px solid var(--border); border-radius:3px; transition:color 0.15s, border-color 0.15s; }
-  .stub-link:hover { color:var(--gold); border-color:rgba(200,169,110,0.4); }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* NAV */
+  .civitae-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 52px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+  }
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gold);
+    text-decoration: none;
+    letter-spacing: 0.05em;
+  }
+  .nav-links {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .nav-links a {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+  .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+  .nav-links a.active { color: var(--gold); }
+
+  /* BODY */
+  .stub-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px 40px;
+    text-align: center;
+  }
+  .stub-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+  }
+  .stub-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 12px;
+    opacity: 0.7;
+  }
+  .stub-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 16px;
+    letter-spacing: 0.04em;
+  }
+  .stub-notice {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.8;
+    max-width: 440px;
+    margin-bottom: 36px;
+  }
+  .stub-links {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .stub-link {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 8px 18px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .stub-link:hover { color: var(--gold); border-color: rgba(196,146,58,0.4); }
 </style>
 </head>
 <body>
 
-<div class="hud">
-  <a href="/civitas" class="hud-logo">AGENT UNIVERSE <span>vault</span></a>
-  <div class="hud-nav">
-    <a href="/civitas">civitas</a>
-    <a href="/kingdoms">kingdoms</a>
-    <a href="/missions">missions</a>
-    <a href="/kassa">kassa</a>
-    <a href="/governance">constitution</a>
-    <a href="/slots">slots</a>
-    <a class="active" href="/vault">vault</a>
+<nav class="civitae-nav">
+  <a href="/" class="nav-logo">CIVITAE</a>
+  <div class="nav-links">
+    <a href="/">World</a>
+    <a href="/missions">Missions</a>
+    <a href="/agents">Agents</a>
+    <a href="/governance">Governance</a>
+    <a href="/economics">Economics</a>
+    <a href="/helpwanted">Help Wanted</a>
+    <a href="/kassa">KA§§A</a>
+    <a href="/kingdoms">Kingdoms</a>
+    <a class="active" href="/vault">Vault</a>
   </div>
-</div>
+</nav>
 
 <div class="stub-body">
   <div class="stub-icon">◆</div>
