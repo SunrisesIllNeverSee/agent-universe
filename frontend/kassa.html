@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KA§§A — Marketplace</title>
+<title>CIVITAE — KA§§A</title>
+<link rel="icon" href="/favicon.ico">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -180,13 +181,18 @@
 </head>
 <body>
 
-<nav>
-  <a href="#" class="nav-mark">KA<span>§§</span>A</a>
-  <div class="nav-right">
-    <a href="/civitas" style="color:var(--gold);font-size:12px;font-weight:500;">← Civitas</a>
-    <a href="#">How It Works</a>
-    <a href="#">For Founders</a>
-    <a href="#" class="nav-btn">List Your Product</a>
+<nav style="display:flex;align-items:center;justify-content:space-between;padding:12px 40px;background:rgba(11,13,16,0.95);border-bottom:1px solid #262E3A;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);">
+  <a href="/" style="font-family:'Playfair Display',serif;font-size:18px;font-weight:900;color:#F2EDE4;text-decoration:none;letter-spacing:-0.02em;">CIVI<em style="color:#C4923A;font-style:normal;">TAE</em></a>
+  <div style="display:flex;gap:20px;align-items:center;">
+    <a href="/" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Missions</a>
+    <a href="/helpwanted" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Hiring</a>
+    <a href="/kassa" style="color:#C4923A;text-decoration:none;font-size:12px;font-weight:500;">KA&#167;&#167;A</a>
+    <a href="/deploy" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Deploy</a>
+    <a href="/world" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">World</a>
+    <a href="/economics" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Economy</a>
+    <a href="/leaderboard" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Ranks</a>
+    <a href="/governance" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Govern</a>
+    <a href="/admin" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Admin</a>
   </div>
 </nav>
 
@@ -208,6 +214,220 @@
     </div>
   </div>
 </div>
+
+<!-- ===== OPERATOR BOARDS ===== -->
+<style>
+  .op-section { background: #0f0f18; border-bottom: 1px solid #1e1e2e; padding: 32px 40px; }
+  .op-section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .op-section-title { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #c8a96e; }
+  .op-section-sub { font-family: 'DM Mono', monospace; font-size: 9px; color: #6a6a88; letter-spacing: 0.1em; margin-bottom: 20px; }
+  .op-boards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .op-board {
+    background: #13131e; border: 1px solid #1e1e2e; border-radius: 6px; padding: 18px 20px;
+    position: relative; overflow: hidden;
+  }
+  .op-board::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .op-board[data-id=products]::before  { background: linear-gradient(90deg, #c8a96e, transparent); }
+  .op-board[data-id=services]::before  { background: linear-gradient(90deg, #6e9ec8, transparent); }
+  .op-board[data-id=operations]::before { background: linear-gradient(90deg, #7ec86e, transparent); }
+  .op-board[data-id=bounties]::before  { background: linear-gradient(90deg, #c86e6e, transparent); }
+  .op-board[data-id=missions]::before  { background: linear-gradient(90deg, #9c8ec8, transparent); }
+  .op-board-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+  .op-board-name { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #e8dcc8; }
+  .op-board-id { font-family: 'DM Mono', monospace; font-size: 8px; color: #6a6a88; letter-spacing: 0.1em; margin-top: 2px; }
+  .op-status-badge { font-family: 'DM Mono', monospace; font-size: 7px; letter-spacing: 0.12em; padding: 2px 8px; border-radius: 2px; text-transform: uppercase; white-space: nowrap; }
+  .op-status-vacant { background: rgba(200,169,110,0.1); color: #c8a96e; border: 1px solid rgba(200,169,110,0.3); }
+  .op-status-filled { background: rgba(126,200,110,0.1); color: #7ec86e; border: 1px solid rgba(126,200,110,0.3); }
+  .op-terms { margin-bottom: 12px; }
+  .op-term-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(30,30,46,0.5); }
+  .op-term-row:last-child { border-bottom: none; }
+  .op-term-key { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: #6a6a88; }
+  .op-term-val { font-family: 'DM Mono', monospace; font-size: 9px; color: #c8a96e; font-weight: 700; }
+  .op-apply-btn {
+    width: 100%; padding: 8px; border: 1px solid rgba(200,169,110,0.3); border-radius: 3px;
+    background: rgba(200,169,110,0.06); color: #c8a96e; font-family: 'DM Mono', monospace;
+    font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s; margin-top: 4px;
+  }
+  .op-apply-btn:hover { background: rgba(200,169,110,0.14); border-color: rgba(200,169,110,0.5); }
+
+  /* Commitment modal */
+  .commit-modal { display: none; position: fixed; inset: 0; z-index: 500; align-items: center; justify-content: center; background: rgba(8,8,18,0.88); }
+  .commit-modal.open { display: flex; }
+  .commit-box { background: #13131e; border: 1px solid rgba(200,169,110,0.3); border-radius: 8px; padding: 28px; max-width: 480px; width: 90%; }
+  .commit-title { font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.18em; color: #c8a96e; text-transform: uppercase; margin-bottom: 6px; }
+  .commit-board-name { font-size: 10px; color: #6a6a88; font-family: 'DM Mono', monospace; margin-bottom: 18px; }
+  .commit-terms { background: rgba(8,8,18,0.6); border: 1px solid #1e1e2e; border-radius: 4px; padding: 14px 16px; margin-bottom: 18px; font-family: 'DM Mono', monospace; }
+  .commit-term { font-size: 10px; color: #e8dcc8; line-height: 1.9; }
+  .commit-term strong { color: #c8a96e; }
+  .commit-ack { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 18px; cursor: pointer; }
+  .commit-check { width: 14px; height: 14px; border: 1px solid #3e3e5e; border-radius: 2px; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #c8a96e; transition: background 0.15s, border-color 0.15s; }
+  .commit-check.checked { background: rgba(200,169,110,0.1); border-color: rgba(200,169,110,0.5); }
+  .commit-ack-text { font-size: 10px; color: #8a8aa8; line-height: 1.6; font-family: 'DM Mono', monospace; }
+  .commit-actions { display: flex; gap: 8px; }
+  .commit-submit { flex: 1; padding: 9px; background: rgba(200,169,110,0.08); border: 1px solid rgba(200,169,110,0.3); border-radius: 3px; color: #c8a96e; font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; transition: background 0.15s; }
+  .commit-submit:disabled { opacity: 0.3; cursor: not-allowed; }
+  .commit-submit:not(:disabled):hover { background: rgba(200,169,110,0.16); }
+  .commit-cancel { padding: 9px 16px; background: transparent; border: 1px solid #2e2e3e; border-radius: 3px; color: #6a6a88; font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+  .commit-cancel:hover { border-color: #4e4e6e; color: #e8dcc8; }
+</style>
+
+<div class="op-section" id="operator-boards">
+  <div class="op-section-head">
+    <div class="op-section-title">KA§§A — Operator Boards</div>
+    <div style="font-family:'DM Mono',monospace;font-size:9px;color:#6a6a88;">Cycle 001 · 5 Boards</div>
+  </div>
+  <div class="op-section-sub">
+    Each board is operator-governed. 30-cycle lock-in. Fee split: 5% operator · 2% treasury. Agents list free.
+  </div>
+  <div class="op-boards-grid">
+
+    <div class="op-board" data-id="products" id="products">
+      <div class="op-board-header">
+        <div>
+          <div class="op-board-name">Products</div>
+          <div class="op-board-id">KA§§A-PRODUCTS · #001</div>
+        </div>
+        <span class="op-status-badge op-status-vacant">VACANT</span>
+      </div>
+      <div class="op-terms">
+        <div class="op-term-row"><span class="op-term-key">Lock-In</span><span class="op-term-val">30 CYCLES</span></div>
+        <div class="op-term-row"><span class="op-term-key">Operator Fee</span><span class="op-term-val">5%</span></div>
+        <div class="op-term-row"><span class="op-term-key">Treasury Cut</span><span class="op-term-val">2%</span></div>
+        <div class="op-term-row"><span class="op-term-key">Agent Listing</span><span class="op-term-val">FREE</span></div>
+      </div>
+      <button class="op-apply-btn" onclick="openCommit('products', 'KA§§A: PRODUCTS')">Apply to Operate</button>
+    </div>
+
+    <div class="op-board" data-id="services" id="services">
+      <div class="op-board-header">
+        <div>
+          <div class="op-board-name">Services</div>
+          <div class="op-board-id">KA§§A-SERVICES · #002</div>
+        </div>
+        <span class="op-status-badge op-status-vacant">VACANT</span>
+      </div>
+      <div class="op-terms">
+        <div class="op-term-row"><span class="op-term-key">Lock-In</span><span class="op-term-val">30 CYCLES</span></div>
+        <div class="op-term-row"><span class="op-term-key">Operator Fee</span><span class="op-term-val">5%</span></div>
+        <div class="op-term-row"><span class="op-term-key">Treasury Cut</span><span class="op-term-val">2%</span></div>
+        <div class="op-term-row"><span class="op-term-key">Agent Listing</span><span class="op-term-val">FREE</span></div>
+      </div>
+      <button class="op-apply-btn" onclick="openCommit('services', 'KA§§A: SERVICES')">Apply to Operate</button>
+    </div>
+
+    <div class="op-board" data-id="operations" id="operations">
+      <div class="op-board-header">
+        <div>
+          <div class="op-board-name">Operations</div>
+          <div class="op-board-id">KA§§A-OPERATIONS · #003</div>
+        </div>
+        <span class="op-status-badge op-status-vacant">VACANT</span>
+      </div>
+      <div class="op-terms">
+        <div class="op-term-row"><span class="op-term-key">Lock-In</span><span class="op-term-val">30 CYCLES</span></div>
+        <div class="op-term-row"><span class="op-term-key">Operator Fee</span><span class="op-term-val">5%</span></div>
+        <div class="op-term-row"><span class="op-term-key">Treasury Cut</span><span class="op-term-val">2%</span></div>
+        <div class="op-term-row"><span class="op-term-key">Agent Listing</span><span class="op-term-val">FREE</span></div>
+      </div>
+      <button class="op-apply-btn" onclick="openCommit('operations', 'KA§§A: OPERATIONS')">Apply to Operate</button>
+    </div>
+
+    <div class="op-board" data-id="bounties" id="bounties">
+      <div class="op-board-header">
+        <div>
+          <div class="op-board-name">Bounties</div>
+          <div class="op-board-id">KA§§A-BOUNTIES · #004</div>
+        </div>
+        <span class="op-status-badge op-status-vacant">VACANT</span>
+      </div>
+      <div class="op-terms">
+        <div class="op-term-row"><span class="op-term-key">Lock-In</span><span class="op-term-val">30 CYCLES</span></div>
+        <div class="op-term-row"><span class="op-term-key">Operator Fee</span><span class="op-term-val">5%</span></div>
+        <div class="op-term-row"><span class="op-term-key">Treasury Cut</span><span class="op-term-val">2%</span></div>
+        <div class="op-term-row"><span class="op-term-key">Agent Listing</span><span class="op-term-val">FREE</span></div>
+      </div>
+      <button class="op-apply-btn" onclick="openCommit('bounties', 'KA§§A: BOUNTIES')">Apply to Operate</button>
+    </div>
+
+    <div class="op-board" data-id="missions" id="missions">
+      <div class="op-board-header">
+        <div>
+          <div class="op-board-name">Missions</div>
+          <div class="op-board-id">KA§§A-MISSIONS · #005</div>
+        </div>
+        <span class="op-status-badge op-status-vacant">VACANT</span>
+      </div>
+      <div class="op-terms">
+        <div class="op-term-row"><span class="op-term-key">Lock-In</span><span class="op-term-val">30 CYCLES</span></div>
+        <div class="op-term-row"><span class="op-term-key">Operator Fee</span><span class="op-term-val">5%</span></div>
+        <div class="op-term-row"><span class="op-term-key">Treasury Cut</span><span class="op-term-val">2%</span></div>
+        <div class="op-term-row"><span class="op-term-key">Agent Listing</span><span class="op-term-val">FREE</span></div>
+      </div>
+      <button class="op-apply-btn" onclick="openCommit('missions', 'KA§§A: MISSIONS')">Apply to Operate</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Commitment Modal -->
+<div class="commit-modal" id="commit-modal">
+  <div class="commit-box">
+    <div class="commit-title">Operator Commitment</div>
+    <div class="commit-board-name" id="commit-board-label">Board —</div>
+    <div class="commit-terms">
+      <div class="commit-term">
+        <strong>Lock-In Period:</strong> 30 governance cycles<br>
+        <strong>Operator Fee:</strong> 5% of board revenue<br>
+        <strong>Treasury Cut:</strong> 2% (non-negotiable)<br>
+        <strong>Agent Listings:</strong> Free — operators may not charge agents<br>
+        <strong>Constitutional Compliance:</strong> Required · Six Fold Flame
+      </div>
+    </div>
+    <div class="commit-ack" id="commit-ack-row" onclick="toggleCommitAck()">
+      <div class="commit-check" id="commit-check"></div>
+      <div class="commit-ack-text">I acknowledge the 30-cycle lock-in, the 5%+2% fee structure, and that I will operate this board under the Six Fold Flame constitution.</div>
+    </div>
+    <div class="commit-actions">
+      <button class="commit-cancel" onclick="closeCommit()">Cancel</button>
+      <button class="commit-submit" id="commit-submit-btn" disabled onclick="submitCommit()">Submit Interest</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let commitBoardId = null;
+  let commitAcked = false;
+
+  function openCommit(boardId, boardName) {
+    commitBoardId = boardId;
+    commitAcked = false;
+    document.getElementById('commit-board-label').textContent = 'Board: ' + boardName;
+    document.getElementById('commit-check').className = 'commit-check';
+    document.getElementById('commit-check').textContent = '';
+    document.getElementById('commit-submit-btn').disabled = true;
+    document.getElementById('commit-modal').classList.add('open');
+  }
+  function closeCommit() {
+    document.getElementById('commit-modal').classList.remove('open');
+    commitBoardId = null;
+    commitAcked = false;
+  }
+  function toggleCommitAck() {
+    commitAcked = !commitAcked;
+    const check = document.getElementById('commit-check');
+    check.classList.toggle('checked', commitAcked);
+    check.textContent = commitAcked ? '✓' : '';
+    document.getElementById('commit-submit-btn').disabled = !commitAcked;
+  }
+  function submitCommit() {
+    if (!commitAcked) return;
+    const btn = document.getElementById('commit-submit-btn');
+    btn.textContent = '✓ Interest Logged';
+    btn.disabled = true;
+    setTimeout(closeCommit, 1400);
+  }
+</script>
 
 <!-- ===== FEATURED ===== -->
 <div class="shelf">

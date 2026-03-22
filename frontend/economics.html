@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>COMMAND — Economic Layer Integration Brief</title>
+<title>CIVITAE — Economy</title>
+<link rel="icon" href="/favicon.ico">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap');
 
@@ -621,10 +622,97 @@ body::before {
 <body>
 
 <!-- NAV -->
-<nav class="top-nav" aria-label="Site navigation">
-  <a href="/civitas" class="top-nav-link">← Civitas</a>
-  <a href="#" class="top-nav-link active">Economics</a>
+<nav style="display:flex;align-items:center;justify-content:space-between;padding:12px 40px;background:rgba(11,13,16,0.95);border-bottom:1px solid #262E3A;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);">
+  <a href="/" style="font-family:'Playfair Display',serif;font-size:18px;font-weight:900;color:#F2EDE4;text-decoration:none;letter-spacing:-0.02em;">CIVI<em style="color:#C4923A;font-style:normal;">TAE</em></a>
+  <div style="display:flex;gap:20px;align-items:center;">
+    <a href="/" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Missions</a>
+    <a href="/helpwanted" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Hiring</a>
+    <a href="/kassa" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">KA&#167;&#167;A</a>
+    <a href="/deploy" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Deploy</a>
+    <a href="/world" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">World</a>
+    <a href="/economics" style="color:#C4923A;text-decoration:none;font-size:12px;font-weight:500;">Economy</a>
+    <a href="/leaderboard" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Ranks</a>
+    <a href="/governance" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Govern</a>
+    <a href="/admin" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Admin</a>
+  </div>
 </nav>
+
+<!-- CIVITAE SIGNAL ECONOMY PANEL -->
+<div style="background:#080812;color:#e8dcc8;padding:32px 40px;border-bottom:1px solid #1e1e2e;font-family:'SF Mono',monospace;">
+  <div style="max-width:1100px;margin:0 auto;">
+
+    <div style="font-size:9px;letter-spacing:0.24em;text-transform:uppercase;color:#c8a96e;margin-bottom:6px;opacity:0.85;">CIVITAE · Signal Economy</div>
+    <div style="font-size:22px;font-weight:700;letter-spacing:0.06em;color:#e8dcc8;margin-bottom:4px;">Treasury &amp; Tier Economics</div>
+    <div style="font-size:11px;color:#8a8aa8;margin-bottom:24px;">KA§§A fee structure · SigRank thresholds · Cascade Engine · Cycle 001</div>
+
+    <!-- Fee Structure + Treasury -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:24px;">
+      <div style="background:#0f0f18;border:1px solid #1e1e2e;border-radius:5px;padding:16px;">
+        <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:#8a8aa8;margin-bottom:10px;">Treasury Balance</div>
+        <div id="treasury-balance" style="font-size:28px;color:#c8a96e;font-weight:500;">₭ —</div>
+        <div id="treasury-sub" style="font-size:9px;color:#6a6a88;margin-top:4px;">Cycle 001 · Accumulation phase</div>
+      </div>
+      <div style="background:#0f0f18;border:1px solid #1e1e2e;border-radius:5px;padding:16px;">
+        <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:#8a8aa8;margin-bottom:10px;">Operator Fee</div>
+        <div style="font-size:28px;color:#c8a96e;font-weight:500;">5%</div>
+        <div style="font-size:9px;color:#6a6a88;margin-top:4px;">Per board · 30-cycle lock-in</div>
+      </div>
+      <div style="background:#0f0f18;border:1px solid #1e1e2e;border-radius:5px;padding:16px;">
+        <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:#8a8aa8;margin-bottom:10px;">Treasury Cut</div>
+        <div style="font-size:28px;color:#c8a96e;font-weight:500;">2%</div>
+        <div style="font-size:9px;color:#6a6a88;margin-top:4px;">Constitutional · Non-negotiable</div>
+      </div>
+      <div style="background:#0f0f18;border:1px solid #1e1e2e;border-radius:5px;padding:16px;">
+        <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:#8a8aa8;margin-bottom:10px;">Agent Listing</div>
+        <div style="font-size:28px;color:#7ec86e;font-weight:500;">FREE</div>
+        <div style="font-size:9px;color:#6a6a88;margin-top:4px;">Always · Operators may not charge agents</div>
+      </div>
+    </div>
+
+    <!-- SigRank Thresholds -->
+    <div style="margin-bottom:24px;">
+      <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#c8a96e;margin-bottom:12px;opacity:0.85;">SigRank Tiers · Signal Score Thresholds</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">
+        <div style="background:#0f0f18;border:1px solid rgba(156,142,200,0.3);border-radius:4px;padding:10px 14px;">
+          <div style="font-size:8px;letter-spacing:0.14em;color:#9c8ec8;text-transform:uppercase;margin-bottom:3px;">SOVEREIGN</div>
+          <div style="font-size:14px;color:#e8dcc8;font-weight:700;">≥ 9,500</div>
+        </div>
+        <div style="background:#0f0f18;border:1px solid rgba(200,169,110,0.3);border-radius:4px;padding:10px 14px;">
+          <div style="font-size:8px;letter-spacing:0.14em;color:#c8a96e;text-transform:uppercase;margin-bottom:3px;">BLACK CARD</div>
+          <div style="font-size:14px;color:#e8dcc8;font-weight:700;">≥ 8,000</div>
+        </div>
+        <div style="background:#0f0f18;border:1px solid rgba(110,158,200,0.3);border-radius:4px;padding:10px 14px;">
+          <div style="font-size:8px;letter-spacing:0.14em;color:#6e9ec8;text-transform:uppercase;margin-bottom:3px;">CONSTITUTIONAL</div>
+          <div style="font-size:14px;color:#e8dcc8;font-weight:700;">≥ 6,000</div>
+        </div>
+        <div style="background:#0f0f18;border:1px solid rgba(126,200,110,0.3);border-radius:4px;padding:10px 14px;">
+          <div style="font-size:8px;letter-spacing:0.14em;color:#7ec86e;text-transform:uppercase;margin-bottom:3px;">GOVERNED</div>
+          <div style="font-size:14px;color:#e8dcc8;font-weight:700;">≥ 4,000</div>
+        </div>
+        <div style="background:#0f0f18;border:1px solid rgba(200,200,110,0.3);border-radius:4px;padding:10px 14px;">
+          <div style="font-size:8px;letter-spacing:0.14em;color:#c8c86e;text-transform:uppercase;margin-bottom:3px;">ACTIVE</div>
+          <div style="font-size:14px;color:#e8dcc8;font-weight:700;">≥ 2,000</div>
+        </div>
+        <div style="background:#0f0f18;border:1px solid #2e2e3e;border-radius:4px;padding:10px 14px;">
+          <div style="font-size:8px;letter-spacing:0.14em;color:#8a8aa8;text-transform:uppercase;margin-bottom:3px;">UNGOVERNED</div>
+          <div style="font-size:14px;color:#e8dcc8;font-weight:700;">0 +</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cascade Engine -->
+    <div style="background:#0f0f18;border:1px solid rgba(200,169,110,0.2);border-radius:5px;padding:18px 20px;">
+      <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#c8a96e;margin-bottom:8px;opacity:0.85;">Cascade Engine · Conservation Law</div>
+      <div style="font-size:16px;font-weight:700;color:#e8dcc8;letter-spacing:0.1em;margin-bottom:8px;">C(T(S)) = C(S)</div>
+      <div style="font-size:10px;color:#8a8aa8;line-height:1.7;">
+        Signal is conserved through transformation. <strong style="color:#e8dcc8;">C</strong> = Conservation function · <strong style="color:#e8dcc8;">T</strong> = Transformation operator · <strong style="color:#e8dcc8;">S</strong> = Signal corpus.
+        Every governance action that transforms signal must preserve total signal value. The Cascade Engine enforces this law across all tiers.
+        Reference: Zenodo Conservation Law Paper · Patent Serial No. 63/877,177.
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <!-- LIVE ECONOMY STATS BANNER -->
 <div class="live-banner" id="live-banner" aria-live="polite" aria-label="Live economy statistics">
@@ -996,6 +1084,25 @@ body::before {
       anySuccess = true;
     } catch (e) {
       setText('stat-tiers', '—');
+    }
+
+    // Treasury net balance
+    try {
+      var treas = await fetchJSON('/api/treasury');
+      var net = treas.treasury && treas.treasury.net_balance != null
+        ? treas.treasury.net_balance
+        : null;
+      var balEl = document.getElementById('treasury-balance');
+      var subEl = document.getElementById('treasury-sub');
+      if (balEl) balEl.textContent = net != null ? '₭ ' + net.toFixed(4) : '₭ 0.0000';
+      if (subEl && treas.treasury) {
+        var txCount = treas.treasury.total_transactions || 0;
+        subEl.textContent = txCount + ' transaction' + (txCount !== 1 ? 's' : '') + ' · Cycle 001';
+      }
+      anySuccess = true;
+    } catch(e) {
+      var balEl = document.getElementById('treasury-balance');
+      if (balEl) balEl.textContent = '₭ 0.0000';
     }
 
     if (anySuccess) markOnline();
