@@ -230,6 +230,10 @@ def create_app(root: Path | None = None) -> FastAPI:
                 pass
         return {"sessions": sessions, "count": len(sessions)}
 
+    @app.get("/health")
+    async def health() -> dict:
+        return {"ok": True}
+
     @app.get("/api/state")
     async def get_state() -> dict:
         return runtime.snapshot().model_dump(mode="json")
