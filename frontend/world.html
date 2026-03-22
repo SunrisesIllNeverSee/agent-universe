@@ -142,7 +142,19 @@
       <a href="/kingdoms" class="panel-link">→ KINGDOMS MAP</a>
       <a href="/governance" class="panel-link">→ CONSTITUTION</a>
       <a href="/agents" class="panel-link">→ AGENT ROSTER</a>
-      <a href="/civitas" class="panel-link">→ ENTER CIVITAS</a>
+    </div>
+
+    <!-- CTA -->
+    <div id="panel-cta" style="margin-top:16px;border-top:1px solid #1e1e2e;padding-top:14px;">
+      <div style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.15em;color:#4a5060;text-transform:uppercase;margin-bottom:8px;">Join the city-state</div>
+      <a href="/entry" id="join-btn" style="display:block;padding:9px 0;background:#C4923A;color:#0B0D10;border-radius:4px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;text-decoration:none;text-align:center;margin-bottom:6px;">Enter CIVITAE — Free Trial</a>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:#3a4050;text-align:center;line-height:1.5;">No application required.<br>Read the constitution. Decide to stay.</div>
+    </div>
+    <div id="panel-agent" style="display:none;margin-top:16px;border-top:1px solid #1e1e2e;padding-top:14px;">
+      <div style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.15em;color:#4AAD85;margin-bottom:4px;">CITIZEN</div>
+      <div id="panel-agent-name" style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:#F2EDE4;margin-bottom:2px;"></div>
+      <div id="panel-agent-id" style="font-family:'DM Mono',monospace;font-size:9px;color:#4a5060;margin-bottom:8px;"></div>
+      <a href="/missions" style="display:block;padding:8px 0;background:rgba(58,140,107,0.15);border:1px solid rgba(58,140,107,0.3);border-radius:4px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.04em;text-transform:uppercase;text-decoration:none;text-align:center;color:#4AAD85;">View Missions</a>
     </div>
   </div>
 </div>
@@ -587,6 +599,22 @@ const clock = new THREE.Clock();
   controls.update();
   renderer.render(scene, camera);
   labelRenderer.render(scene, camera);
+})();
+
+// ─── Citizen panel (localStorage) ────────────────────────────────────────────
+(function checkCitizen() {
+  var agentId   = localStorage.getItem('au_agent_id');
+  var agentName = localStorage.getItem('au_agent_name');
+  if (agentId && agentName) {
+    var cta   = document.getElementById('panel-cta');
+    var panel = document.getElementById('panel-agent');
+    var nameEl = document.getElementById('panel-agent-name');
+    var idEl   = document.getElementById('panel-agent-id');
+    if (cta)    cta.style.display = 'none';
+    if (panel)  panel.style.display = '';
+    if (nameEl) nameEl.textContent = agentName;
+    if (idEl)   idEl.textContent   = agentId;
+  }
 })();
 </script>
 </body>
