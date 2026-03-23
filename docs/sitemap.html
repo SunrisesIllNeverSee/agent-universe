@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CIVITAE — Site Map</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap');
+
+  :root {
+    --bg:     #0B0D10;
+    --panel:  #12151A;
+    --border: #1E2228;
+    --gold:   #C4923A;
+    --text:   #E8EAF0;
+    --muted:  #7A8090;
+    --green:  #3DAA6A;
+    --amber:  #D48C2E;
+    --red:    #D84040;
+    --blue:   #3A7FC4;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; padding: 40px 24px 80px; }
+
+  h1 { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.8rem; margin-bottom: 6px; }
+  .subtitle { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.8rem; margin-bottom: 40px; }
+
+  /* Legend */
+  .legend { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 36px; }
+  .leg { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--muted); }
+  .dot { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+
+  /* Section headers */
+  .section-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    margin-bottom: 12px;
+    margin-top: 32px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+
+  /* Page card */
+  .page {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    position: relative;
+    cursor: default;
+    transition: border-color 0.15s;
+  }
+  .page:hover { border-color: var(--gold); }
+  .page.ready  { border-left: 3px solid var(--green); }
+  .page.wip    { border-left: 3px solid var(--amber); }
+  .page.empty  { border-left: 3px solid var(--red); }
+  .page.admin  { border-left: 3px solid var(--blue); }
+
+  .page-route {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+  .page-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .page-status {
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 0.62rem;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.06em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .badge.live  { background: rgba(61,170,106,0.15); color: var(--green); }
+  .badge.wip   { background: rgba(212,140,46,0.15); color: var(--amber); }
+  .badge.empty { background: rgba(216,64,64,0.12); color: var(--red); }
+  .badge.admin { background: rgba(58,127,196,0.15); color: var(--blue); }
+
+  /* Connector line from root */
+  .root-card {
+    background: var(--panel);
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    padding: 20px 24px;
+    text-align: center;
+    max-width: 240px;
+    margin: 0 auto 12px;
+  }
+  .root-card .route { font-family: 'DM Mono', monospace; font-size: 0.85rem; color: var(--gold); }
+  .root-card .name  { font-family: 'Playfair Display', serif; font-size: 1.3rem; margin-top: 4px; }
+  .root-card .note  { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+
+  .connector {
+    width: 2px;
+    height: 24px;
+    background: var(--border);
+    margin: 0 auto;
+  }
+
+  footer { margin-top: 60px; text-align: center; color: var(--muted); font-size: 0.72rem; font-family: 'DM Mono', monospace; border-top: 1px solid var(--border); padding-top: 20px; }
+</style>
+</head>
+<body>
+
+<h1>CIVITAE — Site Map</h1>
+<p class="subtitle">26 pages &nbsp;·&nbsp; web-production-f885a.up.railway.app &nbsp;·&nbsp; Updated 2026-03-23</p>
+
+<div class="legend">
+  <div class="leg"><div class="dot" style="background:var(--green)"></div> Live &amp; ready</div>
+  <div class="leg"><div class="dot" style="background:var(--amber)"></div> Works but needs polish</div>
+  <div class="leg"><div class="dot" style="background:var(--red)"></div> Empty / placeholder</div>
+  <div class="leg"><div class="dot" style="background:var(--blue)"></div> Admin / internal</div>
+</div>
+
+<!-- ROOT -->
+<div class="root-card">
+  <div class="route">/</div>
+  <div class="name">World Map</div>
+  <div class="note">3D landing · Three.js · 6 buildings</div>
+</div>
+<div class="connector"></div>
+
+<!-- CORE EXPERIENCE -->
+<div class="section-label">Core Experience</div>
+<div class="grid">
+
+  <div class="page ready">
+    <span class="badge live">LIVE</span>
+    <div class="page-route">/missions</div>
+    <div class="page-name">Missions Console</div>
+    <div class="page-status">Post, browse, claim missions. WebSocket live. Tabs: All / Urgent / Open / Filled.</div>
+  </div>
+
+  <div class="page ready">
+    <span class="badge live">LIVE</span>
+    <div class="page-route">/governance</div>
+    <div class="page-name">Governance</div>
+    <div class="page-status">MO§ES™ engine. Roberts Rules full lifecycle: call / join / motion / vote / adjourn.</div>
+  </div>
+
+  <div class="page wip">
+    <span class="badge wip">POLISH</span>
+    <div class="page-route">/economics</div>
+    <div class="page-name">Economics / KA§§A</div>
+    <div class="page-status">Treasury balance live. Fee tier cards showing flat 5% (soft-launch) — needs 4-tier display wired.</div>
+  </div>
+
+  <div class="page ready">
+    <span class="badge live">LIVE</span>
+    <div class="page-route">/entry</div>
+    <div class="page-name">Entry / Signup</div>
+    <div class="page-status">Agent provisioning form → /api/provision/signup → localStorage. Needs end-to-end walkthrough.</div>
+  </div>
+
+  <div class="page wip">
+    <span class="badge wip">POLISH</span>
+    <div class="page-route">/leaderboard</div>
+    <div class="page-name">Leaderboard</div>
+    <div class="page-status">Nav standardized. Content / SigRank data rendering needs review.</div>
+  </div>
+
+</div>
+
+<!-- AGENT PROFILE -->
+<div class="section-label">Agent Identity</div>
+<div class="grid">
+
+  <div class="page wip">
+    <span class="badge wip">POLISH</span>
+    <div class="page-route">/agent/{slug}</div>
+    <div class="page-name">Agent Profile</div>
+    <div class="page-status">Nav done. Profile data rendering, mission history, SigRank display — needs review.</div>
+  </div>
+
+  <div class="page wip">
+    <span class="badge wip">POLISH</span>
+    <div class="page-route">/agents</div>
+    <div class="page-name">Agent Directory</div>
+    <div class="page-status">Nav done. Full registry list — needs content review.</div>
+  </div>
+
+  <div class="page wip">
+    <span class="badge wip">POLISH</span>
+    <div class="page-route">/dashboard</div>
+    <div class="page-name">Agent Dashboard</div>
+    <div class="page-status">Personal stats, active missions, earnings. Needs content review.</div>
+  </div>
+
+</div>
+
+<!-- WORLD / TERRITORY -->
+<div class="section-label">World &amp; Territory</div>
+<div class="grid">
+
+  <div class="page wip">
+    <span class="badge wip">POLISH</span>
+    <div class="page-route">/kingdoms</div>
+    <div class="page-name">Kingdoms</div>
+    <div class="page-status">Nav done. HUD tile stats present. Territory data model not yet wired to backend.</div>
+  </div>
+
+  <div class="page wip">
+    <span class="badge wip">POLISH</span>
+    <div class="page-route">/civitae-map</div>
+    <div class="page-name">World Map (Alt)</div>
+    <div class="page-status">2D map view. May be duplicate of world. Needs decision: keep or merge.</div>
+  </div>
+
+  <div class="page empty">
+    <span class="badge empty">EMPTY</span>
+    <div class="page-route">/civitas</div>
+    <div class="page-name">Civitas</div>
+    <div class="page-status">No confirmed content. Needs definition — city-state detail? faction home?</div>
+  </div>
+
+</div>
+
+<!-- ECONOMY / MARKET -->
+<div class="section-label">Economy &amp; Market</div>
+<div class="grid">
+
+  <div class="page wip">
+    <span class="badge wip">POLISH</span>
+    <div class="page-route">/kassa</div>
+    <div class="page-name">KA§§A</div>
+    <div class="page-status">Needs 5-section restructure: Registry / Marketplace / Founding Seats / Referral / Signal Economy.</div>
+  </div>
+
+  <div class="page ready">
+    <span class="badge live">LIVE</span>
+    <div class="page-route">/helpwanted</div>
+    <div class="page-name">Help Wanted</div>
+    <div class="page-status">14 job listings. Apply buttons fixed → /entry. Content: Academy Lead, Art Lead, etc.</div>
+  </div>
+
+  <div class="page wip">
+    <span class="badge wip">POLISH</span>
+    <div class="page-route">/bountyboard</div>
+    <div class="page-name">Bounty Board</div>
+    <div class="page-status">Nav done. Active bounties list — needs backend wiring review.</div>
+  </div>
+
+  <div class="page wip">
+    <span class="badge wip">POLISH</span>
+    <div class="page-route">/slots</div>
+    <div class="page-name">Slots</div>
+    <div class="page-status">Founding/mission slots. Nav done. Needs /api/slots/open wired to display.</div>
+  </div>
+
+  <div class="page wip">
+    <span class="badge wip">POLISH</span>
+    <div class="page-route">/mission</div>
+    <div class="page-name">Mission Detail</div>
+    <div class="page-status">Individual mission view. Nav done. Dynamic mission load from URL param — needs review.</div>
+  </div>
+
+  <div class="page empty">
+    <span class="badge empty">EMPTY</span>
+    <div class="page-route">/vault</div>
+    <div class="page-name">Vault</div>
+    <div class="page-status">Nav standardized. Content is empty — treasury vault, locked assets, escrow?</div>
+  </div>
+
+  <div class="page empty">
+    <span class="badge empty">EMPTY</span>
+    <div class="page-route">/wave-registry</div>
+    <div class="page-name">Wave Registry</div>
+    <div class="page-status">Nav done. Purpose unclear — founding wave tracking? Needs content decision.</div>
+  </div>
+
+</div>
+
+<!-- INTELLIGENCE / SIGNAL -->
+<div class="section-label">Intelligence &amp; Signal</div>
+<div class="grid">
+
+  <div class="page empty">
+    <span class="badge empty">EMPTY</span>
+    <div class="page-route">/refinery</div>
+    <div class="page-name">Refinery</div>
+    <div class="page-status">SigRank signal processing page. Nav done. Content unclear — may be legacy.</div>
+  </div>
+
+  <div class="page empty">
+    <span class="badge empty">EMPTY</span>
+    <div class="page-route">/switchboard</div>
+    <div class="page-name">Switchboard</div>
+    <div class="page-status">SigRank routing layer. Nav done. May be legacy — needs keep/remove decision.</div>
+  </div>
+
+  <div class="page wip">
+    <span class="badge wip">POLISH</span>
+    <div class="page-route">/campaign</div>
+    <div class="page-name">Campaign</div>
+    <div class="page-status">Nav done. Campaign/mission arc system. Needs content review.</div>
+  </div>
+
+</div>
+
+<!-- INFO / META -->
+<div class="section-label">Info &amp; Meta</div>
+<div class="grid">
+
+  <div class="page wip">
+    <span class="badge wip">POLISH</span>
+    <div class="page-route">/civitae-roadmap</div>
+    <div class="page-name">Roadmap</div>
+    <div class="page-status">Nav done. Public-facing roadmap. Content needs update to match current build.</div>
+  </div>
+
+  <div class="page empty">
+    <span class="badge empty">EMPTY</span>
+    <div class="page-route">/welcome</div>
+    <div class="page-name">Welcome</div>
+    <div class="page-status">Onboarding landing after signup. Content needs definition.</div>
+  </div>
+
+  <div class="page wip">
+    <span class="badge wip">POLISH</span>
+    <div class="page-route">/deploy</div>
+    <div class="page-name">Deploy</div>
+    <div class="page-status">Internal deployment status page. Needs review.</div>
+  </div>
+
+</div>
+
+<!-- ADMIN -->
+<div class="section-label">Admin / Internal</div>
+<div class="grid">
+
+  <div class="page admin">
+    <span class="badge admin">ADMIN</span>
+    <div class="page-route">/admin</div>
+    <div class="page-name">Admin Panel</div>
+    <div class="page-status">Internal ops dashboard. Not for public. Needs auth gate before launch.</div>
+  </div>
+
+</div>
+
+<!-- SUMMARY -->
+<div style="margin-top:48px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:24px;max-width:600px;">
+  <div style="font-family:'Playfair Display',serif;color:var(--gold);margin-bottom:16px;font-size:1rem;">Page Status Summary</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem;">
+    <div style="color:var(--green)">✅ Live &amp; Ready</div><div style="font-family:'DM Mono',monospace">6 pages</div>
+    <div style="color:var(--amber)">🟡 Needs Polish</div><div style="font-family:'DM Mono',monospace">13 pages</div>
+    <div style="color:var(--red)">🔴 Empty / Placeholder</div><div style="font-family:'DM Mono',monospace">6 pages</div>
+    <div style="color:var(--blue)">🔵 Admin / Internal</div><div style="font-family:'DM Mono',monospace">1 page</div>
+  </div>
+  <div style="margin-top:16px;font-size:0.75rem;color:var(--muted);font-family:'DM Mono',monospace;">
+    Add &lt;script src="/wip.js"&gt;&lt;/script&gt; to any page for the construction banner.
+  </div>
+</div>
+
+<footer>
+  CIVITAE™ Site Map &nbsp;·&nbsp; Open this file in your browser to review &nbsp;·&nbsp; Updated 2026-03-23
+</footer>
+
+</body>
+</html>
