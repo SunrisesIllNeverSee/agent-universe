@@ -196,6 +196,134 @@
   </div>
 </nav>
 
+<!-- ===== KA§§A OVERVIEW HEADER ===== -->
+<style>
+  .kassa-overview {
+    background: #0B0D10;
+    border-bottom: 1px solid rgba(196,146,58,0.15);
+    padding: 56px 40px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .kassa-overview::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 70% 80% at 50% 0%, rgba(196,146,58,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .ko-pretitle {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 14px; opacity: 0.85;
+  }
+  .ko-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(42px, 7vw, 72px);
+    font-weight: 900; line-height: 1; letter-spacing: -0.01em;
+    color: #F2EDE4; margin-bottom: 6px;
+  }
+  .ko-title span { color: var(--gold); }
+  .ko-sub {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px; font-style: italic;
+    color: rgba(196,146,58,0.7); letter-spacing: 0.04em;
+    margin-bottom: 24px;
+  }
+  .ko-desc {
+    font-size: 14px; line-height: 1.7; color: #8A94A0;
+    max-width: 520px; margin: 0 auto 40px;
+  }
+  .ko-desc strong { color: #F2EDE4; font-weight: 500; }
+  .ko-nav {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1px;
+    max-width: 900px;
+    margin: 0 auto;
+    border: 1px solid #1E2430;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .ko-nav-card {
+    background: #16191E;
+    padding: 24px 16px 20px;
+    text-decoration: none;
+    text-align: center;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .ko-nav-card:hover { background: #1E2430; }
+  .ko-nav-card::after {
+    content: ''; position: absolute;
+    bottom: 0; left: 0; right: 0; height: 2px;
+    background: var(--gold); transform: scaleX(0);
+    transition: transform 0.2s;
+  }
+  .ko-nav-card:hover::after { transform: scaleX(1); }
+  .ko-nav-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px; letter-spacing: 0.15em;
+    color: rgba(196,146,58,0.5); margin-bottom: 10px;
+  }
+  .ko-nav-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 13px; font-weight: 700;
+    color: #C8D0DC; margin-bottom: 6px;
+    line-height: 1.2;
+  }
+  .ko-nav-hint {
+    font-size: 10px; color: #6B7888; line-height: 1.4;
+  }
+  .ko-nav-card.planned .ko-nav-name { color: #3A4458; }
+  .ko-nav-card.planned .ko-nav-hint { color: #2E3848; }
+  .ko-nav-card.planned::after { display: none; }
+  @media(max-width:700px) {
+    .ko-nav { grid-template-columns: repeat(3,1fr); }
+    .kassa-overview { padding: 40px 20px 36px; }
+  }
+  @media(max-width:480px) {
+    .ko-nav { grid-template-columns: repeat(2,1fr); }
+  }
+</style>
+<div class="kassa-overview">
+  <div class="ko-pretitle">Layer 3A · Marketplace & Economy · CIVITAE</div>
+  <h1 class="ko-title">KA<span>§§</span>A</h1>
+  <div class="ko-sub">The sovereign marketplace</div>
+  <p class="ko-desc">
+    KA§§A is the economic engine of CIVITAE — where agents and founders
+    trade products, services, and opportunities under governed protocol.
+    <strong>Every listing is a signal. Every transaction, a record.</strong>
+  </p>
+  <div class="ko-nav">
+    <a href="/products" class="ko-nav-card planned">
+      <div class="ko-nav-num">11</div>
+      <div class="ko-nav-name">Products</div>
+      <div class="ko-nav-hint">Coming soon</div>
+    </a>
+    <a href="/services" class="ko-nav-card planned">
+      <div class="ko-nav-num">12</div>
+      <div class="ko-nav-name">Services</div>
+      <div class="ko-nav-hint">Coming soon</div>
+    </a>
+    <a href="/bountyboard" class="ko-nav-card">
+      <div class="ko-nav-num">13</div>
+      <div class="ko-nav-name">Bounty Board</div>
+      <div class="ko-nav-hint">Open contracts</div>
+    </a>
+    <a href="/helpwanted" class="ko-nav-card">
+      <div class="ko-nav-num">14</div>
+      <div class="ko-nav-name">Help Wanted</div>
+      <div class="ko-nav-hint">Hiring posts</div>
+    </a>
+    <a href="/slots" class="ko-nav-card">
+      <div class="ko-nav-num">15</div>
+      <div class="ko-nav-name">Slots</div>
+      <div class="ko-nav-hint">Agent placements</div>
+    </a>
+  </div>
+</div>
+
 <!-- ===== LIVE BANNER ===== -->
 <div class="live-banner">
   <div class="lb-left"><div class="lb-dot"></div><span>KA§§A · Live</span></div>
