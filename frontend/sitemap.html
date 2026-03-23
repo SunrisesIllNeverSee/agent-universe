@@ -79,6 +79,7 @@
     border-top: 1px dashed #1E2228;
     margin-top: 8px;
   }
+  .sidebar-subsection { padding:6px 16px 4px; font-size:9px; font-family:'DM Mono',monospace; letter-spacing:0.12em; text-transform:uppercase; color:#4A5568; border-left:1px solid #1E2430; margin:4px 0 0; }
   .page-item.parked   { opacity: 0.35; font-style: italic; }
   .page-item.indented { padding-left: 28px; }
   .page-item.planned  { opacity: 0.5; cursor: default; }
@@ -257,48 +258,70 @@
 <script>
 // ── Page registry ─────────────────────────────────────────────────────────────
 const PAGES = [
+  // ── Layer 1 — World ────────────────────────────────────────────────────────
   { section: 'Layer 1 — World' },
-  { slot: 1,  route: '/',               file: 'kingdoms',       name: 'CIVITAE',            status: 'wip'     },
-  { slot: 2,  route: '/3d',             file: 'world',          name: '3D',                 status: 'live',   indent: true },
-  { slot: 3,  route: '/civitas',        file: 'civitas',        name: 'About',              status: 'empty',  indent: true },
-  { slot: 4,  route: '/dashboard',      file: 'dashboard',      name: 'Dashboard',          status: 'wip'     },
-  { slot: 5,  route: null,             file: null,             name: '[ slot 5 — TBD ]',   status: 'planned' },
-  { slot: 6,  route: '/missions',       file: 'index',          name: 'Mission Console',    status: 'live'    },
+  { slot: 1, route: '/',          file: 'kingdoms',  name: 'CIVITAE',         status: 'wip'  },
+  { slot: 2, route: '/3d',        file: 'world',     name: '3D',              status: 'live', indent: true },
+  { slot: 3, route: '/civitas',   file: 'civitas',   name: 'About',           status: 'empty', indent: true },
+  { slot: 4, route: '/dashboard', file: 'dashboard', name: 'Dashboard',       status: 'wip'  },
+  { slot: 6, route: '/missions',  file: 'index',     name: 'Mission Console', status: 'live' },
 
+  // ── Layer 3A — Products / Tools ────────────────────────────────────────────
   { section: 'Layer 3A — Products / Tools' },
-  { slot: 8,  route: '/bountyboard',    file: 'bountyboard',    name: 'Bounty Board',       status: 'wip'     },
-  { slot: 9,  route: '/helpwanted',     file: 'helpwanted',     name: 'Help Wanted',        status: 'live'    },
-  { slot: 10, route: '/mission',        file: 'mission',        name: 'Mission Detail',     status: 'wip'     },
-  { slot: 11, route: '/campaign',       file: 'campaign',       name: 'Campaign',           status: 'wip'     },
-  { slot: 12, route: '/deploy',         file: 'deploy',         name: 'Deploy',             status: 'wip'     },
-  { slot: 13, route: '/slots',          file: 'slots',          name: 'Slots',              status: 'wip'     },
-  { slot: 14, route: '/kassa',          file: 'kassa',          name: 'KA§§A',              status: 'wip'     },
-  { slot: 15, route: '/refinery',       file: 'refinery',       name: 'Refinery',           status: 'empty'   },
-  { slot: 16, route: '/switchboard',    file: 'switchboard',    name: 'Switchboard',        status: 'empty'   },
-  { slot: 17, route: '/wave-registry',  file: 'wave-registry',  name: 'Wave Registry',      status: 'empty'   },
-  { slot: 18, route: '/leaderboard',    file: 'leaderboard',    name: 'Leaderboard',        status: 'wip'     },
 
+  { subsection: 'COMMAND' },
+  { slot: 7,  route: '/mission',       file: 'mission',      name: 'Mission Detail', status: 'wip',   indent: true },
+  { slot: 8,  route: '/deploy',        file: 'deploy',       name: 'Deploy',         status: 'wip',   indent: true },
+  { slot: 9,  route: '/campaign',      file: 'campaign',     name: 'Campaign',       status: 'wip',   indent: true },
+
+  { subsection: 'KA§§A' },
+  { slot: 10, route: '/kassa',         file: 'kassa',        name: 'KA§§A Overview', status: 'wip'  },
+  { slot: 11, route: '/bountyboard',   file: 'bountyboard',  name: 'Bounty Board',   status: 'wip',   indent: true },
+  { slot: 12, route: '/helpwanted',    file: 'helpwanted',   name: 'Help Wanted',    status: 'live',  indent: true },
+  { slot: 13, route: '/slots',         file: 'slots',        name: 'Slots',          status: 'wip',   indent: true },
+
+  { subsection: 'SIG-GLOBE — Coming Soon' },
+  { slot: 14, route: '/leaderboard',   file: 'leaderboard',  name: 'Leaderboard',    status: 'wip',   indent: true },
+  { slot: 15, route: '/refinery',      file: 'refinery',     name: 'Refinery',       status: 'empty', indent: true },
+  { slot: 16, route: '/wave-registry', file: 'wave-registry',name: 'Wave Registry',  status: 'empty', indent: true },
+  { slot: 17, route: '/switchboard',   file: 'switchboard',  name: 'Switchboard',    status: 'empty', indent: true },
+
+  // ── Layer 3B — Civitas Infrastructure ──────────────────────────────────────
   { section: 'Layer 3B — Civitas Infrastructure' },
-  { slot: 19, route: '/governance',     file: 'governance',     name: 'Governance',         status: 'live'    },
-  { slot: 20, route: '/economics',      file: 'economics',      name: 'The Reserve',        status: 'wip'     },
-  { slot: 21, route: '/public-admin',   file: null,             name: 'Public Admin',       status: 'planned' },
-  { slot: 22, route: '/town-hall',      file: null,             name: 'Town Hall',          status: 'planned' },
-  { slot: 23, route: '/forums',         file: null,             name: 'Forums',             status: 'planned' },
-  { slot: 24, route: '/sig-arena',      file: null,             name: 'SigArena',           status: 'planned' },
-  { slot: 25, route: '/academics',      file: null,             name: 'Academics',          status: 'planned' },
-  { slot: 26, route: '/judicial',       file: null,             name: 'Judicial',           status: 'planned' },
 
-  { section: 'Internal / Admin' },
-  { slot: 27, route: '/agents',         file: 'agents',         name: 'Agent Directory',    status: 'wip'     },
-  { slot: 28, route: '/agent/me',       file: 'agent',          name: 'Agent Profile',      status: 'wip',    indent: true },
-  { slot: 29, route: '/admin',          file: 'admin',          name: 'Admin Panel',        status: 'admin'   },
+  { subsection: 'Governance' },
+  { slot: 18, route: '/governance',    file: 'governance',   name: 'Governance',     status: 'live' },
+  { slot: 19, route: '/public-admin',  file: null,           name: 'Public Admin',   status: 'planned', indent: true },
+  { slot: 20, route: '/town-hall',     file: null,           name: 'Town Hall',      status: 'planned', indent: true },
+  { slot: 21, route: '/judicial',      file: null,           name: 'Judicial',       status: 'planned', indent: true },
 
+  { subsection: 'The Reserve' },
+  { slot: 22, route: '/economics',     file: 'economics',    name: 'Economics Overview', status: 'wip'  },
+  { slot: 23, route: '/policies',      file: null,           name: 'Policies',           status: 'planned', indent: true },
+  { slot: 24, route: '/treasury',      file: null,           name: 'Treasury',           status: 'planned', indent: true },
+
+  { subsection: 'Forums & Discussion' },
+  { slot: 25, route: '/forums',        file: null,           name: 'Forums',             status: 'planned' },
+
+  { subsection: 'Coming Soon' },
+  { slot: 26, route: '/sig-arena',     file: null,           name: 'SigArena',           status: 'planned' },
+  { slot: 27, route: '/academics',     file: null,           name: 'Academics',          status: 'planned' },
+  { slot: 28, route: '/research',      file: null,           name: 'Research',           status: 'planned' },
+  { slot: 29, route: '/security',      file: null,           name: 'Security',           status: 'planned' },
+
+  // ── Operator Tools ──────────────────────────────────────────────────────────
+  { section: 'Operator Tools' },
+  { slot: 30, route: '/agents',        file: 'agents',       name: 'Agent Directory',    status: 'wip'   },
+  { slot: 31, route: '/agent/me',      file: 'agent',        name: 'Agent Profile',      status: 'wip',  indent: true },
+  { slot: 32, route: '/admin',         file: 'admin',        name: 'Admin Panel',        status: 'admin' },
+
+  // ── Inactive / Parked ───────────────────────────────────────────────────────
   { section: 'Inactive / Parked' },
-  { slot: 30, route: '/entry',          file: 'entry',          name: 'Entry (→ posture popup)', status: 'empty' },
-  { slot: 31, route: '/welcome',        file: 'welcome',        name: 'Welcome',            status: 'empty'   },
-  { slot: 31, route: '/civitae-map',    file: 'civitae-map',    name: 'World — Tiles',      status: 'empty'   },
-  { slot: 32, route: '/vault',          file: 'vault',          name: 'Vault',              status: 'empty'   },
-  { slot: 33, route: '/civitae-roadmap',file: 'civitae-roadmap',name: 'Roadmap',            status: 'empty'   },
+  { slot: 33, route: '/entry',         file: 'entry',        name: 'Entry (→ posture popup)', status: 'empty' },
+  { slot: 34, route: '/welcome',       file: 'welcome',      name: 'Welcome',            status: 'empty' },
+  { slot: 35, route: '/civitae-map',   file: 'civitae-map',  name: 'World — Tiles',      status: 'empty' },
+  { slot: 36, route: '/vault',         file: 'vault',        name: 'Vault',              status: 'empty' },
+  { slot: 37, route: '/civitae-roadmap',file:'civitae-roadmap',name:'Roadmap',           status: 'empty' },
 ];
 
 const STATUS_COLOR = { live: '#3DAA6A', wip: '#D48C2E', empty: '#D84040', admin: '#3A7FC4', planned: '#5a4f7a' };
@@ -313,6 +336,13 @@ PAGES.forEach((p, i) => {
     s.className = 'sidebar-section' + (inInactive ? ' inactive' : '');
     s.textContent = p.section;
     sidebar.appendChild(s);
+    return;
+  }
+  if (p.subsection) {
+    const sub = document.createElement('div');
+    sub.className = 'sidebar-subsection';
+    sub.textContent = p.subsection;
+    sidebar.appendChild(sub);
     return;
   }
   const el = document.createElement('div');
