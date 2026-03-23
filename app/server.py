@@ -136,6 +136,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def economics_page() -> FileResponse:
         return FileResponse(frontend_dir / "economics.html")
 
+    @app.get("/command")
+    async def command_page() -> FileResponse:
+        return FileResponse(frontend_dir / "command.html")
+
     @app.get("/mission")
     async def mission_page() -> FileResponse:
         return FileResponse(frontend_dir / "mission.html")
