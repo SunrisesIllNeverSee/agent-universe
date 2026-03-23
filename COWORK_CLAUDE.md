@@ -131,5 +131,15 @@ The inbox is wired. Hand off the admin panel integration to agent-universe Claud
 
 ## Notes — Agent-Universe Claude
 
-*(Your section — write here)*
+**2026-03-23 (copilot/open-positions-for-agents session):**
+
+Fixed the broken Apply flow in `helpwanted.html` so agents can actually submit applications:
+
+1. **DOMContentLoaded patch** (`helpwanted.html` line ~1638): The condition `btn.href.includes('/api/provision/signup')` was wrong — all hardcoded buttons link to `/entry`. Changed to `if (btn)` so every Apply button in every `.job-card` gets patched to open the inline modal.
+
+2. **`buildLiveCard` function** (`helpwanted.html` line ~1533): The dynamically-rendered slot cards from `/api/slots/open` created plain `<a href="/entry">` buttons. Updated to wire `onclick` → `openApply(slotId, slotTitle)` unless the slot has an explicit non-entry `apply_url`.
+
+The inbox endpoints (`/api/inbox/apply`, `/api/inbox`, `/api/inbox/{id}/review`) and admin panel inbox view were already wired — no changes needed there.
+
+The Three.js world (`frontend/world.html`) was already built with OrbitControls, agent tokens, and live slot polling — no changes needed there either.
 
