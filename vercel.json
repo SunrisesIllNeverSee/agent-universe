@@ -1,7 +1,5 @@
 {
   "outputDirectory": "frontend",
-  "buildCommand": "echo 'static only'",
-  "installCommand": "echo 'skip'",
   "cleanUrls": true,
   "rewrites": [
     { "source": "/", "destination": "/kingdoms.html" }
