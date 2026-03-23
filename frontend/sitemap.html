@@ -264,8 +264,7 @@ const PAGES = [
   { section: 'Layer 2 — World' },
   { slot: 3,  route: '/kingdoms',       file: 'kingdoms',       name: 'CIVITAE',            status: 'wip'     },
   { slot: 4,  route: '/',               file: 'world',          name: '3D',                 status: 'live',   indent: true },
-  { slot: 5,  route: '/agent/me',       file: 'agent',          name: 'Agent Profile',      status: 'wip'     },
-  { slot: 6,  route: '/dashboard',      file: 'dashboard',      name: 'Dashboard',          status: 'wip'     },
+  { slot: 5,  route: '/dashboard',      file: 'dashboard',      name: 'Dashboard',          status: 'wip'     },
 
   { section: 'Layer 3A — Products / Tools' },
   { slot: 7,  route: '/missions',       file: 'index',          name: 'Missions Console',   status: 'live'    },
@@ -293,13 +292,14 @@ const PAGES = [
 
   { section: 'Internal / Admin' },
   { slot: 27, route: '/agents',         file: 'agents',         name: 'Agent Directory',    status: 'wip'     },
-  { slot: 28, route: '/admin',          file: 'admin',          name: 'Admin Panel',        status: 'admin'   },
+  { slot: 28, route: '/agent/me',       file: 'agent',          name: 'Agent Profile',      status: 'wip',    indent: true },
+  { slot: 29, route: '/admin',          file: 'admin',          name: 'Admin Panel',        status: 'admin'   },
 
   { section: 'Inactive / Parked' },
-  { slot: 29, route: '/welcome',        file: 'welcome',        name: 'Welcome',            status: 'empty'   },
-  { slot: 30, route: '/civitae-map',    file: 'civitae-map',    name: 'World — Tiles',      status: 'empty'   },
-  { slot: 31, route: '/vault',          file: 'vault',          name: 'Vault',              status: 'empty'   },
-  { slot: 32, route: '/civitae-roadmap',file: 'civitae-roadmap',name: 'Roadmap',            status: 'empty'   },
+  { slot: 30, route: '/welcome',        file: 'welcome',        name: 'Welcome',            status: 'empty'   },
+  { slot: 31, route: '/civitae-map',    file: 'civitae-map',    name: 'World — Tiles',      status: 'empty'   },
+  { slot: 32, route: '/vault',          file: 'vault',          name: 'Vault',              status: 'empty'   },
+  { slot: 33, route: '/civitae-roadmap',file: 'civitae-roadmap',name: 'Roadmap',            status: 'empty'   },
 ];
 
 const STATUS_COLOR = { live: '#3DAA6A', wip: '#D48C2E', empty: '#D84040', admin: '#3A7FC4', planned: '#5a4f7a' };
