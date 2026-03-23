@@ -79,7 +79,10 @@
     border-top: 1px dashed #1E2228;
     margin-top: 8px;
   }
-  .page-item.parked { opacity: 0.35; font-style: italic; }
+  .page-item.parked   { opacity: 0.35; font-style: italic; }
+  .page-item.indented { padding-left: 28px; }
+  .page-item.planned  { opacity: 0.5; cursor: default; }
+  .page-item.planned .name { font-style: italic; }
   .page-item {
     display: flex;
     align-items: center;
@@ -255,45 +258,51 @@
 // ── Page registry ─────────────────────────────────────────────────────────────
 const PAGES = [
   { section: 'Layer 1 — Landing / Civitas' },
-  { slot: 1,  route: '/civitas',        file: 'civitas',        name: 'Civitas',            status: 'empty' },
-  { slot: 2,  route: '/entry',          file: 'entry',          name: 'Entry / Onboarding', status: 'live'  },
-  { slot: 3,  route: '/welcome',        file: 'welcome',        name: 'Welcome',            status: 'empty' },
+  { slot: 1,  route: '/civitas',        file: 'civitas',        name: 'Civitas',            status: 'empty'   },
+  { slot: 2,  route: '/entry',          file: 'entry',          name: 'Entry / Onboarding', status: 'live'    },
 
   { section: 'Layer 2 — World' },
-  { slot: 4,  route: '/civitae-map',    file: 'civitae-map',    name: 'World — Tiles ★',    status: 'wip'   },
-  { slot: 5,  route: '/',              file: 'world',          name: 'World — 3D Globe',   status: 'live'  },
-  { slot: 6,  route: '/kingdoms',       file: 'kingdoms',       name: 'Kingdoms',           status: 'wip'   },
+  { slot: 3,  route: '/kingdoms',       file: 'kingdoms',       name: 'CIVITAE',            status: 'wip'     },
+  { slot: 4,  route: '/',               file: 'world',          name: '3D',                 status: 'live',   indent: true },
+  { slot: 5,  route: '/agent/me',       file: 'agent',          name: 'Agent Profile',      status: 'wip'     },
+  { slot: 6,  route: '/dashboard',      file: 'dashboard',      name: 'Dashboard',          status: 'wip'     },
 
   { section: 'Layer 3A — Products / Tools' },
-  { slot: 7,  route: '/missions',       file: 'index',          name: 'Missions Console',   status: 'live'  },
-  { slot: 8,  route: '/bountyboard',    file: 'bountyboard',    name: 'Bounty Board',       status: 'wip'   },
-  { slot: 9,  route: '/helpwanted',     file: 'helpwanted',     name: 'Help Wanted',        status: 'live'  },
-  { slot: 10, route: '/mission',        file: 'mission',        name: 'Mission Detail',     status: 'wip'   },
-  { slot: 11, route: '/campaign',       file: 'campaign',       name: 'Campaign',           status: 'wip'   },
-  { slot: 12, route: '/deploy',         file: 'deploy',         name: 'Deploy',             status: 'wip'   },
-  { slot: 13, route: '/slots',          file: 'slots',          name: 'Slots',              status: 'wip'   },
-  { slot: 14, route: '/kassa',          file: 'kassa',          name: 'KA§§A',              status: 'wip'   },
-  { slot: 15, route: '/refinery',       file: 'refinery',       name: 'Refinery',           status: 'empty' },
-  { slot: 16, route: '/switchboard',    file: 'switchboard',    name: 'Switchboard',        status: 'empty' },
-  { slot: 17, route: '/wave-registry',  file: 'wave-registry',  name: 'Wave Registry',      status: 'empty' },
-  { slot: 18, route: '/leaderboard',    file: 'leaderboard',    name: 'Leaderboard',        status: 'wip'   },
+  { slot: 7,  route: '/missions',       file: 'index',          name: 'Missions Console',   status: 'live'    },
+  { slot: 8,  route: '/bountyboard',    file: 'bountyboard',    name: 'Bounty Board',       status: 'wip'     },
+  { slot: 9,  route: '/helpwanted',     file: 'helpwanted',     name: 'Help Wanted',        status: 'live'    },
+  { slot: 10, route: '/mission',        file: 'mission',        name: 'Mission Detail',     status: 'wip'     },
+  { slot: 11, route: '/campaign',       file: 'campaign',       name: 'Campaign',           status: 'wip'     },
+  { slot: 12, route: '/deploy',         file: 'deploy',         name: 'Deploy',             status: 'wip'     },
+  { slot: 13, route: '/slots',          file: 'slots',          name: 'Slots',              status: 'wip'     },
+  { slot: 14, route: '/kassa',          file: 'kassa',          name: 'KA§§A',              status: 'wip'     },
+  { slot: 15, route: '/refinery',       file: 'refinery',       name: 'Refinery',           status: 'empty'   },
+  { slot: 16, route: '/switchboard',    file: 'switchboard',    name: 'Switchboard',        status: 'empty'   },
+  { slot: 17, route: '/wave-registry',  file: 'wave-registry',  name: 'Wave Registry',      status: 'empty'   },
+  { slot: 18, route: '/leaderboard',    file: 'leaderboard',    name: 'Leaderboard',        status: 'wip'     },
 
   { section: 'Layer 3B — Civitas Infrastructure' },
-  { slot: 19, route: '/governance',     file: 'governance',     name: 'Governance',         status: 'live'  },
-  { slot: 20, route: '/economics',      file: 'economics',      name: 'The Reserve',        status: 'wip'   },
+  { slot: 19, route: '/governance',     file: 'governance',     name: 'Governance',         status: 'live'    },
+  { slot: 20, route: '/economics',      file: 'economics',      name: 'The Reserve',        status: 'wip'     },
+  { slot: 21, route: '/public-admin',   file: null,             name: 'Public Admin',       status: 'planned' },
+  { slot: 22, route: '/town-hall',      file: null,             name: 'Town Hall',          status: 'planned' },
+  { slot: 23, route: '/forums',         file: null,             name: 'Forums',             status: 'planned' },
+  { slot: 24, route: '/sig-arena',      file: null,             name: 'SigArena',           status: 'planned' },
+  { slot: 25, route: '/academics',      file: null,             name: 'Academics',          status: 'planned' },
+  { slot: 26, route: '/judicial',       file: null,             name: 'Judicial',           status: 'planned' },
 
   { section: 'Internal / Admin' },
-  { slot: 21, route: '/agent/me',       file: 'agent',          name: 'Agent Profile',      status: 'wip'   },
-  { slot: 22, route: '/agents',         file: 'agents',         name: 'Agent Directory',    status: 'wip'   },
-  { slot: 23, route: '/dashboard',      file: 'dashboard',      name: 'Dashboard',          status: 'wip'   },
-  { slot: 24, route: '/admin',          file: 'admin',          name: 'Admin Panel',        status: 'admin' },
+  { slot: 27, route: '/agents',         file: 'agents',         name: 'Agent Directory',    status: 'wip'     },
+  { slot: 28, route: '/admin',          file: 'admin',          name: 'Admin Panel',        status: 'admin'   },
 
   { section: 'Inactive / Parked' },
-  { slot: 25, route: '/vault',          file: 'vault',          name: 'Vault',              status: 'empty' },
-  { slot: 26, route: '/civitae-roadmap',file: 'civitae-roadmap',name: 'Roadmap',            status: 'empty' },
+  { slot: 29, route: '/welcome',        file: 'welcome',        name: 'Welcome',            status: 'empty'   },
+  { slot: 30, route: '/civitae-map',    file: 'civitae-map',    name: 'World — Tiles',      status: 'empty'   },
+  { slot: 31, route: '/vault',          file: 'vault',          name: 'Vault',              status: 'empty'   },
+  { slot: 32, route: '/civitae-roadmap',file: 'civitae-roadmap',name: 'Roadmap',            status: 'empty'   },
 ];
 
-const STATUS_COLOR = { live: '#3DAA6A', wip: '#D48C2E', empty: '#D84040', admin: '#3A7FC4' };
+const STATUS_COLOR = { live: '#3DAA6A', wip: '#D48C2E', empty: '#D84040', admin: '#3A7FC4', planned: '#5a4f7a' };
 
 // ── Build sidebar ─────────────────────────────────────────────────────────────
 const sidebar = document.getElementById('sidebar');
@@ -308,9 +317,10 @@ PAGES.forEach((p, i) => {
     return;
   }
   const el = document.createElement('div');
-  el.className = 'page-item' + (inInactive ? ' parked' : '');
-  el.id = 'item-' + p.file;
-  el.onclick = () => selectPage(p);
+  const isPlanned = p.status === 'planned';
+  el.className = 'page-item' + (inInactive ? ' parked' : '') + (p.indent ? ' indented' : '') + (isPlanned ? ' planned' : '');
+  el.id = 'item-' + (p.file || p.route.replace(/\//g,'-'));
+  if (!isPlanned) el.onclick = () => selectPage(p);
 
   const slotEl = document.createElement('div');
   slotEl.className = 'slot-num';
