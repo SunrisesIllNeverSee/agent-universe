@@ -318,7 +318,7 @@ PAGES.forEach((p, i) => {
   const el = document.createElement('div');
   const isPlanned = p.status === 'planned';
   el.className = 'page-item' + (inInactive ? ' parked' : '') + (p.indent ? ' indented' : '') + (isPlanned ? ' planned' : '');
-  el.id = 'item-' + (p.file || p.route.replace(/\//g,'-'));
+  el.id = 'item-' + (p.file || (p.route && p.route.replace(/\//g,'-')) || p.name.replace(/\s+/g,'-').toLowerCase());
   if (!isPlanned) el.onclick = () => selectPage(p);
 
   const slotEl = document.createElement('div');
