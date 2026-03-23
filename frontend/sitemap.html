@@ -257,16 +257,16 @@
 <script>
 // ── Page registry ─────────────────────────────────────────────────────────────
 const PAGES = [
-  { section: 'Layer 1 — Landing' },
-  { slot: 1,  route: '/',               file: 'kingdoms',       name: 'CIVITAE (Landing)',  status: 'wip'     },
-  { slot: 2,  route: '/3d',             file: 'world',          name: '3D',                 status: 'live',   indent: true },
-  { slot: 3,  route: '/dashboard',      file: 'dashboard',      name: 'Dashboard',          status: 'wip'     },
+  { section: 'Layer 1 — Primary' },
+  { slot: 1,  route: '/missions',       file: 'index',          name: 'Mission Console',    status: 'live'    },
 
-  { section: 'About' },
-  { slot: 4,  route: '/civitas',        file: 'civitas',        name: 'About — Civitas',    status: 'empty'   },
+  { section: 'Layer 2 — World' },
+  { slot: 2,  route: '/',               file: 'kingdoms',       name: 'CIVITAE',            status: 'wip'     },
+  { slot: 3,  route: '/3d',             file: 'world',          name: '3D',                 status: 'live',   indent: true },
+  { slot: 4,  route: '/civitas',        file: 'civitas',        name: 'About',              status: 'empty',  indent: true },
+  { slot: 5,  route: '/dashboard',      file: 'dashboard',      name: 'Dashboard',          status: 'wip'     },
 
   { section: 'Layer 3A — Products / Tools' },
-  { slot: 7,  route: '/missions',       file: 'index',          name: 'Missions Console',   status: 'live'    },
   { slot: 8,  route: '/bountyboard',    file: 'bountyboard',    name: 'Bounty Board',       status: 'wip'     },
   { slot: 9,  route: '/helpwanted',     file: 'helpwanted',     name: 'Help Wanted',        status: 'live'    },
   { slot: 10, route: '/mission',        file: 'mission',        name: 'Mission Detail',     status: 'wip'     },
