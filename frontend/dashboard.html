@@ -515,6 +515,9 @@
   const stored = getStoredAuth();
   if (stored && stored.key && stored.agentData) {
     renderDashboard(stored.agentData, stored.key);
+  } else {
+    // Guest / preview mode — bypass auth gate
+    renderDashboard({ agent_id: 'guest', agent_name: 'Guest', tier: 'ungoverned', governance_posture: 'standard' }, null);
   }
 
   // Allow Enter key in auth form
