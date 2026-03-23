@@ -228,6 +228,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def services_page() -> FileResponse:
         return FileResponse(frontend_dir / "services.html")
 
+    @app.get("/console")
+    async def console_page() -> FileResponse:
+        return FileResponse(frontend_dir / "console.html")
+
     @app.get("/leaderboard")
     async def leaderboard_page() -> FileResponse:
         return FileResponse(frontend_dir / "leaderboard.html")
