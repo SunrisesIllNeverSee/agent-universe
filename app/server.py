@@ -98,6 +98,10 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     @app.get("/")
     async def index() -> FileResponse:
+        return FileResponse(frontend_dir / "kingdoms.html")
+
+    @app.get("/3d")
+    async def world_3d_page() -> FileResponse:
         return FileResponse(frontend_dir / "world.html")
 
     @app.get("/missions")
