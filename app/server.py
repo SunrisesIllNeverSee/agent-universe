@@ -232,6 +232,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def switchboard_page() -> FileResponse:
         return FileResponse(frontend_dir / "switchboard.html")
 
+    @app.get("/mission-console")
+    async def mission_console_page() -> FileResponse:
+        return FileResponse(frontend_dir / "index.html")
+
     @app.get("/civitae-map")
     async def civitae_map_page() -> FileResponse:
         return FileResponse(frontend_dir / "civitae-map.html")
