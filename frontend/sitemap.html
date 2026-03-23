@@ -74,6 +74,12 @@
     color: var(--muted);
     padding: 12px 12px 4px;
   }
+  .sidebar-section.inactive {
+    color: #3a3f4a;
+    border-top: 1px dashed #1E2228;
+    margin-top: 8px;
+  }
+  .page-item.parked { opacity: 0.35; font-style: italic; }
   .page-item {
     display: flex;
     align-items: center;
@@ -274,31 +280,35 @@ const PAGES = [
 
   { section: 'Layer 3B — Civitas Infrastructure' },
   { slot: 19, route: '/governance',     file: 'governance',     name: 'Governance',         status: 'live'  },
-  { slot: 20, route: '/economics',      file: 'economics',      name: 'Economics',          status: 'wip'   },
-  { slot: 21, route: '/vault',          file: 'vault',          name: 'Vault',              status: 'empty' },
+  { slot: 20, route: '/economics',      file: 'economics',      name: 'The Reserve',        status: 'wip'   },
 
   { section: 'Internal / Admin' },
-  { slot: 22, route: '/agent/me',       file: 'agent',          name: 'Agent Profile',      status: 'wip'   },
-  { slot: 23, route: '/agents',         file: 'agents',         name: 'Agent Directory',    status: 'wip'   },
-  { slot: 24, route: '/dashboard',      file: 'dashboard',      name: 'Dashboard',          status: 'wip'   },
-  { slot: 25, route: '/civitae-roadmap',file: 'civitae-roadmap',name: 'Roadmap',            status: 'wip'   },
-  { slot: 26, route: '/admin',          file: 'admin',          name: 'Admin Panel',        status: 'admin' },
+  { slot: 21, route: '/agent/me',       file: 'agent',          name: 'Agent Profile',      status: 'wip'   },
+  { slot: 22, route: '/agents',         file: 'agents',         name: 'Agent Directory',    status: 'wip'   },
+  { slot: 23, route: '/dashboard',      file: 'dashboard',      name: 'Dashboard',          status: 'wip'   },
+  { slot: 24, route: '/admin',          file: 'admin',          name: 'Admin Panel',        status: 'admin' },
+
+  { section: 'Inactive / Parked' },
+  { slot: 25, route: '/vault',          file: 'vault',          name: 'Vault',              status: 'empty' },
+  { slot: 26, route: '/civitae-roadmap',file: 'civitae-roadmap',name: 'Roadmap',            status: 'empty' },
 ];
 
 const STATUS_COLOR = { live: '#3DAA6A', wip: '#D48C2E', empty: '#D84040', admin: '#3A7FC4' };
 
 // ── Build sidebar ─────────────────────────────────────────────────────────────
 const sidebar = document.getElementById('sidebar');
+let inInactive = false;
 PAGES.forEach((p, i) => {
   if (p.section) {
     const s = document.createElement('div');
-    s.className = 'sidebar-section';
+    inInactive = p.section.startsWith('Inactive');
+    s.className = 'sidebar-section' + (inInactive ? ' inactive' : '');
     s.textContent = p.section;
     sidebar.appendChild(s);
     return;
   }
   const el = document.createElement('div');
-  el.className = 'page-item';
+  el.className = 'page-item' + (inInactive ? ' parked' : '');
   el.id = 'item-' + p.file;
   el.onclick = () => selectPage(p);
 
