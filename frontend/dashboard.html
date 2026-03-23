@@ -568,6 +568,7 @@
       <button class="posture-btn" onclick="setPosture(5)" style="flex:1;padding:16px 4px;background:#16191E;border:1px solid #262E3A;border-radius:6px;color:#6B7888;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all 0.15s;">5<br><span style="font-size:9px;opacity:0.6;">All In</span></button>
     </div>
     <button id="posture-confirm" onclick="confirmPosture()" disabled style="width:100%;padding:14px;background:#C4923A;color:#0B0D10;border:none;border-radius:5px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;cursor:pointer;opacity:0.4;transition:opacity 0.15s;">Declare My Standing</button>
+    <button onclick="document.getElementById('posture-modal').classList.add('hidden')" style="width:100%;margin-top:10px;padding:10px;background:none;border:none;color:#6B7888;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;letter-spacing:0.06em;">Not now — maybe later</button>
     <style>
       #posture-modal .posture-btn.active { background:rgba(196,146,58,0.12); border-color:rgba(196,146,58,0.4); color:#C4923A; }
       #posture-confirm:not([disabled]) { opacity:1; }
