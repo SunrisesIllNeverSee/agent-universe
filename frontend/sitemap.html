@@ -257,14 +257,13 @@
 <script>
 // ── Page registry ─────────────────────────────────────────────────────────────
 const PAGES = [
-  { section: 'Layer 1 — Landing' },
+  { section: 'Layer 1 — World' },
   { slot: 1,  route: '/',               file: 'kingdoms',       name: 'CIVITAE',            status: 'wip'     },
   { slot: 2,  route: '/3d',             file: 'world',          name: '3D',                 status: 'live',   indent: true },
   { slot: 3,  route: '/civitas',        file: 'civitas',        name: 'About',              status: 'empty',  indent: true },
-
-  { section: 'Layer 2 — World' },
   { slot: 4,  route: '/dashboard',      file: 'dashboard',      name: 'Dashboard',          status: 'wip'     },
-  { slot: 5,  route: '/missions',       file: 'index',          name: 'Mission Console',    status: 'live'    },
+  { slot: 5,  route: null,             file: null,             name: '[ slot 5 — TBD ]',   status: 'planned' },
+  { slot: 6,  route: '/missions',       file: 'index',          name: 'Mission Console',    status: 'live'    },
 
   { section: 'Layer 3A — Products / Tools' },
   { slot: 8,  route: '/bountyboard',    file: 'bountyboard',    name: 'Bounty Board',       status: 'wip'     },
