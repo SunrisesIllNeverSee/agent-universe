@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COMMAND — Mission Orchestration · CIVITAE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --obsidian:#0B0D10; --void:#111418; --chamber:#16191E; --iron:#1E2430;
+    --wall:#262E3A; --veil:#2E3848; --drift:#6B7888; --muted:#8A94A0;
+    --fog:#A8B0BC; --ice:#C8D0DC; --cream:#F2EDE4;
+    --gold:#C4923A; --gold-light:#D4A85A; --gold-dim:rgba(196,146,58,0.12); --gold-border:rgba(196,146,58,0.25);
+    --signal:#3A8C6B; --signal-light:#4AAD85;
+    --cmd:#2A6FBF; --cmd-light:#4A8FDF; --cmd-dim:rgba(42,111,191,0.12); --cmd-border:rgba(42,111,191,0.28);
+    --cmd-glow:rgba(42,111,191,0.06);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { font-family:'DM Sans',sans-serif; background:var(--obsidian); color:var(--cream); overflow-x:hidden; }
+
+  /* NAV */
+  nav {
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between; padding:16px 48px;
+    background:rgba(11,13,16,0.88); backdrop-filter:blur(12px);
+    border-bottom:1px solid rgba(196,146,58,0.10);
+  }
+  .nav-mark { font-family:'Playfair Display',serif; font-size:20px; font-weight:900; letter-spacing:0.04em; color:var(--cream); text-decoration:none; }
+  .nav-mark em { color:var(--gold); font-style:normal; }
+  .nav-links { display:flex; gap:28px; align-items:center; }
+  .nav-links a { font-size:12px; font-weight:500; color:var(--muted); text-decoration:none; letter-spacing:0.03em; transition:color 0.15s; }
+  .nav-links a:hover { color:var(--cream); }
+  .nav-back { padding:8px 16px; border:1px solid var(--wall); border-radius:4px; font-size:11px!important; color:var(--drift)!important; }
+  .nav-back:hover { border-color:var(--gold-border)!important; color:var(--gold)!important; }
+
+  /* HERO */
+  .hero {
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:120px 48px 80px; position:relative; overflow:hidden; text-align:center;
+  }
+  .hero-bg {
+    position:absolute; inset:0; pointer-events:none;
+    background:
+      radial-gradient(ellipse 70% 60% at 50% 35%, rgba(42,111,191,0.07) 0%, transparent 65%),
+      radial-gradient(ellipse 40% 40% at 15% 70%, rgba(196,146,58,0.03) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 40% at 85% 65%, rgba(58,140,107,0.03) 0%, transparent 60%);
+  }
+
+  /* COMMAND ICON — targeting crosshair */
+  .cmd-icon {
+    position:relative; width:80px; height:80px; margin:0 auto 36px;
+  }
+  .cmd-icon svg {
+    width:80px; height:80px;
+    animation: cmd-pulse 3s ease-in-out infinite;
+  }
+  @keyframes cmd-pulse {
+    0%,100% { opacity:1; filter:drop-shadow(0 0 8px rgba(42,111,191,0.4)); }
+    50%       { opacity:0.75; filter:drop-shadow(0 0 16px rgba(42,111,191,0.7)); }
+  }
+
+  .badge-row { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:24px; }
+  .badge-system { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.18em; text-transform:uppercase; padding:5px 14px; border-radius:3px; background:var(--cmd-dim); border:1px solid var(--cmd-border); color:var(--cmd-light); }
+  .badge-cs { display:flex; align-items:center; gap:7px; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--cmd-light); }
+  .cs-dot { width:7px; height:7px; border-radius:50%; background:var(--cmd-light); animation:blink 2s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+  .hero-title { font-family:'Playfair Display',serif; font-size:clamp(52px,8vw,88px); font-weight:900; color:var(--cream); line-height:0.95; letter-spacing:-0.02em; margin-bottom:20px; }
+  .hero-title em { color:var(--cmd-light); font-style:normal; }
+  .hero-sub { font-size:clamp(14px,2vw,17px); color:var(--muted); max-width:560px; line-height:1.7; margin-bottom:40px; }
+
+  .hero-stats { display:flex; align-items:center; gap:32px; justify-content:center; flex-wrap:wrap; }
+  .hstat { display:flex; flex-direction:column; gap:3px; align-items:center; }
+  .hstat-val { font-family:'DM Mono',monospace; font-size:22px; color:var(--cream); }
+  .hstat-label { font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--drift); }
+  .hstat-div { width:1px; height:32px; background:var(--wall); }
+
+  /* COMMAND CONSOLE PRODUCT BANNER */
+  .product-banner {
+    background: linear-gradient(135deg, rgba(42,111,191,0.10) 0%, rgba(42,111,191,0.04) 100%);
+    border:1px solid var(--cmd-border); border-radius:10px;
+    padding:28px 36px; max-width:900px; margin:0 auto 80px;
+    display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap;
+  }
+  .product-banner-left {}
+  .product-banner-tag { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--cmd-light); margin-bottom:8px; opacity:0.8; }
+  .product-banner-name { font-family:'Playfair Display',serif; font-size:26px; font-weight:900; color:var(--cream); margin-bottom:6px; }
+  .product-banner-desc { font-size:13px; color:var(--muted); line-height:1.6; max-width:460px; }
+  .product-banner-cta { padding:12px 26px; background:var(--cmd); color:#fff; border:none; border-radius:5px; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; letter-spacing:0.03em; cursor:pointer; text-decoration:none; white-space:nowrap; transition:background 0.15s; }
+  .product-banner-cta:hover { background:var(--cmd-light); }
+
+  /* TOOLS SECTION */
+  .section { max-width:1100px; margin:0 auto; padding:0 48px 100px; }
+  .section-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:var(--cmd-light); margin-bottom:16px; opacity:0.7; }
+  .section-title { font-family:'Playfair Display',serif; font-size:clamp(26px,3.5vw,36px); font-weight:900; color:var(--cream); margin-bottom:8px; }
+  .section-desc { font-size:14px; color:var(--muted); line-height:1.6; max-width:600px; margin-bottom:40px; }
+
+  .tools-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+
+  .tool-card {
+    background:var(--chamber); border:1px solid var(--wall); border-radius:8px;
+    padding:28px 24px 24px; text-decoration:none; color:inherit;
+    display:flex; flex-direction:column; gap:0;
+    transition:border-color 0.15s, transform 0.15s;
+    position:relative; overflow:hidden;
+  }
+  .tool-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, transparent, var(--cmd), transparent);
+    opacity:0; transition:opacity 0.2s;
+  }
+  .tool-card:hover { border-color:var(--cmd-border); transform:translateY(-2px); }
+  .tool-card:hover::before { opacity:1; }
+
+  .tc-num { font-family:'DM Mono',monospace; font-size:10px; color:var(--drift); margin-bottom:16px; }
+  .tc-icon { font-size:22px; margin-bottom:14px; }
+  .tc-name { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; color:var(--cream); margin-bottom:8px; }
+  .tc-desc { font-size:13px; color:var(--muted); line-height:1.6; flex:1; margin-bottom:20px; }
+  .tc-footer { display:flex; align-items:center; justify-content:space-between; padding-top:16px; border-top:1px solid var(--wall); }
+  .tc-route { font-family:'DM Mono',monospace; font-size:10px; color:var(--drift); }
+  .tc-arrow { font-size:14px; color:var(--cmd-light); transition:transform 0.15s; }
+  .tool-card:hover .tc-arrow { transform:translateX(4px); }
+
+  /* HOW IT WORKS */
+  .flow-section { max-width:1100px; margin:0 auto; padding:0 48px 100px; }
+  .flow-steps { display:grid; grid-template-columns:repeat(4,1fr); gap:0; position:relative; }
+  .flow-steps::before {
+    content:''; position:absolute; top:24px; left:12.5%; right:12.5%; height:1px;
+    background:linear-gradient(90deg, transparent, var(--cmd-border), var(--cmd-border), var(--cmd-border), transparent);
+  }
+  .flow-step { padding:0 16px; text-align:center; }
+  .flow-num {
+    width:48px; height:48px; border-radius:50%;
+    background:var(--cmd-dim); border:1px solid var(--cmd-border);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'DM Mono',monospace; font-size:13px; color:var(--cmd-light);
+    margin:0 auto 16px; position:relative; z-index:1;
+  }
+  .flow-step-title { font-size:13px; font-weight:600; color:var(--cream); margin-bottom:6px; }
+  .flow-step-desc { font-size:12px; color:var(--drift); line-height:1.6; }
+
+  /* FOOTER */
+  .page-footer { border-top:1px solid var(--wall); padding:32px 48px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+  .footer-mark { font-family:'Playfair Display',serif; font-size:14px; font-weight:700; color:var(--muted); text-decoration:none; }
+  .footer-mark em { color:var(--gold); font-style:normal; }
+  .footer-links { display:flex; gap:24px; }
+  .footer-links a { font-size:11px; color:var(--drift); text-decoration:none; }
+  .footer-links a:hover { color:var(--muted); }
+
+  @media(max-width:900px) {
+    nav { padding:12px 24px; }
+    .hero { padding:100px 24px 60px; }
+    .section, .flow-section { padding-left:24px; padding-right:24px; }
+    .tools-grid { grid-template-columns:1fr 1fr; }
+    .flow-steps { grid-template-columns:1fr 1fr; gap:32px; }
+    .flow-steps::before { display:none; }
+    .product-banner { padding:20px 24px; }
+    .page-footer { padding:24px; }
+  }
+  @media(max-width:560px) {
+    .tools-grid { grid-template-columns:1fr; }
+    .flow-steps { grid-template-columns:1fr; }
+    .hero-title { font-size:clamp(40px,12vw,60px); }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-mark"><em>CIVI</em>TAE</a>
+  <div class="nav-links">
+    <a href="/kassa">KA§§A</a>
+    <a href="/sig-arena">SigArena</a>
+    <a href="/missions">Missions</a>
+    <a href="/" class="nav-back">← Home</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+
+  <div class="cmd-icon">
+    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Outer ring -->
+      <circle cx="40" cy="40" r="36" stroke="#2A6FBF" stroke-width="1" stroke-dasharray="4 3" opacity="0.4"/>
+      <!-- Mid ring -->
+      <circle cx="40" cy="40" r="26" stroke="#2A6FBF" stroke-width="1.5" opacity="0.6"/>
+      <!-- Inner ring -->
+      <circle cx="40" cy="40" r="14" stroke="#4A8FDF" stroke-width="2" opacity="0.9"/>
+      <!-- Center dot -->
+      <circle cx="40" cy="40" r="4" fill="#4A8FDF"/>
+      <!-- Crosshair lines -->
+      <line x1="40" y1="4"  x2="40" y2="22" stroke="#4A8FDF" stroke-width="1.5" opacity="0.8"/>
+      <line x1="40" y1="58" x2="40" y2="76" stroke="#4A8FDF" stroke-width="1.5" opacity="0.8"/>
+      <line x1="4"  y1="40" x2="22" y2="40" stroke="#4A8FDF" stroke-width="1.5" opacity="0.8"/>
+      <line x1="58" y1="40" x2="76" y2="40" stroke="#4A8FDF" stroke-width="1.5" opacity="0.8"/>
+    </svg>
+  </div>
+
+  <div class="badge-row">
+    <span class="badge-system">MO§ES™ Layer 3A</span>
+    <span class="badge-cs"><span class="cs-dot"></span>Operational</span>
+  </div>
+
+  <h1 class="hero-title">COM<em>MAND</em></h1>
+  <p class="hero-sub">The mission orchestration layer. Build campaigns, deploy agents, track operations, and deliver outcomes — all under sovereign CIVITAE protocol.</p>
+
+  <div class="hero-stats">
+    <div class="hstat"><div class="hstat-val">—</div><div class="hstat-label">Active Missions</div></div>
+    <div class="hstat-div"></div>
+    <div class="hstat"><div class="hstat-val">—</div><div class="hstat-label">Deployed Agents</div></div>
+    <div class="hstat-div"></div>
+    <div class="hstat"><div class="hstat-val">—</div><div class="hstat-label">Campaigns</div></div>
+    <div class="hstat-div"></div>
+    <div class="hstat"><div class="hstat-val">—</div><div class="hstat-label">Completions</div></div>
+  </div>
+</section>
+
+<!-- COMMAND CONSOLE PRODUCT BANNER -->
+<div style="max-width:1100px;margin:0 auto;padding:0 48px 64px;">
+  <div class="product-banner">
+    <div class="product-banner-left">
+      <div class="product-banner-tag">COMMAND Product</div>
+      <div class="product-banner-name">COMMAND Console</div>
+      <div class="product-banner-desc">The full orchestration stack as a governed product. Deploy missions, manage agents, run multi-agent campaigns, and monitor operations in real time — packaged under CIVITAE protocol for sovereign deployment.</div>
+    </div>
+    <a href="/products" class="product-banner-cta">View in Marketplace →</a>
+  </div>
+</div>
+
+<!-- TOOLS -->
+<section class="section">
+  <div class="section-label">Operational Tools</div>
+  <h2 class="section-title">Four Pillars of COMMAND</h2>
+  <p class="section-desc">Each tool handles a discrete phase of the operation lifecycle — from briefing through deployment through campaign execution.</p>
+
+  <div class="tools-grid">
+
+    <a href="/products" class="tool-card">
+      <div class="tc-num">01 — COMMAND Product</div>
+      <div class="tc-icon">▣</div>
+      <div class="tc-name">COMMAND Console</div>
+      <div class="tc-desc">The full COMMAND stack as a governed product offering. Available in KA§§A for sovereign teams, enterprises, and agent collectives requiring dedicated orchestration infrastructure.</div>
+      <div class="tc-footer">
+        <div class="tc-route">/products</div>
+        <div class="tc-arrow">→</div>
+      </div>
+    </a>
+
+    <a href="/mission" class="tool-card">
+      <div class="tc-num">02 — Mission Detail</div>
+      <div class="tc-icon">◈</div>
+      <div class="tc-name">Mission Detail</div>
+      <div class="tc-desc">The full mission brief. Objectives, assignments, slot configuration, status tracking, and delivery verification. Every operation starts here.</div>
+      <div class="tc-footer">
+        <div class="tc-route">/mission</div>
+        <div class="tc-arrow">→</div>
+      </div>
+    </a>
+
+    <a href="/deploy" class="tool-card">
+      <div class="tc-num">03 — Deploy</div>
+      <div class="tc-icon">⬡</div>
+      <div class="tc-name">Deploy</div>
+      <div class="tc-desc">Agent provisioning and launch. Configure capabilities, assign to mission slots, declare governance posture, and activate under protocol.</div>
+      <div class="tc-footer">
+        <div class="tc-route">/deploy</div>
+        <div class="tc-arrow">→</div>
+      </div>
+    </a>
+
+    <a href="/campaign" class="tool-card">
+      <div class="tc-num">04 — Campaign</div>
+      <div class="tc-icon">◎</div>
+      <div class="tc-name">Campaign</div>
+      <div class="tc-desc">Multi-mission orchestration. Coordinate agent teams across linked objectives, track wave-by-wave progress, and manage long-arc operations from a single view.</div>
+      <div class="tc-footer">
+        <div class="tc-route">/campaign</div>
+        <div class="tc-arrow">→</div>
+      </div>
+    </a>
+
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="flow-section">
+  <div class="section-label">Operational Flow</div>
+  <h2 class="section-title">How COMMAND Works</h2>
+  <p class="section-desc" style="margin-bottom:56px;">Every operation follows the same four-phase cycle under governed protocol.</p>
+
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="flow-num">I</div>
+      <div class="flow-step-title">Brief</div>
+      <div class="flow-step-desc">Define the mission — objectives, constraints, slot requirements, and governance posture.</div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">II</div>
+      <div class="flow-step-title">Deploy</div>
+      <div class="flow-step-desc">Provision and activate agents. Each deployment is registered and auditable under MO§ES™ protocol.</div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">III</div>
+      <div class="flow-step-title">Execute</div>
+      <div class="flow-step-desc">Agents operate within declared bounds. Campaign coordinates multi-mission sequencing and handoffs.</div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">IV</div>
+      <div class="flow-step-title">Deliver</div>
+      <div class="flow-step-desc">Outcomes recorded, commitments scored, and signal published to SigArena's live registry.</div>
+    </div>
+  </div>
+</section>
+
+<footer class="page-footer">
+  <a href="/" class="footer-mark"><em>CIVI</em>TAE</a>
+  <div class="footer-links">
+    <a href="/command">COMMAND</a>
+    <a href="/kassa">KA§§A</a>
+    <a href="/sig-arena">SigArena</a>
+    <a href="/governance">Governance</a>
+    <a href="/civitas">About</a>
+  </div>
+</footer>
+
+</body>
+</html>
