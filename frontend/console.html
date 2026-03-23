@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COMMAND Engine — powered by MO§ES™</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131e;
+    --border: #1e1e2e;
+    --accent: #c8a96e;
+    --accent2: #6e9ec8;
+    --signal: #7ec86e;
+    --text: #d4d4e8;
+    --muted: #8a8aa8;
+    --mono: 'SF Mono', 'Consolas', monospace;
+    --body: system-ui, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--body); height: 100vh; display: grid; grid-template-rows: 48px 1fr; }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; border-bottom: 1px solid var(--border); background: var(--bg);
+  }
+  .logo { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 0.12em; }
+  .logo span { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 8px; }
+  .status { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .status.live { color: var(--signal); }
+
+  .layout { display: grid; grid-template-columns: 280px 1fr 280px; min-height: 0; }
+
+  .panel { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; padding: 12px; }
+  .panel:last-child { border-right: none; border-left: 1px solid var(--border); }
+  .panel-title { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.12em; margin-bottom: 12px; text-transform: uppercase; }
+
+  .chat { display: flex; flex-direction: column; min-height: 0; }
+  .messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .msg { padding: 10px 14px; border-radius: 8px; max-width: 80%; font-size: 14px; line-height: 1.5; }
+  .msg.user { align-self: flex-end; background: var(--surface); border: 1px solid var(--border); }
+  .msg.agent { align-self: flex-start; background: rgba(110,158,200,0.08); border: 1px solid rgba(110,158,200,0.2); }
+  .msg-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .msg-gov { font-family: var(--mono); font-size: 10px; color: var(--accent); margin-top: 4px; }
+
+  .input-area { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  .input-area input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-size: 14px; outline: none; }
+  .input-area input:focus { border-color: var(--accent); }
+  .input-area button { background: var(--accent); border: none; border-radius: 8px; padding: 10px 16px; color: var(--bg); font-weight: 600; cursor: pointer; }
+
+  .gov-control { margin-bottom: 10px; }
+  .gov-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 4px; }
+  .gov-select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; color: var(--text); font-family: var(--mono); font-size: 12px; }
+
+  .sys-card { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; cursor: pointer; transition: all 0.15s; }
+  .sys-card:hover { border-color: var(--accent); }
+  .sys-card.active { border-color: var(--accent); background: rgba(200,169,110,0.06); }
+  .sys-name { font-family: var(--mono); font-size: 12px; color: var(--text); }
+  .sys-meta { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .sys-toggle { float: right; width: 28px; height: 16px; background: var(--border); border-radius: 8px; position: relative; cursor: pointer; }
+  .sys-toggle.on { background: var(--accent); }
+
+  .audit-entry { font-family: var(--mono); font-size: 11px; color: var(--muted); padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .audit-entry .time { color: var(--accent); }
+
+  .hash-display { font-family: var(--mono); font-size: 10px; color: var(--muted); word-break: break-all; padding: 8px; background: var(--bg); border-radius: 6px; margin-top: 8px; }
+
+  @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } .panel { display: none; } }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">COMMAND ENGINE <span>powered by MO§ES™</span></div>
+  <div class="status" id="status">connecting...</div>
+</div>
+<div class="layout">
+  <!-- Left: Governance -->
+  <div class="panel">
+    <div class="panel-title">Governance</div>
+    <div class="gov-control">
+      <div class="gov-label">MODE</div>
+      <select class="gov-select" id="gov-mode" onchange="setMode(this.value)">
+        <option value="">None (Unrestricted)</option>
+        <option value="High Security">High Security</option>
+        <option value="High Integrity">High Integrity</option>
+        <option value="Creative">Creative</option>
+        <option value="Research">Research</option>
+        <option value="Problem Solving">Problem Solving</option>
+      </select>
+    </div>
+    <div class="gov-control">
+      <div class="gov-label">POSTURE</div>
+      <select class="gov-select" id="gov-posture" onchange="setPosture(this.value)">
+        <option value="SCOUT">SCOUT — gather only</option>
+        <option value="DEFENSE">DEFENSE — protect + confirm</option>
+        <option value="OFFENSE">OFFENSE — execute</option>
+      </select>
+    </div>
+    <div class="gov-control">
+      <div class="gov-label">VAULT</div>
+      <div id="vault-list"></div>
+    </div>
+    <div class="gov-control">
+      <div class="gov-label">HASHES</div>
+      <div class="hash-display" id="hashes">—</div>
+    </div>
+  </div>
+
+  <!-- Center: Chat -->
+  <div class="chat">
+    <div class="messages" id="messages"></div>
+    <div class="input-area">
+      <input id="msg-input" placeholder="Enter governed signal..." onkeydown="if(event.key==='Enter')sendMsg()">
+      <button onclick="sendMsg()">Send</button>
+    </div>
+  </div>
+
+  <!-- Right: Systems + Audit -->
+  <div class="panel">
+    <div class="panel-title">Systems</div>
+    <div id="systems-list"></div>
+    <div class="panel-title" style="margin-top:16px;">Audit Trail</div>
+    <div id="audit-list"></div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+let state = { governance: {}, systems: {}, messages: [], audit: [], vault: {}, loadedContext: [] };
+
+async function init() {
+  try {
+    const snap = await fetch(API + '/api/state').then(r => r.json());
+    state = snap;
+    document.getElementById('status').textContent = 'LIVE';
+    document.getElementById('status').classList.add('live');
+    render();
+    connectWS();
+    setInterval(updateHashes, 5000);
+    updateHashes();
+  } catch(e) {
+    document.getElementById('status').textContent = 'offline';
+  }
+}
+
+function connectWS() {
+  const ws = new WebSocket((location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/ws');
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'message_added') {
+      state.recent_messages = state.recent_messages || [];
+      state.recent_messages.push(msg.payload);
+      renderMessages();
+    }
+    if (msg.type === 'governance_updated') { state.governance = msg.payload; renderGov(); }
+    if (msg.type === 'audit_event') { renderAudit(msg.payload); }
+  };
+  ws.onclose = () => setTimeout(connectWS, 3000);
+}
+
+function render() { renderGov(); renderSystems(); renderMessages(); renderVault(); }
+
+function renderGov() {
+  const g = state.governance || {};
+  document.getElementById('gov-mode').value = g.mode || '';
+  document.getElementById('gov-posture').value = g.posture || 'SCOUT';
+}
+
+function renderSystems() {
+  const el = document.getElementById('systems-list');
+  const configs = state.config_systems || [];
+  const runtimes = state.systems || {};
+  el.innerHTML = configs.map(s => {
+    const rt = runtimes[s.id] || {};
+    return `<div class="sys-card ${rt.active ? 'active' : ''}" onclick="toggleSys('${s.id}')">
+      <div class="sys-name">${s.name} ${rt.role && rt.role !== 'none' ? '<span style="color:var(--accent)">[' + rt.role.toUpperCase() + ']</span>' : ''}</div>
+      <div class="sys-meta">${s.provider} · ${s.codename}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderMessages() {
+  const el = document.getElementById('messages');
+  const msgs = state.recent_messages || [];
+  el.innerHTML = msgs.map(m => {
+    const isUser = m.role_context === 'operator';
+    const gov = m.governance || {};
+    return `<div class="msg ${isUser ? 'user' : 'agent'}">
+      <div class="msg-meta">${m.sender.toUpperCase()} · ${new Date(m.timestamp).toLocaleTimeString()}</div>
+      ${m.text}
+      <div class="msg-gov">${gov.mode || 'unrestricted'} · ${gov.posture || 'SCOUT'}${m.vault_loaded?.length ? ' · ctx: ' + m.vault_loaded.join(', ') : ''}</div>
+    </div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function renderVault() {
+  const el = document.getElementById('vault-list');
+  const vault = state.vault || {};
+  const loaded = state.loaded_context || [];
+  let html = '';
+  Object.entries(vault).forEach(([cat, files]) => {
+    files.forEach(f => {
+      const isLoaded = loaded.includes(f);
+      html += `<div style="font-family:var(--mono);font-size:11px;padding:3px 0;cursor:pointer;color:${isLoaded ? 'var(--signal)' : 'var(--muted)'}" onclick="toggleVault('${f}')">${isLoaded ? '✓' : '○'} ${f}</div>`;
+    });
+  });
+  el.innerHTML = html || '<div style="color:var(--muted);font-size:11px;">No vault documents</div>';
+}
+
+function renderAudit(event) {
+  const el = document.getElementById('audit-list');
+  const entry = `<div class="audit-entry"><span class="time">${new Date(event.timestamp).toLocaleTimeString()}</span> ${event.component}:${event.action}</div>`;
+  el.innerHTML = entry + el.innerHTML;
+}
+
+async function updateHashes() {
+  try {
+    const h = await fetch(API + '/api/hash').then(r => r.json());
+    document.getElementById('hashes').textContent = `state: ${h.state_hash?.slice(0,16)}...\ncontent: ${h.content_hash?.slice(0,16)}...`;
+  } catch(e) {}
+}
+
+async function sendMsg() {
+  const input = document.getElementById('msg-input');
+  const text = input.value.trim();
+  if (!text) return;
+  await fetch(API + '/api/messages', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({sender:'operator',text}) });
+  input.value = '';
+}
+
+async function setMode(val) {
+  await fetch(API + '/api/governance', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({mode: val || 'None (Unrestricted)'}) });
+}
+
+async function setPosture(val) {
+  await fetch(API + '/api/governance', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({posture: val}) });
+}
+
+async function toggleSys(id) {
+  const rt = state.systems[id] || {};
+  await fetch(API + '/api/systems', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({system_id: id, active: !rt.active, role: rt.active ? 'none' : 'secondary'}) });
+  const snap = await fetch(API + '/api/state').then(r => r.json());
+  state.systems = snap.systems;
+  renderSystems();
+}
+
+async function toggleVault(file) {
+  const loaded = (state.loaded_context || []).includes(file);
+  const result = await fetch(API + (loaded ? '/api/vault/unload' : '/api/vault/load'), { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({file}) }).then(r => r.json());
+  state.loaded_context = result.loaded_context || [];
+  renderVault();
+}
+
+init();
+</script>
+</body>
+</html>
