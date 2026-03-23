@@ -257,14 +257,15 @@
 <script>
 // ── Page registry ─────────────────────────────────────────────────────────────
 const PAGES = [
-  { section: 'Layer 1 — Primary' },
-  { slot: 1,  route: '/missions',       file: 'index',          name: 'Mission Console',    status: 'live'    },
+  { section: 'Layer 1 — Landing' },
+  { slot: 1,  route: '/',               file: 'kingdoms',       name: 'CIVITAE',            status: 'wip'     },
+  { slot: 2,  route: '/3d',             file: 'world',          name: '3D',                 status: 'live',   indent: true },
+  { slot: 3,  route: '/civitas',        file: 'civitas',        name: 'About',              status: 'empty',  indent: true },
 
   { section: 'Layer 2 — World' },
-  { slot: 2,  route: '/',               file: 'kingdoms',       name: 'CIVITAE',            status: 'wip'     },
-  { slot: 3,  route: '/3d',             file: 'world',          name: '3D',                 status: 'live',   indent: true },
-  { slot: 4,  route: '/civitas',        file: 'civitas',        name: 'About',              status: 'empty',  indent: true },
-  { slot: 5,  route: '/dashboard',      file: 'dashboard',      name: 'Dashboard',          status: 'wip'     },
+  { slot: 4,  route: '/dashboard',      file: 'dashboard',      name: 'Dashboard',          status: 'wip'     },
+  { slot: 5,  route: '/agent/me',       file: 'agent',          name: 'Agent Profile',      status: 'wip'     },
+  { slot: 6,  route: '/missions',       file: 'index',          name: 'Mission Console',    status: 'live'    },
 
   { section: 'Layer 3A — Products / Tools' },
   { slot: 8,  route: '/bountyboard',    file: 'bountyboard',    name: 'Bounty Board',       status: 'wip'     },
@@ -291,8 +292,7 @@ const PAGES = [
 
   { section: 'Internal / Admin' },
   { slot: 27, route: '/agents',         file: 'agents',         name: 'Agent Directory',    status: 'wip'     },
-  { slot: 28, route: '/agent/me',       file: 'agent',          name: 'Agent Profile',      status: 'wip',    indent: true },
-  { slot: 29, route: '/admin',          file: 'admin',          name: 'Admin Panel',        status: 'admin'   },
+  { slot: 28, route: '/admin',          file: 'admin',          name: 'Admin Panel',        status: 'admin'   },
 
   { section: 'Inactive / Parked' },
   { slot: 30, route: '/entry',          file: 'entry',          name: 'Entry (→ posture popup)', status: 'empty' },
