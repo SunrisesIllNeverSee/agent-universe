@@ -172,6 +172,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def sitemap_page() -> FileResponse:
         return FileResponse(frontend_dir / "sitemap.html")
 
+    @app.get("/flowchart")
+    async def flowchart_page() -> FileResponse:
+        return FileResponse(frontend_dir / "flowchart.html")
+
     @app.get("/api/admin/page-html")
     async def get_page_html(page: str) -> JSONResponse:
         """Return raw HTML source of a frontend page for the sitemap editor."""
