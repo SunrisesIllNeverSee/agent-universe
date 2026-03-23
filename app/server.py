@@ -212,6 +212,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def helpwanted_page() -> FileResponse:
         return FileResponse(frontend_dir / "helpwanted.html")
 
+    @app.get("/sig-arena")
+    async def sig_arena_page() -> FileResponse:
+        return FileResponse(frontend_dir / "sig-arena.html")
+
     @app.get("/leaderboard")
     async def leaderboard_page() -> FileResponse:
         return FileResponse(frontend_dir / "leaderboard.html")
