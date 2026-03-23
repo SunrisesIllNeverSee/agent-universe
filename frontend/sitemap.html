@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CIVITAE — Site Editor</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap');
+  :root {
+    --bg:     #0B0D10;
+    --panel:  #12151A;
+    --panel2: #0E1116;
+    --border: #1E2228;
+    --gold:   #C4923A;
+    --text:   #E8EAF0;
+    --muted:  #7A8090;
+    --green:  #3DAA6A;
+    --amber:  #D48C2E;
+    --red:    #D84040;
+    --blue:   #3A7FC4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; display: flex; flex-direction: column; }
+
+  /* ── Top bar ── */
+  .topbar {
+    height: 48px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 16px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .topbar-title { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1rem; letter-spacing: 0.05em; }
+  .topbar-sub   { color: var(--muted); font-size: 0.75rem; font-family: 'DM Mono', monospace; }
+  .spacer       { flex: 1; }
+  .btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    padding: 5px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn:hover    { border-color: var(--gold); color: var(--gold); }
+  .btn.primary  { background: var(--gold); border-color: var(--gold); color: #0B0D10; font-weight: 600; }
+  .btn.primary:hover { background: #d4a550; }
+  .btn.danger   { border-color: var(--red); color: var(--red); }
+
+  /* ── Layout ── */
+  .layout { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── Left sidebar ── */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--panel2);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  .sidebar-section {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    padding: 12px 12px 4px;
+  }
+  .page-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .page-item:hover   { background: rgba(255,255,255,0.04); }
+  .page-item.active  { background: rgba(196,146,58,0.08); border-left-color: var(--gold); }
+  .page-item .dot    { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .page-item .route  { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .page-item .name   { font-size: 0.8rem; color: var(--text); }
+  .page-item-inner   { flex: 1; overflow: hidden; }
+
+  /* ── Main area ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Preview pane */
+  .preview-pane {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    transition: flex 0.2s;
+  }
+  .preview-pane iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #fff;
+  }
+  .preview-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--muted);
+    gap: 12px;
+  }
+  .preview-placeholder .big { font-size: 3rem; }
+  .preview-placeholder p { font-size: 0.85rem; font-family: 'DM Mono', monospace; }
+
+  /* Preview toolbar */
+  .preview-toolbar {
+    height: 36px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .preview-url {
+    flex: 1;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 10px;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0;
+  }
+  .status-dot.live { background: var(--green); }
+
+  /* Editor pane */
+  .editor-pane {
+    flex-shrink: 0;
+    height: 0;
+    overflow: hidden;
+    transition: height 0.2s;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+  .editor-pane.open { height: 45%; }
+  .editor-toolbar {
+    height: 36px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .editor-toolbar span { font-size: 0.72rem; font-family: 'DM Mono', monospace; color: var(--muted); flex: 1; }
+  .editor-pane textarea {
+    flex: 1;
+    background: #08090C;
+    color: #A8D8A8;
+    border: none;
+    outline: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    padding: 12px 16px;
+    resize: none;
+    overflow-y: auto;
+  }
+
+  /* Loading overlay */
+  .loading {
+    position: absolute;
+    inset: 0;
+    background: rgba(11,13,16,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--gold);
+    letter-spacing: 0.1em;
+    display: none;
+  }
+  .loading.show { display: flex; }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <span class="topbar-title">CIVITAE</span>
+  <span class="topbar-sub">Site Editor</span>
+  <div class="spacer"></div>
+  <button class="btn" onclick="openLive()">↗ Open Live</button>
+  <button class="btn" id="html-toggle-btn" onclick="toggleEditor()">⟨/⟩ HTML</button>
+  <button class="btn primary" id="preview-edited-btn" onclick="previewEdited()" style="display:none">▶ Preview Edits</button>
+  <button class="btn" id="download-btn" onclick="downloadEdited()" style="display:none">↓ Download</button>
+  <button class="btn" id="copy-btn" onclick="copyHTML()" style="display:none">⎘ Copy</button>
+</div>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar"></div>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Preview toolbar -->
+    <div class="preview-toolbar">
+      <div class="status-dot" id="status-dot"></div>
+      <input class="preview-url" id="url-bar" readonly value="← Select a page">
+    </div>
+
+    <!-- Preview pane -->
+    <div class="preview-pane" id="preview-pane">
+      <div class="loading" id="loading">LOADING…</div>
+      <div class="preview-placeholder" id="placeholder">
+        <div class="big">◈</div>
+        <p>Select a page from the left to preview it</p>
+      </div>
+      <iframe id="preview-frame" style="display:none"></iframe>
+    </div>
+
+    <!-- Editor pane -->
+    <div class="editor-pane" id="editor-pane">
+      <div class="editor-toolbar">
+        <span id="editor-label">HTML source</span>
+        <button class="btn" onclick="toggleEditor()">✕ Close</button>
+      </div>
+      <textarea id="html-editor" spellcheck="false" placeholder="HTML will load here…"></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Page registry ─────────────────────────────────────────────────────────────
+const PAGES = [
+  { section: 'Core Experience' },
+  { route: '/',            file: 'world',          name: 'World Map',        status: 'live'  },
+  { route: '/missions',    file: 'index',          name: 'Missions Console', status: 'live'  },
+  { route: '/governance',  file: 'governance',     name: 'Governance',       status: 'live'  },
+  { route: '/entry',       file: 'entry',          name: 'Entry / Signup',   status: 'live'  },
+  { route: '/economics',   file: 'economics',      name: 'Economics',        status: 'wip'   },
+  { route: '/leaderboard', file: 'leaderboard',    name: 'Leaderboard',      status: 'wip'   },
+
+  { section: 'Agent Identity' },
+  { route: '/agent/me',    file: 'agent',          name: 'Agent Profile',    status: 'wip'   },
+  { route: '/agents',      file: 'agents',         name: 'Agent Directory',  status: 'wip'   },
+  { route: '/dashboard',   file: 'dashboard',      name: 'Dashboard',        status: 'wip'   },
+
+  { section: 'World & Territory' },
+  { route: '/kingdoms',    file: 'kingdoms',       name: 'Kingdoms',         status: 'wip'   },
+  { route: '/civitae-map', file: 'civitae-map',    name: 'World Map (Alt)',  status: 'wip'   },
+  { route: '/civitas',     file: 'civitas',        name: 'Civitas',          status: 'empty' },
+
+  { section: 'Economy & Market' },
+  { route: '/kassa',       file: 'kassa',          name: 'KA§§A',            status: 'wip'   },
+  { route: '/helpwanted',  file: 'helpwanted',     name: 'Help Wanted',      status: 'live'  },
+  { route: '/bountyboard', file: 'bountyboard',    name: 'Bounty Board',     status: 'wip'   },
+  { route: '/slots',       file: 'slots',          name: 'Slots',            status: 'wip'   },
+  { route: '/mission',     file: 'mission',        name: 'Mission Detail',   status: 'wip'   },
+  { route: '/vault',       file: 'vault',          name: 'Vault',            status: 'empty' },
+  { route: '/wave-registry',file:'wave-registry',  name: 'Wave Registry',    status: 'empty' },
+
+  { section: 'Intelligence' },
+  { route: '/campaign',    file: 'campaign',       name: 'Campaign',         status: 'wip'   },
+  { route: '/refinery',    file: 'refinery',       name: 'Refinery',         status: 'empty' },
+  { route: '/switchboard', file: 'switchboard',    name: 'Switchboard',      status: 'empty' },
+
+  { section: 'Info & Meta' },
+  { route: '/civitae-roadmap', file: 'civitae-roadmap', name: 'Roadmap',     status: 'wip'   },
+  { route: '/welcome',     file: 'welcome',        name: 'Welcome',          status: 'empty' },
+  { route: '/deploy',      file: 'deploy',         name: 'Deploy',           status: 'wip'   },
+
+  { section: 'Admin' },
+  { route: '/admin',       file: 'admin',          name: 'Admin Panel',      status: 'admin' },
+];
+
+const STATUS_COLOR = { live: '#3DAA6A', wip: '#D48C2E', empty: '#D84040', admin: '#3A7FC4' };
+
+// ── Build sidebar ─────────────────────────────────────────────────────────────
+const sidebar = document.getElementById('sidebar');
+PAGES.forEach((p, i) => {
+  if (p.section) {
+    const s = document.createElement('div');
+    s.className = 'sidebar-section';
+    s.textContent = p.section;
+    sidebar.appendChild(s);
+    return;
+  }
+  const el = document.createElement('div');
+  el.className = 'page-item';
+  el.id = 'item-' + p.file;
+  el.onclick = () => selectPage(p);
+
+  const dot = document.createElement('div');
+  dot.className = 'dot';
+  dot.style.background = STATUS_COLOR[p.status] || '#7A8090';
+
+  const inner = document.createElement('div');
+  inner.className = 'page-item-inner';
+
+  const name = document.createElement('div');
+  name.className = 'name';
+  name.textContent = p.name;
+
+  const route = document.createElement('div');
+  route.className = 'route';
+  route.textContent = p.route;
+
+  inner.appendChild(name);
+  inner.appendChild(route);
+  el.appendChild(dot);
+  el.appendChild(inner);
+  sidebar.appendChild(el);
+});
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentPage  = null;
+let editorOpen   = false;
+let htmlLoaded   = false;
+
+const frame      = document.getElementById('preview-frame');
+const placeholder= document.getElementById('placeholder');
+const urlBar     = document.getElementById('url-bar');
+const statusDot  = document.getElementById('status-dot');
+const loading    = document.getElementById('loading');
+const editorPane = document.getElementById('editor-pane');
+const editor     = document.getElementById('html-editor');
+const editorLbl  = document.getElementById('editor-label');
+const previewBtn = document.getElementById('preview-edited-btn');
+const downloadBtn= document.getElementById('download-btn');
+const copyBtn    = document.getElementById('copy-btn');
+
+// ── Select page ───────────────────────────────────────────────────────────────
+function selectPage(p) {
+  if (currentPage) {
+    const prev = document.getElementById('item-' + currentPage.file);
+    if (prev) prev.classList.remove('active');
+  }
+  currentPage = p;
+  htmlLoaded  = false;
+  editor.value = '';
+
+  const el = document.getElementById('item-' + p.file);
+  if (el) el.classList.add('active');
+
+  const base = location.origin; // same Railway origin
+  const url  = base + p.route;
+  urlBar.value = url;
+  statusDot.className = 'status-dot live';
+  editorLbl.textContent = p.file + '.html';
+
+  placeholder.style.display = 'none';
+  frame.style.display = 'block';
+  loading.classList.add('show');
+
+  frame.onload = () => loading.classList.remove('show');
+  frame.src = p.route;
+
+  // If editor is open, reload HTML
+  if (editorOpen) fetchHTML();
+}
+
+// ── Toggle HTML editor ────────────────────────────────────────────────────────
+function toggleEditor() {
+  editorOpen = !editorOpen;
+  editorPane.classList.toggle('open', editorOpen);
+  previewBtn.style.display  = editorOpen ? '' : 'none';
+  downloadBtn.style.display = editorOpen ? '' : 'none';
+  copyBtn.style.display     = editorOpen ? '' : 'none';
+
+  if (editorOpen && currentPage && !htmlLoaded) fetchHTML();
+}
+
+// ── Fetch HTML source ─────────────────────────────────────────────────────────
+async function fetchHTML() {
+  if (!currentPage) return;
+  editor.value = '⌛ Loading…';
+  try {
+    const res  = await fetch('/api/admin/page-html?page=' + currentPage.file);
+    const data = await res.json();
+    if (data.html) {
+      editor.value = data.html;
+      htmlLoaded = true;
+    } else {
+      editor.value = '// Error: ' + (data.error || 'unknown');
+    }
+  } catch (e) {
+    editor.value = '// Fetch failed: ' + e.message;
+  }
+}
+
+// ── Preview edited HTML ───────────────────────────────────────────────────────
+function previewEdited() {
+  const html = editor.value;
+  if (!html) return;
+  const blob = new Blob([html], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  frame.src  = url;
+  loading.classList.add('show');
+  frame.onload = () => loading.classList.remove('show');
+}
+
+// ── Download edited file ──────────────────────────────────────────────────────
+function downloadEdited() {
+  if (!currentPage || !editor.value) return;
+  const blob = new Blob([editor.value], { type: 'text/html' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = currentPage.file + '.html';
+  a.click();
+}
+
+// ── Copy HTML to clipboard ────────────────────────────────────────────────────
+function copyHTML() {
+  if (!editor.value) return;
+  navigator.clipboard.writeText(editor.value).then(() => {
+    copyBtn.textContent = '✓ Copied';
+    setTimeout(() => { copyBtn.textContent = '⎘ Copy'; }, 1500);
+  });
+}
+
+// ── Open live in new tab ──────────────────────────────────────────────────────
+function openLive() {
+  if (!currentPage) return;
+  window.open(location.origin + currentPage.route, '_blank');
+}
+</script>
+</body>
+</html>

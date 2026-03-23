@@ -168,6 +168,26 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def admin_page() -> FileResponse:
         return FileResponse(frontend_dir / "admin.html")
 
+    @app.get("/sitemap")
+    async def sitemap_page() -> FileResponse:
+        return FileResponse(frontend_dir / "sitemap.html")
+
+    @app.get("/api/admin/page-html")
+    async def get_page_html(page: str) -> JSONResponse:
+        """Return raw HTML source of a frontend page for the sitemap editor."""
+        safe = page.replace("/", "").replace("..", "").strip()
+        if not safe:
+            return JSONResponse({"error": "invalid page"}, status_code=400)
+        candidates = [
+            frontend_dir / f"{safe}.html",
+            frontend_dir / "index.html" if safe == "missions" else None,
+            frontend_dir / "world.html"  if safe == "" else None,
+        ]
+        for path in candidates:
+            if path and path.exists():
+                return JSONResponse({"page": safe, "html": path.read_text()})
+        return JSONResponse({"error": f"page '{safe}' not found"}, status_code=404)
+
     @app.get("/entry")
     async def entry_page() -> FileResponse:
         return FileResponse(frontend_dir / "entry.html")
