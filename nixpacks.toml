@@ -1,0 +1,4 @@
+providers = ["python"]
+
+[phases.install]
+cmds = ["pip install -r app/requirements.txt"]
