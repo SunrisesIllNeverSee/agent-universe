@@ -1,7 +1,7 @@
 app/
+requirements.txt
 Procfile
 run.py
-nixpacks.toml
 governance-cache/
 docs/
 reference/
