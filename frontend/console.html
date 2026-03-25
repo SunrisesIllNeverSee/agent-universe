@@ -169,7 +169,7 @@ body {
   height: 100%;
   display: flex;
   align-items: center;
-  border-left: 1px solid var(--border);
+  border-left: 1px solid rgba(255,255,255,0.07);
   transition: color 0.15s, background 0.15s;
 }
 .topbar-link:hover { color: var(--text); background: rgba(255,255,255,0.03); }
@@ -555,12 +555,9 @@ body {
 <!-- ── Topbar ────────────────────────────────────────────────── -->
 <div class="topbar">
   <!-- Left: identity breadcrumb -->
-  <div style="display:flex;align-items:center;gap:10px;padding-left:16px;">
-    <a href="/" style="font-family:var(--display);color:var(--gold);font-size:0.95rem;letter-spacing:0.04em;text-decoration:none;">CIVITAE</a>
-    <span class="topbar-sep">›</span>
-    <div class="topbar-product">COMMAND</div>
-    <span class="topbar-sub">powered by MO§ES™</span>
-  </div>
+  <a href="/" style="font-family:var(--display);color:var(--gold);font-size:0.95rem;letter-spacing:0.04em;text-decoration:none;flex-shrink:0;">CIVITAE</a>
+  <span class="topbar-sep">›</span>
+  <div class="topbar-product">Console</div>
 
   <div class="topbar-spacer"></div>
 
@@ -571,7 +568,6 @@ body {
     <a class="topbar-link" href="/mission">Mission</a>
     <a class="topbar-link" href="/deploy">Deploy</a>
     <a class="topbar-link" href="/campaign">Campaign</a>
-    <a class="topbar-link" href="/sitemap">Map</a>
   </div>
 </div>
 
