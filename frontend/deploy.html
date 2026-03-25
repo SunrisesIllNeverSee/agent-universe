@@ -9,13 +9,16 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: var(--bg); color: var(--text); font-family: var(--body); height: 100vh; display: grid; grid-template-rows: 48px 1fr; overflow: hidden; }
 
-  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid var(--border); background: var(--deep); }
-  .logo { font-family: var(--display); font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 0.12em; }
-  .logo span { color: var(--accent2); margin-left: 6px; }
-  .nav-links { display: flex; gap: 12px; }
-  .nav-link { font-family: var(--mono); font-size: 12px; color: var(--muted); text-decoration: none; padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; }
-  .nav-link:hover { border-color: var(--accent); color: var(--accent); }
-  .nav-link.active { border-color: var(--accent); color: var(--accent); background: rgba(110,158,200,0.08); }
+  .topbar { display:flex; align-items:center; gap:10px; padding:0 20px; background:rgba(7,8,9,0.97); border-bottom:1px solid #1A1D22; }
+  .tb-mark { font-family:'Playfair Display',serif; font-size:1rem; font-weight:900; color:#C4923A; text-decoration:none; flex-shrink:0; }
+  .tb-mark em { color:#E8EAF0; font-style:normal; }
+  .tb-sep { color:#262E3A; font-size:0.85rem; flex-shrink:0; }
+  .tb-page { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.12em; text-transform:uppercase; color:#8A94A0; flex-shrink:0; }
+  .tb-spacer { flex:1; }
+  .tb-nav { display:flex; align-items:center; height:100%; }
+  .tb-link { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.08em; text-transform:uppercase; color:#5A6475; text-decoration:none; padding:0 14px; height:100%; display:flex; align-items:center; border-left:1px solid #1A1D22; transition:color 0.15s,background 0.15s; }
+  .tb-link:hover { color:#E8EAF0; background:rgba(255,255,255,0.02); }
+  .tb-link.active { color:#C4923A; }
 
   .layout { display: grid; grid-template-columns: 220px 1fr 220px; min-height: 0; }
 
@@ -92,23 +95,22 @@
   .placed-item { font-family: var(--mono); font-size: 10px; color: var(--muted); padding: 3px 0; display: flex; justify-content: space-between; }
   .placed-item .pos { color: var(--accent); }
 </style>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Share+Tech+Mono&family=Syne:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="icon" href="/favicon.ico">
 </head>
 <body>
-<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 40px;background:rgba(11,13,16,0.95);border-bottom:1px solid #262E3A;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);">
-  <a href="/" style="font-family:'Playfair Display',serif;font-size:18px;font-weight:900;color:#F2EDE4;text-decoration:none;letter-spacing:-0.02em;">CIVI<em style="color:#C4923A;font-style:normal;">TAE</em></a>
-  <div style="display:flex;gap:20px;align-items:center;">
-    <a href="/" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Missions</a>
-    <a href="/helpwanted" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Hiring</a>
-    <a href="/kassa" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">KA&#167;&#167;A</a>
-    <a href="/deploy" style="color:#C4923A;text-decoration:none;font-size:12px;font-weight:500;">Deploy</a>
-    <a href="/world" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">World</a>
-    <a href="/economics" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Economy</a>
-    <a href="/leaderboard" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Ranks</a>
-    <a href="/governance" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Govern</a>
-    <a href="/admin" style="color:#8A94A0;text-decoration:none;font-size:12px;font-weight:500;">Admin</a>
-  </div>
+<div class="topbar">
+  <a href="/" class="tb-mark">CIVI<em>TAE</em></a>
+  <span class="tb-sep">›</span>
+  <span class="tb-page">Deploy</span>
+  <div class="tb-spacer"></div>
+  <nav class="tb-nav">
+    <a href="/command" class="tb-link">Overview</a>
+    <a href="/console" class="tb-link">Console</a>
+    <a href="/mission" class="tb-link">Mission</a>
+    <a href="/deploy" class="tb-link active">Deploy</a>
+    <a href="/campaign" class="tb-link">Campaign</a>
+  </nav>
 </div>
 
 <div class="layout">
