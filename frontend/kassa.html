@@ -535,19 +535,33 @@
   window.submitContact = function(e,form){
     e.preventDefault();
     var btn = form.querySelector('.btn-send');
-    btn.textContent = 'Sent ✓';
-    btn.style.background = 'var(--signal)';
+    var origText = btn.textContent;
+    var card = form.closest('.card');
+    var postId = card.querySelector('.post-num').textContent.trim();
+    var tab = form.closest('.tab-panel').id.replace('tab-','');
+    var inputs = form.querySelectorAll('input,textarea');
+    var fromName = inputs[0].value.trim();
+    var fromEmail = inputs[1].value.trim();
+    var message = inputs[2].value.trim();
+    btn.textContent = 'Sending…';
     btn.disabled = true;
-    setTimeout(function(){
-      form.reset();
-      btn.textContent = btn.textContent.includes('Response') ? 'Send Response'
-                      : btn.textContent.includes('Application') ? 'Send Application'
-                      : 'Send Message';
-      btn.style.background = '';
-      btn.disabled = false;
-      form.closest('.contact-panel').classList.remove('open');
-      form.closest('.card').querySelector('.btn-contact').classList.remove('active');
-    }, 2500);
+    var done = function(){
+      btn.textContent = 'Sent ✓';
+      btn.style.background = 'var(--signal)';
+      setTimeout(function(){
+        form.reset();
+        btn.textContent = origText;
+        btn.style.background = '';
+        btn.disabled = false;
+        form.closest('.contact-panel').classList.remove('open');
+        card.querySelector('.btn-contact').classList.remove('active');
+      }, 2500);
+    };
+    fetch('/api/kassa/contact',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({post_id:postId,tab:tab,from_name:fromName,from_email:fromEmail,message:message})
+    }).then(done).catch(done);
   };
 
   window.openPostModal = function(){
