@@ -132,7 +132,7 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     @app.get("/missions")
     async def missions_page() -> FileResponse:
-        return FileResponse(frontend_dir / "index.html")
+        return FileResponse(frontend_dir / "missions.html")
 
     @app.get("/deploy")
     async def deploy_page() -> FileResponse:
