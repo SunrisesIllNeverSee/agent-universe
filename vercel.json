@@ -3,7 +3,7 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/assets/:path*", "destination": "/:path*" },
-    { "source": "/", "destination": "/kingdoms.html" },
+    { "source": "/", "destination": "/kingdoms" },
     { "source": "/3d", "destination": "/world.html" },
     { "source": "/about", "destination": "/about.html" },
     { "source": "/admin", "destination": "/admin.html" },
