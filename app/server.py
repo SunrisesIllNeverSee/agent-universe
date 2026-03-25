@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, Form, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -65,13 +66,38 @@ def create_app(root: Path | None = None) -> FastAPI:
     # fill+leave+read. asyncio.Lock() is correct here (single-threaded event loop).
     # Any coroutine that mutates slot state must acquire this before check-then-write.
     slot_lock = asyncio.Lock()
+    _allowed_origin = os.environ.get("ALLOWED_ORIGIN", "")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
+        allow_origins=[
+            "http://127.0.0.1:8300",
+            "http://localhost:8300",
+            *([_allowed_origin] if _allowed_origin else []),
+        ],
+        allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # ── Admin key guard — protects all write endpoints ────────────────────────
+    # Set CIVITAE_ADMIN_KEY env var to enable. Unset = dev mode (no enforcement).
+    # Agent self-service paths (signup, heartbeat, apply, metrics) are public.
+    _ADMIN_KEY = os.environ.get("CIVITAE_ADMIN_KEY", "")
+    _PUBLIC_WRITE_PREFIXES = (
+        "/api/provision/signup",
+        "/api/provision/heartbeat",
+        "/api/inbox/apply",
+        "/api/metrics/",
+    )
+
+    @app.middleware("http")
+    async def admin_key_guard(request: Request, call_next):
+        if _ADMIN_KEY and request.method in ("POST", "DELETE", "PATCH", "PUT"):
+            path = request.url.path
+            if not any(path.startswith(p) for p in _PUBLIC_WRITE_PREFIXES):
+                if request.headers.get("X-Admin-Key") != _ADMIN_KEY:
+                    return JSONResponse({"detail": "Admin key required"}, status_code=403)
+        return await call_next(request)
 
     frontend_dir = root / "frontend"
     # Serve sub-directories the original console expects
@@ -180,6 +206,12 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def sitemap_page() -> FileResponse:
         return FileResponse(frontend_dir / "sitemap.html")
 
+    @app.get("/api/pages")
+    async def get_pages() -> JSONResponse:
+        pages_file = Path(__file__).parent.parent / "config" / "pages.json"
+        data = json.loads(pages_file.read_text())
+        return JSONResponse(data)
+
     @app.get("/flowchart")
     async def flowchart_page() -> FileResponse:
         return FileResponse(frontend_dir / "flowchart.html")
@@ -223,6 +255,14 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.get("/products")
     async def products_page() -> FileResponse:
         return FileResponse(frontend_dir / "products.html")
+
+    @app.get("/marketplace")
+    async def marketplace_page() -> FileResponse:
+        return FileResponse(frontend_dir / "products.html")
+
+    @app.get("/about")
+    async def about_page() -> FileResponse:
+        return FileResponse(frontend_dir / "about.html")
 
     @app.get("/services")
     async def services_page() -> FileResponse:
@@ -379,8 +419,9 @@ def create_app(root: Path | None = None) -> FastAPI:
         if not safe_name:
             safe_name = f"upload-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}"
 
-        # Save to vault directory
-        cat_dir = vault_files_dir / category
+        # Sanitize category — alphanumeric + hyphens/underscores only, no path separators
+        safe_category = "".join(c for c in category if c.isalnum() or c in "-_").strip() or "general"
+        cat_dir = vault_files_dir / safe_category
         cat_dir.mkdir(parents=True, exist_ok=True)
         dest = cat_dir / safe_name
         content = await file.read()

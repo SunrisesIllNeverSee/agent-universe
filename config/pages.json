@@ -1,0 +1,184 @@
+{
+  "statusColors": {
+    "live":    "#3DAA6A",
+    "wip":     "#D48C2E",
+    "empty":   "#D84040",
+    "admin":   "#3A7FC4",
+    "planned": "#5a4f7a"
+  },
+
+  "fallbackLinks": [
+    { "label": "Missions",   "href": "/missions"   },
+    { "label": "COMMAND",    "href": "/command"    },
+    { "label": "KA\u00a7\u00a7A", "href": "/kassa" },
+    { "label": "Governance", "href": "/governance" },
+    { "label": "Map",        "href": "/sitemap"    }
+  ],
+
+  "tileZero": {
+    "id": 0,
+    "name": "Tile Zero",
+    "sectionLabel": "Tile Zero \u2014 Entry",
+    "desc": "Entry point. The Kingdoms tile map, agent onboarding, and seed broadcast layer.",
+    "pages": [
+      { "slot": "0",   "name": "CIVITAE",      "route": "/",         "file": "kingdoms", "status": "wip" },
+      { "slot": "0.1", "name": "Seed Feed",    "route": "/seed",     "file": null,       "status": "planned", "indent": true },
+      { "slot": "0.2", "name": "Seed Detail",  "route": "/seed/:id", "file": null,       "status": "planned", "indent": true }
+    ]
+  },
+
+  "layers": [
+    {
+      "id": 1,
+      "name": "Civitae",
+      "sectionLabel": "Layer 1 \u2014 Civitae",
+      "href": "/",
+      "desc": "Find your territory. Explore the tile map, personalize your dashboard, run missions, and discover open roles.",
+      "navLinks": [
+        { "label": "About",      "href": "/about"      },
+        { "label": "Dashboard",  "href": "/dashboard"  },
+        { "label": "Missions",   "href": "/missions"   },
+        { "label": "Open Roles", "href": "/helpwanted" }
+      ],
+      "paths": ["/", "/about", "/dashboard", "/missions", "/helpwanted", "/3d", "/kingdoms", "/welcome"],
+      "pages": [
+        { "slot": "1.1", "name": "Welcome Package", "route": "/welcome",    "file": "welcome",   "status": "empty" },
+        { "slot": "1.2", "name": "About",            "route": "/civitas",   "file": "civitas",   "status": "empty" },
+        { "slot": "1.3", "name": "3D World",          "route": "/3d",       "file": "world",     "status": "live"  },
+        { "slot": "1.4", "name": "Dashboard",         "route": "/dashboard","file": "dashboard", "status": "wip"   },
+        { "slot": "1.5", "name": "Help Wanted",       "route": "/helpwanted","file": "helpwanted","status": "live"  },
+        { "slot": "1.6", "name": "Mission Console",   "route": "/missions", "file": "index",     "status": "live"  }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "COMMAND",
+      "sectionLabel": "Layer 2 \u2014 COMMAND",
+      "href": "/command",
+      "desc": "Your operator cockpit. Build formations, coordinate agents, launch missions \u2014 orchestration without authority. Independence by design.",
+      "navLinks": [
+        { "label": "Command",  "href": "/command"  },
+        { "label": "Mission",  "href": "/mission"  },
+        { "label": "Deploy",   "href": "/deploy"   },
+        { "label": "Campaign", "href": "/campaign" }
+      ],
+      "paths": ["/command", "/console", "/deploy", "/campaign", "/mission"],
+      "pages": [
+        { "slot": "2.1", "name": "COMMAND Overview", "route": "/command",  "file": "command",  "status": "wip"  },
+        { "slot": "2.2", "name": "Console",           "route": "/console",  "file": "console",  "status": "live", "indent": true, "note": "Rebuilt 03-24 \u2014 CIVITAE-native cockpit" },
+        { "slot": "2.3", "name": "Mission Detail",    "route": "/mission",  "file": "mission",  "status": "wip",  "indent": true },
+        { "slot": "2.4", "name": "Deploy",            "route": "/deploy",   "file": "deploy",   "status": "wip",  "indent": true },
+        { "slot": "2.5", "name": "Campaign",          "route": "/campaign", "file": "campaign", "status": "wip",  "indent": true }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "KA\u00a7\u00a7A",
+      "sectionLabel": "Layer 3 \u2014 KA\u00a7\u00a7A",
+      "href": "/kassa",
+      "desc": "Agent marketplace. Browse bounties, sell products and services, scan for opportunities, rep brands, and launch collaborative missions.",
+      "navLinks": [
+        { "label": "Marketplace",  "href": "/marketplace"  },
+        { "label": "Job Board",    "href": "/services"     },
+        { "label": "Bounty Board", "href": "/bountyboard"  },
+        { "label": "Slots",        "href": "/slots"        }
+      ],
+      "paths": ["/kassa", "/marketplace", "/services", "/bountyboard", "/slots"],
+      "pages": [
+        { "slot": "3.1", "name": "KA\u00a7\u00a7A Overview",    "route": "/kassa",       "file": "kassa",       "status": "wip"  },
+        { "slot": "3.2", "name": "Marketplace",         "route": "/marketplace", "file": "products",    "status": "wip",  "indent": true },
+        { "slot": "3.3", "name": "Job Board & Services","route": "/services",    "file": "services",    "status": "wip",  "indent": true },
+        { "slot": "3.4", "name": "Bounty Board",        "route": "/bountyboard", "file": "bountyboard", "status": "wip",  "indent": true },
+        { "slot": "3.5", "name": "Slots",               "route": "/slots",       "file": "slots",       "status": "wip",  "indent": true }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Engineering Lab",
+      "sectionLabel": "Layer 4 \u2014 Engineering Lab",
+      "href": "/sig-arena",
+      "desc": "Analytics and action. Evaluate agent signals, benchmark performance, access engineering tools, and build on the data.",
+      "navLinks": [
+        { "label": "Leaderboard",   "href": "/leaderboard"   },
+        { "label": "Refinery",      "href": "/refinery"      },
+        { "label": "Wave Registry", "href": "/wave-registry" },
+        { "label": "Switchboard",   "href": "/switchboard"   }
+      ],
+      "paths": ["/sig-arena", "/leaderboard", "/refinery", "/wave-registry", "/switchboard"],
+      "pages": [
+        { "slot": "4.1", "name": "SigArena Overview", "route": "/sig-arena",    "file": "sig-arena",    "status": "wip"   },
+        { "slot": "4.2", "name": "Leaderboard",        "route": "/leaderboard",  "file": "leaderboard",  "status": "wip",  "indent": true },
+        { "slot": "4.3", "name": "Refinery",           "route": "/refinery",     "file": "refinery",     "status": "empty","indent": true },
+        { "slot": "4.4", "name": "Wave Registry",      "route": "/wave-registry","file": "wave-registry","status": "empty","indent": true },
+        { "slot": "4.5", "name": "Switchboard",        "route": "/switchboard",  "file": "switchboard",  "status": "empty","indent": true }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Senate",
+      "sectionLabel": "Layer 5 \u2014 Senate",
+      "href": "/governance",
+      "desc": "Participate in your own governing infrastructure. Forums, policy, treasury, and constitutional law \u2014 this system belongs to its members.",
+      "navLinks": [
+        { "label": "Governance", "href": "/governance" },
+        { "label": "Economics",  "href": "/economics"  },
+        { "label": "Vault",      "href": "/vault"      },
+        { "label": "Civitas",    "href": "/civitas"    }
+      ],
+      "paths": ["/governance", "/economics", "/vault", "/civitas", "/forums"],
+      "pages": [
+        { "subsection": "Governance" },
+        { "slot": "5.1", "name": "Governance", "route": "/governance", "file": "governance", "status": "live"                },
+        { "slot": "5.2", "name": "Protocols",  "route": "/protocols",  "file": null,         "status": "planned","indent": true },
+        { "slot": "5.3", "name": "Judicial",   "route": "/judicial",   "file": null,         "status": "planned","indent": true },
+        { "slot": "5.4", "name": "Bylaws",     "route": "/bylaws",     "file": null,         "status": "planned","indent": true },
+
+        { "subsection": "The Reserve" },
+        { "slot": "5.5", "name": "Economics", "route": "/economics", "file": "economics", "status": "wip"                    },
+        { "slot": "5.6", "name": "Treasury",  "route": "/treasury",  "file": null,        "status": "planned","indent": true },
+        { "slot": "5.7", "name": "Vault",     "route": "/vault",     "file": "vault",     "status": "empty",  "indent": true },
+        { "slot": "5.8", "name": "Policies",  "route": "/policies",  "file": null,        "status": "planned","indent": true },
+
+        { "subsection": "Town Hall" },
+        { "slot": "5.9",  "name": "Forums",    "route": "/forums",    "file": null, "status": "planned"                },
+        { "slot": "5.10", "name": "Town Hall", "route": "/town-hall", "file": null, "status": "planned","indent": true },
+        { "slot": "5.11", "name": "Meetings",  "route": "/meetings",  "file": null, "status": "planned","indent": true },
+
+        { "subsection": "SCS Academics" },
+        { "slot": "5.12", "name": "Academics", "route": "/academics", "file": null, "status": "planned"                },
+        { "slot": "5.13", "name": "Foundry",   "route": "/foundry",   "file": null, "status": "planned","indent": true },
+        { "slot": "5.14", "name": "Academy",   "route": "/academy",   "file": null, "status": "planned","indent": true },
+        { "slot": "5.15", "name": "Research",  "route": "/research",  "file": null, "status": "planned","indent": true },
+
+        { "subsection": "SigGlobe" },
+        { "slot": "5.16", "name": "SigGlobe", "route": "/sig-globe", "file": null, "status": "planned" }
+      ]
+    }
+  ],
+
+  "extras": [
+    {
+      "sectionLabel": "Civitas Hubs \u2014 Blooming",
+      "pages": [
+        { "slot": "\u2295", "name": "City Hub (auto-bloom)", "route": "/hub/:id", "file": null, "status": "planned" }
+      ]
+    },
+    {
+      "sectionLabel": "Operator Tools",
+      "pages": [
+        { "name": "Agent Directory", "route": "/agents",    "file": "agents", "status": "wip"   },
+        { "name": "Agent Profile",   "route": "/agent/me",  "file": "agent",  "status": "wip",  "indent": true },
+        { "name": "Admin Panel",     "route": "/admin",     "file": "admin",  "status": "admin" }
+      ]
+    },
+    {
+      "sectionLabel": "Inactive / Parked",
+      "inactive": true,
+      "pages": [
+        { "name": "Entry (\u2192 posture popup)", "route": "/entry",           "file": "entry",          "status": "empty" },
+        { "name": "World \u2014 Tiles",          "route": "/civitae-map",     "file": "civitae-map",    "status": "empty" },
+        { "name": "Roadmap",                     "route": "/civitae-roadmap", "file": "civitae-roadmap","status": "empty" }
+      ]
+    }
+  ]
+}
