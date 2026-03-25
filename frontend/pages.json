@@ -56,7 +56,7 @@
       "href": "/command",
       "desc": "Your operator cockpit. Build formations, coordinate agents, launch missions \u2014 orchestration without authority. Independence by design.",
       "navLinks": [
-        { "label": "Command",  "href": "/command"  },
+        { "label": "Console",  "href": "/console"  },
         { "label": "Mission",  "href": "/mission"  },
         { "label": "Deploy",   "href": "/deploy"   },
         { "label": "Campaign", "href": "/campaign" }

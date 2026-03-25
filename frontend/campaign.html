@@ -28,21 +28,22 @@
   body {
     background: var(--obsidian); color: var(--text);
     font-family: var(--body); min-height: 100vh;
-    padding-top: 52px;
+    padding-top: 48px;
   }
 
-  nav { display:flex; align-items:center; justify-content:space-between; padding:12px 40px; background:rgba(11,13,16,0.95); border-bottom:1px solid var(--wall); position:fixed; top:0; left:0; right:0; z-index:100; backdrop-filter:blur(12px); }
-  .nav-mark { font-family:'Playfair Display',serif; font-size:18px; font-weight:900; color:var(--cream); text-decoration:none; letter-spacing:-0.02em; }
-  .nav-mark em { color:var(--gold); font-style:normal; }
-  .nav-links { display:flex; gap:20px; align-items:center; }
-  .nav-links a { color:var(--muted); text-decoration:none; font-size:12px; font-weight:500; letter-spacing:0.02em; transition:color 0.15s; }
-  .nav-links a:hover { color:var(--cream); }
+  nav { display:flex; align-items:center; gap:10px; padding:0 20px; height:48px; background:rgba(11,13,16,0.97); border-bottom:1px solid var(--wall); position:fixed; top:0; left:0; right:0; z-index:100; backdrop-filter:blur(8px); }
+  .nav-mark { font-family:'Playfair Display',serif; font-size:1rem; font-weight:900; color:var(--gold); text-decoration:none; flex-shrink:0; }
+  .nav-mark em { color:#E8EAF0; font-style:normal; }
+  .nav-sep { color:var(--wall); font-size:0.85rem; flex-shrink:0; }
+  .nav-context { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); flex-shrink:0; }
+  .nav-spacer { flex:1; }
+  .nav-links { display:flex; align-items:center; height:100%; }
+  .nav-links a { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.08em; text-transform:uppercase; color:#5A6475; text-decoration:none; padding:0 14px; height:100%; display:flex; align-items:center; border-left:1px solid var(--wall); transition:color 0.15s,background 0.15s; }
+  .nav-links a:hover { color:#E8EAF0; background:rgba(255,255,255,0.02); }
   .nav-links a.active { color:var(--gold); }
-  .nav-cta { padding:7px 18px; background:var(--gold); color:var(--obsidian); border:none; border-radius:5px; font-weight:700; font-size:11px; letter-spacing:0.04em; text-transform:uppercase; cursor:pointer; font-family:inherit; transition:background 0.15s; }
-  .nav-cta:hover { background:var(--gold-light); }
 
   /* PAGE LAYOUT */
-  .page { display: grid; grid-template-columns: 280px 1fr; min-height: 0; height: calc(100vh - 52px); }
+  .page { display: grid; grid-template-columns: 280px 1fr; min-height: 0; height: calc(100vh - 48px); }
 
   /* SIDEBAR */
   .sidebar {
@@ -228,16 +229,15 @@
 
 <nav>
   <a href="/" class="nav-mark">CIVI<em>TAE</em></a>
+  <span class="nav-sep">›</span>
+  <span class="nav-context">Campaign</span>
+  <div class="nav-spacer"></div>
   <div class="nav-links">
-    <a href="/missions">Missions</a>
-    <a href="/helpwanted">Hiring</a>
-    <a href="/kassa">KA&#167;&#167;A</a>
+    <a href="/command">Overview</a>
+    <a href="/console">Console</a>
+    <a href="/mission">Mission</a>
     <a href="/deploy">Deploy</a>
-    <a href="/world">World</a>
-    <a href="/economics">Economy</a>
-    <a href="/leaderboard">Ranks</a>
-    <a href="/governance">Govern</a>
-    <a href="/admin">Admin</a>
+    <a href="/campaign" class="active">Campaign</a>
   </div>
 </nav>
 
