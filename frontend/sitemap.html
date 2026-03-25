@@ -337,7 +337,7 @@ logHead.addEventListener('click', () => {
 
 sidebar.appendChild(logWrap);
 
-fetch('/api/pages').then(r => r.json()).then(data => {
+fetch('/assets/pages.json').then(r => r.json()).then(data => {
 const PAGES = pagesFromData(data);
 let currentSectionBody = null;
 let currentSectionInactive = false;
@@ -494,7 +494,8 @@ async function fetchHTML() {
   if (!currentPage) return;
   editor.value = '⌛ Loading…';
   try {
-    const res  = await fetch('/api/admin/page-html?page=' + currentPage.file);
+    const API  = window.CIVITAE_API_ORIGIN || '';
+    const res  = await fetch(API + '/api/admin/page-html?page=' + currentPage.file);
     const data = await res.json();
     if (data.html) {
       editor.value = data.html;
