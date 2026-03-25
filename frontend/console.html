@@ -555,7 +555,19 @@ body {
 <!-- ── Topbar ────────────────────────────────────────────────── -->
 <div class="topbar">
   <!-- Left: identity breadcrumb -->
-  <a href="/" style="font-family:var(--display);color:var(--gold);font-size:0.95rem;letter-spacing:0.04em;text-decoration:none;flex-shrink:0;">CIVITAE</a>
+  <a href="/" id="console-wordmark" style="font-family:var(--display);color:var(--gold);font-size:0.95rem;letter-spacing:0.04em;text-decoration:none;flex-shrink:0;">CIVI<em id="console-tae" style="font-style:normal;">TAE</em></a>
+  <script>
+  (function(){var V=[
+    {s:'italic', f:'"Playfair Display",serif', w:'700', l:'0',      c:'#E8EAF0'},
+    {s:'normal', f:'"DM Mono",monospace',      w:'400', l:'0.08em', c:'#E8EAF0'},
+    {s:'italic', f:'"DM Mono",monospace',      w:'400', l:'0.04em', c:'#E8EAF0'},
+    {s:'normal', f:'"DM Sans",sans-serif',     w:'300', l:'0.22em', c:'#E8EAF0'},
+    {s:'normal', f:'"DM Sans",sans-serif',     w:'700', l:'-0.02em',c:'#E8EAF0'},
+    {s:'italic', f:'"Playfair Display",serif', w:'900', l:'0',      c:'#C4923A'}
+  ];var t=V[Math.floor(Math.random()*V.length)];var e=document.getElementById('console-tae');
+  e.style.cssText='font-style:'+t.s+';font-family:'+t.f+';font-weight:'+t.w+';letter-spacing:'+t.l+';color:'+t.c+';';
+  })();
+  </script>
   <span class="topbar-sep">›</span>
   <div class="topbar-product">Console</div>
 
