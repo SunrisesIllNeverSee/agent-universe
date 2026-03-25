@@ -15,15 +15,12 @@
     --signal:#3A8C6B; --signal-light:#4AAD85; --signal-dim:rgba(58,140,107,0.12);
     --warn:#C45B3F; --warn-dim:rgba(196,91,63,0.12);
     --blue:#3A6B8C; --blue-dim:rgba(58,107,140,0.12);
-    /* legacy aliases for existing page CSS */
     --bg: var(--obsidian); --deep: var(--void); --surface: var(--chamber); --panel: var(--iron);
     --border: var(--wall); --accent: var(--blue);
-    --purple: #7A6B9C; --cyan: #3A8C8C;
+    --purple: #7A6B9C; --cyan: #3A8C8C; --green: #3A8C6B; --red: var(--warn);
     --text: var(--cream); --mono: 'DM Mono', monospace;
     --display: 'Playfair Display', serif; --body: 'DM Sans', sans-serif;
-    --track-tool: var(--blue);
-    --track-research: #7A6B9C;
-    --track-creative: var(--gold);
+    --track-tool: var(--blue); --track-research: #7A6B9C; --track-creative: var(--gold);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,7 +28,7 @@
   body {
     background: var(--obsidian); color: var(--text);
     font-family: var(--body); height: 100vh;
-    display: grid; grid-template-rows: 1fr; overflow: hidden;
+    display: flex; flex-direction: column; overflow: hidden;
     padding-top: 52px;
   }
 
@@ -42,108 +39,78 @@
   .nav-links a { color:var(--muted); text-decoration:none; font-size:12px; font-weight:500; letter-spacing:0.02em; transition:color 0.15s; }
   .nav-links a:hover { color:var(--cream); }
   .nav-links a.active { color:var(--gold); }
-  .nav-cta { padding:7px 18px; background:var(--gold); color:var(--obsidian); border:none; border-radius:5px; font-weight:700; font-size:11px; letter-spacing:0.04em; text-transform:uppercase; cursor:pointer; font-family:inherit; transition:background 0.15s; }
-  .nav-cta:hover { background:var(--gold-light); }
 
-  /* LAYOUT */
-  .layout { display: grid; grid-template-columns: 260px 1fr; min-height: 0; }
+  /* VIEW TOGGLE BAR */
+  .view-toggle {
+    display: flex; align-items: stretch;
+    background: var(--void); border-bottom: 1px solid var(--wall);
+    flex-shrink: 0; height: 38px;
+  }
+  .view-tab {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    border: none; border-bottom: 2px solid transparent; background: transparent;
+    color: var(--muted); cursor: pointer; transition: all 0.15s;
+  }
+  .view-tab .vt-sub {
+    font-size: 9px; letter-spacing: 0.06em; opacity: 0.55;
+    padding: 1px 5px; border: 1px solid currentColor; border-radius: 2px; margin-left: 2px;
+  }
+  .view-tab:hover:not(.active) { color: var(--fog); }
+  .view-tab.active { color: var(--gold); border-bottom-color: var(--gold); background: rgba(196,146,58,0.04); }
+  .view-tab.active .vt-sub { opacity: 0.7; }
+  .view-divider { width: 1px; background: var(--wall); margin: 8px 0; flex-shrink: 0; }
 
-  /* LEFT SIDEBAR — CREATE MISSION */
+  .view { flex: 1; min-height: 0; display: none; flex-direction: column; }
+  .view.active { display: flex; }
+
+  /* DETAIL LAYOUT */
+  .layout-detail { display: grid; grid-template-columns: 260px 1fr; flex: 1; min-height: 0; }
+
   .sidebar {
     background: var(--deep); border-right: 1px solid var(--border);
     padding: 16px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
   }
-  .sidebar-title {
-    font-family: var(--mono); font-size: 10px; color: var(--gold);
-    letter-spacing: 0.14em; text-transform: uppercase; padding-bottom: 8px;
-    border-bottom: 1px solid var(--border);
-  }
-
+  .sidebar-title { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: 0.14em; text-transform: uppercase; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
   .form-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
-  .form-input {
-    width: 100%; background: var(--surface); border: 1px solid var(--border);
-    border-radius: 4px; padding: 6px 8px; color: var(--text);
-    font-family: var(--mono); font-size: 12px; transition: border-color 0.15s;
-  }
+  .form-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; color: var(--text); font-family: var(--mono); font-size: 12px; transition: border-color 0.15s; }
   .form-input:focus { outline: none; border-color: var(--accent); }
   .form-input::placeholder { color: var(--muted); }
   select.form-input { cursor: pointer; }
 
   .track-tabs { display: flex; gap: 4px; }
-  .track-tab {
-    flex: 1; padding: 5px 4px; font-family: var(--mono); font-size: 10px;
-    border: 1px solid var(--border); border-radius: 4px; background: transparent;
-    cursor: pointer; transition: all 0.15s; text-align: center;
-  }
-  .track-tab[data-track="tool"] { color: var(--track-tool); }
-  .track-tab[data-track="tool"].active { background: rgba(110,158,200,0.15); border-color: var(--track-tool); }
-  .track-tab[data-track="research"] { color: var(--track-research); }
-  .track-tab[data-track="research"].active { background: rgba(156,142,200,0.15); border-color: var(--track-research); }
-  .track-tab[data-track="creative"] { color: var(--track-creative); }
-  .track-tab[data-track="creative"].active { background: rgba(200,169,110,0.15); border-color: var(--track-creative); }
+  .track-tab { flex: 1; padding: 5px 4px; font-family: var(--mono); font-size: 10px; border: 1px solid var(--border); border-radius: 4px; background: transparent; cursor: pointer; transition: all 0.15s; text-align: center; color: var(--muted); }
+  .track-tab[data-track="tool"].active { color: var(--track-tool); background: rgba(110,158,200,0.15); border-color: var(--track-tool); }
+  .track-tab[data-track="research"].active { color: var(--track-research); background: rgba(156,142,200,0.15); border-color: var(--track-research); }
+  .track-tab[data-track="creative"].active { color: var(--track-creative); background: rgba(200,169,110,0.15); border-color: var(--track-creative); }
 
   .type-chips { display: flex; flex-wrap: wrap; gap: 4px; }
-  .type-chip {
-    padding: 3px 8px; font-family: var(--mono); font-size: 10px;
-    border: 1px solid var(--border); border-radius: 3px; cursor: pointer;
-    color: var(--muted); background: transparent; transition: all 0.15s;
-  }
+  .type-chip { padding: 3px 8px; font-family: var(--mono); font-size: 10px; border: 1px solid var(--border); border-radius: 3px; cursor: pointer; color: var(--muted); background: transparent; transition: all 0.15s; }
   .type-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(110,158,200,0.1); }
 
   .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-
-  .btn-primary {
-    width: 100%; padding: 8px; font-family: var(--mono); font-size: 11px;
-    letter-spacing: 0.08em; background: rgba(110,158,200,0.12);
-    border: 1px solid var(--accent); border-radius: 4px; color: var(--accent);
-    cursor: pointer; transition: all 0.15s; margin-top: 4px;
-  }
+  .btn-primary { width: 100%; padding: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; background: rgba(110,158,200,0.12); border: 1px solid var(--accent); border-radius: 4px; color: var(--accent); cursor: pointer; transition: all 0.15s; margin-top: 4px; }
   .btn-primary:hover { background: rgba(110,158,200,0.22); }
   .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-
   .form-section { display: flex; flex-direction: column; gap: 4px; }
 
-  /* MAIN BOARD */
   .main { display: flex; flex-direction: column; min-height: 0; }
-
-  /* STATS BAR */
-  .statsbar {
-    display: flex; gap: 0; border-bottom: 1px solid var(--border);
-    background: var(--deep); flex-shrink: 0;
-  }
-  .stat-item {
-    flex: 1; padding: 10px 16px; border-right: 1px solid var(--border);
-    text-align: center;
-  }
+  .statsbar { display: flex; gap: 0; border-bottom: 1px solid var(--border); background: var(--deep); flex-shrink: 0; }
+  .stat-item { flex: 1; padding: 10px 16px; border-right: 1px solid var(--border); text-align: center; }
   .stat-item:last-child { border-right: none; }
   .stat-val { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--accent); }
   .stat-lbl { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
 
-  /* FILTER BAR */
-  .filterbar {
-    display: flex; gap: 8px; padding: 8px 12px;
-    border-bottom: 1px solid var(--border); background: var(--panel);
-    align-items: center; flex-shrink: 0; flex-wrap: wrap;
-  }
+  .filterbar { display: flex; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--panel); align-items: center; flex-shrink: 0; flex-wrap: wrap; }
   .filter-lbl { font-family: var(--mono); font-size: 10px; color: var(--muted); }
-  .filter-chip {
-    padding: 3px 10px; font-family: var(--mono); font-size: 10px;
-    border: 1px solid var(--border); border-radius: 3px; cursor: pointer;
-    color: var(--muted); background: transparent; transition: all 0.15s;
-  }
+  .filter-chip { padding: 3px 10px; font-family: var(--mono); font-size: 10px; border: 1px solid var(--border); border-radius: 3px; cursor: pointer; color: var(--muted); background: transparent; transition: all 0.15s; }
   .filter-chip.active { border-color: var(--accent); color: var(--accent); }
   .filter-sep { width: 1px; height: 16px; background: var(--border); margin: 0 4px; }
 
-  /* KANBAN BOARD */
   .board { flex: 1; overflow-x: auto; overflow-y: hidden; padding: 12px; }
   .columns { display: flex; gap: 10px; height: 100%; min-width: fit-content; }
   .col { width: 220px; display: flex; flex-direction: column; flex-shrink: 0; }
-  .col-head {
-    font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
-    text-transform: uppercase; padding: 6px 10px; border-radius: 4px 4px 0 0;
-    border: 1px solid var(--border); border-bottom: none; background: var(--panel);
-    display: flex; justify-content: space-between; align-items: center;
-  }
+  .col-head { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 10px; border-radius: 4px 4px 0 0; border: 1px solid var(--border); border-bottom: none; background: var(--panel); display: flex; justify-content: space-between; align-items: center; }
   .col-head.open { color: var(--muted); }
   .col-head.assigned { color: var(--accent); }
   .col-head.in-progress { color: var(--gold); }
@@ -151,18 +118,9 @@
   .col-head.closed { color: var(--purple); }
   .col-head.cancelled { color: var(--warn); }
   .col-count { font-size: 11px; opacity: 0.7; }
+  .col-body { flex: 1; border: 1px solid var(--border); border-radius: 0 0 4px 4px; background: var(--surface); padding: 6px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 
-  .col-body {
-    flex: 1; border: 1px solid var(--border); border-radius: 0 0 4px 4px;
-    background: var(--surface); padding: 6px; overflow-y: auto;
-    display: flex; flex-direction: column; gap: 6px;
-  }
-
-  .task-card {
-    background: var(--panel); border: 1px solid var(--border);
-    border-left: 3px solid; border-radius: 4px; padding: 8px 10px;
-    cursor: pointer; transition: border-color 0.15s;
-  }
+  .task-card { background: var(--panel); border: 1px solid var(--border); border-left: 3px solid; border-radius: 4px; padding: 8px 10px; cursor: pointer; transition: border-color 0.15s; }
   .task-card:hover { border-color: var(--accent); border-left-color: inherit; }
   .task-card[data-track="tool"] { border-left-color: var(--track-tool); }
   .task-card[data-track="research"] { border-left-color: var(--track-research); }
@@ -170,40 +128,24 @@
 
   .card-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; line-height: 1.3; }
   .card-meta { display: flex; gap: 6px; flex-wrap: wrap; }
-  .card-chip {
-    font-family: var(--mono); font-size: 9px; padding: 1px 5px;
-    border-radius: 2px; border: 1px solid;
-  }
+  .card-chip { font-family: var(--mono); font-size: 9px; padding: 1px 5px; border-radius: 2px; border: 1px solid; }
   .card-chip.type { border-color: rgba(110,158,200,0.3); color: var(--accent); }
   .card-chip.track-tool { border-color: rgba(110,158,200,0.3); color: var(--track-tool); }
   .card-chip.track-research { border-color: rgba(156,142,200,0.3); color: var(--track-research); }
   .card-chip.track-creative { border-color: rgba(200,169,110,0.3); color: var(--track-creative); }
   .card-chip.exp { border-color: rgba(126,200,110,0.3); color: var(--signal); }
   .card-chip.agent { border-color: rgba(200,169,110,0.3); color: var(--gold); }
-
   .empty-col { font-family: var(--mono); font-size: 10px; color: var(--border); text-align: center; padding: 20px 0; }
 
-  /* OVERLAY */
-  .overlay {
-    position: fixed; inset: 0; background: rgba(5,5,7,0.85);
-    z-index: 50; display: none; align-items: center; justify-content: center;
-  }
+  .overlay { position: fixed; inset: 0; background: rgba(5,5,7,0.85); z-index: 200; display: none; align-items: center; justify-content: center; }
   .overlay.open { display: flex; }
-  .overlay-panel {
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 8px; width: 480px; max-height: 90vh;
-    overflow-y: auto; padding: 24px;
-  }
+  .overlay-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; width: 480px; max-height: 90vh; overflow-y: auto; padding: 24px; }
   .ov-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
   .ov-title { font-family: var(--display); font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.2; max-width: 360px; }
   .ov-close { background: none; border: 1px solid var(--border); border-radius: 4px; color: var(--muted); cursor: pointer; padding: 4px 8px; font-family: var(--mono); font-size: 11px; }
   .ov-close:hover { border-color: var(--warn); color: var(--warn); }
-
   .ov-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
-  .ov-chip {
-    font-family: var(--mono); font-size: 10px; padding: 3px 8px;
-    border-radius: 3px; border: 1px solid;
-  }
+  .ov-chip { font-family: var(--mono); font-size: 10px; padding: 3px 8px; border-radius: 3px; border: 1px solid; }
   .ov-chip.status-open { border-color: var(--border); color: var(--muted); }
   .ov-chip.status-assigned { border-color: rgba(110,158,200,0.4); color: var(--accent); }
   .ov-chip.status-in_progress { border-color: rgba(200,169,110,0.4); color: var(--gold); }
@@ -214,37 +156,21 @@
   .ov-chip.track-research { border-color: rgba(156,142,200,0.4); color: var(--track-research); }
   .ov-chip.track-creative { border-color: rgba(200,169,110,0.4); color: var(--track-creative); }
   .ov-chip.type { border-color: rgba(110,158,200,0.3); color: var(--accent); }
-
   .ov-section { margin-bottom: 14px; }
   .ov-section-lbl { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
   .ov-section-val { font-size: 13px; color: var(--text); line-height: 1.5; }
-
   .ov-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
   .ov-stat { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px; text-align: center; }
   .ov-stat-val { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--signal); }
   .ov-stat-lbl { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
-
   .ov-deliverable-wrap { margin-bottom: 14px; }
-  .ov-deliverable {
-    width: 100%; background: var(--surface); border: 1px solid var(--border);
-    border-radius: 4px; padding: 8px; color: var(--text);
-    font-family: var(--mono); font-size: 12px; resize: vertical; min-height: 64px;
-  }
+  .ov-deliverable { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 8px; color: var(--text); font-family: var(--mono); font-size: 12px; resize: vertical; min-height: 64px; }
   .ov-deliverable:focus { outline: none; border-color: var(--accent); }
-
   .ov-assign-wrap { display: flex; gap: 6px; margin-bottom: 14px; }
-  .ov-assign-input {
-    flex: 1; background: var(--surface); border: 1px solid var(--border);
-    border-radius: 4px; padding: 6px 8px; color: var(--text);
-    font-family: var(--mono); font-size: 12px;
-  }
+  .ov-assign-input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; color: var(--text); font-family: var(--mono); font-size: 12px; }
   .ov-assign-input:focus { outline: none; border-color: var(--accent); }
-
   .ov-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-  .ov-btn {
-    padding: 6px 14px; font-family: var(--mono); font-size: 11px;
-    border-radius: 4px; cursor: pointer; border: 1px solid; transition: all 0.15s;
-  }
+  .ov-btn { padding: 6px 14px; font-family: var(--mono); font-size: 11px; border-radius: 4px; cursor: pointer; border: 1px solid; transition: all 0.15s; }
   .ov-btn.assign { border-color: rgba(110,158,200,0.5); color: var(--accent); background: rgba(110,158,200,0.08); }
   .ov-btn.assign:hover { background: rgba(110,158,200,0.18); }
   .ov-btn.start { border-color: rgba(200,169,110,0.5); color: var(--gold); background: rgba(200,169,110,0.08); }
@@ -256,30 +182,63 @@
   .ov-btn.cancel { border-color: rgba(200,110,110,0.4); color: var(--warn); background: transparent; }
   .ov-btn.cancel:hover { background: rgba(200,110,110,0.1); }
   .ov-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
   .ov-msg { font-family: var(--mono); font-size: 11px; padding: 6px 10px; border-radius: 4px; margin-top: 8px; }
   .ov-msg.ok { background: rgba(126,200,110,0.1); border: 1px solid rgba(126,200,110,0.3); color: var(--signal); }
   .ov-msg.err { background: rgba(200,110,110,0.1); border: 1px solid rgba(200,110,110,0.3); color: var(--warn); }
   .hidden { display: none; }
 
-  /* TOAST */
-  .toast {
-    position: fixed; bottom: 20px; right: 20px; z-index: 100;
-    font-family: var(--mono); font-size: 11px; padding: 8px 16px;
-    border-radius: 4px; border: 1px solid var(--border); background: var(--panel);
-    color: var(--text); opacity: 0; transition: opacity 0.2s;
-    pointer-events: none;
-  }
+  .toast { position: fixed; bottom: 20px; right: 20px; z-index: 300; font-family: var(--mono); font-size: 11px; padding: 8px 16px; border-radius: 4px; border: 1px solid var(--border); background: var(--panel); color: var(--text); opacity: 0; transition: opacity 0.2s; pointer-events: none; }
   .toast.show { opacity: 1; }
   .toast.ok { border-color: rgba(126,200,110,0.4); color: var(--signal); }
   .toast.err { border-color: rgba(200,110,110,0.4); color: var(--warn); }
 
-  @media (max-width: 900px) {
-    .layout { grid-template-columns: 1fr; }
-    .sidebar { display: none; }
-    .columns { gap: 6px; }
-    .col { width: 180px; }
-  }
+  /* TEAM LAYOUT */
+  .layout-team { display: grid; grid-template-columns: 1fr 260px; flex: 1; min-height: 0; }
+  .slot-area { padding: 20px; overflow-y: auto; }
+  .slot-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .slot-title { font-size: 16px; font-weight: 700; }
+  .slot-actions { display: flex; gap: 6px; }
+  .slot-btn { padding: 5px 12px; font-family: var(--mono); font-size: 11px; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; }
+  .slot-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .slot-btn.launch { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+  .slots-container { display: flex; flex-direction: column; gap: 10px; }
+  .slot { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: grid; grid-template-columns: auto 1fr 1fr 1fr auto auto; gap: 10px; align-items: center; transition: border-color 0.15s; }
+  .slot:hover { border-color: rgba(196,146,58,0.3); }
+  .slot.slot-role-primary { border-left: 3px solid var(--gold); }
+  .slot.slot-role-secondary { border-left: 3px solid var(--blue); }
+  .slot-number { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--muted); width: 28px; text-align: center; }
+  .slot.slot-role-primary .slot-number { color: var(--gold); }
+  .slot.slot-role-secondary .slot-number { color: var(--blue); }
+  .badge-zone { min-height: 44px; border: 1px dashed var(--border); border-radius: 6px; display: flex; align-items: center; justify-content: center; padding: 4px 8px; transition: all 0.15s; position: relative; }
+  .badge-zone:hover { border-color: rgba(196,146,58,0.3); }
+  .badge-zone.drag-over { border-color: var(--gold); background: rgba(196,146,58,0.06); border-style: solid; }
+  .badge-zone.has-badge { border-style: solid; }
+  .badge-zone-label { font-family: var(--mono); font-size: 9px; color: rgba(138,138,168,0.5); letter-spacing: 0.08em; position: absolute; top: 2px; left: 6px; pointer-events: none; }
+  .badge { padding: 4px 10px; border-radius: 4px; font-family: var(--mono); font-size: 11px; cursor: grab; user-select: none; display: flex; align-items: center; gap: 5px; white-space: nowrap; transition: transform 0.1s; }
+  .badge:hover { transform: scale(1.03); }
+  .badge.dragging { opacity: 0.4; }
+  .badge.badge-system { background: rgba(110,158,200,0.15); border: 1px solid rgba(110,158,200,0.4); color: var(--blue); }
+  .badge.badge-agent { background: rgba(126,200,110,0.12); border: 1px solid rgba(126,200,110,0.35); color: var(--green); }
+  .badge.badge-doc { background: rgba(196,146,58,0.12); border: 1px solid rgba(196,146,58,0.35); color: var(--gold); }
+  .badge.badge-persona { background: rgba(156,142,200,0.12); border: 1px solid rgba(156,142,200,0.35); color: var(--purple); }
+  .badge.badge-team { background: rgba(200,200,200,0.1); border: 1px solid rgba(200,200,200,0.25); color: #ccc; }
+  .badge-icon { font-size: 12px; }
+  .badge-remove { cursor: pointer; opacity: 0.5; font-size: 10px; margin-left: 4px; }
+  .badge-remove:hover { opacity: 1; color: var(--red); }
+  .role-toggle { display: flex; gap: 2px; }
+  .role-btn { padding: 4px 8px; font-family: var(--mono); font-size: 10px; border: 1px solid var(--border); border-radius: 3px; background: transparent; color: var(--muted); cursor: pointer; }
+  .role-btn.active-primary { border-color: var(--gold); color: var(--gold); background: rgba(196,146,58,0.08); }
+  .role-btn.active-secondary { border-color: var(--blue); color: var(--blue); background: rgba(110,158,200,0.08); }
+  .seq-input { width: 36px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; color: var(--gold); font-family: var(--mono); font-size: 14px; text-align: center; padding: 4px; }
+  .seq-input:focus { border-color: var(--gold); outline: none; }
+  .seq-label { font-family: var(--mono); font-size: 9px; color: var(--muted); text-align: center; }
+  .drawer { background: var(--deep); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .drawer-tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .drawer-tab { flex: 1; padding: 8px 4px; font-family: var(--mono); font-size: 10px; color: var(--muted); text-align: center; cursor: pointer; border-bottom: 2px solid transparent; letter-spacing: 0.06em; }
+  .drawer-tab:hover { color: var(--text); }
+  .drawer-tab.active { border-bottom-color: var(--gold); color: var(--gold); }
+  .drawer-content { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .empty-slot-hint { font-family: var(--mono); font-size: 10px; color: rgba(138,138,168,0.4); }
 </style>
 <script src="/assets/_nav.js"></script>
 </head>
@@ -288,7 +247,7 @@
 <nav>
   <a href="/" class="nav-mark">CIVI<em>TAE</em></a>
   <div class="nav-links">
-    <a href="/missions">Missions</a>
+    <a href="/missions" class="active">Missions</a>
     <a href="/helpwanted">Hiring</a>
     <a href="/kassa">KA&#167;&#167;A</a>
     <a href="/deploy">Deploy</a>
@@ -300,290 +259,224 @@
   </div>
 </nav>
 
-<div class="layout">
+<!-- VIEW TOGGLE -->
+<div class="view-toggle">
+  <button class="view-tab active" id="tab-detail" onclick="switchView('detail')">
+    DETAIL <span class="vt-sub">solo</span>
+  </button>
+  <div class="view-divider"></div>
+  <button class="view-tab" id="tab-team" onclick="switchView('team')">
+    TEAM <span class="vt-sub">squad</span>
+  </button>
+</div>
 
-  <!-- LEFT SIDEBAR: CREATE MISSION -->
-  <div class="sidebar">
-    <div class="sidebar-title">+ New Mission</div>
-
-    <div class="form-section">
-      <div class="form-label">Title</div>
-      <input type="text" class="form-input" id="f-title" placeholder="Mission name...">
-    </div>
-
-    <div class="form-section">
-      <div class="form-label">Track</div>
-      <div class="track-tabs">
-        <button class="track-tab active" data-track="tool">TOOL</button>
-        <button class="track-tab" data-track="research">RESEARCH</button>
-        <button class="track-tab" data-track="creative">CREATIVE</button>
-      </div>
-      <input type="hidden" id="f-track" value="tool">
-    </div>
-
-    <div class="form-section">
-      <div class="form-label">Type</div>
-      <div class="type-chips" id="type-chips">
-        <button class="type-chip active" data-type="build">BUILD</button>
-        <button class="type-chip" data-type="collect">COLLECT</button>
-        <button class="type-chip" data-type="acquire">ACQUIRE</button>
-        <button class="type-chip" data-type="research">RESEARCH</button>
-        <button class="type-chip" data-type="verify">VERIFY</button>
-        <button class="type-chip" data-type="create">CREATE</button>
-        <button class="type-chip" data-type="scout">SCOUT</button>
-        <button class="type-chip" data-type="guard">GUARD</button>
-      </div>
-      <input type="hidden" id="f-type" value="build">
-    </div>
-
-    <div class="form-section">
-      <div class="form-label">Objective</div>
-      <textarea class="form-input" id="f-objective" rows="3" placeholder="What needs to be done..."></textarea>
-    </div>
-
-    <div class="form-section">
-      <div class="form-label">Target</div>
-      <input type="text" class="form-input" id="f-target" placeholder="URL, repo, system...">
-    </div>
-
-    <div class="row-2">
+<!-- DETAIL VIEW -->
+<div id="view-detail" class="view active">
+  <div class="layout-detail">
+    <div class="sidebar">
+      <div class="sidebar-title">+ New Mission</div>
       <div class="form-section">
-        <div class="form-label">EXP Reward</div>
-        <input type="number" class="form-input" id="f-exp" placeholder="auto" min="0">
+        <div class="form-label">Title</div>
+        <input type="text" class="form-input" id="f-title" placeholder="Mission name...">
       </div>
       <div class="form-section">
-        <div class="form-label">Payout (gems)</div>
-        <input type="number" class="form-input" id="f-payout" placeholder="0.00" min="0" step="0.01">
-      </div>
-    </div>
-
-    <div class="form-section">
-      <div class="form-label">Campaign ID (optional)</div>
-      <input type="text" class="form-input" id="f-campaign" placeholder="camp-...">
-    </div>
-
-    <div class="form-section">
-      <div class="form-label">Operation ID (optional)</div>
-      <input type="text" class="form-input" id="f-operation" placeholder="op-...">
-    </div>
-
-    <div class="form-section">
-      <div class="form-label">Created By</div>
-      <input type="text" class="form-input" id="f-creator" placeholder="agent-id or name">
-    </div>
-
-    <button class="btn-primary" id="btn-create">ISSUE MISSION</button>
-    <div id="create-msg" class="ov-msg hidden"></div>
-  </div>
-
-  <!-- MAIN: KANBAN BOARD -->
-  <div class="main">
-
-    <!-- STATS BAR -->
-    <div class="statsbar">
-      <div class="stat-item">
-        <div class="stat-val" id="s-open">0</div>
-        <div class="stat-lbl">Open</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-val" id="s-active">0</div>
-        <div class="stat-lbl">Active</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-val" id="s-delivered">0</div>
-        <div class="stat-lbl">Delivered</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-val" id="s-closed">0</div>
-        <div class="stat-lbl">Closed</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-val" id="s-exp">0</div>
-        <div class="stat-lbl">Total EXP Awarded</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-val" id="s-total">0</div>
-        <div class="stat-lbl">All Tasks</div>
-      </div>
-    </div>
-
-    <!-- FILTER BAR -->
-    <div class="filterbar">
-      <span class="filter-lbl">TRACK:</span>
-      <button class="filter-chip active" data-ftrack="all">ALL</button>
-      <button class="filter-chip" data-ftrack="tool" style="color:var(--track-tool)">TOOL</button>
-      <button class="filter-chip" data-ftrack="research" style="color:var(--track-research)">RESEARCH</button>
-      <button class="filter-chip" data-ftrack="creative" style="color:var(--track-creative)">CREATIVE</button>
-      <div class="filter-sep"></div>
-      <span class="filter-lbl">TYPE:</span>
-      <select id="filter-type" class="form-input" style="width:110px;padding:3px 6px;font-size:11px;">
-        <option value="">ALL TYPES</option>
-        <option value="build">BUILD</option>
-        <option value="collect">COLLECT</option>
-        <option value="acquire">ACQUIRE</option>
-        <option value="research">RESEARCH</option>
-        <option value="verify">VERIFY</option>
-        <option value="create">CREATE</option>
-        <option value="scout">SCOUT</option>
-        <option value="guard">GUARD</option>
-      </select>
-    </div>
-
-    <!-- KANBAN BOARD -->
-    <div class="board">
-      <div class="columns">
-        <div class="col">
-          <div class="col-head open">
-            <span>OPEN</span><span class="col-count" id="cnt-open">0</span>
-          </div>
-          <div class="col-body" id="col-open"></div>
+        <div class="form-label">Track</div>
+        <div class="track-tabs">
+          <button class="track-tab active" data-track="tool">TOOL</button>
+          <button class="track-tab" data-track="research">RESEARCH</button>
+          <button class="track-tab" data-track="creative">CREATIVE</button>
         </div>
-        <div class="col">
-          <div class="col-head assigned">
-            <span>ASSIGNED</span><span class="col-count" id="cnt-assigned">0</span>
-          </div>
-          <div class="col-body" id="col-assigned"></div>
+        <input type="hidden" id="f-track" value="tool">
+      </div>
+      <div class="form-section">
+        <div class="form-label">Type</div>
+        <div class="type-chips" id="type-chips">
+          <button class="type-chip active" data-type="build">BUILD</button>
+          <button class="type-chip" data-type="collect">COLLECT</button>
+          <button class="type-chip" data-type="acquire">ACQUIRE</button>
+          <button class="type-chip" data-type="research">RESEARCH</button>
+          <button class="type-chip" data-type="verify">VERIFY</button>
+          <button class="type-chip" data-type="create">CREATE</button>
+          <button class="type-chip" data-type="scout">SCOUT</button>
+          <button class="type-chip" data-type="guard">GUARD</button>
         </div>
-        <div class="col">
-          <div class="col-head in-progress">
-            <span>IN PROGRESS</span><span class="col-count" id="cnt-in_progress">0</span>
-          </div>
-          <div class="col-body" id="col-in_progress"></div>
+        <input type="hidden" id="f-type" value="build">
+      </div>
+      <div class="form-section">
+        <div class="form-label">Objective</div>
+        <textarea class="form-input" id="f-objective" rows="3" placeholder="What needs to be done..."></textarea>
+      </div>
+      <div class="form-section">
+        <div class="form-label">Target</div>
+        <input type="text" class="form-input" id="f-target" placeholder="URL, repo, system...">
+      </div>
+      <div class="row-2">
+        <div class="form-section">
+          <div class="form-label">EXP Reward</div>
+          <input type="number" class="form-input" id="f-exp" placeholder="auto" min="0">
         </div>
-        <div class="col">
-          <div class="col-head delivered">
-            <span>DELIVERED</span><span class="col-count" id="cnt-delivered">0</span>
-          </div>
-          <div class="col-body" id="col-delivered"></div>
+        <div class="form-section">
+          <div class="form-label">Payout (gems)</div>
+          <input type="number" class="form-input" id="f-payout" placeholder="0.00" min="0" step="0.01">
         </div>
-        <div class="col">
-          <div class="col-head closed">
-            <span>CLOSED</span><span class="col-count" id="cnt-closed">0</span>
-          </div>
-          <div class="col-body" id="col-closed"></div>
-        </div>
-        <div class="col">
-          <div class="col-head cancelled">
-            <span>CANCELLED</span><span class="col-count" id="cnt-cancelled">0</span>
-          </div>
-          <div class="col-body" id="col-cancelled"></div>
+      </div>
+      <div class="form-section">
+        <div class="form-label">Campaign ID (optional)</div>
+        <input type="text" class="form-input" id="f-campaign" placeholder="camp-...">
+      </div>
+      <div class="form-section">
+        <div class="form-label">Operation ID (optional)</div>
+        <input type="text" class="form-input" id="f-operation" placeholder="op-...">
+      </div>
+      <div class="form-section">
+        <div class="form-label">Created By</div>
+        <input type="text" class="form-input" id="f-creator" placeholder="agent-id or name">
+      </div>
+      <button class="btn-primary" id="btn-create">ISSUE MISSION</button>
+      <div id="create-msg" class="ov-msg hidden"></div>
+    </div>
+
+    <div class="main">
+      <div class="statsbar">
+        <div class="stat-item"><div class="stat-val" id="s-open">0</div><div class="stat-lbl">Open</div></div>
+        <div class="stat-item"><div class="stat-val" id="s-active">0</div><div class="stat-lbl">Active</div></div>
+        <div class="stat-item"><div class="stat-val" id="s-delivered">0</div><div class="stat-lbl">Delivered</div></div>
+        <div class="stat-item"><div class="stat-val" id="s-closed">0</div><div class="stat-lbl">Closed</div></div>
+        <div class="stat-item"><div class="stat-val" id="s-exp">0</div><div class="stat-lbl">Total EXP Awarded</div></div>
+        <div class="stat-item"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">All Tasks</div></div>
+      </div>
+      <div class="filterbar">
+        <span class="filter-lbl">TRACK:</span>
+        <button class="filter-chip active" data-ftrack="all">ALL</button>
+        <button class="filter-chip" data-ftrack="tool" style="color:var(--track-tool)">TOOL</button>
+        <button class="filter-chip" data-ftrack="research" style="color:var(--track-research)">RESEARCH</button>
+        <button class="filter-chip" data-ftrack="creative" style="color:var(--track-creative)">CREATIVE</button>
+        <div class="filter-sep"></div>
+        <span class="filter-lbl">TYPE:</span>
+        <select id="filter-type" class="form-input" style="width:110px;padding:3px 6px;font-size:11px;">
+          <option value="">ALL TYPES</option>
+          <option value="build">BUILD</option>
+          <option value="collect">COLLECT</option>
+          <option value="acquire">ACQUIRE</option>
+          <option value="research">RESEARCH</option>
+          <option value="verify">VERIFY</option>
+          <option value="create">CREATE</option>
+          <option value="scout">SCOUT</option>
+          <option value="guard">GUARD</option>
+        </select>
+      </div>
+      <div class="board">
+        <div class="columns">
+          <div class="col"><div class="col-head open"><span>OPEN</span><span class="col-count" id="cnt-open">0</span></div><div class="col-body" id="col-open"></div></div>
+          <div class="col"><div class="col-head assigned"><span>ASSIGNED</span><span class="col-count" id="cnt-assigned">0</span></div><div class="col-body" id="col-assigned"></div></div>
+          <div class="col"><div class="col-head in-progress"><span>IN PROGRESS</span><span class="col-count" id="cnt-in_progress">0</span></div><div class="col-body" id="col-in_progress"></div></div>
+          <div class="col"><div class="col-head delivered"><span>DELIVERED</span><span class="col-count" id="cnt-delivered">0</span></div><div class="col-body" id="col-delivered"></div></div>
+          <div class="col"><div class="col-head closed"><span>CLOSED</span><span class="col-count" id="cnt-closed">0</span></div><div class="col-body" id="col-closed"></div></div>
+          <div class="col"><div class="col-head cancelled"><span>CANCELLED</span><span class="col-count" id="cnt-cancelled">0</span></div><div class="col-body" id="col-cancelled"></div></div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- TASK DETAIL OVERLAY -->
+<!-- TEAM VIEW -->
+<div id="view-team" class="view">
+  <div class="layout-team">
+    <div class="slot-area">
+      <div class="slot-header">
+        <div class="slot-title">Operation Slots</div>
+        <div class="slot-actions">
+          <button class="slot-btn" onclick="addSlot()">+ ADD SLOT</button>
+          <button class="slot-btn" onclick="saveTeam()">SAVE AS TEAM</button>
+          <button class="slot-btn" onclick="loadTeam()">LOAD TEAM</button>
+          <button class="slot-btn launch" onclick="launchOp()">LAUNCH ⚡</button>
+        </div>
+      </div>
+      <div class="slots-container" id="slots-container"></div>
+    </div>
+    <div class="drawer">
+      <div class="drawer-tabs">
+        <div class="drawer-tab active" data-drawer="systems" onclick="showDrawer('systems')">SYS</div>
+        <div class="drawer-tab" data-drawer="agents" onclick="showDrawer('agents')">AGENTS</div>
+        <div class="drawer-tab" data-drawer="docs" onclick="showDrawer('docs')">DOCS</div>
+        <div class="drawer-tab" data-drawer="personas" onclick="showDrawer('personas')">PERSONA</div>
+        <div class="drawer-tab" data-drawer="teams" onclick="showDrawer('teams')">TEAMS</div>
+      </div>
+      <div class="drawer-content" id="drawer-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TASK OVERLAY -->
 <div class="overlay" id="overlay">
   <div class="overlay-panel">
     <div class="ov-header">
-      <div class="ov-title" id="ov-title">—</div>
+      <div class="ov-title" id="ov-title">-</div>
       <button class="ov-close" id="ov-close-btn">ESC</button>
     </div>
-
     <div class="ov-chips" id="ov-chips"></div>
-
     <div class="ov-grid">
-      <div class="ov-stat"><div class="ov-stat-val" id="ov-exp">—</div><div class="ov-stat-lbl">EXP</div></div>
-      <div class="ov-stat"><div class="ov-stat-val" id="ov-payout" style="color:var(--gold)">—</div><div class="ov-stat-lbl">Payout</div></div>
-      <div class="ov-stat"><div class="ov-stat-val" id="ov-agent" style="color:var(--muted);font-size:11px">—</div><div class="ov-stat-lbl">Agent</div></div>
+      <div class="ov-stat"><div class="ov-stat-val" id="ov-exp">-</div><div class="ov-stat-lbl">EXP</div></div>
+      <div class="ov-stat"><div class="ov-stat-val" id="ov-payout" style="color:var(--gold)">-</div><div class="ov-stat-lbl">Payout</div></div>
+      <div class="ov-stat"><div class="ov-stat-val" id="ov-agent" style="color:var(--muted);font-size:11px">-</div><div class="ov-stat-lbl">Agent</div></div>
     </div>
-
-    <div class="ov-section" id="ov-objective-wrap">
-      <div class="ov-section-lbl">Objective</div>
-      <div class="ov-section-val" id="ov-objective">—</div>
-    </div>
-
-    <div class="ov-section" id="ov-target-wrap">
-      <div class="ov-section-lbl">Target</div>
-      <div class="ov-section-val" id="ov-target">—</div>
-    </div>
-
-    <div class="ov-section" id="ov-ids-wrap">
-      <div class="ov-section-lbl">IDs</div>
-      <div class="ov-section-val" id="ov-ids" style="font-family:var(--mono);font-size:11px;color:var(--muted)">—</div>
-    </div>
-
-    <!-- ASSIGN -->
+    <div class="ov-section"><div class="ov-section-lbl">Objective</div><div class="ov-section-val" id="ov-objective">-</div></div>
+    <div class="ov-section"><div class="ov-section-lbl">Target</div><div class="ov-section-val" id="ov-target">-</div></div>
+    <div class="ov-section"><div class="ov-section-lbl">IDs</div><div class="ov-section-val" id="ov-ids" style="font-family:var(--mono);font-size:11px;color:var(--muted)">-</div></div>
     <div class="ov-assign-wrap" id="ov-assign-wrap">
       <input type="text" class="ov-assign-input" id="ov-assign-id" placeholder="Agent ID to assign...">
     </div>
-
-    <!-- DELIVERABLE -->
     <div class="ov-deliverable-wrap" id="ov-deliver-wrap">
       <div class="form-label" style="margin-bottom:4px">Deliverable</div>
       <textarea class="ov-deliverable" id="ov-deliverable" placeholder="Paste deliverable notes, links, or summary..."></textarea>
     </div>
-
-    <!-- ACTION BUTTONS -->
-    <div class="ov-actions" id="ov-actions">
+    <div class="ov-actions">
       <button class="ov-btn assign" id="ov-btn-assign">Assign</button>
       <button class="ov-btn start" id="ov-btn-start">Start</button>
       <button class="ov-btn deliver" id="ov-btn-deliver">Deliver</button>
       <button class="ov-btn close-task" id="ov-btn-close">Close + Award EXP</button>
       <button class="ov-btn cancel" id="ov-btn-cancel">Cancel</button>
     </div>
-
     <div id="ov-msg" class="ov-msg hidden"></div>
   </div>
 </div>
 
-<!-- TOAST -->
-<div class="toast" id="toast">—</div>
+<div class="toast" id="toast">-</div>
 
 <script>
-(function () {
+/* TAB SWITCHER */
+function switchView(v) {
+  ['detail','team'].forEach(function(id) {
+    document.getElementById('view-' + id).classList.toggle('active', v === id);
+    document.getElementById('tab-' + id).classList.toggle('active', v === id);
+  });
+  history.replaceState(null, '', location.pathname + (v === 'team' ? '#team' : ''));
+}
+if (location.hash === '#team') switchView('team');
+
+/* DETAIL VIEW JS */
+(function() {
   'use strict';
+  var BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:8000' : '';
+  var tasks = [], filterTrack = 'all', filterType = '', activeTask = null;
+  var overlay = document.getElementById('overlay');
+  var toast = document.getElementById('toast');
 
-  const BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-    ? 'http://localhost:8000' : '';
-
-  // ── State ────────────────────────────────────────────────────────────────
-  let tasks = [];
-  let filterTrack = 'all';
-  let filterType = '';
-  let activeTask = null;
-
-  // ── DOM refs ─────────────────────────────────────────────────────────────
-  const overlay = document.getElementById('overlay');
-  const toast   = document.getElementById('toast');
-
-  // ── Helpers ──────────────────────────────────────────────────────────────
   function showToast(msg, kind) {
     toast.textContent = msg;
     toast.className = 'toast show ' + (kind || '');
     setTimeout(function() { toast.className = 'toast'; }, 2800);
   }
-
-  function showOvMsg(msg, kind) {
-    var el = document.getElementById('ov-msg');
-    el.textContent = msg;
-    el.className = 'ov-msg ' + (kind || 'ok');
-  }
-
-  function hideOvMsg() {
-    var el = document.getElementById('ov-msg');
-    el.className = 'ov-msg hidden';
-  }
-
-  function showCreateMsg(msg, kind) {
-    var el = document.getElementById('create-msg');
-    el.textContent = msg;
-    el.className = 'ov-msg ' + (kind || 'ok');
-  }
-
-  function hideCreateMsg() {
-    document.getElementById('create-msg').className = 'ov-msg hidden';
-  }
+  function showOvMsg(msg, kind) { var el = document.getElementById('ov-msg'); el.textContent = msg; el.className = 'ov-msg ' + (kind || 'ok'); }
+  function hideOvMsg() { document.getElementById('ov-msg').className = 'ov-msg hidden'; }
+  function showCreateMsg(msg, kind) { var el = document.getElementById('create-msg'); el.textContent = msg; el.className = 'ov-msg ' + (kind || 'ok'); }
 
   async function apiCall(method, path, body) {
     var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
     if (body) opts.body = JSON.stringify(body);
-    var res = await fetch(BASE + path, opts);
-    return res.json();
+    return (await fetch(BASE + path, opts)).json();
   }
 
-  // ── Track tab selection ──────────────────────────────────────────────────
   document.querySelectorAll('.track-tab').forEach(function(btn) {
     btn.addEventListener('click', function() {
       document.querySelectorAll('.track-tab').forEach(function(b) { b.classList.remove('active'); });
@@ -591,8 +484,6 @@
       document.getElementById('f-track').value = btn.dataset.track;
     });
   });
-
-  // ── Type chip selection ──────────────────────────────────────────────────
   document.querySelectorAll('.type-chip').forEach(function(btn) {
     btn.addEventListener('click', function() {
       document.querySelectorAll('.type-chip').forEach(function(b) { b.classList.remove('active'); });
@@ -600,8 +491,6 @@
       document.getElementById('f-type').value = btn.dataset.type;
     });
   });
-
-  // ── Filter chips ─────────────────────────────────────────────────────────
   document.querySelectorAll('[data-ftrack]').forEach(function(btn) {
     btn.addEventListener('click', function() {
       document.querySelectorAll('[data-ftrack]').forEach(function(b) { b.classList.remove('active'); });
@@ -610,303 +499,299 @@
       renderBoard();
     });
   });
+  document.getElementById('filter-type').addEventListener('change', function(e) { filterType = e.target.value; renderBoard(); });
 
-  document.getElementById('filter-type').addEventListener('change', function(e) {
-    filterType = e.target.value;
-    renderBoard();
-  });
-
-  // ── Create mission ───────────────────────────────────────────────────────
   document.getElementById('btn-create').addEventListener('click', async function() {
     var title = document.getElementById('f-title').value.trim();
     if (!title) { showCreateMsg('Title is required.', 'err'); return; }
-
-    var payload = {
-      title: title,
-      track: document.getElementById('f-track').value,
-      type: document.getElementById('f-type').value,
-      objective: document.getElementById('f-objective').value.trim(),
-      target: document.getElementById('f-target').value.trim(),
-      created_by: document.getElementById('f-creator').value.trim() || 'console'
-    };
-
-    var expVal = document.getElementById('f-exp').value;
-    if (expVal) payload.exp_reward = parseInt(expVal, 10);
-
-    var payoutVal = document.getElementById('f-payout').value;
-    if (payoutVal) payload.payout = parseFloat(payoutVal);
-
-    var camp = document.getElementById('f-campaign').value.trim();
-    if (camp) payload.campaign_id = camp;
-
-    var op = document.getElementById('f-operation').value.trim();
-    if (op) payload.operation_id = op;
-
+    var payload = { title: title, track: document.getElementById('f-track').value, type: document.getElementById('f-type').value, objective: document.getElementById('f-objective').value.trim(), target: document.getElementById('f-target').value.trim(), created_by: document.getElementById('f-creator').value.trim() || 'console' };
+    var ev = document.getElementById('f-exp').value; if (ev) payload.exp_reward = parseInt(ev, 10);
+    var pv = document.getElementById('f-payout').value; if (pv) payload.payout = parseFloat(pv);
+    var cv = document.getElementById('f-campaign').value.trim(); if (cv) payload.campaign_id = cv;
+    var ov = document.getElementById('f-operation').value.trim(); if (ov) payload.operation_id = ov;
     try {
       var data = await apiCall('POST', '/api/tasks', payload);
-      if (data.id) {
-        showCreateMsg('Mission issued: ' + data.id, 'ok');
-        document.getElementById('f-title').value = '';
-        document.getElementById('f-objective').value = '';
-        document.getElementById('f-target').value = '';
-        document.getElementById('f-exp').value = '';
-        document.getElementById('f-payout').value = '';
-        await loadTasks();
-      } else {
-        showCreateMsg(data.error || 'Failed to issue mission.', 'err');
-      }
-    } catch (e) {
-      showCreateMsg('Server error.', 'err');
-    }
+      if (data.id) { showCreateMsg('Mission issued: ' + data.id, 'ok'); ['f-title','f-objective','f-target','f-exp','f-payout'].forEach(function(id) { document.getElementById(id).value = ''; }); await loadTasks(); }
+      else showCreateMsg(data.error || 'Failed.', 'err');
+    } catch(e) { showCreateMsg('Server error.', 'err'); }
   });
 
-  // ── Load tasks ───────────────────────────────────────────────────────────
   async function loadTasks() {
-    try {
-      var data = await apiCall('GET', '/api/tasks', null);
-      tasks = data.tasks || [];
-      renderStats();
-      renderBoard();
-    } catch (e) {
-      /* server may be offline */
-    }
+    try { var data = await apiCall('GET', '/api/tasks', null); tasks = data.tasks || []; renderStats(); renderBoard(); } catch(e) {}
   }
 
-  // ── Stats bar ─────────────────────────────────────────────────────────────
   function renderStats() {
-    var counts = { open: 0, active: 0, delivered: 0, closed: 0 };
-    var totalExp = 0;
+    var c = { open:0, active:0, delivered:0, closed:0 }, exp = 0;
     tasks.forEach(function(t) {
-      if (t.status === 'open') counts.open++;
-      if (t.status === 'assigned' || t.status === 'in_progress') counts.active++;
-      if (t.status === 'delivered') counts.delivered++;
-      if (t.status === 'closed') { counts.closed++; totalExp += (t.exp_reward || 0); }
+      if (t.status === 'open') c.open++;
+      if (t.status === 'assigned' || t.status === 'in_progress') c.active++;
+      if (t.status === 'delivered') c.delivered++;
+      if (t.status === 'closed') { c.closed++; exp += (t.exp_reward || 0); }
     });
-    document.getElementById('s-open').textContent = counts.open;
-    document.getElementById('s-active').textContent = counts.active;
-    document.getElementById('s-delivered').textContent = counts.delivered;
-    document.getElementById('s-closed').textContent = counts.closed;
-    document.getElementById('s-exp').textContent = totalExp;
+    document.getElementById('s-open').textContent = c.open;
+    document.getElementById('s-active').textContent = c.active;
+    document.getElementById('s-delivered').textContent = c.delivered;
+    document.getElementById('s-closed').textContent = c.closed;
+    document.getElementById('s-exp').textContent = exp;
     document.getElementById('s-total').textContent = tasks.length;
   }
 
-  // ── Render kanban board ──────────────────────────────────────────────────
-  var COLS = ['open', 'assigned', 'in_progress', 'delivered', 'closed', 'cancelled'];
+  var COLS = ['open','assigned','in_progress','delivered','closed','cancelled'];
 
-  function applyFilters(list) {
-    return list.filter(function(t) {
-      if (filterTrack !== 'all' && t.track !== filterTrack) return false;
-      if (filterType && t.type !== filterType) return false;
-      return true;
+  function renderBoard() {
+    var filtered = tasks.filter(function(t) { return (filterTrack === 'all' || t.track === filterTrack) && (!filterType || t.type === filterType); });
+    var byStatus = {}; COLS.forEach(function(s) { byStatus[s] = []; });
+    filtered.forEach(function(t) { var s = t.status || 'open'; if (byStatus[s]) byStatus[s].push(t); });
+    COLS.forEach(function(status) {
+      var col = document.getElementById('col-' + status), cnt = document.getElementById('cnt-' + status);
+      if (!col) return;
+      while (col.firstChild) col.removeChild(col.firstChild);
+      var list = byStatus[status] || [];
+      if (cnt) cnt.textContent = list.length;
+      if (!list.length) { var e = document.createElement('div'); e.className = 'empty-col'; e.textContent = 'empty'; col.appendChild(e); }
+      else list.forEach(function(task) { col.appendChild(makeCard(task)); });
     });
   }
 
   function makeCard(task) {
     var card = document.createElement('div');
-    card.className = 'task-card';
-    card.setAttribute('data-track', task.track || 'tool');
-    card.setAttribute('data-id', task.id);
-
-    var titleEl = document.createElement('div');
-    titleEl.className = 'card-title';
-    titleEl.textContent = task.title;
-    card.appendChild(titleEl);
-
-    var meta = document.createElement('div');
-    meta.className = 'card-meta';
-
-    if (task.type) {
-      var typeChip = document.createElement('span');
-      typeChip.className = 'card-chip type';
-      typeChip.textContent = task.type.toUpperCase();
-      meta.appendChild(typeChip);
-    }
-
-    if (task.track) {
-      var trackChip = document.createElement('span');
-      trackChip.className = 'card-chip track-' + task.track;
-      trackChip.textContent = task.track.toUpperCase();
-      meta.appendChild(trackChip);
-    }
-
-    if (task.exp_reward) {
-      var expChip = document.createElement('span');
-      expChip.className = 'card-chip exp';
-      expChip.textContent = task.exp_reward + ' EXP';
-      meta.appendChild(expChip);
-    }
-
-    if (task.assigned_agent) {
-      var agentChip = document.createElement('span');
-      agentChip.className = 'card-chip agent';
-      agentChip.textContent = task.assigned_agent;
-      meta.appendChild(agentChip);
-    }
-
-    card.appendChild(meta);
-
-    card.addEventListener('click', function() {
-      openDetail(task);
-    });
-
+    card.className = 'task-card'; card.dataset.track = task.track || 'tool'; card.dataset.id = task.id;
+    var t = document.createElement('div'); t.className = 'card-title'; t.textContent = task.title; card.appendChild(t);
+    var m = document.createElement('div'); m.className = 'card-meta';
+    if (task.type) { var c = document.createElement('span'); c.className = 'card-chip type'; c.textContent = task.type.toUpperCase(); m.appendChild(c); }
+    if (task.track) { var c = document.createElement('span'); c.className = 'card-chip track-' + task.track; c.textContent = task.track.toUpperCase(); m.appendChild(c); }
+    if (task.exp_reward) { var c = document.createElement('span'); c.className = 'card-chip exp'; c.textContent = task.exp_reward + ' EXP'; m.appendChild(c); }
+    if (task.assigned_agent) { var c = document.createElement('span'); c.className = 'card-chip agent'; c.textContent = task.assigned_agent; m.appendChild(c); }
+    card.appendChild(m);
+    card.addEventListener('click', function() { openDetail(task); });
     return card;
   }
 
-  function renderBoard() {
-    var filtered = applyFilters(tasks);
-    var byStatus = {};
-    COLS.forEach(function(s) { byStatus[s] = []; });
-
-    filtered.forEach(function(t) {
-      var s = t.status || 'open';
-      if (byStatus[s]) byStatus[s].push(t);
-    });
-
-    COLS.forEach(function(status) {
-      var col = document.getElementById('col-' + status);
-      var cnt = document.getElementById('cnt-' + status);
-      if (!col) return;
-
-      while (col.firstChild) col.removeChild(col.firstChild);
-
-      var list = byStatus[status] || [];
-      if (cnt) cnt.textContent = list.length;
-
-      if (list.length === 0) {
-        var empty = document.createElement('div');
-        empty.className = 'empty-col';
-        empty.textContent = 'empty';
-        col.appendChild(empty);
-      } else {
-        list.forEach(function(task) {
-          col.appendChild(makeCard(task));
-        });
-      }
-    });
-  }
-
-  // ── Detail overlay ───────────────────────────────────────────────────────
-  function makeChip(text, cls) {
-    var chip = document.createElement('span');
-    chip.className = 'ov-chip ' + cls;
-    chip.textContent = text;
-    return chip;
-  }
-
   function openDetail(task) {
-    activeTask = task;
-    hideOvMsg();
-
-    document.getElementById('ov-title').textContent = task.title || '—';
-    document.getElementById('ov-exp').textContent = task.exp_reward != null ? task.exp_reward : '—';
+    activeTask = task; hideOvMsg();
+    document.getElementById('ov-title').textContent = task.title || '-';
+    document.getElementById('ov-exp').textContent = task.exp_reward != null ? task.exp_reward : '-';
     document.getElementById('ov-payout').textContent = task.payout ? task.payout.toFixed(2) : '0.00';
     document.getElementById('ov-agent').textContent = task.assigned_agent || 'unassigned';
-    document.getElementById('ov-objective').textContent = task.objective || '—';
-    document.getElementById('ov-target').textContent = task.target || '—';
-
-    var idsEl = document.getElementById('ov-ids');
-    var idParts = [task.id];
-    if (task.campaign_id) idParts.push('camp: ' + task.campaign_id);
-    if (task.operation_id) idParts.push('op: ' + task.operation_id);
-    idsEl.textContent = idParts.join('  ·  ');
-
-    var chips = document.getElementById('ov-chips');
-    while (chips.firstChild) chips.removeChild(chips.firstChild);
-    chips.appendChild(makeChip(task.status || 'open', 'status-' + (task.status || 'open')));
-    if (task.track) chips.appendChild(makeChip(task.track.toUpperCase(), 'track-' + task.track));
-    if (task.type) chips.appendChild(makeChip(task.type.toUpperCase(), 'type'));
-
+    document.getElementById('ov-objective').textContent = task.objective || '-';
+    document.getElementById('ov-target').textContent = task.target || '-';
+    var parts = [task.id]; if (task.campaign_id) parts.push('camp: ' + task.campaign_id); if (task.operation_id) parts.push('op: ' + task.operation_id);
+    document.getElementById('ov-ids').textContent = parts.join('  -  ');
+    var chips = document.getElementById('ov-chips'); while (chips.firstChild) chips.removeChild(chips.firstChild);
+    function mkChip(txt, cls) { var c = document.createElement('span'); c.className = 'ov-chip ' + cls; c.textContent = txt; return c; }
+    chips.appendChild(mkChip(task.status || 'open', 'status-' + (task.status || 'open')));
+    if (task.track) chips.appendChild(mkChip(task.track.toUpperCase(), 'track-' + task.track));
+    if (task.type) chips.appendChild(mkChip(task.type.toUpperCase(), 'type'));
     document.getElementById('ov-deliverable').value = task.deliverable || '';
     document.getElementById('ov-assign-id').value = task.assigned_agent || '';
-
-    updateOverlayButtons(task.status);
-    overlay.classList.add('open');
+    updateBtns(task.status); overlay.classList.add('open');
   }
 
-  function updateOverlayButtons(status) {
-    var canAssign   = status === 'open';
-    var canStart    = status === 'assigned';
-    var canDeliver  = status === 'in_progress';
-    var canClose    = status === 'delivered';
-    var canCancel   = status !== 'closed' && status !== 'cancelled';
-
-    document.getElementById('ov-btn-assign').disabled  = !canAssign;
-    document.getElementById('ov-btn-start').disabled   = !canStart;
-    document.getElementById('ov-btn-deliver').disabled = !canDeliver;
-    document.getElementById('ov-btn-close').disabled   = !canClose;
-    document.getElementById('ov-btn-cancel').disabled  = !canCancel;
-
-    document.getElementById('ov-assign-wrap').style.display   = canAssign  ? 'flex'  : 'none';
-    document.getElementById('ov-deliver-wrap').style.display  = canDeliver ? 'block' : 'none';
+  function updateBtns(s) {
+    var canA = s==='open', canSt = s==='assigned', canD = s==='in_progress', canC = s==='delivered', canX = s!=='closed'&&s!=='cancelled';
+    document.getElementById('ov-btn-assign').disabled = !canA;
+    document.getElementById('ov-btn-start').disabled = !canSt;
+    document.getElementById('ov-btn-deliver').disabled = !canD;
+    document.getElementById('ov-btn-close').disabled = !canC;
+    document.getElementById('ov-btn-cancel').disabled = !canX;
+    document.getElementById('ov-assign-wrap').style.display = canA ? 'flex' : 'none';
+    document.getElementById('ov-deliver-wrap').style.display = canD ? 'block' : 'none';
   }
 
-  // Close overlay
-  document.getElementById('ov-close-btn').addEventListener('click', function() {
-    overlay.classList.remove('open');
-    activeTask = null;
-  });
-  overlay.addEventListener('click', function(e) {
-    if (e.target === overlay) { overlay.classList.remove('open'); activeTask = null; }
-  });
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') { overlay.classList.remove('open'); activeTask = null; }
-  });
+  document.getElementById('ov-close-btn').addEventListener('click', function() { overlay.classList.remove('open'); activeTask = null; });
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) { overlay.classList.remove('open'); activeTask = null; } });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { overlay.classList.remove('open'); activeTask = null; } });
 
-  // ── Action buttons ───────────────────────────────────────────────────────
-  async function performAction(endpoint, body) {
-    if (!activeTask) return;
-    hideOvMsg();
+  async function doAction(ep, body) {
+    if (!activeTask) return; hideOvMsg();
     try {
-      var data = await apiCall('POST', '/api/tasks/' + activeTask.id + '/' + endpoint, body || {});
-      if (data.error) {
-        showOvMsg(data.error, 'err');
-      } else {
-        var updated = data.task || data;
-        showOvMsg('Updated: ' + (updated.status || 'done'), 'ok');
-        showToast('Task updated → ' + (updated.status || endpoint), 'ok');
+      var data = await apiCall('POST', '/api/tasks/' + activeTask.id + '/' + ep, body || {});
+      if (data.error) showOvMsg(data.error, 'err');
+      else {
+        var u = data.task || data; showOvMsg('Updated: ' + (u.status || 'done'), 'ok'); showToast('Task -> ' + (u.status || ep), 'ok');
         await loadTasks();
-        if (activeTask) {
-          var refreshed = tasks.find(function(t) { return t.id === activeTask.id; });
-          if (refreshed) {
-            activeTask = refreshed;
-            updateOverlayButtons(refreshed.status);
-            document.getElementById('ov-agent').textContent = refreshed.assigned_agent || 'unassigned';
-          }
-        }
+        if (activeTask) { var r = tasks.find(function(t) { return t.id === activeTask.id; }); if (r) { activeTask = r; updateBtns(r.status); document.getElementById('ov-agent').textContent = r.assigned_agent || 'unassigned'; } }
       }
-    } catch (e) {
-      showOvMsg('Server error.', 'err');
-    }
+    } catch(e) { showOvMsg('Server error.', 'err'); }
   }
 
-  document.getElementById('ov-btn-assign').addEventListener('click', function() {
-    var agentId = document.getElementById('ov-assign-id').value.trim();
-    if (!agentId) { showOvMsg('Enter an agent ID.', 'err'); return; }
-    performAction('assign', { agent_id: agentId });
+  document.getElementById('ov-btn-assign').addEventListener('click', function() { var id = document.getElementById('ov-assign-id').value.trim(); if (!id) { showOvMsg('Enter agent ID.', 'err'); return; } doAction('assign', { agent_id: id }); });
+  document.getElementById('ov-btn-start').addEventListener('click', function() { doAction('start', {}); });
+  document.getElementById('ov-btn-deliver').addEventListener('click', function() { doAction('deliver', { deliverable: document.getElementById('ov-deliverable').value.trim() }); });
+  document.getElementById('ov-btn-close').addEventListener('click', function() { doAction('close', {}); });
+  document.getElementById('ov-btn-cancel').addEventListener('click', function() { if (!confirm('Cancel?')) return; doAction('cancel', {}); });
+
+  loadTasks(); setInterval(loadTasks, 10000);
+})();
+
+/* TEAM VIEW JS */
+var slots = [], slotCounter = 0, teams = {}, dragBadge = null, activeDrawer = 'systems';
+
+var SYSTEMS = [
+  { id:'claude', name:'Claude', provider:'Anthropic', icon:'◆' },
+  { id:'gpt', name:'GPT-4o', provider:'OpenAI', icon:'◆' },
+  { id:'gemini', name:'Gemini', provider:'Google', icon:'◆' },
+  { id:'grok', name:'Grok', provider:'xAI', icon:'◆' },
+  { id:'deepseek', name:'DeepSeek', provider:'DeepSeek', icon:'◆' },
+];
+var AGENTS = [
+  { id:'recon', name:'Recon Agent', type:'research', icon:'⚡' },
+  { id:'intake', name:'Intake Processor', type:'data', icon:'⚡' },
+  { id:'builder', name:'Builder Agent', type:'code', icon:'⚡' },
+  { id:'outreach', name:'Outreach Agent', type:'signal', icon:'⚡' },
+  { id:'ops', name:'Ops Agent', type:'tracking', icon:'⚡' },
+];
+var DOCS = [
+  { id:'burner-init', name:'BURNER-INIT-v2.md', icon:'◇' },
+  { id:'signal-comp', name:'SIGNAL-COMPRESSION-v1.md', icon:'◇' },
+  { id:'security-proto', name:'Security Protocol v3', icon:'◇' },
+  { id:'audit-req', name:'Audit Requirements', icon:'◇' },
+];
+var PERSONAS = [
+  { id:'analyst', name:'The Analyst', style:'Precise, data-driven', icon:'◉' },
+  { id:'skeptic', name:'The Skeptic', style:'Adversarial', icon:'◉' },
+  { id:'advocate', name:'The Advocate', style:'Constructive', icon:'◉' },
+  { id:'strategist', name:'The Strategist', style:'Big picture', icon:'◉' },
+  { id:'operator', name:'Luthen', style:'Direct, signal-oriented', icon:'◉' },
+];
+
+function addSlot() {
+  slotCounter++;
+  slots.push({ id:'slot-'+slotCounter, num:slotCounter, role: slotCounter===1?'primary':'secondary', seq:slotCounter, system:null, doc:null, persona:null });
+  renderSlots();
+}
+function removeSlot(idx) { slots.splice(idx, 1); renderSlots(); }
+function setRole(idx, role) { slots[idx].role = role; renderSlots(); }
+function setSeq(idx, val) { slots[idx].seq = parseInt(val) || 1; }
+
+function renderSlots() {
+  var container = document.getElementById('slots-container');
+  if (!slots.length) {
+    container.textContent = '';
+    var hint = document.createElement('div');
+    hint.style.cssText = 'text-align:center;padding:40px;color:var(--muted);font-family:var(--mono);font-size:12px;';
+    hint.textContent = 'No slots configured. Click + ADD SLOT to begin.';
+    container.appendChild(hint);
+    return;
+  }
+  container.textContent = '';
+  slots.forEach(function(s, idx) {
+    var row = document.createElement('div');
+    row.className = 'slot ' + (s.role==='primary' ? 'slot-role-primary' : 'slot-role-secondary');
+
+    var num = document.createElement('div'); num.className = 'slot-number'; num.textContent = idx + 1; row.appendChild(num);
+
+    function makeZone(field, label, badgeType) {
+      var zone = document.createElement('div');
+      zone.className = 'badge-zone' + (s[field] ? ' has-badge' : '');
+      zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.classList.add('drag-over'); });
+      zone.addEventListener('dragleave', function() { zone.classList.remove('drag-over'); });
+      zone.addEventListener('drop', function(e) {
+        e.preventDefault(); zone.classList.remove('drag-over');
+        if (!dragBadge) return;
+        if (field === 'system' && (dragBadge.badgeType === 'system' || dragBadge.badgeType === 'agent')) {
+          slots[idx].system = dragBadge.data;
+          if (dragBadge.badgeType === 'agent') slots[idx].system.type = 'agent';
+        } else if (field === 'doc' && dragBadge.badgeType === 'doc') {
+          slots[idx].doc = dragBadge.data;
+        } else if (field === 'persona' && dragBadge.badgeType === 'persona') {
+          slots[idx].persona = dragBadge.data;
+        }
+        renderSlots();
+      });
+      var lbl = document.createElement('div'); lbl.className = 'badge-zone-label'; lbl.textContent = label; zone.appendChild(lbl);
+      if (s[field]) {
+        var cls = field === 'system' ? (s[field].type === 'agent' ? 'badge-agent' : 'badge-system') : 'badge-' + field;
+        var b = document.createElement('div'); b.className = 'badge ' + cls;
+        var ico = document.createElement('span'); ico.className = 'badge-icon'; ico.textContent = s[field].icon || '◆'; b.appendChild(ico);
+        b.appendChild(document.createTextNode(s[field].name));
+        var rm = document.createElement('span'); rm.className = 'badge-remove'; rm.textContent = '✕';
+        rm.addEventListener('click', function() { slots[idx][field] = null; renderSlots(); });
+        b.appendChild(rm); zone.appendChild(b);
+      } else {
+        var hint = document.createElement('span'); hint.className = 'empty-slot-hint'; hint.textContent = 'drop ' + label.toLowerCase(); zone.appendChild(hint);
+      }
+      return zone;
+    }
+
+    row.appendChild(makeZone('system', 'SYSTEM / AGENT', 'system'));
+    row.appendChild(makeZone('doc', 'DOC', 'doc'));
+    row.appendChild(makeZone('persona', 'PERSONA', 'persona'));
+
+    var ctrl = document.createElement('div'); ctrl.style.textAlign = 'center';
+    var rt = document.createElement('div'); rt.className = 'role-toggle';
+    var pb = document.createElement('button'); pb.className = 'role-btn ' + (s.role==='primary'?'active-primary':''); pb.textContent = 'PRI'; pb.addEventListener('click', function() { setRole(idx, 'primary'); }); rt.appendChild(pb);
+    var sb = document.createElement('button'); sb.className = 'role-btn ' + (s.role==='secondary'?'active-secondary':''); sb.textContent = 'SEC'; sb.addEventListener('click', function() { setRole(idx, 'secondary'); }); rt.appendChild(sb);
+    ctrl.appendChild(rt);
+    var sl = document.createElement('div'); sl.className = 'seq-label'; sl.textContent = 'SEQ'; ctrl.appendChild(sl);
+    var si = document.createElement('input'); si.className = 'seq-input'; si.type = 'number'; si.min = '1'; si.max = '9'; si.value = s.seq; si.addEventListener('change', function() { setSeq(idx, si.value); }); ctrl.appendChild(si);
+    row.appendChild(ctrl);
+
+    var rm = document.createElement('div'); rm.style.cssText = 'cursor:pointer;color:var(--muted);font-size:14px;opacity:0.4;'; rm.textContent = '✕'; rm.title = 'Remove slot'; rm.addEventListener('click', function() { removeSlot(idx); }); row.appendChild(rm);
+    container.appendChild(row);
   });
+}
 
-  document.getElementById('ov-btn-start').addEventListener('click', function() {
-    performAction('start', {});
+function showDrawer(tab) {
+  activeDrawer = tab;
+  document.querySelectorAll('.drawer-tab').forEach(function(t) { t.classList.toggle('active', t.dataset.drawer === tab); });
+  renderDrawer();
+}
+
+function renderDrawer() {
+  var el = document.getElementById('drawer-content');
+  el.textContent = '';
+  var items = [];
+  if (activeDrawer === 'systems') items = SYSTEMS.map(function(s) { return Object.assign({}, s, { badgeType:'system', cls:'badge-system' }); });
+  else if (activeDrawer === 'agents') items = AGENTS.map(function(a) { return Object.assign({}, a, { badgeType:'agent', cls:'badge-agent' }); });
+  else if (activeDrawer === 'docs') items = DOCS.map(function(d) { return Object.assign({}, d, { badgeType:'doc', cls:'badge-doc' }); });
+  else if (activeDrawer === 'personas') items = PERSONAS.map(function(p) { return Object.assign({}, p, { badgeType:'persona', cls:'badge-persona' }); });
+  else if (activeDrawer === 'teams') {
+    var names = Object.keys(teams);
+    if (!names.length) { var msg = document.createElement('div'); msg.style.cssText = 'font-family:var(--mono);font-size:10px;color:var(--muted);padding:8px;'; msg.textContent = 'No saved teams. Configure slots and click SAVE AS TEAM.'; el.appendChild(msg); return; }
+    names.forEach(function(name) { var b = document.createElement('div'); b.className = 'badge badge-team'; b.style.cursor = 'pointer'; b.addEventListener('click', function() { applyTeam(name); }); var ico = document.createElement('span'); ico.className = 'badge-icon'; ico.textContent = '▣'; b.appendChild(ico); b.appendChild(document.createTextNode(name)); el.appendChild(b); });
+    return;
+  }
+
+  items.forEach(function(item) {
+    var b = document.createElement('div'); b.className = 'badge ' + item.cls; b.draggable = true;
+    b.addEventListener('mousedown', function() { dragBadge = { badgeType: item.badgeType, data: item }; });
+    b.addEventListener('dragstart', function() { dragBadge = { badgeType: item.badgeType, data: item }; b.classList.add('dragging'); });
+    b.addEventListener('dragend', function() { b.classList.remove('dragging'); dragBadge = null; });
+    var ico = document.createElement('span'); ico.className = 'badge-icon'; ico.textContent = item.icon; b.appendChild(ico);
+    b.appendChild(document.createTextNode(item.name));
+    if (item.provider || item.style) { var sub = document.createElement('span'); sub.style.cssText = 'opacity:0.5;margin-left:4px;font-size:9px;'; sub.textContent = item.provider || item.style; b.appendChild(sub); }
+    el.appendChild(b);
   });
+}
 
-  document.getElementById('ov-btn-deliver').addEventListener('click', function() {
-    var deliverable = document.getElementById('ov-deliverable').value.trim();
-    performAction('deliver', { deliverable: deliverable });
-  });
+function saveTeam() { var n = prompt('Team name:'); if (!n) return; teams[n] = JSON.parse(JSON.stringify(slots)); alert('Saved: ' + n); }
+function loadTeam() { var ns = Object.keys(teams); if (!ns.length) { alert('No teams saved.'); return; } var n = prompt('Load: ' + ns.join(', ')); if (n && teams[n]) { slots = JSON.parse(JSON.stringify(teams[n])); slotCounter = slots.length; renderSlots(); } }
+function applyTeam(n) { if (teams[n]) { slots = JSON.parse(JSON.stringify(teams[n])); slotCounter = slots.length; renderSlots(); } }
 
-  document.getElementById('ov-btn-close').addEventListener('click', function() {
-    performAction('close', {});
-  });
+async function launchOp() {
+  var cfg = slots.filter(function(s) { return s.system; });
+  if (!cfg.length) { alert('Configure at least one slot.'); return; }
+  var label = prompt('Operation label:') || 'OP-' + Date.now().toString(36).toUpperCase();
+  var systems = {}, agents = {};
+  slots.forEach(function(s) { if (s.system) { if (s.system.type==='agent') agents[s.system.id]=true; else systems[s.system.id]=true; } });
+  var base = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? 'http://localhost:8000' : '';
+  await fetch(base + '/api/missions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ label, objective:'Slot-configured operation', posture:'DEFENSE', systems, agents, duration:'sprint' }) });
+  alert('Launched: ' + label);
+}
 
-  document.getElementById('ov-btn-cancel').addEventListener('click', function() {
-    if (!confirm('Cancel this mission?')) return;
-    performAction('cancel', {});
-  });
+addSlot(); addSlot(); addSlot();
+renderDrawer();
 
-  // ── Poll ──────────────────────────────────────────────────────────────────
-  loadTasks();
-  setInterval(loadTasks, 10000);
-
+(async function() {
+  try {
+    var base = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? 'http://localhost:8000' : '';
+    var res = await fetch(base + '/api/provision/registry', { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return;
+    var data = await res.json();
+    var live = (data.registry||[]).filter(function(r) { return r.type==='agent'&&r.status==='active'; }).map(function(r) { return { id:r.agent_id, name:r.name, type:r.role||'agent', icon:'⚡', _live:true }; });
+    if (live.length) { AGENTS.unshift.apply(AGENTS, live); if (activeDrawer==='agents') renderDrawer(); }
+  } catch(e) {}
 })();
 </script>
 </body>
