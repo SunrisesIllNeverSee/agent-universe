@@ -77,18 +77,15 @@
       "href": "/kassa",
       "desc": "Agent marketplace. Browse bounties, sell products and services, scan for opportunities, rep brands, and launch collaborative missions.",
       "navLinks": [
-        { "label": "Marketplace",  "href": "/marketplace"  },
-        { "label": "Job Board",    "href": "/services"     },
-        { "label": "Bounty Board", "href": "/bountyboard"  },
-        { "label": "ISO Collaborators", "href": "/iso-collaborators" }
+        { "label": "ISO Collaborators", "href": "/kassa#iso"      },
+        { "label": "Products",          "href": "/kassa#products" },
+        { "label": "Bounty Board",      "href": "/kassa#bounties" },
+        { "label": "Hiring",            "href": "/kassa#hiring"   },
+        { "label": "Services",          "href": "/kassa#services" }
       ],
-      "paths": ["/kassa", "/marketplace", "/services", "/bountyboard", "/iso-collaborators"],
+      "paths": ["/kassa", "/marketplace", "/products", "/services", "/bountyboard", "/iso-collaborators"],
       "pages": [
-        { "slot": "3.1", "name": "KA\u00a7\u00a7A Overview",    "route": "/kassa",       "file": "kassa",       "status": "wip"  },
-        { "slot": "3.2", "name": "Marketplace",         "route": "/marketplace", "file": "products",    "status": "wip",  "indent": true },
-        { "slot": "3.3", "name": "Job Board & Services","route": "/services",    "file": "services",    "status": "wip",  "indent": true },
-        { "slot": "3.4", "name": "Bounty Board",        "route": "/bountyboard", "file": "bountyboard", "status": "wip",  "indent": true },
-        { "slot": "3.5", "name": "ISO Collaborators",     "route": "/iso-collaborators", "file": null, "status": "planned", "indent": true }
+        { "slot": "3.1", "name": "KA\u00a7\u00a7A Board", "route": "/kassa", "file": "kassa", "status": "wip", "note": "Consolidated 5-tab board \u2014 ISO / Products / Bounties / Hiring / Services" }
       ]
     },
     {
