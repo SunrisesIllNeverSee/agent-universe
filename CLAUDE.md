@@ -110,11 +110,48 @@ python run.py
 
 ---
 
-*Last updated: 2026-03-21*
+*Last updated: 2026-03-24*
 
 ## Active Technologies
-- HTML5, CSS3, Vanilla JavaScript (ES2022) — no transpiler + None. Zero npm. Zero build pipeline. (001-civitae-full-build)
-- None (static). All data is embedded JS constants per-page. (001-civitae-full-build)
+- HTML5, CSS3, Vanilla JavaScript (ES2022) — no transpiler. Zero npm. Zero build pipeline.
+- FastAPI + WebSocket backend on :8300
+- Static files served from `frontend/` via `/assets/*` mount
+
+## Frontend Conventions
+
+### Global Nav
+- `frontend/_nav.js` — single source of truth for site-wide navigation
+- Served at `/assets/_nav.js`
+- Injected via `<script src="/assets/_nav.js"></script>` in `</head>` of every content page
+- Fixed-viewport pages (console, deploy, campaign, world) have their OWN topbar — do NOT inject `_nav.js` there, they are in the SKIP list
+- To add/change nav links: edit `NAV_LINKS` in `_nav.js` only
+- `activeFor` array on each link handles sub-page highlighting (e.g. COMMAND stays gold on /console, /deploy, /campaign)
+
+### Sitemap as Communication Layer
+- `frontend/sitemap.html` is the shared source of truth between sessions
+- **Always update `SESSION_LOG`** at the top of the PAGES block when anything changes
+- **Always add `note:`** to a page entry when it is built or rebuilt
+- Served at `/sitemap` — open this first when resuming a session
+- Status values: `live` (green), `wip` (amber), `empty` (red), `planned` (purple), `admin` (blue)
+
+### Console (slot 2.2 — `/console`)
+- File: `frontend/console.html` — CIVITAE-native operator cockpit. ~1000 lines.
+- 3-panel grid: INTEL (governance state) | OPS (missions/slots/seeds/feed) | CONFIG (controls)
+- Bottom: message input bar (posts to `/api/message`, echoes to feed)
+- Bottom ticker: live audit event scroll
+- Has its own topbar with CIVITAE dropdown — do NOT inject `_nav.js`
+- DO NOT replace with or copy from `personal-command/frontend/index.html` — that is the private personal console, a completely different product
+
+### Layer Numbering
+- Dot notation: 1.1, 1.2 … 2.1, 2.2 … 5.16
+- Layer 1: Civitae (world view, orientation)
+- Layer 2: COMMAND (governance tooling)
+- Layer 3: KA§§A (marketplace)
+- Layer 4: SigArena (eval, ranking)
+- Layer 5: Civitas Infrastructure (governance, economy, forums, academics)
 
 ## Recent Changes
-- 001-civitae-full-build: Added HTML5, CSS3, Vanilla JavaScript (ES2022) — no transpiler + None. Zero npm. Zero build pipeline.
+- 2026-03-24: Console (2.2) rebuilt as CIVITAE-native operator cockpit with message bar
+- 2026-03-24: Global nav `_nav.js` injected into 21 content pages
+- 2026-03-24: Sitemap restructured — dot notation, SESSION_LOG, per-entry notes
+- 2026-03-21: Full initial build — missions, deploy, campaign, kassa, governance, world, helpwanted

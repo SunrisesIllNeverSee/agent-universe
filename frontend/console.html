@@ -2,257 +2,1098 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>COMMAND Engine — powered by MO§ES™</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>COMMAND Console — CIVITAE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
 <style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #13131e;
-    --border: #1e1e2e;
-    --accent: #c8a96e;
-    --accent2: #6e9ec8;
-    --signal: #7ec86e;
-    --text: #d4d4e8;
-    --muted: #8a8aa8;
-    --mono: 'SF Mono', 'Consolas', monospace;
-    --body: system-ui, sans-serif;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--bg); color: var(--text); font-family: var(--body); height: 100vh; display: grid; grid-template-rows: 48px 1fr; }
+:root {
+  --bg:      #070809;
+  --surface: #0D1014;
+  --surface2:#111418;
+  --border:  #1A1D22;
+  --border2: #232830;
+  --text:    #D8DBE3;
+  --muted:   #5A6070;
+  --gold:    #C4923A;
+  --cmd:     #2A6FBF;
+  --green:   #3DAA6A;
+  --red:     #D84040;
+  --amber:   #D48C2E;
+  --mono:    'DM Mono', monospace;
+  --sans:    'DM Sans', sans-serif;
+  --display: 'Playfair Display', serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  display: grid;
+  grid-template-rows: 48px 1fr 28px;
+  grid-template-columns: 280px 1fr 260px;
+  grid-template-areas:
+    "topbar topbar topbar"
+    "intel  ops    config"
+    "ticker ticker ticker";
+}
 
-  .topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 20px; border-bottom: 1px solid var(--border); background: var(--bg);
-  }
-  .logo { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 0.12em; }
-  .logo span { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 8px; }
-  .status { font-family: var(--mono); font-size: 12px; color: var(--muted); }
-  .status.live { color: var(--signal); }
+/* ── Topbar ───────────────────────────────────────────────────────── */
+.topbar {
+  grid-area: topbar;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 0 0 16px;
+  gap: 0;
+  position: relative;
+  z-index: 200;
+}
 
-  .layout { display: grid; grid-template-columns: 280px 1fr 280px; min-height: 0; }
+/* CIVITAE dropdown trigger */
+.site-menu { position: relative; flex-shrink: 0; }
+.site-menu-btn {
+  background: none;
+  border: none;
+  font-family: var(--display);
+  color: var(--gold);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  padding: 0 12px 0 0;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: opacity 0.15s;
+}
+.site-menu-btn:hover { opacity: 0.8; }
+.site-menu-btn .chevron {
+  font-size: 0.55rem;
+  color: var(--muted);
+  transition: transform 0.2s;
+  line-height: 1;
+}
+.site-menu-btn.open .chevron { transform: rotate(180deg); }
 
-  .panel { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; padding: 12px; }
-  .panel:last-child { border-right: none; border-left: 1px solid var(--border); }
-  .panel-title { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.12em; margin-bottom: 12px; text-transform: uppercase; }
+/* Dropdown panel */
+.site-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 0;
+  width: 540px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-top: 2px solid var(--gold);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+  z-index: 999;
+  padding: 12px 0 8px;
+}
+.site-dropdown.open { display: block; }
+.dd-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.dd-col { padding: 0 16px 4px; }
+.dd-col + .dd-col { border-left: 1px solid var(--border); }
+.dd-layer {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+  padding: 8px 0 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.dd-layer:first-child { padding-top: 0; }
+.dd-link {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  text-decoration: none;
+  padding: 3px 0;
+  border-radius: 2px;
+  transition: background 0.1s;
+}
+.dd-link:hover .dd-name { color: var(--text); }
+.dd-slot { font-family: var(--mono); font-size: 0.56rem; color: var(--muted); width: 20px; flex-shrink: 0; text-align: right; }
+.dd-name { font-family: var(--sans); font-size: 0.72rem; color: var(--muted); transition: color 0.1s; }
+.dd-name.live { color: var(--text); }
+.dd-name.current { color: var(--gold); }
+.dd-footer {
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+  padding: 8px 16px 0;
+  display: flex;
+  justify-content: space-between;
+}
+.dd-footer a {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: 0.06em;
+  transition: color 0.15s;
+}
+.dd-footer a:hover { color: var(--gold); }
 
-  .chat { display: flex; flex-direction: column; min-height: 0; }
-  .messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-  .msg { padding: 10px 14px; border-radius: 8px; max-width: 80%; font-size: 14px; line-height: 1.5; }
-  .msg.user { align-self: flex-end; background: var(--surface); border: 1px solid var(--border); }
-  .msg.agent { align-self: flex-start; background: rgba(110,158,200,0.08); border: 1px solid rgba(110,158,200,0.2); }
-  .msg-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-  .msg-gov { font-family: var(--mono); font-size: 10px; color: var(--accent); margin-top: 4px; }
+/* Rest of topbar */
+.topbar-sep { color: var(--border2); font-size: 0.8rem; padding: 0 10px; }
+.topbar-product {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cmd);
+}
+.topbar-sub {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  padding-left: 10px;
+}
+.topbar-spacer { flex: 1; }
+.topbar-nav { display: flex; align-items: center; height: 100%; }
+.topbar-link {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 0 12px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  border-left: 1px solid var(--border);
+  transition: color 0.15s, background 0.15s;
+}
+.topbar-link:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+.ws-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: background 0.3s;
+  flex-shrink: 0;
+  margin-right: 14px;
+}
+.ws-dot.connected { background: var(--green); }
+.ws-dot.error     { background: var(--red); }
 
-  .input-area { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
-  .input-area input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-size: 14px; outline: none; }
-  .input-area input:focus { border-color: var(--accent); }
-  .input-area button { background: var(--accent); border: none; border-radius: 8px; padding: 10px 16px; color: var(--bg); font-weight: 600; cursor: pointer; }
+/* ── Panel base ────────────────────────────────────────────────────── */
+.panel {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+}
+.panel:last-of-type { border-right: none; }
+.panel-head {
+  flex-shrink: 0;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.panel-title {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.panel-badge {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+}
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
 
-  .gov-control { margin-bottom: 10px; }
-  .gov-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 4px; }
-  .gov-select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; color: var(--text); font-family: var(--mono); font-size: 12px; }
+/* ── INTEL panel ────────────────────────────────────────────────────── */
+.intel-panel { grid-area: intel; }
 
-  .sys-card { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; cursor: pointer; transition: all 0.15s; }
-  .sys-card:hover { border-color: var(--accent); }
-  .sys-card.active { border-color: var(--accent); background: rgba(200,169,110,0.06); }
-  .sys-name { font-family: var(--mono); font-size: 12px; color: var(--text); }
-  .sys-meta { font-family: var(--mono); font-size: 10px; color: var(--muted); }
-  .sys-toggle { float: right; width: 28px; height: 16px; background: var(--border); border-radius: 8px; position: relative; cursor: pointer; }
-  .sys-toggle.on { background: var(--accent); }
+.gov-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.gov-block-head {
+  padding: 6px 10px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.gov-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.72rem;
+}
+.gov-row:last-child { border-bottom: none; }
+.gov-key { color: var(--muted); font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.06em; }
+.gov-val {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--text);
+  text-align: right;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gov-val.active { color: var(--green); }
+.gov-val.gold   { color: var(--gold); }
+.gov-val.cmd    { color: var(--cmd); }
 
-  .audit-entry { font-family: var(--mono); font-size: 11px; color: var(--muted); padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
-  .audit-entry .time { color: var(--accent); }
+.ring-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+}
+.ring-circles { display: flex; gap: 4px; align-items: center; }
+.ring-c {
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  opacity: 0.35;
+  transition: opacity 0.3s, border-color 0.3s;
+}
+.ring-c.r3 { width: 36px; height: 36px; }
+.ring-c.r2 { width: 26px; height: 26px; }
+.ring-c.r1 { width: 18px; height: 18px; }
+.ring-c.r0 { width: 10px; height: 10px; }
+.ring-c.active { opacity: 1; border-color: var(--gold); }
+.ring-label { font-family: var(--mono); font-size: 0.62rem; color: var(--muted); }
 
-  .hash-display { font-family: var(--mono); font-size: 10px; color: var(--muted); word-break: break-all; padding: 8px; background: var(--bg); border-radius: 6px; margin-top: 8px; }
+.hash-chain { margin-bottom: 10px; }
+.hash-entry {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.6rem;
+}
+.hash-entry:last-child { border-bottom: none; }
+.hash-ts  { color: var(--muted); flex-shrink: 0; }
+.hash-ev  { color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hash-val { color: var(--cmd); flex-shrink: 0; }
 
-  @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } .panel { display: none; } }
+/* ── OPS panel ──────────────────────────────────────────────────────── */
+.ops-panel { grid-area: ops; background: var(--bg); }
+
+.tab-bar {
+  flex-shrink: 0;
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.tab-btn {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab-btn:hover  { color: var(--text); }
+.tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+.tab-pane { display: none; padding: 14px; height: 100%; overflow-y: auto; }
+.tab-pane.active { display: block; }
+.tab-content-area { flex: 1; overflow: hidden; position: relative; }
+
+.mission-card, .slot-card, .seed-card, .feed-entry {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+}
+.mission-card:hover, .slot-card:hover { border-color: var(--border2); }
+.card-id    { font-family: var(--mono); font-size: 0.6rem; color: var(--cmd); margin-bottom: 3px; }
+.card-title { font-weight: 600; font-size: 0.8rem; margin-bottom: 4px; }
+.card-meta  { font-family: var(--mono); font-size: 0.62rem; color: var(--muted); display: flex; gap: 10px; }
+.card-status { display: inline-block; font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em;
+  padding: 2px 6px; border-radius: 2px; text-transform: uppercase; }
+.status-active { background: rgba(61,170,106,0.15); color: var(--green); }
+.status-open   { background: rgba(42,111,191,0.15); color: var(--cmd); }
+.status-filled { background: rgba(196,146,58,0.12); color: var(--gold); }
+.status-closed { background: rgba(90,96,112,0.15); color: var(--muted); }
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+}
+
+.feed-entry {
+  border-left: 2px solid var(--border2);
+  border-radius: 0;
+  background: transparent;
+  padding: 4px 10px;
+  margin-bottom: 4px;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+.feed-ts   { color: var(--muted); flex-shrink: 0; }
+.feed-type { color: var(--cmd); flex-shrink: 0; width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.feed-msg  { color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Message bar ────────────────────────────────────────────────────── */
+.msg-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0;
+}
+.msg-prefix {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--cmd);
+  padding: 0 10px;
+  flex-shrink: 0;
+  user-select: none;
+}
+.msg-input {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  padding: 9px 0;
+  outline: none;
+  caret-color: var(--gold);
+}
+.msg-input::placeholder { color: var(--muted); }
+.msg-send {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  border-left: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0 12px;
+  height: 100%;
+  min-height: 36px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.msg-send:hover { color: var(--gold); background: rgba(196,146,58,0.06); }
+
+/* ── CONFIG panel ───────────────────────────────────────────────────── */
+.config-panel { grid-area: config; background: var(--surface); }
+
+.ctrl-block { margin-bottom: 14px; }
+.ctrl-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.ctrl-select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  padding: 5px 8px;
+  border-radius: 3px;
+  appearance: none;
+  cursor: pointer;
+}
+.ctrl-select:focus { outline: none; border-color: var(--cmd); }
+
+.apply-btn {
+  width: 100%;
+  background: var(--cmd);
+  border: none;
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 7px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: opacity 0.15s;
+}
+.apply-btn:hover { opacity: 0.85; }
+.apply-btn:active { opacity: 0.7; }
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.action-btn {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 7px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, color 0.15s;
+  text-decoration: none;
+  display: block;
+}
+.action-btn:hover { border-color: var(--gold); color: var(--gold); }
+.action-btn.seed  { border-color: var(--green); color: var(--green); }
+.action-btn.seed:hover { background: rgba(61,170,106,0.08); }
+
+.log-entry {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 6px;
+}
+.log-entry:last-child { border-bottom: none; }
+.log-ts  { flex-shrink: 0; }
+.log-msg { flex: 1; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log-ok  { color: var(--green); }
+.log-err { color: var(--red); }
+
+/* ── Ticker ─────────────────────────────────────────────────────────── */
+.ticker {
+  grid-area: ticker;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 0 12px;
+  gap: 16px;
+}
+.ticker-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  color: var(--gold);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.ticker-track {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+}
+.ticker-inner {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+  animation: scroll-left 40s linear infinite;
+}
+.ticker-inner span { color: var(--text); margin-right: 40px; }
+@keyframes scroll-left {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
 </style>
 </head>
 <body>
+
+<!-- ── Topbar ────────────────────────────────────────────────── -->
 <div class="topbar">
-  <div class="logo">COMMAND ENGINE <span>powered by MO§ES™</span></div>
-  <div class="status" id="status">connecting...</div>
+  <!-- Left: identity breadcrumb -->
+  <div style="display:flex;align-items:center;gap:10px;padding-left:16px;">
+    <a href="/" style="font-family:var(--display);color:var(--gold);font-size:0.95rem;letter-spacing:0.04em;text-decoration:none;">CIVITAE</a>
+    <span class="topbar-sep">›</span>
+    <div class="topbar-product">COMMAND</div>
+    <span class="topbar-sub">powered by MO§ES™</span>
+  </div>
+
+  <div class="topbar-spacer"></div>
+
+  <!-- Right: WS status + nav links -->
+  <div class="ws-dot" id="ws-dot" title="WebSocket"></div>
+  <div class="topbar-nav">
+    <a class="topbar-link" href="/missions">Missions</a>
+    <a class="topbar-link" href="/kassa">KA§§A</a>
+    <a class="topbar-link" href="/deploy">Deploy</a>
+    <a class="topbar-link" href="/governance">Governance</a>
+    <a class="topbar-link" href="/sitemap">Map</a>
+  </div>
 </div>
-<div class="layout">
-  <!-- Left: Governance -->
-  <div class="panel">
-    <div class="panel-title">Governance</div>
-    <div class="gov-control">
-      <div class="gov-label">MODE</div>
-      <select class="gov-select" id="gov-mode" onchange="setMode(this.value)">
-        <option value="">None (Unrestricted)</option>
-        <option value="High Security">High Security</option>
-        <option value="High Integrity">High Integrity</option>
-        <option value="Creative">Creative</option>
-        <option value="Research">Research</option>
-        <option value="Problem Solving">Problem Solving</option>
-      </select>
+
+<!-- ── INTEL ─────────────────────────────────────────────────── -->
+<div class="panel intel-panel">
+  <div class="panel-head">
+    <span class="panel-title">Intel</span>
+    <span class="panel-badge" id="intel-ts">--:--:--</span>
+  </div>
+  <div class="panel-body">
+
+    <!-- Governance state -->
+    <div class="gov-block">
+      <div class="gov-block-head">MO§ES™ Governance State</div>
+      <div class="gov-row"><span class="gov-key">MODE</span>    <span class="gov-val" id="g-mode">—</span></div>
+      <div class="gov-row"><span class="gov-key">POSTURE</span> <span class="gov-val" id="g-posture">—</span></div>
+      <div class="gov-row"><span class="gov-key">ROLE</span>    <span class="gov-val" id="g-role">—</span></div>
+      <div class="gov-row"><span class="gov-key">SEQUENCE</span><span class="gov-val" id="g-sequence">—</span></div>
+      <div class="gov-row"><span class="gov-key">SCOPE</span>   <span class="gov-val" id="g-scope">—</span></div>
+      <div class="gov-row"><span class="gov-key">TIER</span>    <span class="gov-val gold" id="g-tier">—</span></div>
+      <div class="gov-row"><span class="gov-key">STATUS</span>  <span class="gov-val active" id="g-status">—</span></div>
     </div>
-    <div class="gov-control">
-      <div class="gov-label">POSTURE</div>
-      <select class="gov-select" id="gov-posture" onchange="setPosture(this.value)">
-        <option value="SCOUT">SCOUT — gather only</option>
-        <option value="DEFENSE">DEFENSE — protect + confirm</option>
-        <option value="OFFENSE">OFFENSE — execute</option>
-      </select>
+
+    <!-- Ring position -->
+    <div class="gov-block">
+      <div class="gov-block-head">Ring Position</div>
+      <div class="ring-indicator">
+        <div class="ring-circles">
+          <div class="ring-c r3" id="ring-3" title="Ring 3 — Trial"></div>
+          <div class="ring-c r2" id="ring-2" title="Ring 2 — Governed"></div>
+          <div class="ring-c r1" id="ring-1" title="Ring 1 — Constitutional"></div>
+          <div class="ring-c r0" id="ring-0" title="Ring 0 — Free"></div>
+        </div>
+        <span class="ring-label" id="ring-label">—</span>
+      </div>
     </div>
-    <div class="gov-control">
-      <div class="gov-label">VAULT</div>
-      <div id="vault-list"></div>
+
+    <!-- Audit chain -->
+    <div class="gov-block">
+      <div class="gov-block-head">Recent Audit Chain</div>
+      <div class="gov-block-body" style="padding:8px 10px;">
+        <div class="hash-chain" id="hash-chain">
+          <div class="hash-entry">
+            <span class="hash-ts">—</span>
+            <span class="hash-ev">Awaiting connection</span>
+            <span class="hash-val">—</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="gov-control">
-      <div class="gov-label">HASHES</div>
-      <div class="hash-display" id="hashes">—</div>
+
+  </div>
+</div>
+
+<!-- ── OPS ───────────────────────────────────────────────────── -->
+<div class="panel ops-panel">
+  <div class="panel-head">
+    <span class="panel-title">Operations</span>
+    <span class="panel-badge" id="ops-count">—</span>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('missions')">Missions</button>
+    <button class="tab-btn"        onclick="switchTab('slots')">Slots</button>
+    <button class="tab-btn"        onclick="switchTab('seeds')">Seeds</button>
+    <button class="tab-btn"        onclick="switchTab('feed')">Live Feed</button>
+  </div>
+
+  <div class="tab-content-area" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+    <div class="tab-pane active" id="tab-missions" style="flex:1;overflow-y:auto;">
+      <div id="missions-list"><div class="empty-state">Loading missions...</div></div>
+    </div>
+    <div class="tab-pane" id="tab-slots" style="flex:1;overflow-y:auto;">
+      <div id="slots-list"><div class="empty-state">Loading slots...</div></div>
+    </div>
+    <div class="tab-pane" id="tab-seeds" style="flex:1;overflow-y:auto;">
+      <div id="seeds-list"><div class="empty-state">Seeds coming soon — Phase 1</div></div>
+    </div>
+    <div class="tab-pane" id="tab-feed" style="flex:1;overflow-y:auto;">
+      <div id="feed-list"><div class="empty-state">Waiting for events...</div></div>
     </div>
   </div>
 
-  <!-- Center: Chat -->
-  <div class="chat">
-    <div class="messages" id="messages"></div>
-    <div class="input-area">
-      <input id="msg-input" placeholder="Enter governed signal..." onkeydown="if(event.key==='Enter')sendMsg()">
-      <button onclick="sendMsg()">Send</button>
-    </div>
+  <!-- Message input bar -->
+  <div class="msg-bar">
+    <span class="msg-prefix">&gt;</span>
+    <input class="msg-input" id="msg-input" type="text" placeholder="Send message to agent / post to mission..."
+      autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')sendMessage()">
+    <button class="msg-send" onclick="sendMessage()">Send</button>
   </div>
+</div>
 
-  <!-- Right: Systems + Audit -->
-  <div class="panel">
-    <div class="panel-title">Systems</div>
-    <div id="systems-list"></div>
-    <div class="panel-title" style="margin-top:16px;">Audit Trail</div>
-    <div id="audit-list"></div>
+<!-- ── CONFIG ────────────────────────────────────────────────── -->
+<div class="panel config-panel">
+  <div class="panel-head">
+    <span class="panel-title">Config</span>
+    <span class="panel-badge" id="config-agent">—</span>
+  </div>
+  <div class="panel-body">
+
+    <!-- Governance controls -->
+    <div class="ctrl-block">
+      <div class="ctrl-label">Mode</div>
+      <select class="ctrl-select" id="ctrl-mode">
+        <option value="autonomous">Autonomous</option>
+        <option value="supervised">Supervised</option>
+        <option value="manual">Manual</option>
+        <option value="dormant">Dormant</option>
+      </select>
+    </div>
+    <div class="ctrl-block">
+      <div class="ctrl-label">Posture</div>
+      <select class="ctrl-select" id="ctrl-posture">
+        <option value="governed">Governed</option>
+        <option value="constitutional">Constitutional</option>
+        <option value="trial">Trial</option>
+        <option value="open">Open</option>
+      </select>
+    </div>
+    <div class="ctrl-block">
+      <div class="ctrl-label">Role</div>
+      <select class="ctrl-select" id="ctrl-role">
+        <option value="operator">Operator</option>
+        <option value="agent">Agent</option>
+        <option value="auditor">Auditor</option>
+        <option value="observer">Observer</option>
+      </select>
+    </div>
+    <button class="apply-btn" onclick="applyGovernance()">Apply Governance</button>
+
+    <div class="divider"></div>
+
+    <!-- Quick actions -->
+    <div class="ctrl-label" style="margin-bottom:8px;">Quick Actions</div>
+    <div class="action-grid">
+      <button class="action-btn" onclick="doHeartbeat()">Heartbeat</button>
+      <a      class="action-btn" href="/missions">Missions</a>
+      <button class="action-btn seed" onclick="plantSeed()">Plant Seed</button>
+      <a      class="action-btn" href="/deploy">Deploy</a>
+      <a      class="action-btn" href="/campaign">Campaign</a>
+      <a      class="action-btn" href="/governance">Governance</a>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Action log -->
+    <div class="ctrl-label" style="margin-bottom:6px;">Last Actions</div>
+    <div id="action-log">
+      <div class="log-entry"><span class="log-ts">—</span><span class="log-msg">No actions yet</span></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- System info -->
+    <div class="ctrl-label" style="margin-bottom:6px;">System</div>
+    <div class="gov-block" style="margin-bottom:0;">
+      <div class="gov-row"><span class="gov-key">BUILD</span>  <span class="gov-val cmd">2026-03-24</span></div>
+      <div class="gov-row"><span class="gov-key">ENGINE</span> <span class="gov-val">command-engine</span></div>
+      <div class="gov-row"><span class="gov-key">BACKEND</span><span class="gov-val">:8300</span></div>
+      <div class="gov-row"><span class="gov-key">WS</span>     <span class="gov-val" id="ws-status">—</span></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Ticker ────────────────────────────────────────────────── -->
+<div class="ticker">
+  <span class="ticker-label">Live</span>
+  <div class="ticker-track">
+    <div class="ticker-inner" id="ticker-inner">
+      <span>Connecting to CIVITAE...</span>
+      <span>Connecting to CIVITAE...</span>
+    </div>
   </div>
 </div>
 
 <script>
-const API = window.location.origin;
-let state = { governance: {}, systems: {}, messages: [], audit: [], vault: {}, loadedContext: [] };
+'use strict';
+const API = '';
+let ws = null;
+let actionLog = [];
+let feedEvents = [];
 
-async function init() {
-  try {
-    const snap = await fetch(API + '/api/state').then(r => r.json());
-    state = snap;
-    document.getElementById('status').textContent = 'LIVE';
-    document.getElementById('status').classList.add('live');
-    render();
-    connectWS();
-    setInterval(updateHashes, 5000);
-    updateHashes();
-  } catch(e) {
-    document.getElementById('status').textContent = 'offline';
+// ── WebSocket ─────────────────────────────────────────────────────────
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(proto + '://' + location.host + '/ws');
+
+  ws.onopen = function () {
+    setWS('connected');
+    logAction('WS connected', 'ok');
+  };
+
+  ws.onmessage = function (e) {
+    try {
+      const evt = JSON.parse(e.data);
+      if (evt.type === 'state_snapshot' && evt.payload && evt.payload.governance) {
+        updateGov(evt.payload.governance);
+      }
+      if (evt.type === 'audit_event' || evt.type === 'slot_filled' || evt.type === 'slot_left' ||
+          evt.type === 'mission_created' || evt.type === 'governance_updated') {
+        pushFeed(evt.type, evt.payload ? JSON.stringify(evt.payload).slice(0, 80) : '—');
+      }
+    } catch (_) {}
+  };
+
+  ws.onerror = function () { setWS('error'); };
+  ws.onclose = function () {
+    setWS('disconnected');
+    setTimeout(connectWS, 4000);
+  };
+}
+
+function setWS(state) {
+  const dot = document.getElementById('ws-dot');
+  const lbl = document.getElementById('ws-status');
+  dot.className = 'ws-dot ' + (state === 'connected' ? 'connected' : state === 'error' ? 'error' : '');
+  lbl.textContent = state;
+}
+
+// ── Load initial state ────────────────────────────────────────────────
+function init() {
+  fetch(API + '/api/state')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d.governance) updateGov(d.governance);
+    })
+    .catch(function () {});
+
+  loadMissions();
+  loadSlots();
+  loadAudit();
+  startClock();
+  connectWS();
+}
+
+// ── Governance ────────────────────────────────────────────────────────
+function updateGov(g) {
+  function set(id, val, cls) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = val || '—';
+    if (cls) el.className = 'gov-val ' + cls;
+  }
+  set('g-mode',     g.mode);
+  set('g-posture',  g.posture);
+  set('g-role',     g.role);
+  set('g-sequence', g.sequence);
+  set('g-scope',    g.scope);
+  set('g-tier',     g.tier,     'gold');
+  set('g-status',   g.status || 'active', 'active');
+  document.getElementById('config-agent').textContent = g.agent_id || 'Unknown';
+
+  // Sync selectors
+  syncSelect('ctrl-mode',    g.mode);
+  syncSelect('ctrl-posture', g.posture);
+  syncSelect('ctrl-role',    g.role);
+
+  // Ring position
+  updateRing(g.posture);
+
+  // Hash
+  if (g.last_hash) updateHash(g);
+}
+
+function syncSelect(id, val) {
+  const el = document.getElementById(id);
+  if (!el || !val) return;
+  for (let i = 0; i < el.options.length; i++) {
+    if (el.options[i].value === val.toLowerCase()) {
+      el.selectedIndex = i; break;
+    }
   }
 }
 
-function connectWS() {
-  const ws = new WebSocket((location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/ws');
-  ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
-    if (msg.type === 'message_added') {
-      state.recent_messages = state.recent_messages || [];
-      state.recent_messages.push(msg.payload);
-      renderMessages();
-    }
-    if (msg.type === 'governance_updated') { state.governance = msg.payload; renderGov(); }
-    if (msg.type === 'audit_event') { renderAudit(msg.payload); }
-  };
-  ws.onclose = () => setTimeout(connectWS, 3000);
-}
-
-function render() { renderGov(); renderSystems(); renderMessages(); renderVault(); }
-
-function renderGov() {
-  const g = state.governance || {};
-  document.getElementById('gov-mode').value = g.mode || '';
-  document.getElementById('gov-posture').value = g.posture || 'SCOUT';
-}
-
-function renderSystems() {
-  const el = document.getElementById('systems-list');
-  const configs = state.config_systems || [];
-  const runtimes = state.systems || {};
-  el.innerHTML = configs.map(s => {
-    const rt = runtimes[s.id] || {};
-    return `<div class="sys-card ${rt.active ? 'active' : ''}" onclick="toggleSys('${s.id}')">
-      <div class="sys-name">${s.name} ${rt.role && rt.role !== 'none' ? '<span style="color:var(--accent)">[' + rt.role.toUpperCase() + ']</span>' : ''}</div>
-      <div class="sys-meta">${s.provider} · ${s.codename}</div>
-    </div>`;
-  }).join('');
-}
-
-function renderMessages() {
-  const el = document.getElementById('messages');
-  const msgs = state.recent_messages || [];
-  el.innerHTML = msgs.map(m => {
-    const isUser = m.role_context === 'operator';
-    const gov = m.governance || {};
-    return `<div class="msg ${isUser ? 'user' : 'agent'}">
-      <div class="msg-meta">${m.sender.toUpperCase()} · ${new Date(m.timestamp).toLocaleTimeString()}</div>
-      ${m.text}
-      <div class="msg-gov">${gov.mode || 'unrestricted'} · ${gov.posture || 'SCOUT'}${m.vault_loaded?.length ? ' · ctx: ' + m.vault_loaded.join(', ') : ''}</div>
-    </div>`;
-  }).join('');
-  el.scrollTop = el.scrollHeight;
-}
-
-function renderVault() {
-  const el = document.getElementById('vault-list');
-  const vault = state.vault || {};
-  const loaded = state.loaded_context || [];
-  let html = '';
-  Object.entries(vault).forEach(([cat, files]) => {
-    files.forEach(f => {
-      const isLoaded = loaded.includes(f);
-      html += `<div style="font-family:var(--mono);font-size:11px;padding:3px 0;cursor:pointer;color:${isLoaded ? 'var(--signal)' : 'var(--muted)'}" onclick="toggleVault('${f}')">${isLoaded ? '✓' : '○'} ${f}</div>`;
-    });
+function updateRing(posture) {
+  const map = { constitutional: 1, governed: 2, trial: 3, open: 0 };
+  const ring = map[(posture || '').toLowerCase()];
+  const labels = { 0: 'Ring 0 — Free', 1: 'Ring 1 — Constitutional', 2: 'Ring 2 — Governed', 3: 'Ring 3 — Trial' };
+  ['ring-0','ring-1','ring-2','ring-3'].forEach(function (id) {
+    document.getElementById(id).classList.remove('active');
   });
-  el.innerHTML = html || '<div style="color:var(--muted);font-size:11px;">No vault documents</div>';
+  if (ring !== undefined) {
+    document.getElementById('ring-' + ring).classList.add('active');
+    document.getElementById('ring-label').textContent = labels[ring] || '—';
+  }
 }
 
-function renderAudit(event) {
-  const el = document.getElementById('audit-list');
-  const entry = `<div class="audit-entry"><span class="time">${new Date(event.timestamp).toLocaleTimeString()}</span> ${event.component}:${event.action}</div>`;
-  el.innerHTML = entry + el.innerHTML;
+function updateHash(g) {
+  const chain = document.getElementById('hash-chain');
+  const ts = new Date().toISOString().substr(11, 8);
+  const hash = (g.last_hash || '').substr(0, 8) + '…';
+  const row = document.createElement('div');
+  row.className = 'hash-entry';
+  const tsEl = document.createElement('span'); tsEl.className = 'hash-ts'; tsEl.textContent = ts;
+  const evEl = document.createElement('span'); evEl.className = 'hash-ev'; evEl.textContent = 'governance_sync';
+  const hEl  = document.createElement('span'); hEl.className  = 'hash-val'; hEl.textContent = hash;
+  row.appendChild(tsEl); row.appendChild(evEl); row.appendChild(hEl);
+  chain.insertBefore(row, chain.firstChild);
+  while (chain.children.length > 5) chain.removeChild(chain.lastChild);
 }
 
-async function updateHashes() {
-  try {
-    const h = await fetch(API + '/api/hash').then(r => r.json());
-    document.getElementById('hashes').textContent = `state: ${h.state_hash?.slice(0,16)}...\ncontent: ${h.content_hash?.slice(0,16)}...`;
-  } catch(e) {}
+// ── Missions ──────────────────────────────────────────────────────────
+function loadMissions() {
+  fetch(API + '/api/missions')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      const list = document.getElementById('missions-list');
+      const missions = data.missions || data || [];
+      if (!missions.length) {
+        list.innerHTML = '';
+        const emp = document.createElement('div');
+        emp.className = 'empty-state';
+        emp.textContent = 'No active missions';
+        list.appendChild(emp);
+        return;
+      }
+      list.innerHTML = '';
+      missions.forEach(function (m) {
+        const card = document.createElement('div');
+        card.className = 'mission-card';
+        const idEl = document.createElement('div'); idEl.className = 'card-id'; idEl.textContent = m.id || m.mission_id || '—';
+        const titleEl = document.createElement('div'); titleEl.className = 'card-title'; titleEl.textContent = m.name || m.title || '—';
+        const metaEl = document.createElement('div'); metaEl.className = 'card-meta';
+        const statusEl = document.createElement('span'); statusEl.className = 'card-status status-' + (m.status || 'open').toLowerCase();
+        statusEl.textContent = m.status || 'open';
+        metaEl.appendChild(statusEl);
+        card.appendChild(idEl); card.appendChild(titleEl); card.appendChild(metaEl);
+        list.appendChild(card);
+      });
+      document.getElementById('ops-count').textContent = missions.length + ' missions';
+    })
+    .catch(function () {
+      document.getElementById('missions-list').innerHTML = '';
+      const emp = document.createElement('div'); emp.className = 'empty-state'; emp.textContent = 'Backend offline';
+      document.getElementById('missions-list').appendChild(emp);
+    });
 }
 
-async function sendMsg() {
+// ── Slots ─────────────────────────────────────────────────────────────
+function loadSlots() {
+  fetch(API + '/api/slots')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      const list = document.getElementById('slots-list');
+      const slots = data.slots || data || [];
+      list.innerHTML = '';
+      if (!slots.length) {
+        const emp = document.createElement('div'); emp.className = 'empty-state'; emp.textContent = 'No slots';
+        list.appendChild(emp); return;
+      }
+      slots.forEach(function (s) {
+        const card = document.createElement('div');
+        card.className = 'slot-card';
+        const idEl = document.createElement('div'); idEl.className = 'card-id'; idEl.textContent = s.slot_id || s.id || '—';
+        const titleEl = document.createElement('div'); titleEl.className = 'card-title'; titleEl.textContent = s.role || s.title || '—';
+        const metaEl = document.createElement('div'); metaEl.className = 'card-meta';
+        const statusEl = document.createElement('span');
+        const st = (s.status || 'open').toLowerCase();
+        statusEl.className = 'card-status status-' + (st === 'filled' ? 'filled' : st === 'active' ? 'active' : 'open');
+        statusEl.textContent = s.status || 'open';
+        metaEl.appendChild(statusEl);
+        card.appendChild(idEl); card.appendChild(titleEl); card.appendChild(metaEl);
+        list.appendChild(card);
+      });
+    })
+    .catch(function () {});
+}
+
+// ── Audit / Feed ──────────────────────────────────────────────────────
+function loadAudit() {
+  fetch(API + '/api/audit')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      const events = data.events || data || [];
+      events.slice(-20).reverse().forEach(function (ev) {
+        pushFeed(ev.type || ev.event_type || 'event', ev.message || ev.summary || JSON.stringify(ev).slice(0, 60));
+      });
+    })
+    .catch(function () {});
+}
+
+function pushFeed(type, msg) {
+  const ts = new Date().toISOString().substr(11, 8);
+  feedEvents.unshift({ ts: ts, type: type, msg: msg });
+  if (feedEvents.length > 50) feedEvents.pop();
+  renderFeed();
+  updateTicker();
+}
+
+function renderFeed() {
+  const list = document.getElementById('feed-list');
+  list.innerHTML = '';
+  if (!feedEvents.length) {
+    const emp = document.createElement('div'); emp.className = 'empty-state'; emp.textContent = 'No events';
+    list.appendChild(emp); return;
+  }
+  feedEvents.forEach(function (ev) {
+    const row = document.createElement('div'); row.className = 'feed-entry';
+    const tsEl   = document.createElement('span'); tsEl.className   = 'feed-ts';   tsEl.textContent = ev.ts;
+    const typeEl = document.createElement('span'); typeEl.className = 'feed-type'; typeEl.textContent = ev.type;
+    const msgEl  = document.createElement('span'); msgEl.className  = 'feed-msg';  msgEl.textContent = ev.msg;
+    row.appendChild(tsEl); row.appendChild(typeEl); row.appendChild(msgEl);
+    list.appendChild(row);
+  });
+}
+
+function updateTicker() {
+  const inner = document.getElementById('ticker-inner');
+  const recent = feedEvents.slice(0, 6);
+  inner.innerHTML = '';
+  recent.concat(recent).forEach(function (ev) {
+    const s = document.createElement('span');
+    s.textContent = ev.ts + ' · ' + ev.type + ' · ' + ev.msg;
+    inner.appendChild(s);
+  });
+}
+
+// ── Governance apply ──────────────────────────────────────────────────
+function applyGovernance() {
+  const payload = {
+    mode:    document.getElementById('ctrl-mode').value,
+    posture: document.getElementById('ctrl-posture').value,
+    role:    document.getElementById('ctrl-role').value,
+  };
+  fetch(API + '/api/governance', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      logAction('Governance applied — ' + payload.posture, 'ok');
+      if (d.governance) updateGov(d.governance);
+    })
+    .catch(function () { logAction('Governance apply failed', 'err'); });
+}
+
+// ── Quick actions ─────────────────────────────────────────────────────
+function doHeartbeat() {
+  fetch(API + '/api/heartbeat', { method: 'POST' })
+    .then(function (r) { return r.json(); })
+    .then(function () { logAction('Heartbeat sent', 'ok'); })
+    .catch(function () { logAction('Heartbeat failed', 'err'); });
+}
+
+function plantSeed() {
+  logAction('Seeds — Phase 1 (coming soon)', 'ok');
+}
+
+// ── Action log ────────────────────────────────────────────────────────
+function logAction(msg, state) {
+  const ts = new Date().toISOString().substr(11, 8);
+  actionLog.unshift({ ts: ts, msg: msg, state: state });
+  if (actionLog.length > 6) actionLog.pop();
+  const el = document.getElementById('action-log');
+  el.innerHTML = '';
+  actionLog.forEach(function (entry) {
+    const row = document.createElement('div'); row.className = 'log-entry';
+    const tsEl  = document.createElement('span'); tsEl.className  = 'log-ts';  tsEl.textContent = entry.ts;
+    const msgEl = document.createElement('span'); msgEl.className = 'log-msg ' + (entry.state === 'ok' ? 'log-ok' : entry.state === 'err' ? 'log-err' : '');
+    msgEl.textContent = entry.msg;
+    row.appendChild(tsEl); row.appendChild(msgEl);
+    el.appendChild(row);
+  });
+}
+
+// ── Tab switch ────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(function (b, i) {
+    const names = ['missions','slots','seeds','feed'];
+    b.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-pane').forEach(function (p) {
+    p.classList.remove('active');
+  });
+  const pane = document.getElementById('tab-' + name);
+  if (pane) pane.classList.add('active');
+}
+
+// ── Clock ─────────────────────────────────────────────────────────────
+function startClock() {
+  function tick() {
+    const t = new Date().toISOString().substr(11, 8);
+    const el = document.getElementById('intel-ts');
+    if (el) el.textContent = t;
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ── Send message ─────────────────────────────────────────────────────
+function sendMessage() {
   const input = document.getElementById('msg-input');
-  const text = input.value.trim();
+  const text = (input.value || '').trim();
   if (!text) return;
-  await fetch(API + '/api/messages', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({sender:'operator',text}) });
   input.value = '';
+
+  // Echo immediately into feed
+  pushFeed('operator_msg', text);
+  logAction('Sent: ' + text.slice(0, 40), 'ok');
+
+  // Switch to feed tab so user sees it
+  switchTab('feed');
+
+  // Post to backend
+  fetch(API + '/api/message', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: text, source: 'operator', timestamp: new Date().toISOString() }),
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d.reply) pushFeed('agent_reply', d.reply);
+    })
+    .catch(function () {
+      // Backend may not have /api/message yet — message still echoed locally
+    });
 }
 
-async function setMode(val) {
-  await fetch(API + '/api/governance', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({mode: val || 'None (Unrestricted)'}) });
-}
-
-async function setPosture(val) {
-  await fetch(API + '/api/governance', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({posture: val}) });
-}
-
-async function toggleSys(id) {
-  const rt = state.systems[id] || {};
-  await fetch(API + '/api/systems', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({system_id: id, active: !rt.active, role: rt.active ? 'none' : 'secondary'}) });
-  const snap = await fetch(API + '/api/state').then(r => r.json());
-  state.systems = snap.systems;
-  renderSystems();
-}
-
-async function toggleVault(file) {
-  const loaded = (state.loaded_context || []).includes(file);
-  const result = await fetch(API + (loaded ? '/api/vault/unload' : '/api/vault/load'), { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({file}) }).then(r => r.json());
-  state.loaded_context = result.loaded_context || [];
-  renderVault();
-}
-
-init();
+// ── Boot ──────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>

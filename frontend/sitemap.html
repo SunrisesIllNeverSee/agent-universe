@@ -215,6 +215,7 @@
   <span class="topbar-title">CIVITAE</span>
   <span class="topbar-sub">Site Editor</span>
   <div class="spacer"></div>
+  <a href="/civitae-roadmap" class="btn" style="text-decoration:none" target="_blank">⎇ Branch Map</a>
   <button class="btn" onclick="openLive()">↗ Open Live</button>
   <button class="btn" id="html-toggle-btn" onclick="toggleEditor()">⟨/⟩ HTML</button>
   <button class="btn primary" id="preview-edited-btn" onclick="previewEdited()" style="display:none">▶ Preview Edits</button>
@@ -256,103 +257,143 @@
 </div>
 
 <script>
-// ── Page registry ─────────────────────────────────────────────────────────────
-const PAGES = [
-  // ── Layer 1 — World ────────────────────────────────────────────────────────
-  { section: 'Layer 1 — World' },
-  { slot: 1, route: '/',          file: 'kingdoms',  name: 'CIVITAE',         status: 'wip'  },
-  { slot: 2, route: '/3d',        file: 'world',     name: '3D',              status: 'live', indent: true },
-  { slot: 3, route: '/civitas',   file: 'civitas',   name: 'About',           status: 'empty', indent: true },
-  { slot: 4, route: '/dashboard', file: 'dashboard', name: 'Dashboard',       status: 'wip'  },
-  { slot: 6, route: '/missions',  file: 'index',     name: 'Mission Console', status: 'live' },
+// ── Page data loaded from /api/pages (single source of truth) ─────────────────
+let STATUS_COLOR = { live: '#3DAA6A', wip: '#D48C2E', empty: '#D84040', admin: '#3A7FC4', planned: '#5a4f7a' };
 
-  // ── Layer 3A — Products / Tools ────────────────────────────────────────────
-  { section: 'Layer 3A — Products / Tools' },
+function pagesFromData(data) {
+  STATUS_COLOR = data.statusColors || STATUS_COLOR;
+  const flat = [];
+  // Tile Zero
+  flat.push({ section: data.tileZero.sectionLabel });
+  data.tileZero.pages.forEach(p => flat.push(p));
+  // Layers 1-5
+  data.layers.forEach(layer => {
+    flat.push({ section: layer.sectionLabel });
+    layer.pages.forEach(p => flat.push(p));
+  });
+  // Extras (Civitas Hubs, Operator Tools, Inactive)
+  data.extras.forEach(group => {
+    flat.push({ section: group.sectionLabel, inactive: group.inactive });
+    group.pages.forEach(p => flat.push(p));
+  });
+  return flat;
+}
 
-  { subsection: 'COMMAND' },
-  { slot: 7,  route: '/command',       file: 'command',      name: 'COMMAND Overview', status: 'wip' },
-  { slot: 8,  route: '/products',      file: 'products',     name: 'COMMAND Product',  status: 'wip',  indent: true },
-  { slot: 9,  route: '/mission',       file: 'mission',      name: 'Mission Detail',   status: 'wip',  indent: true },
-  { slot: 10, route: '/deploy',        file: 'deploy',       name: 'Deploy',           status: 'wip',  indent: true },
-  { slot: 11, route: '/campaign',      file: 'campaign',     name: 'Campaign',         status: 'wip',  indent: true },
-
-  { subsection: 'KA§§A' },
-  { slot: 10, route: '/kassa',         file: 'kassa',        name: 'KA§§A Overview', status: 'wip'  },
-  { slot: 11, route: '/products',      file: 'products',     name: 'Products',       status: 'wip',     indent: true },
-  { slot: 12, route: '/services',      file: 'services',     name: 'Services',       status: 'wip',     indent: true },
-  { slot: 13, route: '/bountyboard',   file: 'bountyboard',  name: 'Bounty Board',   status: 'wip',   indent: true },
-  { slot: 14, route: '/helpwanted',    file: 'helpwanted',   name: 'Help Wanted',    status: 'live',  indent: true },
-  { slot: 15, route: '/slots',         file: 'slots',        name: 'Slots',          status: 'wip',   indent: true },
-
-  { subsection: 'SigArena' },
-  { slot: 'SA', route: '/sig-arena',  file: 'sig-arena',    name: 'SigArena Overview', status: 'wip' },
-  { slot: 16, route: '/leaderboard',   file: 'leaderboard',  name: 'Leaderboard',    status: 'wip',   indent: true },
-  { slot: 17, route: '/refinery',      file: 'refinery',     name: 'Refinery',       status: 'empty', indent: true },
-  { slot: 18, route: '/wave-registry', file: 'wave-registry',name: 'Wave Registry',  status: 'empty', indent: true },
-  { slot: 19, route: '/switchboard',   file: 'switchboard',  name: 'Switchboard',    status: 'empty', indent: true },
-
-  // ── Layer 3B — Civitas Infrastructure ──────────────────────────────────────
-  { section: 'Layer 3B — Civitas Infrastructure' },
-
-  { subsection: 'Governance' },
-  { slot: 20, route: '/governance',    file: 'governance',   name: 'Governance',     status: 'live' },
-  { slot: 21, route: '/public-admin',  file: null,           name: 'Public Admin',   status: 'planned', indent: true },
-  { slot: 22, route: '/town-hall',     file: null,           name: 'Town Hall',      status: 'planned', indent: true },
-  { slot: 23, route: '/judicial',      file: null,           name: 'Judicial',       status: 'planned', indent: true },
-
-  { subsection: 'The Reserve' },
-  { slot: 24, route: '/economics',     file: 'economics',    name: 'Economics Overview', status: 'wip'  },
-  { slot: 25, route: '/policies',      file: null,           name: 'Policies',           status: 'planned', indent: true },
-  { slot: 26, route: '/treasury',      file: null,           name: 'Treasury',           status: 'planned', indent: true },
-  { slot: 27, route: '/vault',         file: 'vault',        name: 'Vault',              status: 'empty',   indent: true },
-
-  { subsection: 'Forums & Discussion' },
-  { slot: 28, route: '/forums',        file: null,           name: 'Forums',             status: 'planned' },
-
-  { subsection: 'Coming Soon' },
-  { slot: 29, route: '/sig-globe',     file: null,           name: 'SigGlobe',           status: 'planned' },
-  { slot: 30, route: '/academics',     file: null,           name: 'Academics',          status: 'planned' },
-  { slot: 31, route: '/research',      file: null,           name: 'Research',           status: 'planned' },
-  { slot: 32, route: '/security',      file: null,           name: 'Security',           status: 'planned' },
-
-  // ── Operator Tools ──────────────────────────────────────────────────────────
-  { section: 'Operator Tools' },
-  { slot: 30, route: '/agents',        file: 'agents',       name: 'Agent Directory',    status: 'wip'   },
-  { slot: 31, route: '/agent/me',      file: 'agent',        name: 'Agent Profile',      status: 'wip',  indent: true },
-  { slot: 32, route: '/admin',         file: 'admin',        name: 'Admin Panel',        status: 'admin' },
-
-  // ── Inactive / Parked ───────────────────────────────────────────────────────
-  { section: 'Inactive / Parked' },
-  { slot: 33, route: '/entry',         file: 'entry',        name: 'Entry (→ posture popup)', status: 'empty' },
-  { slot: 34, route: '/welcome',       file: 'welcome',      name: 'Welcome',            status: 'empty' },
-  { slot: 35, route: '/civitae-map',   file: 'civitae-map',  name: 'World — Tiles',      status: 'empty' },
-  { slot: 37, route: '/civitae-roadmap',file:'civitae-roadmap',name:'Roadmap',           status: 'empty' },
+// ── Session log — update this every session ────────────────────────────────
+const SESSION_LOG = [
+  { date: '2026-03-25', entry: 'Admin nav — Site Editor (/sitemap) + Branch Map (/civitae-roadmap) links added' },
+  { date: '2026-03-25', entry: 'Layer 4 nav fixed — Agents/Products replaced with Refinery, Wave Registry, Switchboard' },
+  { date: '2026-03-24', entry: 'Layer renames: SigArena → Engineering Lab, Infrastructure → Senate' },
+  { date: '2026-03-24', entry: 'Nav redesign: contextual header (4 layer links) + dropdown = layer directory cards' },
+  { date: '2026-03-24', entry: 'KA§§A 3.3 renamed to Job Board & Services. Wave Registry tabled (backlog).' },
+  { date: '2026-03-24', entry: 'CIVI TAE wordmark — TAE white. Layer headers clickable in dropdown.' },
+  { date: '2026-03-24', entry: '2.2 Console — rebuilt as CIVITAE-native operator cockpit + message bar' },
+  { date: '2026-03-24', entry: 'Global nav (_nav.js) — injected into 21 content pages. COMMAND/KA§§A/Missions/Governance/Map' },
+  { date: '2026-03-24', entry: 'Sitemap restructured — dot notation (1.1, 2.1…) replacing flat numbering' },
+  { date: '2026-03-21', entry: 'Architecture locked — 5-layer system, Seeds model, Ring 0, Tile Zero, Concentric Rings' },
+  { date: '2026-03-21', entry: 'console.html, command.html, kassa.html, deploy.html, campaign.html — initial builds' },
 ];
-
-const STATUS_COLOR = { live: '#3DAA6A', wip: '#D48C2E', empty: '#D84040', admin: '#3A7FC4', planned: '#5a4f7a' };
 
 // ── Build sidebar ─────────────────────────────────────────────────────────────
 const sidebar = document.getElementById('sidebar');
-let inInactive = false;
+
+// Session log at the top — collapsible
+const logWrap = document.createElement('div');
+logWrap.style.cssText = 'border-bottom:1px solid #1E2228;padding:8px 0 10px;margin-bottom:4px;';
+const logHead = document.createElement('div');
+logHead.className = 'sidebar-section';
+logHead.style.cssText = 'cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none;';
+const logLabel = document.createElement('span');
+logLabel.textContent = 'Build Log';
+const logChev = document.createElement('span');
+logChev.textContent = '▾';
+logChev.style.cssText = 'font-size:0.6rem;color:#3A4858;transition:transform 0.2s;';
+logHead.appendChild(logLabel);
+logHead.appendChild(logChev);
+logWrap.appendChild(logHead);
+
+const logEntries = document.createElement('div');
+logEntries.style.cssText = 'overflow:hidden;transition:max-height 0.25s ease;max-height:0;';
+SESSION_LOG.forEach(entry => {
+  const row = document.createElement('div');
+  row.style.cssText = 'padding:3px 12px 3px 12px;display:flex;gap:6px;align-items:baseline;';
+  const d = document.createElement('span');
+  d.style.cssText = 'font-family:"DM Mono",monospace;font-size:0.56rem;color:#3A7FC4;flex-shrink:0;';
+  d.textContent = entry.date.slice(5);
+  const t = document.createElement('span');
+  t.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:0.66rem;color:#7A8090;line-height:1.4;';
+  t.textContent = entry.entry;
+  row.appendChild(d); row.appendChild(t);
+  logEntries.appendChild(row);
+});
+logWrap.appendChild(logEntries);
+
+let logOpen = false;
+logHead.addEventListener('click', () => {
+  logOpen = !logOpen;
+  logEntries.style.maxHeight = logOpen ? logEntries.scrollHeight + 'px' : '0';
+  logChev.style.transform = logOpen ? 'rotate(180deg)' : '';
+});
+
+sidebar.appendChild(logWrap);
+
+fetch('/api/pages').then(r => r.json()).then(data => {
+const PAGES = pagesFromData(data);
+let currentSectionBody = null;
+let currentSectionInactive = false;
+
 PAGES.forEach((p, i) => {
   if (p.section) {
-    const s = document.createElement('div');
-    inInactive = p.section.startsWith('Inactive');
-    s.className = 'sidebar-section' + (inInactive ? ' inactive' : '');
-    s.textContent = p.section;
-    sidebar.appendChild(s);
+    currentSectionInactive = p.section.startsWith('Inactive');
+    const isInact = currentSectionInactive || p.section.startsWith('Operator') || p.section.startsWith('Civitas');
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'border-bottom:1px solid #0F1318;';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'sidebar-section' + (isInact ? ' inactive' : '');
+    hdr.style.cssText = 'cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none;';
+
+    const hdrLabel = document.createElement('span');
+    hdrLabel.textContent = p.section;
+
+    const hdrChev = document.createElement('span');
+    hdrChev.textContent = '▾';
+    hdrChev.style.cssText = 'font-size:0.6rem;color:#3A4858;transition:transform 0.2s;flex-shrink:0;';
+
+    hdr.appendChild(hdrLabel);
+    hdr.appendChild(hdrChev);
+
+    const body = document.createElement('div');
+    body.style.cssText = 'overflow:hidden;max-height:1200px;transition:max-height 0.25s ease;';
+
+    let open = true;
+    hdr.addEventListener('click', () => {
+      open = !open;
+      body.style.maxHeight = open ? '1200px' : '0';
+      hdrChev.style.transform = open ? '' : 'rotate(-90deg)';
+    });
+
+    wrap.appendChild(hdr);
+    wrap.appendChild(body);
+    sidebar.appendChild(wrap);
+    currentSectionBody = body;
     return;
   }
+
+  const target = currentSectionBody || sidebar;
+
   if (p.subsection) {
     const sub = document.createElement('div');
     sub.className = 'sidebar-subsection';
     sub.textContent = p.subsection;
-    sidebar.appendChild(sub);
+    target.appendChild(sub);
     return;
   }
+
   const el = document.createElement('div');
   const isPlanned = p.status === 'planned';
-  el.className = 'page-item' + (inInactive ? ' parked' : '') + (p.indent ? ' indented' : '') + (isPlanned ? ' planned' : '');
+  el.className = 'page-item' + (currentSectionInactive ? ' parked' : '') + (p.indent ? ' indented' : '') + (isPlanned ? ' planned' : '');
   el.id = 'item-' + (p.file || (p.route && p.route.replace(/\//g,'-')) || p.name.replace(/\s+/g,'-').toLowerCase());
   if (!isPlanned) el.onclick = () => selectPage(p);
 
@@ -377,11 +418,18 @@ PAGES.forEach((p, i) => {
 
   inner.appendChild(name);
   inner.appendChild(route);
+  if (p.note) {
+    const note = document.createElement('div');
+    note.style.cssText = 'font-size:0.58rem;color:#3A7FC4;font-family:"DM Mono",monospace;margin-top:1px;letter-spacing:0.02em;';
+    note.textContent = '↳ ' + p.note;
+    inner.appendChild(note);
+  }
   el.appendChild(slotEl);
   el.appendChild(dot);
   el.appendChild(inner);
-  sidebar.appendChild(el);
+  target.appendChild(el);
 });
+}); // end fetch
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let currentPage  = null;
