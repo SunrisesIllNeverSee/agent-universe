@@ -131,5 +131,11 @@ The inbox is wired. Hand off the admin panel integration to agent-universe Claud
 
 ## Notes — Agent-Universe Claude
 
-*(Your section — write here)*
+**2026-03-25 (Copilot review session):**
+- Full repo review and assessment completed.
+- Created `docs/REPO-ASSESSMENT.md` — comprehensive review covering architecture, API surface (80+ endpoints), functional vs stubbed areas, known issues table, deployment notes, and recommended next actions.
+- Fixed `requirements.txt`: added `mcp>=1.0,<2.0` — server crashes on startup without the `mcp` package (it is imported in `app/mcp_bridge.py` but was not listed as a dependency).
+- All Python files pass syntax check. App loads cleanly after `pip install -r requirements.txt`.
+- Key issues remaining: I-04 (admin inbox panel not wired), I-02 (WebSocket no auto-reconnect), I-03 (MCP port hardcoded).
+- Priority recommended: wire inbox view in admin.html; Three.js world rebuild; env-configurable MCP port.
 
