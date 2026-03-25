@@ -242,7 +242,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;pad
     return block;
   }
 
-  fetch('/api/pages').then(function (r) { return r.json(); }).then(function (data) {
+  fetch('/assets/pages.json').then(function (r) { return r.json(); }).then(function (data) {
     var list = document.getElementById('layer-list');
     if (!list) return;
 

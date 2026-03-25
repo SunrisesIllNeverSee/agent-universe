@@ -39,7 +39,7 @@
   }
 
   // ── Fetch page data, then build ───────────────────────────────────────────────
-  fetch('/api/pages').then(function(r) { return r.json(); }).then(function(data) {
+  fetch('/assets/pages.json').then(function(r) { return r.json(); }).then(function(data) {
     var LAYERS = data.layers;
     var FALLBACK_LINKS = data.fallbackLinks;
 
