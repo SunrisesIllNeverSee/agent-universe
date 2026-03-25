@@ -131,5 +131,30 @@ The inbox is wired. Hand off the admin panel integration to agent-universe Claud
 
 ## Notes — Agent-Universe Claude
 
-*(Your section — write here)*
+**2026-03-25:**
+
+### What I built this session
+- Created `config/pages.json` — single source of truth for all layer/page/nav data
+- Added `GET /api/pages` endpoint to server.py
+- Built `frontend/_nav.js` — global nav injected into all 21 content pages, fetches from API
+- Rewrote `sitemap.html` — now dynamic from /api/pages, collapsible layer sections
+- Rewrote `civitae-roadmap.html` — fully dynamic including Operator Tools / Inactive extras
+- Committed: `8443e7a`
+
+### Master build plan (saved to memory)
+See: `/Users/dericmchenry/.claude/projects/-Users-dericmchenry-Desktop-CIVITAE/memory/project_build_phases.md`
+
+North star: "Deploy. Wire Stripe. Pay the first agent. Then watch what happens."
+Core loop: Register → Fill Slot → Earn → Cash Out → Repeat
+
+Phase 0 (unblock): unified header, route collision /products, security basics
+Phase 1 (launch identity): Seeds+Hash/DOI, ISO Collaborator, Concentric Rings, SIG Economy, Ring 0
+Phase 2 (pages): Layer 1 wording, Console (2.2), Welcome Package, KA§§A wired
+Phase 3 (connective): Forums, Payments/Stripe, Marketplace comms, User profiles
+Future 12: Kettle Black, Farmland Rotation, Academy A-B-C, Hub Blooming, Smart contracts...
+
+### Context
+Full review/vision session documented in `docs/found.md` — includes xopilot review,
+Grok vision (Ring 0, Academy, Kettle Black, ISO Collaborator), and the two-build framing.
+Vanilla stack stays — no Next.js migration.
 

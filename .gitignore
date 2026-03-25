@@ -10,3 +10,4 @@ data/archive/
 vault/
 forks/
 reports/
+.playwright-mcp/
