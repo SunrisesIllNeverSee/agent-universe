@@ -40,7 +40,7 @@
         { "label": "Missions",   "href": "/missions"   },
         { "label": "Open Roles", "href": "/helpwanted" }
       ],
-      "paths": ["/", "/about", "/dashboard", "/missions", "/helpwanted", "/3d", "/kingdoms", "/welcome"],
+      "paths": ["/", "/civitas", "/dashboard", "/missions", "/helpwanted", "/3d", "/kingdoms", "/welcome"],
       "pages": [
         { "slot": "1.1", "name": "Welcome Package", "route": "/welcome",    "file": "welcome",   "status": "empty" },
         { "slot": "1.2", "name": "About",            "route": "/civitas",   "file": "civitas",   "status": "empty" },

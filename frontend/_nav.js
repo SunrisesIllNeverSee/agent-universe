@@ -32,7 +32,7 @@
   ];
 
   // ── Skip fixed-viewport pages (they have their own topbar) ────────────────────
-  var SKIP = ['/console', '/deploy', '/campaign', '/3d'];
+  var SKIP = ['/', '/kingdoms', '/console', '/deploy', '/campaign', '/3d'];
   var path = window.location.pathname.replace(/\/$/, '') || '/';
   for (var s = 0; s < SKIP.length; s++) {
     if (path === SKIP[s]) return;
