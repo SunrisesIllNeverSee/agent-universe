@@ -180,6 +180,12 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def sitemap_page() -> FileResponse:
         return FileResponse(frontend_dir / "sitemap.html")
 
+    @app.get("/api/pages")
+    async def get_pages() -> JSONResponse:
+        pages_file = Path(__file__).parent.parent / "config" / "pages.json"
+        data = json.loads(pages_file.read_text())
+        return JSONResponse(data)
+
     @app.get("/flowchart")
     async def flowchart_page() -> FileResponse:
         return FileResponse(frontend_dir / "flowchart.html")
@@ -223,6 +229,14 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.get("/products")
     async def products_page() -> FileResponse:
         return FileResponse(frontend_dir / "products.html")
+
+    @app.get("/marketplace")
+    async def marketplace_page() -> FileResponse:
+        return FileResponse(frontend_dir / "products.html")
+
+    @app.get("/about")
+    async def about_page() -> FileResponse:
+        return FileResponse(frontend_dir / "about.html")
 
     @app.get("/services")
     async def services_page() -> FileResponse:
