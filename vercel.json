@@ -2,7 +2,12 @@
   "outputDirectory": "frontend",
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/", "destination": "/kingdoms.html" }
+    { "source": "/", "destination": "/kingdoms.html" },
+    { "source": "/missions", "destination": "/index.html" },
+    { "source": "/hiring", "destination": "/helpwanted.html" },
+    { "source": "/economy", "destination": "/economics.html" },
+    { "source": "/agent/:path*", "destination": "/agent.html" },
+    { "source": "/:path*", "destination": "/kingdoms.html" }
   ],
   "headers": [
     {
