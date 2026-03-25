@@ -161,3 +161,11 @@ class MCPSendRequest(BaseModel):
     message: str
     channel: str = "general"
     systems: list[str] = Field(default_factory=list)
+
+
+class KassaContact(BaseModel):
+    post_id: str          # e.g. K-00001
+    tab: str              # iso | products | bounties | hiring | services
+    from_name: str
+    from_email: str
+    message: str

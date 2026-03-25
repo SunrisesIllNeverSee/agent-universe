@@ -88,6 +88,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/provision/heartbeat",
         "/api/inbox/apply",
         "/api/metrics/",
+        "/api/kassa/contact",
     )
 
     @app.middleware("http")
@@ -2324,6 +2325,89 @@ def create_app(root: Path | None = None) -> FastAPI:
         audit.log("governance", "meeting_adjourned", {"meeting_id": meeting_id})
         await emit("meeting_adjourned", {"meeting_id": meeting_id})
         return meeting
+
+    # ── KA§§A contact inbox ───────────────────────────────────────────────────
+    _kassa_messages_file = root / "data" / "kassa_messages.jsonl"
+    _notify_email = os.environ.get("NOTIFY_EMAIL", "")
+
+    def _load_kassa_messages() -> list[dict]:
+        if not _kassa_messages_file.exists():
+            return []
+        out = []
+        for line in _kassa_messages_file.read_text().splitlines():
+            line = line.strip()
+            if line:
+                out.append(json.loads(line))
+        return out
+
+    def _save_kassa_message(entry: dict) -> None:
+        _kassa_messages_file.parent.mkdir(parents=True, exist_ok=True)
+        with _kassa_messages_file.open("a") as f:
+            f.write(json.dumps(entry) + "\n")
+
+    def _send_notify_email(entry: dict) -> None:
+        if not _notify_email:
+            return
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
+            smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+            smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+            smtp_user = os.environ.get("SMTP_USER", "")
+            smtp_pass = os.environ.get("SMTP_PASS", "")
+            if not smtp_user or not smtp_pass:
+                return
+            body = (
+                f"New KA§§A message\n\n"
+                f"Post:    {entry['post_id']} ({entry['tab']})\n"
+                f"From:    {entry['from_name']} <{entry['from_email']}>\n"
+                f"Message:\n{entry['message']}\n\n"
+                f"ID: {entry['id']}  |  {entry['timestamp']}"
+            )
+            msg = MIMEText(body)
+            msg["Subject"] = f"[KA§§A] {entry['post_id']} — {entry['from_name']}"
+            msg["From"] = smtp_user
+            msg["To"] = _notify_email
+            with smtplib.SMTP(smtp_host, smtp_port) as s:
+                s.starttls()
+                s.login(smtp_user, smtp_pass)
+                s.sendmail(smtp_user, [_notify_email], msg.as_string())
+        except Exception:
+            pass  # email is best-effort; don't break the endpoint
+
+    from .models import KassaContact
+
+    @app.post("/api/kassa/contact")
+    async def kassa_contact(payload: KassaContact) -> dict:
+        messages = _load_kassa_messages()
+        entry = {
+            "id": len(messages) + 1,
+            "timestamp": datetime.now(UTC).isoformat(),
+            "post_id": payload.post_id,
+            "tab": payload.tab,
+            "from_name": payload.from_name,
+            "from_email": payload.from_email,
+            "message": payload.message,
+            "status": "new",
+        }
+        _save_kassa_message(entry)
+        audit.log("kassa", "contact_received", {
+            "post_id": payload.post_id,
+            "tab": payload.tab,
+            "from_email": payload.from_email,
+        })
+        _send_notify_email(entry)
+        await emit("kassa_contact", entry)
+        return {"ok": True, "id": entry["id"]}
+
+    @app.get("/api/kassa/messages")
+    async def get_kassa_messages(tab: str = "", status: str = "") -> list:
+        messages = _load_kassa_messages()
+        if tab:
+            messages = [m for m in messages if m.get("tab") == tab]
+        if status:
+            messages = [m for m in messages if m.get("status") == status]
+        return messages
 
     @app.on_event("startup")
     async def startup_event() -> None:
