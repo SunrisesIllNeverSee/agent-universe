@@ -165,3 +165,5 @@ Vanilla stack stays — no Next.js migration.
 - Linked Railway CLI to the production `agent-universe` service and inspected the live container.
 - Confirmed the deployed service had Stripe secrets set, but Railway was launching outside `/opt/venv` and the installed `stripe==15.0.0` SDK does not expose `StripeClient`.
 - Patched `railway.json` to start with `/opt/venv/bin/python -m uvicorn ...` and updated `app/kassa_payments.py` so checkout/product/webhook V1 flows work with the installed Stripe SDK while V2 account endpoints fail explicitly unless `StripeClient` is available.
+- Verified `checkout.session.completed` now succeeds end to end with HTTP 200 on `/api/kassa/webhooks/stripe`.
+- Checked the V2 Connect path: `/api/connect/webhooks` is live and rejects unsigned probes with HTTP 400 as expected, but full Accounts V2 event testing is still blocked by Stripe because the current account is in test mode rather than a Stripe sandbox.
