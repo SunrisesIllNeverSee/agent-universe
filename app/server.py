@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
+import secrets
 import shutil
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+
+import jwt
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -102,6 +106,8 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/metrics/",
         "/api/kassa/contact",
         "/api/kassa/posts",
+        "/api/kassa/agent/register",
+        "/api/kassa/agent/login",
     )
 
     @app.middleware("http")
@@ -1814,8 +1820,6 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     # ── Agent Self-Signup / Provision API ────────────────────────
 
-    import secrets
-
     @app.post("/api/provision/signup")
     async def agent_signup(payload: dict) -> dict:
         """
@@ -1919,6 +1923,289 @@ def create_app(root: Path | None = None) -> FastAPI:
             "key_prefix": agent["key_prefix"],
             "note": "Store this key securely. It will not be shown again.",
         }
+
+    # ── Agent JWT Auth (KASSA M1) ─────────────────────────────────────────────
+    _JWT_SECRET = os.environ.get("KASSA_JWT_SECRET", secrets.token_hex(32))
+    _JWT_EXPIRY_HOURS = 24
+
+    def _hash_key(key: str) -> str:
+        return hashlib.sha256(key.encode()).hexdigest()
+
+    def _issue_jwt(agent_id: str, name: str) -> str:
+        payload = {
+            "sub": agent_id,
+            "name": name,
+            "iat": datetime.now(UTC),
+            "exp": datetime.now(UTC) + timedelta(hours=_JWT_EXPIRY_HOURS),
+        }
+        return jwt.encode(payload, _JWT_SECRET, algorithm="HS256")
+
+    def _verify_jwt(token: str) -> dict | None:
+        try:
+            return jwt.decode(token, _JWT_SECRET, algorithms=["HS256"])
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+            return None
+
+    def _get_agent_from_token(request: Request) -> dict:
+        """Extract and validate JWT from Authorization header. Raises HTTPException on failure."""
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Missing Bearer token")
+        claims = _verify_jwt(auth[7:])
+        if not claims:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        agent = next((r for r in runtime.registry if r.get("agent_id") == claims["sub"]), None)
+        if not agent or agent.get("status") != "active":
+            raise HTTPException(status_code=403, detail="Agent not active")
+        return agent
+
+    @app.post("/api/kassa/agent/register")
+    async def kassa_agent_register(payload: dict) -> dict:
+        """
+        Register an agent for KASSA. Returns agent_id + api_key (shown once) + JWT.
+        Separate from provision signup — this is the KASSA-specific auth flow.
+        """
+        agent_name = (payload.get("name") or "").strip()
+        if not agent_name:
+            raise HTTPException(status_code=400, detail="Agent name required")
+
+        # Check existing
+        existing = next((r for r in runtime.registry if r.get("name") == agent_name), None)
+        if existing:
+            raise HTTPException(status_code=409, detail=f"Agent '{agent_name}' already registered")
+
+        agent_id = f"agent-{secrets.token_hex(4)}"
+        api_key = f"kassa_{secrets.token_hex(16)}"
+        key_hash = _hash_key(api_key)
+
+        entry = {
+            "agent_id": agent_id,
+            "name": agent_name,
+            "type": "agent",
+            "status": "active",
+            "provisioned": datetime.now(UTC).isoformat(),
+            "key_hash": key_hash,
+            "key_prefix": api_key[:10] + "***",
+            "governance": runtime.governance.mode.lower().replace(" ", "_").replace("(", "").replace(")", ""),
+            "system": payload.get("system"),
+            "role": "secondary",
+            "rate_limit": runtime.provision.get("rate_limit", {"requests_per_minute": 10, "burst": 20}),
+        }
+
+        runtime.registry.append(entry)
+        runtime.persist_registry()
+
+        audit.log("kassa", "agent_registered", {"agent_id": agent_id, "name": agent_name})
+        await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+
+        token = _issue_jwt(agent_id, agent_name)
+
+        return {
+            "agent_id": agent_id,
+            "name": agent_name,
+            "api_key": api_key,
+            "token": token,
+            "expires_in": f"{_JWT_EXPIRY_HOURS}h",
+            "note": "Store api_key securely — it will not be shown again. Use token for Bearer auth.",
+        }
+
+    @app.post("/api/kassa/agent/login")
+    async def kassa_agent_login(payload: dict) -> dict:
+        """Agent login — exchange agent_id + api_key for a JWT."""
+        agent_id = (payload.get("agent_id") or "").strip()
+        api_key = (payload.get("api_key") or "").strip()
+        if not agent_id or not api_key:
+            raise HTTPException(status_code=400, detail="agent_id and api_key required")
+
+        agent = next((r for r in runtime.registry if r.get("agent_id") == agent_id), None)
+        if not agent:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+
+        stored_hash = agent.get("key_hash", "")
+        if not stored_hash or _hash_key(api_key) != stored_hash:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+
+        if agent.get("status") != "active":
+            raise HTTPException(status_code=403, detail=f"Agent status: {agent.get('status')}")
+
+        token = _issue_jwt(agent_id, agent.get("name", ""))
+        agent["last_login"] = datetime.now(UTC).isoformat()
+        runtime.persist_registry()
+
+        audit.log("kassa", "agent_login", {"agent_id": agent_id})
+
+        return {
+            "agent_id": agent_id,
+            "token": token,
+            "expires_in": f"{_JWT_EXPIRY_HOURS}h",
+        }
+
+    @app.get("/api/kassa/agent/me")
+    async def kassa_agent_me(request: Request) -> dict:
+        """Return current agent profile from JWT."""
+        agent = _get_agent_from_token(request)
+        return {
+            "agent_id": agent["agent_id"],
+            "name": agent.get("name"),
+            "status": agent.get("status"),
+            "governance": agent.get("governance"),
+            "role": agent.get("role"),
+            "provisioned": agent.get("provisioned"),
+            "last_login": agent.get("last_login"),
+        }
+
+    # ── Stakes (intent-only, M1) ─────────────────────────────────────────────
+    _kassa_stakes_file = root / "data" / "kassa_stakes.jsonl"
+
+    def _load_kassa_stakes() -> list[dict]:
+        if not _kassa_stakes_file.exists():
+            return []
+        out = []
+        for line in _kassa_stakes_file.read_text().splitlines():
+            line = line.strip()
+            if line:
+                out.append(json.loads(line))
+        return out
+
+    def _save_kassa_stake(entry: dict) -> None:
+        _kassa_stakes_file.parent.mkdir(parents=True, exist_ok=True)
+        with _kassa_stakes_file.open("a") as f:
+            f.write(json.dumps(entry) + "\n")
+
+    @app.post("/api/kassa/posts/{post_id}/stake")
+    async def stake_post(post_id: str, request: Request) -> dict:
+        """Agent stakes intent on a post — signals willingness to work on it."""
+        agent = _get_agent_from_token(request)
+        agent_id = agent["agent_id"]
+
+        # Verify post exists
+        post = next((p for p in _load_kassa_posts() if p.get("id") == post_id), None)
+        if not post:
+            raise HTTPException(status_code=404, detail=f"Post {post_id} not found")
+
+        # Check for duplicate stake
+        stakes = _load_kassa_stakes()
+        existing = next((s for s in stakes if s.get("post_id") == post_id and s.get("agent_id") == agent_id and s.get("status") == "active"), None)
+        if existing:
+            raise HTTPException(status_code=409, detail="Already staked on this post")
+
+        stake_id = f"stk-{secrets.token_hex(6)}"
+        entry = {
+            "stake_id": stake_id,
+            "post_id": post_id,
+            "agent_id": agent_id,
+            "agent_name": agent.get("name"),
+            "status": "active",
+            "created_at": datetime.now(UTC).isoformat(),
+        }
+        _save_kassa_stake(entry)
+
+        audit.log("kassa", "stake_placed", {"stake_id": stake_id, "post_id": post_id, "agent_id": agent_id})
+        await emit("kassa_stake", entry)
+
+        return {"staked": True, "stake_id": stake_id, "post_id": post_id}
+
+    @app.get("/api/kassa/posts/{post_id}/stakes")
+    async def get_post_stakes(post_id: str) -> list:
+        """List active stakes on a post."""
+        stakes = _load_kassa_stakes()
+        return [s for s in stakes if s.get("post_id") == post_id and s.get("status") == "active"]
+
+    @app.delete("/api/kassa/stakes/{stake_id}")
+    async def withdraw_stake(stake_id: str, request: Request) -> dict:
+        """Agent withdraws their stake."""
+        agent = _get_agent_from_token(request)
+        stakes = _load_kassa_stakes()
+        stake = next((s for s in stakes if s.get("stake_id") == stake_id), None)
+        if not stake:
+            raise HTTPException(status_code=404, detail="Stake not found")
+        if stake.get("agent_id") != agent["agent_id"]:
+            raise HTTPException(status_code=403, detail="Not your stake")
+        stake["status"] = "withdrawn"
+        _atomic_write(_kassa_stakes_file, "\n".join(json.dumps(s) for s in stakes) + "\n")
+
+        audit.log("kassa", "stake_withdrawn", {"stake_id": stake_id, "agent_id": agent["agent_id"]})
+        return {"withdrawn": True, "stake_id": stake_id}
+
+    # ── Referrals (agent cross-post matching, M1) ─────────────────────────────
+    _kassa_referrals_file = root / "data" / "kassa_referrals.jsonl"
+
+    def _load_kassa_referrals() -> list[dict]:
+        if not _kassa_referrals_file.exists():
+            return []
+        out = []
+        for line in _kassa_referrals_file.read_text().splitlines():
+            line = line.strip()
+            if line:
+                out.append(json.loads(line))
+        return out
+
+    @app.post("/api/kassa/referrals")
+    async def create_referral(request: Request, payload: dict) -> dict:
+        """Agent connects two posts that match — ISO↔Services, Bounty↔Hiring, etc."""
+        agent = _get_agent_from_token(request)
+        source_id = (payload.get("source_post_id") or "").strip()
+        target_id = (payload.get("target_post_id") or "").strip()
+        reason = (payload.get("reason") or "").strip()
+
+        if not source_id or not target_id:
+            raise HTTPException(status_code=400, detail="source_post_id and target_post_id required")
+        if source_id == target_id:
+            raise HTTPException(status_code=400, detail="Cannot refer a post to itself")
+
+        posts = _load_kassa_posts()
+        source = next((p for p in posts if p.get("id") == source_id), None)
+        target = next((p for p in posts if p.get("id") == target_id), None)
+        if not source:
+            raise HTTPException(status_code=404, detail=f"Source post {source_id} not found")
+        if not target:
+            raise HTTPException(status_code=404, detail=f"Target post {target_id} not found")
+
+        # Check for duplicate referral
+        referrals = _load_kassa_referrals()
+        dup = next((r for r in referrals if r.get("source_post_id") == source_id and r.get("target_post_id") == target_id and r.get("agent_id") == agent["agent_id"] and r.get("status") == "active"), None)
+        if dup:
+            raise HTTPException(status_code=409, detail="Referral already exists")
+
+        ref_id = f"ref-{secrets.token_hex(6)}"
+        entry = {
+            "referral_id": ref_id,
+            "agent_id": agent["agent_id"],
+            "agent_name": agent.get("name"),
+            "source_post_id": source_id,
+            "target_post_id": target_id,
+            "source_tab": source.get("tab"),
+            "target_tab": target.get("tab"),
+            "reason": reason,
+            "status": "active",
+            "created_at": datetime.now(UTC).isoformat(),
+        }
+
+        _kassa_referrals_file.parent.mkdir(parents=True, exist_ok=True)
+        with _kassa_referrals_file.open("a") as f:
+            f.write(json.dumps(entry) + "\n")
+
+        audit.log("kassa", "referral_created", {
+            "referral_id": ref_id,
+            "agent_id": agent["agent_id"],
+            "source": source_id,
+            "target": target_id,
+        })
+        await emit("kassa_referral", entry)
+
+        return {"referred": True, "referral_id": ref_id, "source": source_id, "target": target_id}
+
+    @app.get("/api/kassa/posts/{post_id}/referrals")
+    async def get_post_referrals(post_id: str) -> list:
+        """List referrals involving a post (as source or target)."""
+        referrals = _load_kassa_referrals()
+        return [r for r in referrals if (r.get("source_post_id") == post_id or r.get("target_post_id") == post_id) and r.get("status") == "active"]
+
+    @app.get("/api/kassa/agent/{agent_id}/referrals")
+    async def get_agent_referrals(agent_id: str) -> list:
+        """List all referrals made by an agent."""
+        referrals = _load_kassa_referrals()
+        return [r for r in referrals if r.get("agent_id") == agent_id and r.get("status") == "active"]
 
     @app.get("/api/provision/status/{agent_id}")
     async def agent_provision_status(agent_id: str) -> dict:
