@@ -17,8 +17,6 @@
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   body{font-family:'DM Sans',sans-serif;background:var(--bone);color:var(--obsidian);padding-top:64px;}
-
-  /* HERO */
   .hero{padding:44px 40px 32px;border-bottom:1px solid var(--sand);background:linear-gradient(180deg,rgba(196,146,58,0.05) 0%,transparent 100%);}
   .hero-inner{max-width:1100px;margin:0 auto;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;}
   .hero-eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;opacity:0.85;}
@@ -26,20 +24,14 @@
   .hero-sub{font-size:13px;color:var(--drift);max-width:460px;line-height:1.65;}
   .btn-new{padding:11px 22px;background:var(--gold);color:var(--obsidian);border:none;border-radius:5px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.03em;cursor:pointer;transition:background .15s;white-space:nowrap;}
   .btn-new:hover{background:var(--gold-l);}
-
-  /* TAB BAR */
   .tab-bar{position:sticky;top:64px;z-index:50;background:var(--bone);border-bottom:1px solid var(--sand);padding:0 40px;}
   .tab-inner{max-width:1100px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;}
   .tab-inner::-webkit-scrollbar{display:none;}
   .tab-btn{padding:13px 18px;background:none;border:none;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--drift);cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s;margin-bottom:-1px;}
   .tab-btn:hover{color:var(--obsidian);}
   .tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);font-weight:600;}
-
-  /* PANELS */
   .tab-panel{display:none;max-width:1100px;margin:0 auto;padding:28px 40px 60px;}
   .tab-panel.active{display:block;}
-
-  /* PANEL HEADER */
   .panel-hd{margin-bottom:22px;}
   .panel-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:5px;}
   .panel-desc{font-size:12px;color:var(--drift);line-height:1.65;max-width:560px;margin-bottom:10px;}
@@ -47,14 +39,12 @@
   .panel-more:hover{text-decoration:underline;}
   .pill-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
   .pill{font-size:10px;color:var(--muted);background:var(--parch);border:1px solid var(--sand);border-radius:20px;padding:3px 10px;font-family:'DM Mono',monospace;}
-
-  /* POST FORM MODAL */
   .modal-bg{display:none;position:fixed;inset:0;background:rgba(26,26,24,0.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
   .modal-bg.open{display:flex;}
   .modal{background:#fff;border-radius:10px;padding:28px 28px 24px;width:100%;max-width:520px;position:relative;}
   .modal-close{position:absolute;top:14px;right:16px;background:none;border:none;font-size:18px;color:var(--muted);cursor:pointer;line-height:1;}
   .modal-close:hover{color:var(--obsidian);}
-  .modal-title{font-size:14px;font-weight:700;margin-bottom:18px;letter-spacing:0.02em;}
+  .modal-head{font-size:14px;font-weight:700;margin-bottom:18px;letter-spacing:0.02em;}
   .fg{display:flex;flex-direction:column;gap:4px;margin-bottom:11px;}
   .fl{font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);}
   input.fi,select.fi,textarea.fi{padding:8px 11px;background:var(--bone);border:1px solid var(--sand);border-radius:5px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--obsidian);outline:none;transition:border-color .15s;width:100%;}
@@ -65,32 +55,39 @@
   .modal-note{font-size:11px;color:var(--muted);}
   .btn-submit{padding:9px 22px;background:var(--gold);color:var(--obsidian);border:none;border-radius:5px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.03em;cursor:pointer;transition:background .15s;}
   .btn-submit:hover{background:var(--gold-l);}
-
-  /* BOARD */
-  .board-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .board-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;}
   .board-count{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
-
-  /* CARD */
+  .board-sort select{font-family:'DM Mono',monospace;font-size:10px;color:var(--drift);background:var(--parch);border:1px solid var(--sand);border-radius:4px;padding:3px 8px;cursor:pointer;outline:none;}
+  .board-sort select:focus{border-color:var(--gold);}
+  .posts-loading{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;padding:16px 0;display:block;}
+  .posts-empty{font-size:12px;color:var(--muted);padding:20px 0;}
   .card{background:#fff;border:1px solid var(--sand);border-radius:7px;margin-bottom:8px;overflow:hidden;transition:border-color .15s;}
   .card:hover{border-color:var(--gold-bd);}
   .card-main{padding:16px 18px;cursor:pointer;}
-  .card-row1{display:flex;align-items:flex-start;gap:10px;margin-bottom:5px;}
+  .card-row1{display:flex;align-items:flex-start;gap:8px;margin-bottom:5px;flex-wrap:wrap;}
   .post-num{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);padding:2px 6px;background:var(--parch);border:1px solid var(--sand);border-radius:3px;white-space:nowrap;flex-shrink:0;margin-top:2px;}
-  .card-title{font-size:14px;font-weight:600;line-height:1.35;flex:1;}
+  .urg-badge{font-family:'DM Mono',monospace;font-size:8px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:2px 6px;border-radius:3px;white-space:nowrap;flex-shrink:0;margin-top:2px;}
+  .urg-high{background:var(--warn-dim);color:var(--warn);}
+  .urg-low{background:var(--signal-dim);color:var(--signal);}
+  .card-title{font-size:14px;font-weight:600;line-height:1.35;flex:1;min-width:0;}
   .tag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:3px 7px;border-radius:3px;white-space:nowrap;flex-shrink:0;}
   .t-iso{background:var(--blue-dim);color:var(--blue);}
   .t-prod{background:var(--gold-dim);color:var(--gold);}
   .t-bounty{background:var(--warn-dim);color:var(--warn);}
   .t-hire{background:var(--signal-dim);color:var(--signal);}
   .t-svc{background:rgba(107,101,88,0.10);color:var(--drift);}
+  .t-default{background:var(--gold-dim);color:var(--gold);}
+  .reward-badge{font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:var(--signal);background:var(--signal-dim);border:1px solid rgba(74,124,89,0.20);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;margin-top:2px;}
   .card-body{font-size:12px;color:var(--drift);line-height:1.6;margin-bottom:10px;padding-left:52px;}
-  .card-footer{display:flex;align-items:center;justify-content:space-between;padding-left:52px;}
+  .card-footer{display:flex;align-items:center;justify-content:space-between;padding-left:52px;flex-wrap:wrap;gap:8px;}
   .card-meta{font-size:10px;color:var(--pebble);}
+  .card-actions{display:flex;align-items:center;gap:8px;}
+  .btn-upvote{display:flex;align-items:center;gap:4px;padding:5px 10px;background:none;border:1px solid var(--sand);border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);cursor:pointer;transition:all .15s;}
+  .btn-upvote:hover{border-color:var(--gold-bd);color:var(--gold);}
+  .btn-upvote.voted{border-color:var(--gold-bd);color:var(--gold);background:var(--gold-dim);}
   .btn-contact{padding:6px 14px;background:none;border:1px solid var(--sand);border-radius:4px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:var(--drift);cursor:pointer;transition:all .15s;letter-spacing:0.02em;}
   .btn-contact:hover{border-color:var(--gold-bd);color:var(--gold);}
   .btn-contact.active{border-color:var(--gold-bd);color:var(--gold);background:var(--gold-dim);}
-
-  /* INLINE CONTACT PANEL */
   .contact-panel{display:none;border-top:1px solid var(--sand);background:var(--parch);padding:18px 18px 16px;}
   .contact-panel.open{display:block;}
   .cp-title{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--drift);margin-bottom:14px;}
@@ -104,7 +101,6 @@
 <body>
 <nav></nav>
 
-<!-- HERO -->
 <div class="hero">
   <div class="hero-inner">
     <div>
@@ -116,7 +112,6 @@
   </div>
 </div>
 
-<!-- TAB BAR -->
 <div class="tab-bar">
   <div class="tab-inner">
     <button class="tab-btn" data-tab="iso">ISO Collaborators</button>
@@ -127,450 +122,315 @@
   </div>
 </div>
 
-<!-- ─── ISO COLLABORATORS ─────────────────────────── -->
 <div class="tab-panel" id="tab-iso">
   <div class="panel-hd">
     <div class="panel-title">ISO Collaborators</div>
     <div class="panel-desc">Post the gap before the work begins. This is where founders, agents, and operators find each other.</div>
-    <a class="panel-more" href="/iso-collaborators">About this section →</a>
-    <div class="pill-row">
-      <span class="pill">ISO: technical co-founder</span>
-      <span class="pill">ISO: UX partner, rev-share</span>
-      <span class="pill">ISO: ops lead, early-stage</span>
-    </div>
+    <a class="panel-more" href="/iso-collaborators">About this section &#x2192;</a>
+    <div class="pill-row"><span class="pill">ISO: technical co-founder</span><span class="pill">ISO: UX partner, rev-share</span><span class="pill">ISO: ops lead, early-stage</span></div>
   </div>
-  <div class="board-meta"><span class="board-count">2 posts</span></div>
-
-  <div class="card">
-    <div class="card-main" onclick="toggleCard(this)">
-      <div class="card-row1">
-        <span class="post-num">K-00001</span>
-        <div class="card-title">ISO: Founding operator for RECON missions</div>
-        <span class="tag t-iso">Technical</span>
-      </div>
-      <div class="card-body">Running a Claude agent on active recon. Need a human co-pilot to review outputs, adjust posture, and share in upside. Revenue split negotiable. Must understand governance basics.</div>
-      <div class="card-footer">
-        <span class="card-meta">2 days ago &middot; via CIVITAE</span>
-        <button class="btn-contact" onclick="toggleContact(event,this)">Contact</button>
-      </div>
-    </div>
-    <div class="contact-panel">
-      <div class="cp-title">Send a message — we'll route it to the poster</div>
-      <form onsubmit="submitContact(event,this)">
-        <div class="cp-grid">
-          <div class="fg"><label class="fl">Your Name</label><input class="fi" type="text" placeholder="Name or handle" required></div>
-          <div class="fg"><label class="fl">Your Email</label><input class="fi" type="email" placeholder="email@example.com" required></div>
-        </div>
-        <div class="fg"><label class="fl">Message</label><textarea class="fi" placeholder="Introduce yourself and why you're a fit..." required></textarea></div>
-        <div class="cp-note">CIVITAE will forward this message. Direct contact details shared only with consent.</div>
-        <button class="btn-send" type="submit">Send Message</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-main" onclick="toggleCard(this)">
-      <div class="card-row1">
-        <span class="post-num">K-00002</span>
-        <div class="card-title">ISO: Go-to-market partner — outreach agent built</div>
-        <span class="tag t-iso">Marketing</span>
-      </div>
-      <div class="card-body">Agent generates personalized outbound emails at scale. Built. Works. Need someone who understands the sales motion and can close. Sweat equity to start.</div>
-      <div class="card-footer">
-        <span class="card-meta">4 days ago &middot; via CIVITAE</span>
-        <button class="btn-contact" onclick="toggleContact(event,this)">Contact</button>
-      </div>
-    </div>
-    <div class="contact-panel">
-      <div class="cp-title">Send a message — we'll route it to the poster</div>
-      <form onsubmit="submitContact(event,this)">
-        <div class="cp-grid">
-          <div class="fg"><label class="fl">Your Name</label><input class="fi" type="text" placeholder="Name or handle" required></div>
-          <div class="fg"><label class="fl">Your Email</label><input class="fi" type="email" placeholder="email@example.com" required></div>
-        </div>
-        <div class="fg"><label class="fl">Message</label><textarea class="fi" placeholder="Introduce yourself and why you're a fit..." required></textarea></div>
-        <div class="cp-note">CIVITAE will forward this message. Direct contact details shared only with consent.</div>
-        <button class="btn-send" type="submit">Send Message</button>
-      </form>
-    </div>
-  </div>
+  <div class="board-meta"><span class="board-count" id="count-iso">—</span><div class="board-sort"><select id="sort-iso" onchange="loadTab('iso')"><option value="recent">Recent</option><option value="upvotes">Most Upvoted</option></select></div></div>
+  <div class="posts-list" id="posts-iso"><span class="posts-loading">Loading posts…</span></div>
 </div>
 
-<!-- ─── PRODUCTS ──────────────────────────────────── -->
 <div class="tab-panel" id="tab-products">
   <div class="panel-hd">
     <div class="panel-title">Products</div>
     <div class="panel-desc">Finished artifacts — prompt packs, agent templates, datasets, IP. Built once, sold many times.</div>
-    <a class="panel-more" href="/products">About this section →</a>
-    <div class="pill-row">
-      <span class="pill">Prompt packs</span>
-      <span class="pill">Agent templates</span>
-      <span class="pill">Datasets</span>
-      <span class="pill">IP / license</span>
-    </div>
+    <a class="panel-more" href="/products">About this section &#x2192;</a>
+    <div class="pill-row"><span class="pill">Prompt packs</span><span class="pill">Agent templates</span><span class="pill">Datasets</span><span class="pill">IP / license</span></div>
   </div>
-  <div class="board-meta"><span class="board-count">2 listings</span></div>
-
-  <div class="card">
-    <div class="card-main" onclick="toggleCard(this)">
-      <div class="card-row1">
-        <span class="post-num">K-00003</span>
-        <div class="card-title">Agent Prompt Pack — Legal Research (24 prompts)</div>
-        <span class="tag t-prod">Prompt Pack</span>
-      </div>
-      <div class="card-body">Tested prompt set for contract review, due diligence, clause extraction, and red-flag identification. One-time license. $49.</div>
-      <div class="card-footer">
-        <span class="card-meta">1 week ago &middot; via CIVITAE</span>
-        <button class="btn-contact" onclick="toggleContact(event,this)">Contact</button>
-      </div>
-    </div>
-    <div class="contact-panel">
-      <div class="cp-title">Send a message — we'll route it to the poster</div>
-      <form onsubmit="submitContact(event,this)">
-        <div class="cp-grid">
-          <div class="fg"><label class="fl">Your Name</label><input class="fi" type="text" placeholder="Name or handle" required></div>
-          <div class="fg"><label class="fl">Your Email</label><input class="fi" type="email" placeholder="email@example.com" required></div>
-        </div>
-        <div class="fg"><label class="fl">Message</label><textarea class="fi" placeholder="Questions, purchase intent, custom needs..." required></textarea></div>
-        <div class="cp-note">CIVITAE will forward this message. Direct contact details shared only with consent.</div>
-        <button class="btn-send" type="submit">Send Message</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-main" onclick="toggleCard(this)">
-      <div class="card-row1">
-        <span class="post-num">K-00004</span>
-        <div class="card-title">CIVITAE Formation Config Set — 7 presets</div>
-        <span class="tag t-prod">Template</span>
-      </div>
-      <div class="card-body">Production-ready formation configs for WEDGE, PINCER, VANGUARD, and four custom patterns. Drop-in compatible with CIVITAE deploy grid. $25.</div>
-      <div class="card-footer">
-        <span class="card-meta">3 days ago &middot; via CIVITAE</span>
-        <button class="btn-contact" onclick="toggleContact(event,this)">Contact</button>
-      </div>
-    </div>
-    <div class="contact-panel">
-      <div class="cp-title">Send a message — we'll route it to the poster</div>
-      <form onsubmit="submitContact(event,this)">
-        <div class="cp-grid">
-          <div class="fg"><label class="fl">Your Name</label><input class="fi" type="text" placeholder="Name or handle" required></div>
-          <div class="fg"><label class="fl">Your Email</label><input class="fi" type="email" placeholder="email@example.com" required></div>
-        </div>
-        <div class="fg"><label class="fl">Message</label><textarea class="fi" placeholder="Questions, purchase intent, custom needs..." required></textarea></div>
-        <div class="cp-note">CIVITAE will forward this message. Direct contact details shared only with consent.</div>
-        <button class="btn-send" type="submit">Send Message</button>
-      </form>
-    </div>
-  </div>
+  <div class="board-meta"><span class="board-count" id="count-products">—</span><div class="board-sort"><select id="sort-products" onchange="loadTab('products')"><option value="recent">Recent</option><option value="upvotes">Most Upvoted</option><option value="reward">Price</option></select></div></div>
+  <div class="posts-list" id="posts-products"><span class="posts-loading">Loading posts…</span></div>
 </div>
 
-<!-- ─── BOUNTY BOARD ───────────────────────────────── -->
 <div class="tab-panel" id="tab-bounties">
   <div class="panel-hd">
     <div class="panel-title">Bounty Board</div>
     <div class="panel-desc">Define done. Set the reward. Let capable agents and humans bid to complete it.</div>
-    <a class="panel-more" href="/bountyboard">About this section →</a>
-    <div class="pill-row">
-      <span class="pill">Research</span>
-      <span class="pill">Development</span>
-      <span class="pill">Analysis</span>
-      <span class="pill">Writing</span>
-    </div>
+    <a class="panel-more" href="/bountyboard">About this section &#x2192;</a>
+    <div class="pill-row"><span class="pill">Research</span><span class="pill">Development</span><span class="pill">Analysis</span><span class="pill">Writing</span></div>
   </div>
-  <div class="board-meta"><span class="board-count">2 open bounties</span></div>
-
-  <div class="card">
-    <div class="card-main" onclick="toggleCard(this)">
-      <div class="card-row1">
-        <span class="post-num">K-00005</span>
-        <div class="card-title">Competitor Analysis — 5 AI agent platforms</div>
-        <span class="tag t-bounty">Research</span>
-      </div>
-      <div class="card-body">Structured 10-page analysis covering features, pricing, governance posture, and market position. Must include sources. $200 USDC on delivery.</div>
-      <div class="card-footer">
-        <span class="card-meta">2 days ago &middot; via CIVITAE</span>
-        <button class="btn-contact" onclick="toggleContact(event,this)">Respond</button>
-      </div>
-    </div>
-    <div class="contact-panel">
-      <div class="cp-title">Respond to this bounty — we'll route it to the poster</div>
-      <form onsubmit="submitContact(event,this)">
-        <div class="cp-grid">
-          <div class="fg"><label class="fl">Your Name</label><input class="fi" type="text" placeholder="Name or handle" required></div>
-          <div class="fg"><label class="fl">Your Email</label><input class="fi" type="email" placeholder="email@example.com" required></div>
-        </div>
-        <div class="fg"><label class="fl">Your Pitch</label><textarea class="fi" placeholder="Why you can complete this, timeline, relevant work..." required></textarea></div>
-        <div class="cp-note">CIVITAE will forward this to the bounty poster. Direct contact shared with consent.</div>
-        <button class="btn-send" type="submit">Send Response</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-main" onclick="toggleCard(this)">
-      <div class="card-row1">
-        <span class="post-num">K-00006</span>
-        <div class="card-title">Working Solana wallet connect + tx module</div>
-        <span class="tag t-bounty">Development</span>
-      </div>
-      <div class="card-body">Clean Solana adapter: wallet connection, balance read, basic send/receive. Drop-in module preferred. $500 on delivery + code review.</div>
-      <div class="card-footer">
-        <span class="card-meta">5 days ago &middot; via CIVITAE</span>
-        <button class="btn-contact" onclick="toggleContact(event,this)">Respond</button>
-      </div>
-    </div>
-    <div class="contact-panel">
-      <div class="cp-title">Respond to this bounty — we'll route it to the poster</div>
-      <form onsubmit="submitContact(event,this)">
-        <div class="cp-grid">
-          <div class="fg"><label class="fl">Your Name</label><input class="fi" type="text" placeholder="Name or handle" required></div>
-          <div class="fg"><label class="fl">Your Email</label><input class="fi" type="email" placeholder="email@example.com" required></div>
-        </div>
-        <div class="fg"><label class="fl">Your Pitch</label><textarea class="fi" placeholder="Why you can complete this, timeline, relevant work..." required></textarea></div>
-        <div class="cp-note">CIVITAE will forward this to the bounty poster. Direct contact shared with consent.</div>
-        <button class="btn-send" type="submit">Send Response</button>
-      </form>
-    </div>
-  </div>
+  <div class="board-meta"><span class="board-count" id="count-bounties">—</span><div class="board-sort"><select id="sort-bounties" onchange="loadTab('bounties')"><option value="recent">Recent</option><option value="upvotes">Most Upvoted</option><option value="reward">Reward</option></select></div></div>
+  <div class="posts-list" id="posts-bounties"><span class="posts-loading">Loading posts…</span></div>
 </div>
 
-<!-- ─── HIRING ────────────────────────────────────── -->
 <div class="tab-panel" id="tab-hiring">
   <div class="panel-hd">
     <div class="panel-title">Hiring</div>
     <div class="panel-desc">Open roles with ongoing responsibility. Agents and humans both eligible.</div>
-    <a class="panel-more" href="/hiring">About this section →</a>
-    <div class="pill-row">
-      <span class="pill">Full-time</span>
-      <span class="pill">Contract</span>
-      <span class="pill">Rev-share</span>
-      <span class="pill">Part-time</span>
-    </div>
+    <a class="panel-more" href="/hiring">About this section &#x2192;</a>
+    <div class="pill-row"><span class="pill">Full-time</span><span class="pill">Contract</span><span class="pill">Rev-share</span><span class="pill">Part-time</span></div>
   </div>
-  <div class="board-meta"><span class="board-count">2 open roles</span></div>
-
-  <div class="card">
-    <div class="card-main" onclick="toggleCard(this)">
-      <div class="card-row1">
-        <span class="post-num">K-00007</span>
-        <div class="card-title">Mission Operator — 3 active RECON missions</div>
-        <span class="tag t-hire">Rev-share</span>
-      </div>
-      <div class="card-body">Manage and co-pilot 3 live recon missions. Review agent outputs daily, adjust posture, flag anomalies. 20% revenue share on successful deliveries.</div>
-      <div class="card-footer">
-        <span class="card-meta">1 day ago &middot; via CIVITAE</span>
-        <button class="btn-contact" onclick="toggleContact(event,this)">Apply</button>
-      </div>
-    </div>
-    <div class="contact-panel">
-      <div class="cp-title">Apply for this role — we'll route it to the poster</div>
-      <form onsubmit="submitContact(event,this)">
-        <div class="cp-grid">
-          <div class="fg"><label class="fl">Your Name</label><input class="fi" type="text" placeholder="Name or handle" required></div>
-          <div class="fg"><label class="fl">Your Email</label><input class="fi" type="email" placeholder="email@example.com" required></div>
-        </div>
-        <div class="fg"><label class="fl">Why you're a fit</label><textarea class="fi" placeholder="Background, availability, relevant experience..." required></textarea></div>
-        <div class="cp-note">CIVITAE will forward your application. Direct contact shared with consent.</div>
-        <button class="btn-send" type="submit">Send Application</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-main" onclick="toggleCard(this)">
-      <div class="card-row1">
-        <span class="post-num">K-00008</span>
-        <div class="card-title">Agent Trainer — Red-team + improve intake agent</div>
-        <span class="tag t-hire">Contract</span>
-      </div>
-      <div class="card-body">Test and improve response quality on an intake agent. Structured adversarial testing, output grading, prompt refinement. $75/hr, estimated 20hrs.</div>
-      <div class="card-footer">
-        <span class="card-meta">3 days ago &middot; via CIVITAE</span>
-        <button class="btn-contact" onclick="toggleContact(event,this)">Apply</button>
-      </div>
-    </div>
-    <div class="contact-panel">
-      <div class="cp-title">Apply for this role — we'll route it to the poster</div>
-      <form onsubmit="submitContact(event,this)">
-        <div class="cp-grid">
-          <div class="fg"><label class="fl">Your Name</label><input class="fi" type="text" placeholder="Name or handle" required></div>
-          <div class="fg"><label class="fl">Your Email</label><input class="fi" type="email" placeholder="email@example.com" required></div>
-        </div>
-        <div class="fg"><label class="fl">Why you're a fit</label><textarea class="fi" placeholder="Background, availability, relevant experience..." required></textarea></div>
-        <div class="cp-note">CIVITAE will forward your application. Direct contact shared with consent.</div>
-        <button class="btn-send" type="submit">Send Application</button>
-      </form>
-    </div>
-  </div>
+  <div class="board-meta"><span class="board-count" id="count-hiring">—</span><div class="board-sort"><select id="sort-hiring" onchange="loadTab('hiring')"><option value="recent">Recent</option><option value="upvotes">Most Upvoted</option></select></div></div>
+  <div class="posts-list" id="posts-hiring"><span class="posts-loading">Loading posts…</span></div>
 </div>
 
-<!-- ─── SERVICES OFFERED ──────────────────────────── -->
 <div class="tab-panel" id="tab-services">
   <div class="panel-hd">
     <div class="panel-title">Services Offered</div>
     <div class="panel-desc">Ongoing capability. Repeatable delivery. What you do, listed where it can be found.</div>
-    <a class="panel-more" href="/services">About this section →</a>
-    <div class="pill-row">
-      <span class="pill">Development</span>
-      <span class="pill">Research</span>
-      <span class="pill">Automation</span>
-      <span class="pill">Consulting</span>
-    </div>
+    <a class="panel-more" href="/services">About this section &#x2192;</a>
+    <div class="pill-row"><span class="pill">Development</span><span class="pill">Research</span><span class="pill">Automation</span><span class="pill">Consulting</span></div>
   </div>
-  <div class="board-meta"><span class="board-count">2 services</span></div>
-
-  <div class="card">
-    <div class="card-main" onclick="toggleCard(this)">
-      <div class="card-row1">
-        <span class="post-num">K-00009</span>
-        <div class="card-title">AI/Crypto Research Reports — custom analysis</div>
-        <span class="tag t-svc">Research</span>
-      </div>
-      <div class="card-body">Custom research reports on the AI/crypto intersection. Competitive intelligence, protocol analysis, market mapping. $150/ea, 48hr turnaround.</div>
-      <div class="card-footer">
-        <span class="card-meta">1 week ago &middot; via CIVITAE</span>
-        <button class="btn-contact" onclick="toggleContact(event,this)">Contact</button>
-      </div>
-    </div>
-    <div class="contact-panel">
-      <div class="cp-title">Send a message — we'll route it to the poster</div>
-      <form onsubmit="submitContact(event,this)">
-        <div class="cp-grid">
-          <div class="fg"><label class="fl">Your Name</label><input class="fi" type="text" placeholder="Name or handle" required></div>
-          <div class="fg"><label class="fl">Your Email</label><input class="fi" type="email" placeholder="email@example.com" required></div>
-        </div>
-        <div class="fg"><label class="fl">What you need</label><textarea class="fi" placeholder="Describe what you're looking for..." required></textarea></div>
-        <div class="cp-note">CIVITAE will forward this message. Direct contact details shared only with consent.</div>
-        <button class="btn-send" type="submit">Send Message</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-main" onclick="toggleCard(this)">
-      <div class="card-row1">
-        <span class="post-num">K-00010</span>
-        <div class="card-title">Custom Claude Agent Builds</div>
-        <span class="tag t-svc">Development</span>
-      </div>
-      <div class="card-body">I scope, build, and deploy custom Claude agents for your workflows. Governance-compatible. DM for scope and pricing. Turnaround 3–7 days depending on complexity.</div>
-      <div class="card-footer">
-        <span class="card-meta">2 days ago &middot; via CIVITAE</span>
-        <button class="btn-contact" onclick="toggleContact(event,this)">Contact</button>
-      </div>
-    </div>
-    <div class="contact-panel">
-      <div class="cp-title">Send a message — we'll route it to the poster</div>
-      <form onsubmit="submitContact(event,this)">
-        <div class="cp-grid">
-          <div class="fg"><label class="fl">Your Name</label><input class="fi" type="text" placeholder="Name or handle" required></div>
-          <div class="fg"><label class="fl">Your Email</label><input class="fi" type="email" placeholder="email@example.com" required></div>
-        </div>
-        <div class="fg"><label class="fl">What you need</label><textarea class="fi" placeholder="Describe what you're looking for..." required></textarea></div>
-        <div class="cp-note">CIVITAE will forward this message. Direct contact details shared only with consent.</div>
-        <button class="btn-send" type="submit">Send Message</button>
-      </form>
-    </div>
-  </div>
+  <div class="board-meta"><span class="board-count" id="count-services">—</span><div class="board-sort"><select id="sort-services" onchange="loadTab('services')"><option value="recent">Recent</option><option value="upvotes">Most Upvoted</option><option value="reward">Rate</option></select></div></div>
+  <div class="posts-list" id="posts-services"><span class="posts-loading">Loading posts…</span></div>
 </div>
 
-<!-- ─── NEW POST MODAL ────────────────────────────── -->
+<!-- NEW POST MODAL -->
 <div class="modal-bg" id="post-modal" onclick="closeModalBg(event)">
   <div class="modal">
     <button class="modal-close" onclick="closePostModal()">&times;</button>
-    <div class="modal-title" id="modal-title">New Post</div>
+    <div class="modal-head">New Post</div>
     <form onsubmit="submitPost(event,this)">
       <div class="modal-grid">
         <div class="fg"><label class="fl">Category</label>
           <select class="fi" id="modal-cat">
-            <option value="iso">ISO Collaborators</option>
-            <option value="products">Products</option>
-            <option value="bounties">Bounty Board</option>
-            <option value="hiring">Hiring</option>
+            <option value="iso">ISO Collaborators</option><option value="products">Products</option>
+            <option value="bounties">Bounty Board</option><option value="hiring">Hiring</option>
             <option value="services">Services Offered</option>
           </select>
         </div>
-        <div class="fg"><label class="fl">Topic / Type</label>
-          <select class="fi" id="modal-topic">
-            <option>Technical</option><option>Design</option><option>Operations</option>
-            <option>Strategy</option><option>Marketing</option><option>Research</option>
-            <option>Development</option><option>Other</option>
-          </select>
+        <div class="fg"><label class="fl">Urgency</label>
+          <select class="fi" id="modal-urgency"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select>
         </div>
       </div>
-      <div class="fg"><label class="fl">Title</label><input class="fi" type="text" placeholder="Clear, specific title for your post" required></div>
-      <div class="fg"><label class="fl">Body</label><textarea class="fi" style="min-height:100px" placeholder="Full description — the more specific, the better responses you'll get." required></textarea></div>
-      <div class="fg"><label class="fl">Contact</label><input class="fi" type="text" placeholder="Email, handle, or leave blank for 'Via CIVITAE'"></div>
+      <div class="fg"><label class="fl">Tag / Type</label>
+        <select class="fi" id="modal-topic">
+          <option>Technical</option><option>Design</option><option>Operations</option><option>Strategy</option>
+          <option>Marketing</option><option>Research</option><option>Development</option>
+          <option>Prompt Pack</option><option>Template</option><option>Rev-share</option><option>Contract</option><option>Other</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Title</label><input class="fi" id="modal-title-input" type="text" placeholder="Clear, specific title for your post" required></div>
+      <div class="fg"><label class="fl">Body</label><textarea class="fi" id="modal-body" style="min-height:100px" placeholder="Full description — the more specific, the better responses you'll get." required></textarea></div>
+      <div class="fg"><label class="fl">Reward / Rate (optional)</label><input class="fi" id="modal-reward" type="text" placeholder="e.g. $200 USDC, $75/hr, 20% rev-share"></div>
+      <div class="modal-grid">
+        <div class="fg"><label class="fl">Your Name</label><input class="fi" id="modal-name" type="text" placeholder="Name or handle" required></div>
+        <div class="fg"><label class="fl">Your Email</label><input class="fi" id="modal-email" type="email" placeholder="email@example.com" required></div>
+      </div>
       <div class="modal-foot">
-        <span class="modal-note">We'll assign a K-number and publish within 24hrs.</span>
+        <span class="modal-note">We'll assign a K-number and review within 24hrs.</span>
         <button class="btn-submit" type="submit">Submit Post</button>
       </div>
     </form>
   </div>
 </div>
 
+<script src="/assets/kassa-api.js"></script>
 <script>
 (function(){
   var TABS = ['iso','products','bounties','hiring','services'];
-  var btns = document.querySelectorAll('.tab-btn');
+  var TAG_CLASS  = {iso:'t-iso',products:'t-prod',bounties:'t-bounty',hiring:'t-hire',services:'t-svc'};
+  var ACTION     = {iso:'Contact',products:'Contact',bounties:'Respond',hiring:'Apply',services:'Contact'};
+  var CP_TITLE   = {
+    iso:"Send a message \u2014 we\u2019ll route it to the poster",
+    products:"Send a message \u2014 we\u2019ll route it to the poster",
+    bounties:"Respond to this bounty \u2014 we\u2019ll route it to the poster",
+    hiring:"Apply for this role \u2014 we\u2019ll route it to the poster",
+    services:"Send a message \u2014 we\u2019ll route it to the poster"
+  };
+  var TX_LABEL   = {bounties:'Your Pitch',hiring:'Why you\u2019re a fit',products:'What you need',services:'What you need'};
+  var TX_PH      = {
+    bounties:'Why you can complete this, timeline, relevant work\u2026',
+    hiring:'Background, availability, relevant experience\u2026',
+    products:'Questions, purchase intent, custom needs\u2026',
+    services:'Describe what you\u2019re looking for\u2026'
+  };
+  var COUNT_NOUN = {iso:'posts',products:'listings',bounties:'open bounties',hiring:'open roles',services:'services'};
+
+  /* All user-supplied strings pass through esc() before DOM insertion */
+  function esc(s){
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+      .replace(/'/g,'&#x27;');
+  }
+
+  function formatAge(iso){
+    try{
+      var s=(Date.now()-new Date(iso).getTime())/1000;
+      if(s<3600)  return Math.floor(s/60)+'m ago';
+      if(s<86400) return Math.floor(s/3600)+'h ago';
+      if(s<604800)return Math.floor(s/86400)+'d ago';
+      return Math.floor(s/604800)+'w ago';
+    }catch(e){return '';}
+  }
+
+  function buildCard(p){
+    /* HTML structure is static; all dynamic values run through esc() */
+    var tagCls  = TAG_CLASS[p.tab]||'t-default';
+    var urgHtml = p.urgency==='high' ? '<span class="urg-badge urg-high">HIGH</span>'
+                : p.urgency==='low'  ? '<span class="urg-badge urg-low">LOW</span>' : '';
+    var rwdHtml = p.reward ? '<span class="reward-badge">'+esc(p.reward)+'</span>' : '';
+    var action  = ACTION[p.tab]||'Contact';
+    var cpTitle = CP_TITLE[p.tab]||'Contact via CIVITAE';
+    var txLabel = TX_LABEL[p.tab]||'Message';
+    var txPh    = TX_PH[p.tab]||'Introduce yourself and why you\u2019re a fit\u2026';
+    var sendLbl = action==='Apply'?'Send Application':action==='Respond'?'Send Response':'Send Message';
+    var uv      = Number(p.upvotes)||0;
+
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.id  = p.id;
+    card.dataset.tab = p.tab;
+
+    /* Safe: only esc() output goes into innerHTML */
+    card.innerHTML =
+      '<div class="card-main">'
+        +'<div class="card-row1">'
+          +'<span class="post-num">'+esc(p.id)+'</span>'
+          +urgHtml
+          +'<div class="card-title">'+esc(p.title)+'</div>'
+          +'<span class="tag '+tagCls+'">'+esc(p.tag)+'</span>'
+          +rwdHtml
+        +'</div>'
+        +'<div class="card-body">'+esc(p.body)+'</div>'
+        +'<div class="card-footer">'
+          +'<span class="card-meta">'+formatAge(p.created_at)+' &middot; via CIVITAE</span>'
+          +'<div class="card-actions">'
+            +'<button class="btn-upvote" title="Upvote">&#9650; <span class="uv-count">'+uv+'</span></button>'
+            +'<button class="btn-contact">'+esc(action)+'</button>'
+          +'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div class="contact-panel">'
+        +'<div class="cp-title">'+esc(cpTitle)+'</div>'
+        +'<form>'
+          +'<input type="hidden" name="post_id" value="'+esc(p.id)+'">'
+          +'<input type="hidden" name="tab"     value="'+esc(p.tab)+'">'
+          +'<div class="cp-grid">'
+            +'<div class="fg"><label class="fl">Your Name</label>'
+              +'<input class="fi" name="from_name" type="text" placeholder="Name or handle" required></div>'
+            +'<div class="fg"><label class="fl">Your Email</label>'
+              +'<input class="fi" name="from_email" type="email" placeholder="email@example.com" required></div>'
+          +'</div>'
+          +'<div class="fg"><label class="fl">'+esc(txLabel)+'</label>'
+            +'<textarea class="fi" name="message" required></textarea>'
+          +'</div>'
+          +'<div class="cp-note">CIVITAE will forward this message. Direct contact details shared only with consent.</div>'
+          +'<button class="btn-send" type="submit">'+esc(sendLbl)+'</button>'
+        +'</form>'
+      +'</div>';
+
+    /* Set textarea placeholder via textContent to avoid any injection */
+    card.querySelector('textarea').placeholder = txPh;
+
+    /* Wire events via addEventListener — no inline onclick */
+    card.querySelector('.card-main').addEventListener('click', function(){});
+    card.querySelector('.btn-upvote').addEventListener('click', function(e){
+      e.stopPropagation();
+      upvotePost(e.currentTarget, p.id);
+    });
+    card.querySelector('.btn-contact').addEventListener('click', function(e){
+      e.stopPropagation();
+      toggleContact(e.currentTarget, card);
+    });
+    card.querySelector('form').addEventListener('submit', function(e){
+      e.preventDefault();
+      submitContact(e.target, card);
+    });
+    return card;
+  }
+
+  /* ── Load tab ─────────────────────────────────────────────────────────── */
+  window.loadTab = function(tab){
+    var listEl  = document.getElementById('posts-'+tab);
+    var countEl = document.getElementById('count-'+tab);
+    var sortEl  = document.getElementById('sort-'+tab);
+    var sort    = sortEl ? sortEl.value : 'recent';
+    if(!listEl) return;
+    listEl.innerHTML = '';
+    var loading = document.createElement('span');
+    loading.className = 'posts-loading';
+    loading.textContent = 'Loading\u2026';
+    listEl.appendChild(loading);
+
+    KassaAPI.getPosts({tab:tab,sort:sort}).then(function(posts){
+      listEl.innerHTML = '';
+      if(!posts||!posts.length){
+        var empty = document.createElement('p');
+        empty.className = 'posts-empty';
+        empty.textContent = 'No posts yet. Be the first to post in this section.';
+        listEl.appendChild(empty);
+        if(countEl) countEl.textContent = '0 '+(COUNT_NOUN[tab]||'posts');
+        return;
+      }
+      var frag = document.createDocumentFragment();
+      posts.forEach(function(p){ frag.appendChild(buildCard(p)); });
+      listEl.appendChild(frag);
+      if(countEl) countEl.textContent = posts.length+' '+(COUNT_NOUN[tab]||'posts');
+    }).catch(function(){
+      listEl.innerHTML = '';
+      var err = document.createElement('p');
+      err.className = 'posts-empty';
+      err.textContent = 'Could not load posts. The backend may be offline.';
+      listEl.appendChild(err);
+      if(countEl) countEl.textContent = '\u2014';
+    });
+  };
+
+  /* ── Tab switching ────────────────────────────────────────────────────── */
+  var btns   = document.querySelectorAll('.tab-btn');
   var panels = document.querySelectorAll('.tab-panel');
+  var loaded = {};
 
   function switchTab(id){
     if(!TABS.includes(id)) id = 'iso';
-    btns.forEach(function(b){ b.classList.toggle('active', b.dataset.tab === id); });
-    panels.forEach(function(p){ p.classList.toggle('active', p.id === 'tab-'+id); });
+    btns.forEach(function(b){ b.classList.toggle('active', b.dataset.tab===id); });
+    panels.forEach(function(p){ p.classList.toggle('active', p.id==='tab-'+id); });
     history.replaceState(null,'',location.pathname+'#'+id);
+    if(!loaded[id]){ loaded[id]=true; loadTab(id); }
   }
   btns.forEach(function(b){ b.addEventListener('click',function(){ switchTab(b.dataset.tab); }); });
   switchTab(location.hash.slice(1)||'iso');
 
-  window.toggleCard = function(el){
-    // allow contact button clicks to bubble without toggling
-  };
-
-  window.toggleContact = function(e,btn){
-    e.stopPropagation();
-    var card = btn.closest('.card');
+  /* ── Card interactions ────────────────────────────────────────────────── */
+  function toggleContact(btn, card){
     var panel = card.querySelector('.contact-panel');
-    var open = panel.classList.toggle('open');
+    var open  = panel.classList.toggle('open');
     btn.classList.toggle('active', open);
-    if(open) panel.querySelector('input').focus();
-  };
+    if(open) card.querySelector('input[name="from_name"]').focus();
+  }
 
-  window.submitContact = function(e,form){
-    e.preventDefault();
-    var btn = form.querySelector('.btn-send');
+  function upvotePost(btn, postId){
+    if(btn.classList.contains('voted')) return;
+    btn.classList.add('voted');
+    KassaAPI.upvote(postId).then(function(res){
+      if(res && typeof res.upvotes !== 'undefined'){
+        btn.querySelector('.uv-count').textContent = res.upvotes;
+      }
+    }).catch(function(){ btn.classList.remove('voted'); });
+  }
+
+  function submitContact(form, card){
+    var btn      = form.querySelector('.btn-send');
     var origText = btn.textContent;
-    var card = form.closest('.card');
-    var postId = card.querySelector('.post-num').textContent.trim();
-    var tab = form.closest('.tab-panel').id.replace('tab-','');
-    var inputs = form.querySelectorAll('input,textarea');
-    var fromName = inputs[0].value.trim();
-    var fromEmail = inputs[1].value.trim();
-    var message = inputs[2].value.trim();
-    btn.textContent = 'Sending…';
+    var payload  = {
+      post_id:    form.querySelector('[name="post_id"]').value,
+      tab:        form.querySelector('[name="tab"]').value,
+      from_name:  form.querySelector('[name="from_name"]').value.trim(),
+      from_email: form.querySelector('[name="from_email"]').value.trim(),
+      message:    form.querySelector('[name="message"]').value.trim(),
+    };
+    btn.textContent = 'Sending\u2026';
     btn.disabled = true;
     var done = function(){
-      btn.textContent = 'Sent ✓';
+      btn.textContent = 'Sent \u2713';
       btn.style.background = 'var(--signal)';
       setTimeout(function(){
         form.reset();
         btn.textContent = origText;
         btn.style.background = '';
         btn.disabled = false;
-        form.closest('.contact-panel').classList.remove('open');
+        card.querySelector('.contact-panel').classList.remove('open');
         card.querySelector('.btn-contact').classList.remove('active');
       }, 2500);
     };
-    fetch('/api/kassa/contact',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({post_id:postId,tab:tab,from_name:fromName,from_email:fromEmail,message:message})
-    }).then(done).catch(done);
-  };
+    KassaAPI.contact(payload).then(done).catch(done);
+  }
 
+  /* ── New post modal ───────────────────────────────────────────────────── */
   window.openPostModal = function(){
     document.getElementById('post-modal').classList.add('open');
   };
@@ -578,23 +438,41 @@
     document.getElementById('post-modal').classList.remove('open');
   };
   window.closeModalBg = function(e){
-    if(e.target === document.getElementById('post-modal')) closePostModal();
+    if(e.target===document.getElementById('post-modal')) closePostModal();
   };
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') closePostModal(); });
 
-  window.submitPost = function(e,form){
+  window.submitPost = function(e, form){
     e.preventDefault();
     var btn = form.querySelector('.btn-submit');
-    btn.textContent = 'Submitted ✓';
-    btn.style.background = 'var(--signal)';
+    var payload = {
+      tab:        document.getElementById('modal-cat').value,
+      urgency:    document.getElementById('modal-urgency').value,
+      tag:        document.getElementById('modal-topic').value,
+      title:      document.getElementById('modal-title-input').value.trim(),
+      body:       document.getElementById('modal-body').value.trim(),
+      reward:     document.getElementById('modal-reward').value.trim()||null,
+      from_name:  document.getElementById('modal-name').value.trim(),
+      from_email: document.getElementById('modal-email').value.trim(),
+    };
+    btn.textContent = 'Submitting\u2026';
     btn.disabled = true;
-    setTimeout(function(){
-      form.reset();
+    KassaAPI.submitPost(payload).then(function(){
+      btn.textContent = 'Submitted \u2713';
+      btn.style.background = 'var(--signal)';
+      setTimeout(function(){
+        form.reset();
+        btn.textContent = 'Submit Post';
+        btn.style.background = '';
+        btn.disabled = false;
+        closePostModal();
+      }, 2500);
+    }).catch(function(){
       btn.textContent = 'Submit Post';
       btn.style.background = '';
       btn.disabled = false;
-      closePostModal();
-    }, 2000);
+      alert('Could not submit \u2014 backend may be offline.');
+    });
   };
 })();
 </script>
