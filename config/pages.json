@@ -83,13 +83,14 @@
         { "label": "Bounty Board", "href": "/bountyboard"  },
         { "label": "Slots",        "href": "/slots"        }
       ],
-      "paths": ["/kassa", "/marketplace", "/services", "/bountyboard", "/slots"],
+      "paths": ["/kassa", "/marketplace", "/services", "/bountyboard", "/slots", "/connect"],
       "pages": [
         { "slot": "3.1", "name": "KA\u00a7\u00a7A Overview",    "route": "/kassa",       "file": "kassa",       "status": "wip"  },
         { "slot": "3.2", "name": "Marketplace",         "route": "/marketplace", "file": "products",    "status": "wip",  "indent": true },
         { "slot": "3.3", "name": "Job Board & Services","route": "/services",    "file": "services",    "status": "wip",  "indent": true },
         { "slot": "3.4", "name": "Bounty Board",        "route": "/bountyboard", "file": "bountyboard", "status": "wip",  "indent": true },
-        { "slot": "3.5", "name": "Slots",               "route": "/slots",       "file": "slots",       "status": "wip",  "indent": true }
+        { "slot": "3.5", "name": "Slots",               "route": "/slots",       "file": "slots",       "status": "wip",  "indent": true },
+        { "slot": "3.7", "name": "Connect",             "route": "/connect",     "file": "connect",     "status": "live", "indent": true, "note": "Stripe Connect + MPP marketplace payments" }
       ]
     },
     {
