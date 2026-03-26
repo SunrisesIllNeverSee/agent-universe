@@ -40,15 +40,25 @@ DEFAULT_APP_FEE_PERCENT = 5
 # ── Stripe Client (V2 API) ────────────────────────────────────────────────
 
 _client = None
+_stripe_module = None
 _stripe_ready = False
+_stripe_v2_ready = False
 
 if STRIPE_SECRET_KEY:
     try:
-        from stripe import StripeClient
-        # Use StripeClient for all Stripe requests (V2 pattern).
-        # The SDK automatically uses the latest API version.
-        _client = StripeClient(STRIPE_SECRET_KEY)
+        import stripe
+
+        stripe.api_key = STRIPE_SECRET_KEY
+        _stripe_module = stripe
         _stripe_ready = True
+        try:
+            from stripe import StripeClient
+
+            # Use StripeClient for V2 APIs when the installed SDK supports it.
+            _client = StripeClient(STRIPE_SECRET_KEY)
+            _stripe_v2_ready = True
+        except ImportError:
+            _client = None
     except ImportError:
         pass
 
@@ -101,6 +111,8 @@ def create_connected_account(display_name: str, email: str, country: str = "us")
     """
     if not _stripe_ready:
         return {"error": "Stripe not configured. Set STRIPE_SECRET_KEY."}
+    if not _stripe_v2_ready or _client is None:
+        return {"error": "Stripe Accounts V2 requires a newer Stripe SDK with StripeClient support."}
 
     # V2 account creation — platform manages fees and losses.
     # Do NOT pass type='express' at top level (V2 uses dashboard='express' instead).
@@ -152,6 +164,8 @@ def create_account_link(account_id: str, return_url: str, refresh_url: str) -> d
     """
     if not _stripe_ready:
         return {"error": "Stripe not configured. Set STRIPE_SECRET_KEY."}
+    if not _stripe_v2_ready or _client is None:
+        return {"error": "Stripe Accounts V2 requires a newer Stripe SDK with StripeClient support."}
 
     # V2 account links API for onboarding
     link = _client.v2.core.account_links.create(
@@ -184,6 +198,8 @@ def get_account_status(account_id: str) -> dict:
     """
     if not _stripe_ready:
         return {"error": "Stripe not configured. Set STRIPE_SECRET_KEY."}
+    if not _stripe_v2_ready or _client is None:
+        return {"error": "Stripe Accounts V2 requires a newer Stripe SDK with StripeClient support."}
 
     # Retrieve account with configuration and requirements included
     account = _client.v2.core.accounts.retrieve(
@@ -247,20 +263,34 @@ def create_product(
         return {"error": "Stripe not configured. Set STRIPE_SECRET_KEY."}
 
     # Create product at platform level with connected account in metadata
-    product = _client.products.create(
-        params={
-            "name": name,
-            "description": description,
-            "default_price_data": {
+    if _stripe_v2_ready and _client is not None:
+        product = _client.products.create(
+            params={
+                "name": name,
+                "description": description,
+                "default_price_data": {
+                    "unit_amount": price_cents,
+                    "currency": currency,
+                },
+                "metadata": {
+                    "connected_account_id": connected_account_id,
+                    "platform": "civitae_kassa",
+                },
+            }
+        )
+    else:
+        product = _stripe_module.Product.create(
+            name=name,
+            description=description,
+            default_price_data={
                 "unit_amount": price_cents,
                 "currency": currency,
             },
-            "metadata": {
+            metadata={
                 "connected_account_id": connected_account_id,
                 "platform": "civitae_kassa",
             },
-        }
-    )
+        )
     return {
         "product_id": product.id,
         "price_id": product.default_price,
@@ -277,16 +307,24 @@ def list_products() -> list[dict]:
     if not _stripe_ready:
         return []
 
-    products = _client.products.list(params={"active": True, "limit": 100})
+    if _stripe_v2_ready and _client is not None:
+        products = _client.products.list(params={"active": True, "limit": 100})
+        product_rows = products.data
+    else:
+        products = _stripe_module.Product.list(active=True, limit=100)
+        product_rows = products.data
     result = []
-    for p in products.data:
+    for p in product_rows:
         # Get the default price amount
         price_cents = 0
         price_id = ""
         if p.default_price:
             price_id = p.default_price if isinstance(p.default_price, str) else p.default_price.id
             try:
-                price = _client.prices.retrieve(price_id)
+                if _stripe_v2_ready and _client is not None:
+                    price = _client.prices.retrieve(price_id)
+                else:
+                    price = _stripe_module.Price.retrieve(price_id)
                 price_cents = price.unit_amount or 0
             except Exception:
                 pass
@@ -343,28 +381,30 @@ def create_checkout_session(
     # Calculate application fee from governance tier percentage
     app_fee_amount = int(price_cents * app_fee_percent / 100)
 
-    session = _client.checkout.sessions.create(
-        params={
-            "line_items": [{
-                "price_data": {
-                    "currency": "usd",
-                    "unit_amount": price_cents,
-                    "product_data": {"name": product_name},
-                },
-                "quantity": 1,
-            }],
-            "payment_intent_data": {
-                "application_fee_amount": app_fee_amount,
-                "transfer_data": {
-                    "destination": connected_account_id,
-                },
+    session_params = {
+        "line_items": [{
+            "price_data": {
+                "currency": "usd",
+                "unit_amount": price_cents,
+                "product_data": {"name": product_name},
             },
-            "mode": "payment",
-            "success_url": success_url,
-            "cancel_url": cancel_url,
-            "metadata": metadata or {},
-        }
-    )
+            "quantity": 1,
+        }],
+        "payment_intent_data": {
+            "application_fee_amount": app_fee_amount,
+            "transfer_data": {
+                "destination": connected_account_id,
+            },
+        },
+        "mode": "payment",
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+        "metadata": metadata or {},
+    }
+    if _stripe_v2_ready and _client is not None:
+        session = _client.checkout.sessions.create(params=session_params)
+    else:
+        session = _stripe_module.checkout.Session.create(**session_params)
     return {
         "session_id": session.id,
         "url": session.url,
@@ -377,7 +417,10 @@ def retrieve_checkout_session(session_id: str) -> dict:
     """Retrieve details of a completed checkout session."""
     if not _stripe_ready:
         return {"error": "Stripe not configured."}
-    session = _client.checkout.sessions.retrieve(session_id)
+    if _stripe_v2_ready and _client is not None:
+        session = _client.checkout.sessions.retrieve(session_id)
+    else:
+        session = _stripe_module.checkout.Session.retrieve(session_id)
     return {
         "session_id": session.id,
         "payment_status": session.payment_status,
@@ -414,7 +457,7 @@ def parse_thin_event(payload: bytes, sig_header: str) -> dict | None:
     Returns:
         dict with event details, or None if verification fails.
     """
-    if not _stripe_ready or not STRIPE_WEBHOOK_SECRET:
+    if not _stripe_v2_ready or _client is None or not STRIPE_WEBHOOK_SECRET:
         return None
 
     try:
