@@ -112,6 +112,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/kassa/agent/register",
         "/api/kassa/agent/login",
         "/api/kassa/threads/",
+        "/api/kassa/webhooks/stripe",
         "/api/connect/",
     )
 

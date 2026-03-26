@@ -158,3 +158,7 @@ Full review/vision session documented in `docs/found.md` — includes xopilot re
 Grok vision (Ring 0, Academy, Kettle Black, ISO Collaborator), and the two-build framing.
 Vanilla stack stays — no Next.js migration.
 
+**2026-03-26 (Codex session):**
+- Traced Stripe webhook failures in the normal `CIVITAE` workspace rather than `CIVITAE CODEX`.
+- Confirmed `/api/connect/webhooks` is for V2 thin connected-account events only, while `checkout.session.completed` should hit `/api/kassa/webhooks/stripe`.
+- Patched the admin-key middleware allowlist in `app/server.py` so `/api/kassa/webhooks/stripe` is publicly reachable and can rely on Stripe signature verification inside the webhook handler instead of being blocked with HTTP 403 first.
