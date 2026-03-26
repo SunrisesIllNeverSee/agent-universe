@@ -126,24 +126,25 @@
         { "label": "Governance", "href": "/governance" },
         { "label": "Economics",  "href": "/economics"  },
         { "label": "Vault",      "href": "/vault"      },
+        { "label": "Forums",     "href": "/forums"     },
         { "label": "Civitas",    "href": "/civitas"    }
       ],
       "paths": ["/governance", "/economics", "/vault", "/civitas", "/forums"],
       "pages": [
         { "subsection": "Governance" },
-        { "slot": "5.1", "name": "Governance", "route": "/governance", "file": "governance", "status": "live"                },
+        { "slot": "5.1", "name": "Governance", "route": "/governance", "file": "governance", "status": "live", "note": "Enhanced \u2014 Genesis Board + meeting engine \u00b7 03-26" },
         { "slot": "5.2", "name": "Protocols",  "route": "/protocols",  "file": null,         "status": "planned","indent": true },
         { "slot": "5.3", "name": "Judicial",   "route": "/judicial",   "file": null,         "status": "planned","indent": true },
         { "slot": "5.4", "name": "Bylaws",     "route": "/bylaws",     "file": null,         "status": "planned","indent": true },
 
         { "subsection": "The Reserve" },
-        { "slot": "5.5", "name": "Economics", "route": "/economics", "file": "economics", "status": "wip"                    },
+        { "slot": "5.5", "name": "Economics", "route": "/economics", "file": "economics", "status": "live", "note": "Rebuilt \u2014 fee tiers, 40/30/30, escrow flow \u00b7 03-26" },
         { "slot": "5.6", "name": "Treasury",  "route": "/treasury",  "file": null,        "status": "planned","indent": true },
-        { "slot": "5.7", "name": "Vault",     "route": "/vault",     "file": "vault",     "status": "empty",  "indent": true },
+        { "slot": "5.7", "name": "Vault",     "route": "/vault",     "file": "vault",     "status": "live",   "indent": true, "note": "GOV-001\u2013006 document cards \u00b7 03-26" },
         { "slot": "5.8", "name": "Policies",  "route": "/policies",  "file": null,        "status": "planned","indent": true },
 
         { "subsection": "Town Hall" },
-        { "slot": "5.9",  "name": "Forums",    "route": "/forums",    "file": null, "status": "planned"                },
+        { "slot": "5.9",  "name": "Forums",    "route": "/forums",    "file": "forums", "status": "live", "note": "Town Hall with thread/reply API \u00b7 03-26" },
         { "slot": "5.10", "name": "Town Hall", "route": "/town-hall", "file": null, "status": "planned","indent": true },
         { "slot": "5.11", "name": "Meetings",  "route": "/meetings",  "file": null, "status": "planned","indent": true },
 

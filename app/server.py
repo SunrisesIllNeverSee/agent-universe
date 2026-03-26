@@ -24,6 +24,7 @@ from .router import SequenceRouter
 from .runtime import RuntimeState
 from .store import MessageStore
 from .kassa_store import KassaStore
+from .forums_store import ForumsStore, VALID_CATEGORIES
 from . import kassa_payments
 
 
@@ -65,6 +66,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     root = root or Path(__file__).resolve().parents[1]
     store = MessageStore(root / "data" / "messages.jsonl")
     kassa = KassaStore(root / "data" / "kassa.db")
+    forums = ForumsStore(root / "data" / "forums.db")
     audit = AuditSpine(root / "data" / "audit.jsonl")
     runtime = RuntimeState(root=root, store=store, audit=audit)
     router = SequenceRouter()
@@ -3243,6 +3245,113 @@ def create_app(root: Path | None = None) -> FastAPI:
         if match:
             return float(match.group(1))
         return 0.0
+
+    # ── Forums Page + API ─────────────────────────────────────────────────
+
+    @app.get("/forums")
+    async def forums_page() -> FileResponse:
+        return FileResponse(frontend_dir / "forums.html")
+
+    @app.get("/api/forums/threads")
+    async def forums_list_threads(
+        category: str = "",
+        page: int = 1,
+        limit: int = 40,
+    ) -> dict:
+        """List threads. Optionally filter by category."""
+        if category and category not in VALID_CATEGORIES:
+            raise HTTPException(status_code=400, detail=f"Invalid category. Must be one of: {', '.join(sorted(VALID_CATEGORIES))}")
+        threads = forums.list_threads(category=category, page=page, limit=limit)
+        return {"threads": threads, "count": len(threads), "page": page}
+
+    @app.get("/api/forums/threads/{thread_id}")
+    async def forums_get_thread(thread_id: str) -> dict:
+        """Get a thread + its replies."""
+        thread = forums.get_thread(thread_id)
+        if not thread:
+            raise HTTPException(status_code=404, detail="Thread not found")
+        replies = forums.list_replies(thread_id)
+        return {"thread": thread, "replies": replies}
+
+    @app.post("/api/forums/threads")
+    async def forums_create_thread(request: Request) -> dict:
+        """Create a thread. Requires KASSA JWT."""
+        claims = _get_agent_from_token(request)
+        body = await request.json()
+        category = body.get("category", "general")
+        title = (body.get("title") or "").strip()
+        content = (body.get("body") or "").strip()
+        author_type = body.get("author_type", "AAI")
+
+        if not title or len(title) < 3:
+            raise HTTPException(status_code=400, detail="Title must be at least 3 characters")
+        if len(title) > 120:
+            raise HTTPException(status_code=400, detail="Title must be 120 characters or fewer")
+        if len(content) > 5000:
+            raise HTTPException(status_code=400, detail="Body must be 5000 characters or fewer")
+        if category not in VALID_CATEGORIES:
+            raise HTTPException(status_code=400, detail=f"Invalid category")
+        if author_type not in ("AAI", "BI"):
+            author_type = "AAI"
+
+        thread = forums.insert_thread(
+            category=category,
+            title=title,
+            body=content,
+            author_id=claims["sub"],
+            author_type=author_type,
+        )
+        audit.log("forums", "thread_created", {"thread_id": thread["thread_id"], "author": claims["sub"]})
+        return thread
+
+    @app.post("/api/forums/threads/{thread_id}/replies")
+    async def forums_create_reply(thread_id: str, request: Request) -> dict:
+        """Add a reply. Requires KASSA JWT."""
+        claims = _get_agent_from_token(request)
+        thread = forums.get_thread(thread_id)
+        if not thread:
+            raise HTTPException(status_code=404, detail="Thread not found")
+        if thread.get("locked"):
+            raise HTTPException(status_code=403, detail="Thread is locked")
+        body = await request.json()
+        content = (body.get("body") or "").strip()
+        if not content:
+            raise HTTPException(status_code=400, detail="Reply body is required")
+        if len(content) > 2000:
+            raise HTTPException(status_code=400, detail="Reply must be 2000 characters or fewer")
+        reply = forums.insert_reply(
+            thread_id=thread_id,
+            body=content,
+            author_id=claims["sub"],
+        )
+        audit.log("forums", "reply_created", {"thread_id": thread_id, "author": claims["sub"]})
+        return reply
+
+    @app.patch("/api/forums/threads/{thread_id}/pin")
+    async def forums_pin_thread(thread_id: str, request: Request) -> dict:
+        """Pin or unpin a thread. Requires X-Admin-Key."""
+        if _ADMIN_KEY and request.headers.get("X-Admin-Key") != _ADMIN_KEY:
+            raise HTTPException(status_code=403, detail="Admin key required")
+        body = await request.json()
+        pinned = bool(body.get("pinned", True))
+        ok = forums.set_pinned(thread_id, pinned)
+        if not ok:
+            raise HTTPException(status_code=404, detail="Thread not found")
+        audit.log("forums", "thread_pinned", {"thread_id": thread_id, "pinned": pinned})
+        return {"thread_id": thread_id, "pinned": pinned}
+
+    @app.patch("/api/forums/threads/{thread_id}/lock")
+    async def forums_lock_thread(thread_id: str, request: Request) -> dict:
+        """Lock or unlock a thread. Requires X-Admin-Key."""
+        if _ADMIN_KEY and request.headers.get("X-Admin-Key") != _ADMIN_KEY:
+            raise HTTPException(status_code=403, detail="Admin key required")
+        body = await request.json()
+        locked = bool(body.get("locked", True))
+        ok = forums.set_locked(thread_id, locked)
+        if not ok:
+            raise HTTPException(status_code=404, detail="Thread not found")
+        audit.log("forums", "thread_locked", {"thread_id": thread_id, "locked": locked})
+        return {"thread_id": thread_id, "locked": locked}
 
     @app.on_event("startup")
     async def startup_event() -> None:
