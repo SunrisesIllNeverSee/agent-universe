@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Connect — KA§§A Marketplace</title>
 <link rel="icon" href="/favicon.ico">
+<script src="https://js.stripe.com/v3/"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -170,6 +171,8 @@ function esc(s) {
 function $(id) { return document.getElementById(id); }
 
 var BASE = '';  // relative — same origin
+var STRIPE_PK = 'pk_live_51TFEmMF3nomgD2vdIrqntnW5jNyJjaSsrD6VeUoXBtx2AUaRRdNuN9K7LU2Qqm0X0bdl3IjKpA0OAKxygxX6cA6l0082QeWa1i';
+var stripeJs = typeof Stripe !== 'undefined' ? Stripe(STRIPE_PK) : null;
 var currentAccountId = '';
 
 // Check URL params for returning from onboarding
