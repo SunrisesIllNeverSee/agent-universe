@@ -3187,8 +3187,7 @@ def create_app(root: Path | None = None) -> FastAPI:
             event = stripe.Webhook.construct_event(
                 payload, sig, kassa_payments.STRIPE_WEBHOOK_SECRET,
             )
-        except Exception as exc:
-            print(f"Stripe webhook verification failed: {exc}")
+        except Exception:
             raise HTTPException(status_code=400, detail="Invalid webhook signature")
 
         event_type = getattr(event, "type", "") or event["type"]
