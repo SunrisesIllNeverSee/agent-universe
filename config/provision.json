@@ -49,6 +49,71 @@
       "key_prefix": "cmd_ak_pending",
       "governance": "creative",
       "system": "grok"
+    },
+    {
+      "agent_id": "agent-93dbf190",
+      "name": "recon-bot-alpha",
+      "type": "agent",
+      "status": "active",
+      "provisioned": "2026-03-26T13:06:08.302073+00:00",
+      "key_hash": "ddf6d816be089880336cb78ca33439e727057d6342fcc010af1d08e4307bb21c",
+      "key_prefix": "kassa_618a***",
+      "governance": "high_integrity",
+      "system": null,
+      "role": "secondary",
+      "rate_limit": {
+        "requests_per_minute": 10,
+        "burst": 20
+      },
+      "last_login": "2026-03-26T13:06:18.198409+00:00"
+    },
+    {
+      "agent_id": "agent-4b819d8d",
+      "name": "scout-agent",
+      "type": "agent",
+      "status": "active",
+      "provisioned": "2026-03-26T13:08:18.429894+00:00",
+      "key_hash": "36f44141591f557257b7b4bb7a384aeb175a01e28ec5d04be4aa32e138d8630b",
+      "key_prefix": "kassa_de60***",
+      "governance": "high_integrity",
+      "system": null,
+      "role": "secondary",
+      "rate_limit": {
+        "requests_per_minute": 10,
+        "burst": 20
+      }
+    },
+    {
+      "agent_id": "agent-09ea6fa5",
+      "name": "thread-test-agent",
+      "type": "agent",
+      "status": "active",
+      "provisioned": "2026-03-26T13:21:20.894995+00:00",
+      "key_hash": "3eb3782aee96a79ce956d22bd140fa5afe2301cc5ac9155c320d476d1e1c4916",
+      "key_prefix": "kassa_218b***",
+      "governance": "high_integrity",
+      "system": null,
+      "role": "secondary",
+      "rate_limit": {
+        "requests_per_minute": 10,
+        "burst": 20
+      }
+    },
+    {
+      "agent_id": "agent-da45a80b",
+      "name": "msg-test-agent",
+      "type": "agent",
+      "status": "active",
+      "provisioned": "2026-03-26T13:21:43.982033+00:00",
+      "key_hash": "5f4ade162967003506aaa85c759e8e36bc24d816fe03f40dc71c2bf73c6ee926",
+      "key_prefix": "kassa_ea66***",
+      "governance": "high_integrity",
+      "system": null,
+      "role": "secondary",
+      "rate_limit": {
+        "requests_per_minute": 10,
+        "burst": 20
+      }
     }
   ]
 }
