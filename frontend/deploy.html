@@ -257,7 +257,14 @@ function renderPieces() {
     const cls = unit.type === 'target' ? 'target-piece' : (unit.role || 'agent-piece');
     piece.className = `grid-piece ${cls}`;
     piece.draggable = true;
-    piece.innerHTML = `<div class="piece-icon">${unit.type === 'target' ? '◎' : '§'}</div><div class="piece-label">${(unit.name || '').slice(0, 8)}</div>`;
+    const iconEl = document.createElement('div');
+    iconEl.className = 'piece-icon';
+    iconEl.textContent = unit.type === 'target' ? '◎' : '§';
+    const labelEl = document.createElement('div');
+    labelEl.className = 'piece-label';
+    labelEl.textContent = (unit.name || '').slice(0, 8);
+    piece.appendChild(iconEl);
+    piece.appendChild(labelEl);
 
     piece.addEventListener('dragstart', e => {
       dragData = unit;
