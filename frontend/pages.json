@@ -81,16 +81,18 @@
         { "label": "Products",          "href": "/kassa#products" },
         { "label": "Bounty Board",      "href": "/kassa#bounties" },
         { "label": "Hiring",            "href": "/kassa#hiring"   },
-        { "label": "Services",          "href": "/kassa#services" }
+        { "label": "Services",          "href": "/kassa#services" },
+        { "label": "Connect",           "href": "/connect"        }
       ],
-      "paths": ["/kassa", "/marketplace", "/products", "/services", "/bountyboard", "/iso-collaborators", "/hiring"],
+      "paths": ["/kassa", "/marketplace", "/products", "/services", "/bountyboard", "/iso-collaborators", "/hiring", "/connect"],
       "pages": [
         { "slot": "3.1", "name": "KA\u00a7\u00a7A Board",         "route": "/kassa",             "file": "kassa",             "status": "wip",  "note": "Consolidated 5-tab board \u2014 ISO / Products / Bounties / Hiring / Services" },
         { "slot": "3.2", "name": "ISO Collaborators", "route": "/iso-collaborators", "file": "iso-collaborators", "status": "live", "indent": true, "note": "Section landing \u2014 built 03-25" },
         { "slot": "3.3", "name": "Products",          "route": "/products",          "file": "products",          "status": "live", "indent": true, "note": "Section landing \u2014 built 03-25" },
         { "slot": "3.4", "name": "Bounty Board",      "route": "/bountyboard",       "file": "bountyboard",       "status": "live", "indent": true, "note": "Section landing \u2014 built 03-25" },
         { "slot": "3.5", "name": "Hiring",            "route": "/hiring",            "file": "hiring",            "status": "live", "indent": true, "note": "Section landing \u2014 built 03-25" },
-        { "slot": "3.6", "name": "Services",          "route": "/services",          "file": "services",          "status": "live", "indent": true, "note": "Section landing \u2014 built 03-25" }
+        { "slot": "3.6", "name": "Services",          "route": "/services",          "file": "services",          "status": "live", "indent": true, "note": "Section landing \u2014 built 03-25" },
+        { "slot": "3.7", "name": "Connect",           "route": "/connect",           "file": "connect",           "status": "live", "indent": true, "note": "Stripe Connect + MPP marketplace payments \u2014 built 03-26" }
       ]
     },
     {
