@@ -162,3 +162,6 @@ Vanilla stack stays — no Next.js migration.
 - Traced Stripe webhook failures in the normal `CIVITAE` workspace rather than `CIVITAE CODEX`.
 - Confirmed `/api/connect/webhooks` is for V2 thin connected-account events only, while `checkout.session.completed` should hit `/api/kassa/webhooks/stripe`.
 - Patched the admin-key middleware allowlist in `app/server.py` so `/api/kassa/webhooks/stripe` is publicly reachable and can rely on Stripe signature verification inside the webhook handler instead of being blocked with HTTP 403 first.
+- Linked Railway CLI to the production `agent-universe` service and inspected the live container.
+- Confirmed the deployed service had Stripe secrets set, but Railway was launching outside `/opt/venv` and the installed `stripe==15.0.0` SDK does not expose `StripeClient`.
+- Patched `railway.json` to start with `/opt/venv/bin/python -m uvicorn ...` and updated `app/kassa_payments.py` so checkout/product/webhook V1 flows work with the installed Stripe SDK while V2 account endpoints fail explicitly unless `StripeClient` is available.
