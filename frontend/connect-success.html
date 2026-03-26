@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Success — KA§§A</title>
+<link rel="icon" href="/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bone:#F2EDE4; --sand:#DDD5C8; --obsidian:#1A1A18; --drift:#6B6558; --muted:#8A8275;
+    --gold:#C4923A; --signal:#4A7C59; --signal-dim:rgba(74,124,89,0.10);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bone);color:var(--obsidian);display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+  .card{background:#fff;border:1px solid var(--sand);border-radius:10px;padding:40px;max-width:480px;width:100%;text-align:center;}
+  .icon{font-size:48px;margin-bottom:16px;color:var(--signal);}
+  h1{font-family:'Playfair Display',serif;font-size:28px;font-weight:900;margin-bottom:8px;}
+  .sub{font-size:13px;color:var(--drift);line-height:1.6;margin-bottom:20px;}
+  .detail{background:var(--signal-dim);border-radius:6px;padding:14px;margin-bottom:20px;text-align:left;}
+  .detail-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;}
+  .detail-label{color:var(--muted);}
+  .detail-value{font-family:'DM Mono',monospace;font-weight:500;}
+  a.back{color:var(--gold);font-size:13px;font-weight:600;text-decoration:none;}
+  a.back:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">&#10003;</div>
+  <h1>Payment Complete</h1>
+  <p class="sub">Your transaction has been processed through KA&sect;&sect;A.</p>
+  <div class="detail" id="details">
+    <div class="detail-row"><span class="detail-label">Loading details...</span></div>
+  </div>
+  <a class="back" href="/connect">&larr; Back to Marketplace</a>
+</div>
+<script>
+  var params = new URLSearchParams(window.location.search);
+  var sessionId = params.get('session_id');
+  if (sessionId) {
+    fetch('/api/connect/checkout/' + sessionId)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var el = document.getElementById('details');
+      var amount = data.amount_total ? '$' + (data.amount_total / 100).toFixed(2) : 'N/A';
+      el.innerHTML = ''
+        + '<div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">' + amount + '</span></div>'
+        + '<div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">' + (data.payment_status || 'unknown') + '</span></div>'
+        + '<div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">' + (data.customer_email || 'N/A') + '</span></div>'
+        + '<div class="detail-row"><span class="detail-label">Session</span><span class="detail-value" style="font-size:9px;">' + (data.session_id || sessionId).substring(0, 24) + '...</span></div>';
+    });
+  }
+</script>
+</body>
+</html>
