@@ -11,3 +11,4 @@ vault/
 forks/
 reports/
 .playwright-mcp/
+data/kassa.db
