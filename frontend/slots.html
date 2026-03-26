@@ -322,9 +322,19 @@ function renderDrawer() {
       el.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--muted);padding:8px;">No saved teams. Configure slots and click SAVE AS TEAM.</div>';
       return;
     }
-    el.innerHTML = teamNames.map(name =>
-      `<div class="badge team" onclick="applyTeam('${name}')" style="cursor:pointer;"><span class="badge-icon">▣</span>${name}</div>`
-    ).join('');
+    while (el.firstChild) el.removeChild(el.firstChild);
+    teamNames.forEach(name => {
+      const d = document.createElement('div');
+      d.className = 'badge team';
+      d.style.cursor = 'pointer';
+      d.addEventListener('click', () => applyTeam(name));
+      const ic = document.createElement('span');
+      ic.className = 'badge-icon';
+      ic.textContent = '▣';
+      d.appendChild(ic);
+      d.appendChild(document.createTextNode(name));
+      el.appendChild(d);
+    });
     return;
   }
 

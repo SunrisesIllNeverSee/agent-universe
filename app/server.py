@@ -21,6 +21,17 @@ from .runtime import RuntimeState
 from .store import MessageStore
 
 
+def _atomic_write(path: Path, data: str) -> None:
+    """Write data to a file atomically via tmp-then-rename."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with tmp.open("w", encoding="utf-8") as f:
+        f.write(data)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+
+
 class ConnectionHub:
     def __init__(self) -> None:
         self.connections: list[WebSocket] = []
@@ -80,7 +91,8 @@ def create_app(root: Path | None = None) -> FastAPI:
     )
 
     # ── Admin key guard — protects all write endpoints ────────────────────────
-    # Set CIVITAE_ADMIN_KEY env var to enable. Unset = dev mode (no enforcement).
+    # Set CIVITAE_ADMIN_KEY env var to enable.
+    # Fail-closed: when unset, only localhost requests are allowed through.
     # Agent self-service paths (signup, heartbeat, apply, metrics) are public.
     _ADMIN_KEY = os.environ.get("CIVITAE_ADMIN_KEY", "")
     _PUBLIC_WRITE_PREFIXES = (
@@ -94,11 +106,16 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     @app.middleware("http")
     async def admin_key_guard(request: Request, call_next):
-        if _ADMIN_KEY and request.method in ("POST", "DELETE", "PATCH", "PUT"):
+        if request.method in ("POST", "DELETE", "PATCH", "PUT"):
             path = request.url.path
             if not any(path.startswith(p) for p in _PUBLIC_WRITE_PREFIXES):
-                if request.headers.get("X-Admin-Key") != _ADMIN_KEY:
-                    return JSONResponse({"detail": "Admin key required"}, status_code=403)
+                if _ADMIN_KEY:
+                    if request.headers.get("X-Admin-Key") != _ADMIN_KEY:
+                        return JSONResponse({"detail": "Admin key required"}, status_code=403)
+                else:
+                    host = request.client.host if request.client else ""
+                    if host not in ("127.0.0.1", "::1", "localhost"):
+                        return JSONResponse({"detail": "Admin key not configured"}, status_code=403)
         return await call_next(request)
 
     frontend_dir = root / "frontend"
@@ -147,6 +164,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.get("/kassa")
     async def kassa_page() -> FileResponse:
         return FileResponse(frontend_dir / "kassa.html")
+
+    @app.get("/kassa/post/{post_id}")
+    async def kassa_post_detail_page(post_id: str) -> FileResponse:
+        return FileResponse(frontend_dir / "kassa-post.html")
 
     @app.get("/world")
     async def world_page() -> FileResponse:
@@ -221,17 +242,21 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.get("/api/admin/page-html")
     async def get_page_html(page: str) -> JSONResponse:
         """Return raw HTML source of a frontend page for the sitemap editor."""
-        safe = page.replace("/", "").replace("..", "").strip()
-        if not safe:
+        _ALLOWED_PAGES = {
+            "about", "admin", "agent", "agents", "bountyboard", "campaign",
+            "civitae-map", "civitae-roadmap", "civitas", "command", "console",
+            "dashboard", "deploy", "economics", "entry", "flowchart",
+            "governance", "helpwanted", "hiring", "index", "iso-collaborators",
+            "kassa", "kassa-post", "kingdoms", "leaderboard", "mission", "missions",
+            "products", "refinery", "services", "sig-arena", "sitemap",
+            "slots", "switchboard", "vault", "wave-registry", "welcome", "world",
+        }
+        safe = page.strip().lower()
+        if safe not in _ALLOWED_PAGES:
             return JSONResponse({"error": "invalid page"}, status_code=400)
-        candidates = [
-            frontend_dir / f"{safe}.html",
-            frontend_dir / "index.html" if safe == "missions" else None,
-            frontend_dir / "world.html"  if safe == "" else None,
-        ]
-        for path in candidates:
-            if path and path.exists():
-                return JSONResponse({"page": safe, "html": path.read_text()})
+        target = frontend_dir / f"{safe}.html"
+        if target.exists():
+            return JSONResponse({"page": safe, "html": target.read_text()})
         return JSONResponse({"error": f"page '{safe}' not found"}, status_code=404)
 
     @app.get("/entry")
@@ -565,8 +590,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         return []
 
     def _save_stars(stars: list[dict]):
-        stars_path.parent.mkdir(parents=True, exist_ok=True)
-        stars_path.write_text(json.dumps(stars, indent=2))
+        _atomic_write(stars_path, json.dumps(stars, indent=2))
 
     @app.post("/api/messages/star")
     async def star_message(payload: dict) -> dict:
@@ -667,8 +691,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         return []
 
     def _save_missions(missions: list[dict]):
-        missions_path.parent.mkdir(parents=True, exist_ok=True)
-        missions_path.write_text(json.dumps(missions, indent=2))
+        _atomic_write(missions_path, json.dumps(missions, indent=2))
 
     def _load_campaigns() -> list[dict]:
         if campaigns_path.exists():
@@ -676,8 +699,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         return []
 
     def _save_campaigns(campaigns: list[dict]):
-        campaigns_path.parent.mkdir(parents=True, exist_ok=True)
-        campaigns_path.write_text(json.dumps(campaigns, indent=2))
+        _atomic_write(campaigns_path, json.dumps(campaigns, indent=2))
 
     @app.post("/api/missions")
     async def create_mission(payload: dict) -> dict:
@@ -876,8 +898,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         return []
 
     def _save_tasks(tasks: list[dict]):
-        tasks_path.parent.mkdir(parents=True, exist_ok=True)
-        tasks_path.write_text(json.dumps(tasks, indent=2))
+        _atomic_write(tasks_path, json.dumps(tasks, indent=2))
 
     def _award_exp(agent_id: str, exp: int, track: str) -> dict:
         """Credit EXP to an agent. Returns updated exp summary."""
@@ -1052,8 +1073,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         return []
 
     def _save_slots(slots: list[dict]):
-        slots_path.parent.mkdir(parents=True, exist_ok=True)
-        slots_path.write_text(json.dumps(slots, indent=2))
+        _atomic_write(slots_path, json.dumps(slots, indent=2))
 
     @app.post("/api/slots/create")
     async def create_slots_from_formation(payload: dict) -> dict:
@@ -1649,8 +1669,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         return {"agents": {}, "missions": {}, "financial": {"revenue": 0, "costs": 0, "transactions": []}}
 
     def _save_metrics(m: dict):
-        metrics_path.parent.mkdir(parents=True, exist_ok=True)
-        metrics_path.write_text(json.dumps(m, indent=2))
+        _atomic_write(metrics_path, json.dumps(m, indent=2))
 
     @app.post("/api/metrics/agent")
     async def log_agent_metric(payload: dict) -> dict:
@@ -1848,6 +1867,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         }
 
         runtime.registry.append(entry)
+        runtime.persist_registry()
 
         audit.log("provision", "agent_signup", {
             "agent_id": agent_id,
@@ -1952,6 +1972,7 @@ def create_app(root: Path | None = None) -> FastAPI:
             return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
 
         agent["status"] = "active"
+        runtime.persist_registry()
         audit.log("provision", "agent_approved", {
             "agent_id": agent_id,
             "governance": {
@@ -1970,6 +1991,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         if not agent:
             return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
         agent["last_seen"] = datetime.now(UTC).isoformat()
+        runtime.persist_registry()
         return {"ok": True, "agent_id": agent_id, "last_seen": agent["last_seen"]}
 
     @app.post("/api/provision/suspend")
@@ -1981,6 +2003,7 @@ def create_app(root: Path | None = None) -> FastAPI:
             return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
 
         agent["status"] = "suspended"
+        runtime.persist_registry()
         audit.log("provision", "agent_suspended", {"agent_id": agent_id})
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
         return {"suspended": True, "agent_id": agent_id}
@@ -1992,6 +2015,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         if idx is None:
             return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
         runtime.registry.pop(idx)
+        runtime.persist_registry()
         audit.log("provision", "agent_decommissioned", {"agent_id": agent_id})
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
         return {"decommissioned": True, "agent_id": agent_id}
@@ -2155,8 +2179,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         return []
 
     def _save_meetings(ms: list[dict]):
-        meetings_path.parent.mkdir(parents=True, exist_ok=True)
-        meetings_path.write_text(json.dumps(ms, indent=2))
+        _atomic_write(meetings_path, json.dumps(ms, indent=2))
 
     @app.post("/api/governance/meeting")
     async def call_meeting(payload: dict) -> dict:
@@ -2393,10 +2416,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         return out
 
     def _save_kassa_posts(posts: list[dict]) -> None:
-        _kassa_posts_file.parent.mkdir(parents=True, exist_ok=True)
-        with _kassa_posts_file.open("w") as f:
-            for post in posts:
-                f.write(json.dumps(post) + "\n")
+        _atomic_write(_kassa_posts_file, "\n".join(json.dumps(p) for p in posts) + "\n")
 
     def _load_kassa_reviews() -> list[dict]:
         if not _kassa_reviews_file.exists():
@@ -2443,6 +2463,14 @@ def create_app(root: Path | None = None) -> FastAPI:
         else:
             posts.sort(key=lambda p: p.get("updated_at", ""), reverse=True)
         return posts
+
+    @app.get("/api/kassa/posts/{post_id}")
+    async def get_kassa_post(post_id: str) -> dict:
+        posts = _load_kassa_posts()
+        post = next((p for p in posts if p.get("id") == post_id), None)
+        if not post:
+            raise HTTPException(status_code=404, detail=f"Post {post_id} not found")
+        return post
 
     @app.post("/api/kassa/posts")
     async def submit_kassa_post(payload: KassaPostCreate) -> dict:
@@ -2518,9 +2546,9 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     @app.post("/api/kassa/contact")
     async def kassa_contact(payload: KassaContact) -> dict:
-        messages = _load_kassa_messages()
+        import secrets as _sec
         entry = {
-            "id": len(messages) + 1,
+            "id": _sec.token_hex(8),
             "timestamp": datetime.now(UTC).isoformat(),
             "post_id": payload.post_id,
             "tab": payload.tab,

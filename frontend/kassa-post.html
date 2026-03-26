@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Post — KA§§A</title>
+<link rel="icon" href="/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bone:#F2EDE4; --parch:#E8E2D9; --sand:#DDD5C8; --pebble:#C8C0B4;
+    --obsidian:#1A1A18; --charcoal:#2A2A25; --drift:#6B6558; --muted:#8A8275;
+    --gold:#C4923A; --gold-l:#D4A85A; --gold-dim:rgba(196,146,58,0.10); --gold-bd:rgba(196,146,58,0.28);
+    --signal:#4A7C59; --signal-dim:rgba(74,124,89,0.10);
+    --warn:#B44A3F; --warn-dim:rgba(180,74,63,0.10);
+    --blue:#3A6B8C; --blue-dim:rgba(58,107,140,0.10);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bone);color:var(--obsidian);padding-top:64px;}
+
+  .back-bar{padding:14px 40px;border-bottom:1px solid var(--sand);}
+  .back-bar a{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);text-decoration:none;letter-spacing:0.02em;}
+  .back-bar a:hover{text-decoration:underline;}
+
+  .post-wrap{max-width:780px;margin:0 auto;padding:32px 40px 80px;}
+
+  .post-header{margin-bottom:28px;}
+  .post-meta-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+  .post-num{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);padding:3px 8px;background:var(--parch);border:1px solid var(--sand);border-radius:3px;}
+  .urg-badge{font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;border-radius:3px;}
+  .urg-high{background:var(--warn-dim);color:var(--warn);}
+  .urg-low{background:var(--signal-dim);color:var(--signal);}
+  .status-badge{font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:3px 8px;border-radius:3px;background:var(--signal-dim);color:var(--signal);}
+  .tab-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;}
+
+  .post-title{font-family:'Playfair Display',serif;font-size:clamp(22px,3.5vw,32px);font-weight:700;line-height:1.25;margin-bottom:8px;}
+
+  .tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:3px 8px;border-radius:3px;display:inline-block;}
+  .t-iso{background:var(--blue-dim);color:var(--blue);}
+  .t-products{background:var(--gold-dim);color:var(--gold);}
+  .t-bounties{background:var(--warn-dim);color:var(--warn);}
+  .t-hiring{background:var(--signal-dim);color:var(--signal);}
+  .t-services{background:rgba(107,101,88,0.10);color:var(--drift);}
+  .t-default{background:var(--gold-dim);color:var(--gold);}
+  .reward-badge{font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--signal);background:var(--signal-dim);border:1px solid rgba(74,124,89,0.20);border-radius:4px;padding:4px 10px;display:inline-block;margin-left:8px;}
+
+  .post-body{font-size:14px;color:var(--charcoal);line-height:1.75;margin:24px 0;white-space:pre-wrap;}
+
+  .post-stats{display:flex;align-items:center;gap:16px;padding:16px 0;border-top:1px solid var(--sand);border-bottom:1px solid var(--sand);margin-bottom:28px;}
+  .stat{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);}
+  .stat strong{color:var(--obsidian);}
+
+  .btn-upvote{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;background:none;border:1px solid var(--sand);border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;transition:all .15s;}
+  .btn-upvote:hover{border-color:var(--gold-bd);color:var(--gold);}
+  .btn-upvote.voted{border-color:var(--gold-bd);color:var(--gold);background:var(--gold-dim);}
+
+  .contact-section{background:#fff;border:1px solid var(--sand);border-radius:8px;padding:24px;margin-top:28px;}
+  .contact-title{font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--drift);margin-bottom:16px;}
+  .fg{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+  .fl{font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);}
+  input.fi,textarea.fi{padding:9px 12px;background:var(--bone);border:1px solid var(--sand);border-radius:5px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--obsidian);outline:none;transition:border-color .15s;width:100%;}
+  input.fi:focus,textarea.fi:focus{border-color:var(--gold);background:#fff;}
+  textarea.fi{resize:vertical;min-height:100px;}
+  .contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .contact-note{font-size:10px;color:var(--muted);margin-bottom:14px;}
+  .btn-send{padding:9px 22px;background:var(--obsidian);color:var(--bone);border:none;border-radius:5px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:background .15s;}
+  .btn-send:hover{background:var(--charcoal);}
+
+  .post-footer{margin-top:28px;font-family:'DM Mono',monospace;font-size:10px;color:var(--pebble);display:flex;gap:16px;}
+
+  .loading-state{text-align:center;padding:80px 20px;font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);}
+  .error-state{text-align:center;padding:80px 20px;}
+  .error-state h2{font-family:'Playfair Display',serif;font-size:24px;margin-bottom:8px;}
+  .error-state p{font-size:13px;color:var(--drift);}
+</style>
+<script src="/assets/_nav.js"></script>
+</head>
+<body>
+<nav></nav>
+
+<div class="back-bar">
+  <a href="/kassa">&larr; Back to KA§§A Board</a>
+</div>
+
+<div class="post-wrap" id="post-content">
+  <div class="loading-state" id="post-loading">Loading post&hellip;</div>
+</div>
+
+<script src="/assets/kassa-api.js"></script>
+<script>
+(function(){
+  var TAG_CLASS = {iso:'t-iso',products:'t-products',bounties:'t-bounties',hiring:'t-hiring',services:'t-services'};
+  var TAB_LABEL = {iso:'ISO Collaborators',products:'Products',bounties:'Bounty Board',hiring:'Hiring',services:'Services'};
+  var ACTION    = {iso:'Contact',products:'Contact',bounties:'Respond',hiring:'Apply',services:'Contact'};
+
+  function esc(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+  }
+
+  function formatDate(iso){
+    try{ return new Date(iso).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}); }
+    catch(e){ return ''; }
+  }
+
+  function formatAge(iso){
+    try{
+      var s=(Date.now()-new Date(iso).getTime())/1000;
+      if(s<3600)  return Math.floor(s/60)+'m ago';
+      if(s<86400) return Math.floor(s/3600)+'h ago';
+      if(s<604800)return Math.floor(s/86400)+'d ago';
+      return Math.floor(s/604800)+'w ago';
+    }catch(e){return '';}
+  }
+
+  /* Extract post ID from URL path: /kassa/post/K-00001 */
+  var parts = window.location.pathname.split('/');
+  var postId = parts[parts.length - 1];
+
+  if(!postId){
+    showError('No post ID provided');
+    return;
+  }
+
+  KassaAPI.getPost(postId).then(function(p){
+    document.title = esc(p.id) + ' — ' + esc(p.title) + ' — KA§§A';
+
+    var tagCls = TAG_CLASS[p.tab]||'t-default';
+    var urgHtml = p.urgency==='high' ? '<span class="urg-badge urg-high">HIGH</span>'
+               : p.urgency==='low'  ? '<span class="urg-badge urg-low">LOW</span>' : '';
+    var rwdHtml = p.reward ? '<span class="reward-badge">'+esc(p.reward)+'</span>' : '';
+    var action  = ACTION[p.tab]||'Contact';
+    var sendLbl = action==='Apply'?'Send Application':action==='Respond'?'Send Response':'Send Message';
+    var uv = Number(p.upvotes)||0;
+
+    var wrap = document.getElementById('post-content');
+    /* Clear loading state */
+    while(wrap.firstChild) wrap.removeChild(wrap.firstChild);
+
+    /* All dynamic values pass through esc() */
+    var header = document.createElement('div');
+    header.className = 'post-header';
+    header.innerHTML =
+      '<div class="post-meta-row">'
+        +'<span class="post-num">'+esc(p.id)+'</span>'
+        +urgHtml
+        +'<span class="status-badge">'+esc(p.status||'open')+'</span>'
+        +'<span class="tab-label">'+esc(TAB_LABEL[p.tab]||p.tab)+'</span>'
+      +'</div>'
+      +'<div class="post-title">'+esc(p.title)+'</div>'
+      +'<span class="tag '+tagCls+'">'+esc(p.tag)+'</span>'
+      +rwdHtml;
+    wrap.appendChild(header);
+
+    var body = document.createElement('div');
+    body.className = 'post-body';
+    body.textContent = p.body;
+    wrap.appendChild(body);
+
+    var stats = document.createElement('div');
+    stats.className = 'post-stats';
+    stats.innerHTML =
+      '<div class="stat"><strong>'+uv+'</strong> upvotes</div>'
+      +'<div class="stat"><strong>'+(Number(p.reply_count)||0)+'</strong> replies</div>';
+
+    var uvBtn = document.createElement('button');
+    uvBtn.className = 'btn-upvote';
+    uvBtn.title = 'Upvote';
+    uvBtn.innerHTML = '&#9650; <span class="uv-count">'+uv+'</span>';
+    uvBtn.addEventListener('click', function(){
+      if(uvBtn.classList.contains('voted')) return;
+      uvBtn.classList.add('voted');
+      KassaAPI.upvote(p.id).then(function(res){
+        if(res && typeof res.upvotes !== 'undefined'){
+          uvBtn.querySelector('.uv-count').textContent = res.upvotes;
+          stats.querySelector('.stat strong').textContent = res.upvotes;
+        }
+      }).catch(function(){ uvBtn.classList.remove('voted'); });
+    });
+    stats.appendChild(uvBtn);
+    wrap.appendChild(stats);
+
+    /* Contact form */
+    var contactSection = document.createElement('div');
+    contactSection.className = 'contact-section';
+    contactSection.innerHTML =
+      '<div class="contact-title">'+esc(action)+' — '+esc(p.id)+'</div>'
+      +'<form id="detail-contact-form">'
+        +'<div class="contact-grid">'
+          +'<div class="fg"><label class="fl">Your Name</label>'
+            +'<input class="fi" name="from_name" type="text" placeholder="Name or handle" required></div>'
+          +'<div class="fg"><label class="fl">Your Email</label>'
+            +'<input class="fi" name="from_email" type="email" placeholder="email@example.com" required></div>'
+        +'</div>'
+        +'<div class="fg"><label class="fl">Message</label>'
+          +'<textarea class="fi" name="message" required></textarea>'
+        +'</div>'
+        +'<div class="contact-note">CIVITAE will forward this message. Direct contact details shared only with consent.</div>'
+        +'<button class="btn-send" type="submit">'+esc(sendLbl)+'</button>'
+      +'</form>';
+    wrap.appendChild(contactSection);
+
+    /* Wire contact form */
+    var form = document.getElementById('detail-contact-form');
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var btn = form.querySelector('.btn-send');
+      var origText = btn.textContent;
+      var payload = {
+        post_id:    p.id,
+        tab:        p.tab,
+        from_name:  form.querySelector('[name="from_name"]').value.trim(),
+        from_email: form.querySelector('[name="from_email"]').value.trim(),
+        message:    form.querySelector('[name="message"]').value.trim()
+      };
+      btn.textContent = 'Sending\u2026';
+      btn.disabled = true;
+      KassaAPI.contact(payload).then(function(){
+        btn.textContent = 'Sent \u2713';
+        btn.style.background = 'var(--signal)';
+        setTimeout(function(){
+          form.reset();
+          btn.textContent = origText;
+          btn.style.background = '';
+          btn.disabled = false;
+        }, 2500);
+      }).catch(function(){
+        btn.textContent = origText;
+        btn.disabled = false;
+      });
+    });
+
+    /* Footer */
+    var footer = document.createElement('div');
+    footer.className = 'post-footer';
+    var posted = document.createElement('span');
+    posted.textContent = 'Posted ' + formatDate(p.created_at) + ' (' + formatAge(p.created_at) + ')';
+    footer.appendChild(posted);
+    if(p.updated_at && p.updated_at !== p.created_at){
+      var updated = document.createElement('span');
+      updated.textContent = 'Updated ' + formatDate(p.updated_at);
+      footer.appendChild(updated);
+    }
+    wrap.appendChild(footer);
+
+  }).catch(function(){
+    showError('Post not found');
+  });
+
+  function showError(msg){
+    var wrap = document.getElementById('post-content');
+    while(wrap.firstChild) wrap.removeChild(wrap.firstChild);
+    var err = document.createElement('div');
+    err.className = 'error-state';
+    var h = document.createElement('h2');
+    h.textContent = msg;
+    var sub = document.createElement('p');
+    sub.textContent = 'This post may have been removed or the ID is incorrect.';
+    var link = document.createElement('p');
+    link.style.marginTop = '16px';
+    var a = document.createElement('a');
+    a.href = '/kassa';
+    a.textContent = '\u2190 Back to KA\u00a7\u00a7A Board';
+    a.style.color = 'var(--gold)';
+    link.appendChild(a);
+    err.appendChild(h);
+    err.appendChild(sub);
+    err.appendChild(link);
+    wrap.appendChild(err);
+  }
+})();
+</script>
+</body>
+</html>

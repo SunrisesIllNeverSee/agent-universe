@@ -121,12 +121,12 @@
 
     /* Right-side nav links (layer-specific or fallback) */
     '.cn-links{display:flex;align-items:center;height:100%;margin-left:auto;}',
-    '.cn-link{color:#7A8090;font-size:0.8rem;letter-spacing:0.08em;',
+    '.cn-link{color:#C4923A;font-size:0.8rem;letter-spacing:0.08em;',
     'text-transform:uppercase;text-decoration:none;',
     'padding:0 16px;height:100%;display:flex;align-items:center;',
     'border-left:1px solid #1E2228;transition:color 0.15s,background 0.15s;}',
-    '.cn-link:hover{color:#E8EAF0;background:rgba(255,255,255,0.03);}',
-    '.cn-link.cn-active{color:#C4923A;}',
+    '.cn-link:hover{color:#E8C06A;background:rgba(196,146,58,0.05);}',
+    '.cn-link.cn-active{color:#E8C06A;}',
   ].join('');
   document.head.appendChild(styleEl);
 
