@@ -3191,8 +3191,13 @@ def create_app(root: Path | None = None) -> FastAPI:
             print(f"Stripe webhook verification failed: {exc}")
             raise HTTPException(status_code=400, detail="Invalid webhook signature")
 
-        event_type = event.get("type", "")
-        data = event.get("data", {}).get("object", {})
+        event_type = getattr(event, "type", "") or event["type"]
+        event_data = getattr(event, "data", None)
+        data = getattr(event_data, "object", None) if event_data is not None else None
+        if data is None and isinstance(event, dict):
+            data = event.get("data", {}).get("object", {})
+        if data is None:
+            data = {}
 
         if event_type == "checkout.session.completed":
             post_id = data.get("metadata", {}).get("post_id", "")
