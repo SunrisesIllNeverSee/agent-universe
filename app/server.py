@@ -24,6 +24,7 @@ from .router import SequenceRouter
 from .runtime import RuntimeState
 from .store import MessageStore
 from .kassa_store import KassaStore
+from . import kassa_payments
 
 
 def _atomic_write(path: Path, data: str) -> None:
@@ -2929,6 +2930,119 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.get("/api/kassa/messages")
     async def get_kassa_messages(tab: str = "", status: str = "") -> list:
         return kassa.load_contact_messages(tab=tab, status=status)
+
+    # ── KA§§A Payments (Stripe Connect + MPP) ────────────────────────────────
+
+    @app.get("/api/kassa/payment/status")
+    async def payment_rail_status() -> dict:
+        """Check which payment rails are active."""
+        return kassa_payments.payment_status()
+
+    @app.post("/api/kassa/posts/{post_id}/pay")
+    async def initiate_payment(post_id: str, request: Request) -> dict:
+        """Initiate payment for a bounty or service.
+
+        Agents get MPP 402 challenge. Humans get Stripe Checkout URL.
+        Query params: ?rail=auto|mpp|stripe, ?success_url=, ?cancel_url=
+        """
+        post = kassa.get_post(post_id)
+        if not post:
+            raise HTTPException(status_code=404, detail=f"Post {post_id} not found")
+
+        # Parse amount from reward field (e.g. "$200 USDC", "$49", "20% rev-share")
+        reward = post.get("reward") or ""
+        amount = _parse_reward_amount(reward)
+        if amount <= 0:
+            raise HTTPException(status_code=400, detail="Post has no fixed payment amount")
+
+        # Detect if requester is an agent (has JWT) or human
+        auth_header = request.headers.get("Authorization", "")
+        is_agent = auth_header.startswith("Bearer ")
+
+        # Check for MPP credential on retry
+        if auth_header.startswith("MPP "):
+            receipt = kassa_payments.mpp_verify_credential(auth_header)
+            if receipt:
+                audit.log("kassa", "mpp_payment_verified", {
+                    "post_id": post_id, "amount": amount, "receipt": receipt,
+                })
+                await emit("kassa_payment", {"post_id": post_id, "rail": "mpp", "amount": amount})
+                return {"paid": True, "post_id": post_id, "amount": amount, "rail": "mpp", "receipt": receipt}
+            raise HTTPException(status_code=402, detail="Invalid MPP credential")
+
+        # Determine rail
+        params = request.query_params
+        rail = params.get("rail", "auto")
+        success_url = params.get("success_url", "")
+        cancel_url = params.get("cancel_url", "")
+
+        result = kassa_payments.create_payment(
+            post_id=post_id,
+            amount_usd=amount,
+            description=f"KA§§A: {post.get('title', post_id)}",
+            rail=rail,
+            agent_request=is_agent,
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={"tab": post.get("tab", ""), "post_id": post_id},
+        )
+
+        if result.get("status") == 402:
+            # MPP challenge — return as HTTP 402
+            audit.log("kassa", "mpp_challenge_issued", {"post_id": post_id, "amount": amount})
+            return JSONResponse(result, status_code=402)
+
+        if result.get("error"):
+            raise HTTPException(status_code=503, detail=result["error"])
+
+        audit.log("kassa", "payment_initiated", {
+            "post_id": post_id, "amount": amount, "rail": result.get("rail"),
+        })
+        return result
+
+    @app.post("/api/kassa/webhooks/stripe")
+    async def stripe_webhook(request: Request) -> dict:
+        """Handle Stripe webhook events (payment completed, refunded, etc.)."""
+        payload = await request.body()
+        sig = request.headers.get("stripe-signature", "")
+        event = kassa_payments.verify_webhook_signature(payload, sig)
+        if not event:
+            raise HTTPException(status_code=400, detail="Invalid webhook signature")
+
+        event_type = event.get("type", "")
+        data = event.get("data", {}).get("object", {})
+
+        if event_type == "checkout.session.completed":
+            post_id = data.get("metadata", {}).get("post_id", "")
+            audit.log("kassa", "stripe_payment_completed", {
+                "post_id": post_id,
+                "amount": data.get("amount_total", 0),
+                "session_id": data.get("id"),
+            })
+            await emit("kassa_payment", {
+                "post_id": post_id,
+                "rail": "stripe_connect",
+                "amount": data.get("amount_total", 0) / 100,
+            })
+
+        elif event_type == "payment_intent.succeeded":
+            post_id = data.get("metadata", {}).get("post_id", "")
+            audit.log("kassa", "stripe_intent_succeeded", {
+                "post_id": post_id,
+                "amount": data.get("amount", 0),
+            })
+
+        return {"received": True}
+
+    def _parse_reward_amount(reward: str) -> float:
+        """Extract numeric amount from reward string like '$200 USDC', '$49', '20% rev-share'."""
+        if not reward:
+            return 0.0
+        import re
+        match = re.search(r'\$(\d+(?:\.\d+)?)', reward)
+        if match:
+            return float(match.group(1))
+        return 0.0
 
     @app.on_event("startup")
     async def startup_event() -> None:
