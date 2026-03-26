@@ -37,6 +37,8 @@
     { "source": "/sig-arena", "destination": "/sig-arena.html" },
     { "source": "/sitemap", "destination": "/sitemap.html" },
     { "source": "/slots", "destination": "/mission" },
+    { "source": "/connect", "destination": "/connect.html" },
+    { "source": "/connect/success", "destination": "/connect-success.html" },
     { "source": "/iso-collaborators", "destination": "/iso-collaborators" },
     { "source": "/switchboard", "destination": "/switchboard.html" },
     { "source": "/vault", "destination": "/vault.html" },

@@ -112,6 +112,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/kassa/agent/register",
         "/api/kassa/agent/login",
         "/api/kassa/threads/",
+        "/api/connect/",
     )
 
     @app.middleware("http")
@@ -3000,13 +3001,192 @@ def create_app(root: Path | None = None) -> FastAPI:
         })
         return result
 
-    @app.post("/api/kassa/webhooks/stripe")
-    async def stripe_webhook(request: Request) -> dict:
-        """Handle Stripe webhook events (payment completed, refunded, etc.)."""
+    # ── Stripe Connect: Connected Accounts ────────────────────────────────
+
+    @app.post("/api/connect/accounts")
+    async def create_connect_account(payload: dict) -> dict:
+        """Create a Stripe connected account for an agent or operator.
+
+        Body: { "display_name": "...", "email": "...", "country": "us" }
+        """
+        name = (payload.get("display_name") or "").strip()
+        email = (payload.get("email") or "").strip()
+        if not name or not email:
+            raise HTTPException(status_code=400, detail="display_name and email required")
+
+        result = kassa_payments.create_connected_account(
+            display_name=name,
+            email=email,
+            country=payload.get("country", "us"),
+        )
+        if result.get("error"):
+            raise HTTPException(status_code=503, detail=result["error"])
+
+        audit.log("kassa", "connect_account_created", {
+            "account_id": result["account_id"], "name": name,
+        })
+        return result
+
+    @app.post("/api/connect/accounts/{account_id}/onboard")
+    async def onboard_connect_account(account_id: str, request: Request) -> dict:
+        """Generate an onboarding link for a connected account."""
+        base = str(request.base_url).rstrip("/")
+        result = kassa_payments.create_account_link(
+            account_id=account_id,
+            return_url=f"{base}/connect?accountId={account_id}",
+            refresh_url=f"{base}/connect?refresh=1&accountId={account_id}",
+        )
+        if result.get("error"):
+            raise HTTPException(status_code=503, detail=result["error"])
+        return result
+
+    @app.get("/api/connect/accounts/{account_id}/status")
+    async def connect_account_status(account_id: str) -> dict:
+        """Check onboarding and capability status of a connected account."""
+        result = kassa_payments.get_account_status(account_id)
+        if result.get("error"):
+            raise HTTPException(status_code=503, detail=result["error"])
+        return result
+
+    # ── Stripe Connect: Products ───────────────────────────────────────────
+
+    @app.post("/api/connect/products")
+    async def create_connect_product(payload: dict) -> dict:
+        """Create a product at the platform level, mapped to a connected account.
+
+        Body: { "name": "...", "description": "...", "price_cents": 4900,
+                "currency": "usd", "connected_account_id": "acct_..." }
+        """
+        name = (payload.get("name") or "").strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="name required")
+
+        result = kassa_payments.create_product(
+            name=name,
+            description=payload.get("description", ""),
+            price_cents=int(payload.get("price_cents", 0)),
+            currency=payload.get("currency", "usd"),
+            connected_account_id=payload.get("connected_account_id", ""),
+        )
+        if result.get("error"):
+            raise HTTPException(status_code=503, detail=result["error"])
+
+        audit.log("kassa", "product_created", {
+            "product_id": result["product_id"], "name": name,
+        })
+        return result
+
+    @app.get("/api/connect/products")
+    async def list_connect_products() -> list:
+        """List all products on the platform (storefront data)."""
+        return kassa_payments.list_products()
+
+    # ── Stripe Connect: Checkout ───────────────────────────────────────────
+
+    @app.post("/api/connect/checkout")
+    async def create_connect_checkout(payload: dict, request: Request) -> dict:
+        """Create a checkout session with destination charge.
+
+        Body: { "product_id": "...", "product_name": "...", "price_cents": 4900,
+                "connected_account_id": "acct_...", "app_fee_percent": 5 }
+        """
+        base = str(request.base_url).rstrip("/")
+        product_name = payload.get("product_name", "KA§§A Purchase")
+        price_cents = int(payload.get("price_cents", 0))
+        account_id = payload.get("connected_account_id", "")
+
+        if price_cents <= 0:
+            raise HTTPException(status_code=400, detail="price_cents must be positive")
+        if not account_id:
+            raise HTTPException(status_code=400, detail="connected_account_id required")
+
+        result = kassa_payments.create_checkout_session(
+            product_name=product_name,
+            price_cents=price_cents,
+            connected_account_id=account_id,
+            success_url=f"{base}/connect/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{base}/connect?cancelled=1",
+            app_fee_percent=int(payload.get("app_fee_percent", 5)),
+            metadata=payload.get("metadata", {}),
+        )
+        if result.get("error"):
+            raise HTTPException(status_code=503, detail=result["error"])
+
+        audit.log("kassa", "checkout_created", {
+            "session_id": result["session_id"],
+            "account_id": account_id,
+            "amount": price_cents,
+        })
+        return result
+
+    @app.get("/api/connect/checkout/{session_id}")
+    async def get_checkout_details(session_id: str) -> dict:
+        """Retrieve details of a checkout session (for success page)."""
+        return kassa_payments.retrieve_checkout_session(session_id)
+
+    # ── Stripe Connect: Webhooks (Thin Events for V2) ──────────────────────
+
+    @app.post("/api/connect/webhooks")
+    async def connect_webhook(request: Request) -> dict:
+        """Handle V2 thin events for connected account updates.
+
+        Listens for:
+        - v2.core.account[requirements].updated
+        - v2.core.account[.recipient].capability_status_updated
+
+        Setup:
+        1. Dashboard → Developers → Webhooks → + Add destination
+        2. Events from: Connected accounts
+        3. Advanced → Payload style: Thin
+        4. Select v2.account events
+
+        Local testing:
+          stripe listen --thin-events \\
+            'v2.core.account[requirements].updated,v2.core.account[.recipient].capability_status_updated' \\
+            --forward-thin-to http://localhost:8300/api/connect/webhooks
+        """
         payload = await request.body()
         sig = request.headers.get("stripe-signature", "")
-        event = kassa_payments.verify_webhook_signature(payload, sig)
+
+        event = kassa_payments.parse_thin_event(payload, sig)
         if not event:
+            raise HTTPException(status_code=400, detail="Invalid webhook signature")
+
+        event_type = event.get("type", "")
+
+        if "requirements" in event_type:
+            # Account requirements changed — may need to collect updated info
+            audit.log("kassa", "connect_requirements_updated", {
+                "event_id": event["id"],
+                "type": event_type,
+            })
+
+        elif "capability_status" in event_type:
+            # Capability status changed — check if account is now active
+            audit.log("kassa", "connect_capability_updated", {
+                "event_id": event["id"],
+                "type": event_type,
+            })
+
+        return {"received": True}
+
+    # ── Legacy Stripe Webhook (V1 events) ──────────────────────────────────
+
+    @app.post("/api/kassa/webhooks/stripe")
+    async def stripe_webhook_v1(request: Request) -> dict:
+        """Handle standard Stripe webhook events (checkout completed, etc.)."""
+        payload = await request.body()
+        sig = request.headers.get("stripe-signature", "")
+
+        if not kassa_payments.stripe_ready():
+            raise HTTPException(status_code=503, detail="Stripe not configured")
+
+        try:
+            import stripe
+            event = stripe.Webhook.construct_event(
+                payload, sig, kassa_payments.STRIPE_WEBHOOK_SECRET,
+            )
+        except Exception:
             raise HTTPException(status_code=400, detail="Invalid webhook signature")
 
         event_type = event.get("type", "")
@@ -3025,14 +3205,23 @@ def create_app(root: Path | None = None) -> FastAPI:
                 "amount": data.get("amount_total", 0) / 100,
             })
 
-        elif event_type == "payment_intent.succeeded":
-            post_id = data.get("metadata", {}).get("post_id", "")
-            audit.log("kassa", "stripe_intent_succeeded", {
-                "post_id": post_id,
-                "amount": data.get("amount", 0),
-            })
-
         return {"received": True}
+
+    # ── Connect Pages ──────────────────────────────────────────────────────
+
+    @app.get("/connect")
+    async def connect_page() -> FileResponse:
+        target = frontend_dir / "connect.html"
+        if target.exists():
+            return FileResponse(target)
+        return JSONResponse({"detail": "Connect page not yet built"}, status_code=404)
+
+    @app.get("/connect/success")
+    async def connect_success_page() -> FileResponse:
+        target = frontend_dir / "connect-success.html"
+        if target.exists():
+            return FileResponse(target)
+        return JSONResponse({"detail": "Success page not yet built"}, status_code=404)
 
     def _parse_reward_amount(reward: str) -> float:
         """Extract numeric amount from reward string like '$200 USDC', '$49', '20% rev-share'."""
