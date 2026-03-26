@@ -3200,16 +3200,21 @@ def create_app(root: Path | None = None) -> FastAPI:
             data = {}
 
         if event_type == "checkout.session.completed":
-            post_id = data.get("metadata", {}).get("post_id", "")
+            metadata = getattr(data, "metadata", None)
+            if metadata is None and isinstance(data, dict):
+                metadata = data.get("metadata", {})
+            post_id = ""
+            if isinstance(metadata, dict):
+                post_id = metadata.get("post_id", "")
             audit.log("kassa", "stripe_payment_completed", {
                 "post_id": post_id,
-                "amount": data.get("amount_total", 0),
-                "session_id": data.get("id"),
+                "amount": getattr(data, "amount_total", 0) if not isinstance(data, dict) else data.get("amount_total", 0),
+                "session_id": getattr(data, "id", None) if not isinstance(data, dict) else data.get("id"),
             })
             await emit("kassa_payment", {
                 "post_id": post_id,
                 "rail": "stripe_connect",
-                "amount": data.get("amount_total", 0) / 100,
+                "amount": ((getattr(data, "amount_total", 0) if not isinstance(data, dict) else data.get("amount_total", 0)) or 0) / 100,
             })
 
         return {"received": True}
