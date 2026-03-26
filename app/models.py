@@ -169,3 +169,14 @@ class KassaContact(BaseModel):
     from_name: str
     from_email: str
     message: str
+
+
+class KassaPostCreate(BaseModel):
+    tab: str              # iso | products | bounties | hiring | services
+    title: str
+    tag: str
+    body: str
+    urgency: str = "normal"   # low | normal | high
+    reward: str | None = None
+    from_name: str
+    from_email: str

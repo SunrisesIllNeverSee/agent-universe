@@ -7,7 +7,7 @@ import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -89,6 +89,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/inbox/apply",
         "/api/metrics/",
         "/api/kassa/contact",
+        "/api/kassa/posts",
     )
 
     @app.middleware("http")
@@ -2375,7 +2376,145 @@ def create_app(root: Path | None = None) -> FastAPI:
         except Exception:
             pass  # email is best-effort; don't break the endpoint
 
-    from .models import KassaContact
+    from .models import KassaContact, KassaPostCreate
+
+    # ── KA§§A posts board ─────────────────────────────────────────────────────
+    _kassa_posts_file   = root / "data" / "kassa_posts.jsonl"
+    _kassa_reviews_file = root / "data" / "kassa_reviews.jsonl"
+
+    def _load_kassa_posts() -> list[dict]:
+        if not _kassa_posts_file.exists():
+            return []
+        out = []
+        for line in _kassa_posts_file.read_text().splitlines():
+            line = line.strip()
+            if line:
+                out.append(json.loads(line))
+        return out
+
+    def _save_kassa_posts(posts: list[dict]) -> None:
+        _kassa_posts_file.parent.mkdir(parents=True, exist_ok=True)
+        with _kassa_posts_file.open("w") as f:
+            for post in posts:
+                f.write(json.dumps(post) + "\n")
+
+    def _load_kassa_reviews() -> list[dict]:
+        if not _kassa_reviews_file.exists():
+            return []
+        out = []
+        for line in _kassa_reviews_file.read_text().splitlines():
+            line = line.strip()
+            if line:
+                out.append(json.loads(line))
+        return out
+
+    def _save_kassa_review(entry: dict) -> None:
+        _kassa_reviews_file.parent.mkdir(parents=True, exist_ok=True)
+        with _kassa_reviews_file.open("a") as f:
+            f.write(json.dumps(entry) + "\n")
+
+    def _next_k_serial() -> str:
+        all_ids = [p["id"] for p in _load_kassa_posts() + _load_kassa_reviews() if "id" in p]
+        # also check review posts nested under "post" key
+        all_ids += [r["post"]["id"] for r in _load_kassa_reviews() if "post" in r and "id" in r["post"]]
+        max_n = 0
+        for kid in all_ids:
+            try:
+                n = int(str(kid).split("-")[1])
+                if n > max_n:
+                    max_n = n
+            except (IndexError, ValueError):
+                pass
+        return f"K-{max_n + 1:05d}"
+
+    @app.get("/api/kassa/posts")
+    async def get_kassa_posts(tab: str = "", status: str = "", sort: str = "recent") -> list:
+        posts = _load_kassa_posts()
+        if tab:
+            posts = [p for p in posts if p.get("tab") == tab]
+        if status:
+            posts = [p for p in posts if p.get("status") == status]
+        else:
+            posts = [p for p in posts if p.get("status") != "closed"]
+        if sort == "upvotes":
+            posts.sort(key=lambda p: p.get("upvotes", 0), reverse=True)
+        elif sort == "reward":
+            posts.sort(key=lambda p: p.get("reward") or "", reverse=True)
+        else:
+            posts.sort(key=lambda p: p.get("updated_at", ""), reverse=True)
+        return posts
+
+    @app.post("/api/kassa/posts")
+    async def submit_kassa_post(payload: KassaPostCreate) -> dict:
+        kid = _next_k_serial()
+        now = datetime.now(UTC).isoformat()
+        review_entry = {
+            "_v": 1,
+            "review_id": f"rev-{kid}",
+            "post": {
+                "id": kid,
+                "tab": payload.tab,
+                "title": payload.title,
+                "tag": payload.tag,
+                "body": payload.body,
+                "status": "open",
+                "urgency": payload.urgency,
+                "upvotes": 0,
+                "reply_count": 0,
+                "reward": payload.reward,
+                "created_at": now,
+                "updated_at": now,
+            },
+            "from_name": payload.from_name,
+            "from_email": payload.from_email,
+            "submitted_at": now,
+            "status": "pending",
+        }
+        _save_kassa_review(review_entry)
+        audit.log("kassa", "post_submitted", {"id": kid, "tab": payload.tab, "from_email": payload.from_email})
+        await emit("kassa_post_submitted", {"id": kid, "tab": payload.tab})
+        return {"ok": True, "id": kid, "message": "Post submitted for review. We\u2019ll publish it shortly."}
+
+    @app.post("/api/kassa/posts/{post_id}/upvote")
+    async def upvote_kassa_post(post_id: str) -> dict:
+        posts = _load_kassa_posts()
+        for post in posts:
+            if post.get("id") == post_id:
+                post["upvotes"] = post.get("upvotes", 0) + 1
+                post["updated_at"] = datetime.now(UTC).isoformat()
+                _save_kassa_posts(posts)
+                return {"ok": True, "id": post_id, "upvotes": post["upvotes"]}
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    @app.get("/api/operator/reviews")
+    async def get_review_queue(status: str = "pending") -> list:
+        reviews = _load_kassa_reviews()
+        if status:
+            reviews = [r for r in reviews if r.get("status") == status]
+        return reviews
+
+    @app.patch("/api/operator/reviews/{review_id}")
+    async def update_review(review_id: str, action: str) -> dict:
+        reviews = _load_kassa_reviews()
+        for r in reviews:
+            if r.get("review_id") == review_id:
+                if action == "approve":
+                    r["status"] = "approved"
+                    posts = _load_kassa_posts()
+                    posts.append(r["post"])
+                    _save_kassa_posts(posts)
+                    audit.log("kassa", "post_approved", {"review_id": review_id, "post_id": r["post"]["id"]})
+                elif action == "reject":
+                    r["status"] = "rejected"
+                    audit.log("kassa", "post_rejected", {"review_id": review_id})
+                else:
+                    raise HTTPException(status_code=400, detail="action must be 'approve' or 'reject'")
+                _kassa_reviews_file.write_text(
+                    "\n".join(json.dumps(rv) for rv in reviews) + "\n"
+                )
+                await emit("review_updated", {"review_id": review_id, "status": r["status"]})
+                return r
+        raise HTTPException(status_code=404, detail="Review not found")
 
     @app.post("/api/kassa/contact")
     async def kassa_contact(payload: KassaContact) -> dict:
