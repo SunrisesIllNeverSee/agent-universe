@@ -23,6 +23,7 @@ from .models import DeployUpdate, GovernanceUpdate, MCPReadRequest, MCPSendReque
 from .router import SequenceRouter
 from .runtime import RuntimeState
 from .store import MessageStore
+from .kassa_store import KassaStore
 
 
 def _atomic_write(path: Path, data: str) -> None:
@@ -62,6 +63,7 @@ class ConnectionHub:
 def create_app(root: Path | None = None) -> FastAPI:
     root = root or Path(__file__).resolve().parents[1]
     store = MessageStore(root / "data" / "messages.jsonl")
+    kassa = KassaStore(root / "data" / "kassa.db")
     audit = AuditSpine(root / "data" / "audit.jsonl")
     runtime = RuntimeState(root=root, store=store, audit=audit)
     router = SequenceRouter()
@@ -2056,22 +2058,6 @@ def create_app(root: Path | None = None) -> FastAPI:
         }
 
     # ── Stakes (intent-only, M1) ─────────────────────────────────────────────
-    _kassa_stakes_file = root / "data" / "kassa_stakes.jsonl"
-
-    def _load_kassa_stakes() -> list[dict]:
-        if not _kassa_stakes_file.exists():
-            return []
-        out = []
-        for line in _kassa_stakes_file.read_text().splitlines():
-            line = line.strip()
-            if line:
-                out.append(json.loads(line))
-        return out
-
-    def _save_kassa_stake(entry: dict) -> None:
-        _kassa_stakes_file.parent.mkdir(parents=True, exist_ok=True)
-        with _kassa_stakes_file.open("a") as f:
-            f.write(json.dumps(entry) + "\n")
 
     @app.post("/api/kassa/posts/{post_id}/stake")
     async def stake_post(post_id: str, request: Request) -> dict:
@@ -2080,13 +2066,13 @@ def create_app(root: Path | None = None) -> FastAPI:
         agent_id = agent["agent_id"]
 
         # Verify post exists
-        post = next((p for p in _load_kassa_posts() if p.get("id") == post_id), None)
+        post = kassa.get_post(post_id)
         if not post:
             raise HTTPException(status_code=404, detail=f"Post {post_id} not found")
 
         # Check for duplicate stake
-        stakes = _load_kassa_stakes()
-        existing = next((s for s in stakes if s.get("post_id") == post_id and s.get("agent_id") == agent_id and s.get("status") == "active"), None)
+        stakes = kassa.load_stakes(post_id=post_id, agent_id=agent_id)
+        existing = next((s for s in stakes if s.get("status") == "active"), None)
         if existing:
             raise HTTPException(status_code=409, detail="Already staked on this post")
 
@@ -2099,14 +2085,14 @@ def create_app(root: Path | None = None) -> FastAPI:
             "status": "active",
             "created_at": datetime.now(UTC).isoformat(),
         }
-        _save_kassa_stake(entry)
+        kassa.insert_stake(entry)
 
         audit.log("kassa", "stake_placed", {"stake_id": stake_id, "post_id": post_id, "agent_id": agent_id})
         await emit("kassa_stake", entry)
 
         # Auto-create thread between agent and poster
         # Look up poster info from review queue (submitted posts have from_name/email)
-        reviews = _load_kassa_reviews()
+        reviews = kassa.load_reviews()
         review = next((r for r in reviews if r.get("post", {}).get("id") == post_id), None)
         poster_name = review.get("from_name", "Poster") if review else "Poster"
         poster_email = review.get("from_email", "") if review else ""
@@ -2140,37 +2126,25 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.get("/api/kassa/posts/{post_id}/stakes")
     async def get_post_stakes(post_id: str) -> list:
         """List active stakes on a post."""
-        stakes = _load_kassa_stakes()
-        return [s for s in stakes if s.get("post_id") == post_id and s.get("status") == "active"]
+        stakes = kassa.load_stakes(post_id=post_id)
+        return [s for s in stakes if s.get("status") == "active"]
 
     @app.delete("/api/kassa/stakes/{stake_id}")
     async def withdraw_stake(stake_id: str, request: Request) -> dict:
         """Agent withdraws their stake."""
         agent = _get_agent_from_token(request)
-        stakes = _load_kassa_stakes()
+        stakes = kassa.load_stakes()
         stake = next((s for s in stakes if s.get("stake_id") == stake_id), None)
         if not stake:
             raise HTTPException(status_code=404, detail="Stake not found")
         if stake.get("agent_id") != agent["agent_id"]:
             raise HTTPException(status_code=403, detail="Not your stake")
-        stake["status"] = "withdrawn"
-        _atomic_write(_kassa_stakes_file, "\n".join(json.dumps(s) for s in stakes) + "\n")
+        kassa.update_stake(stake_id, {"status": "withdrawn"})
 
         audit.log("kassa", "stake_withdrawn", {"stake_id": stake_id, "agent_id": agent["agent_id"]})
         return {"withdrawn": True, "stake_id": stake_id}
 
     # ── Referrals (agent cross-post matching, M1) ─────────────────────────────
-    _kassa_referrals_file = root / "data" / "kassa_referrals.jsonl"
-
-    def _load_kassa_referrals() -> list[dict]:
-        if not _kassa_referrals_file.exists():
-            return []
-        out = []
-        for line in _kassa_referrals_file.read_text().splitlines():
-            line = line.strip()
-            if line:
-                out.append(json.loads(line))
-        return out
 
     @app.post("/api/kassa/referrals")
     async def create_referral(request: Request, payload: dict) -> dict:
@@ -2185,17 +2159,16 @@ def create_app(root: Path | None = None) -> FastAPI:
         if source_id == target_id:
             raise HTTPException(status_code=400, detail="Cannot refer a post to itself")
 
-        posts = _load_kassa_posts()
-        source = next((p for p in posts if p.get("id") == source_id), None)
-        target = next((p for p in posts if p.get("id") == target_id), None)
+        source = kassa.get_post(source_id)
+        target = kassa.get_post(target_id)
         if not source:
             raise HTTPException(status_code=404, detail=f"Source post {source_id} not found")
         if not target:
             raise HTTPException(status_code=404, detail=f"Target post {target_id} not found")
 
         # Check for duplicate referral
-        referrals = _load_kassa_referrals()
-        dup = next((r for r in referrals if r.get("source_post_id") == source_id and r.get("target_post_id") == target_id and r.get("agent_id") == agent["agent_id"] and r.get("status") == "active"), None)
+        referrals = kassa.load_referrals(agent_id=agent["agent_id"])
+        dup = next((r for r in referrals if r.get("source_post_id") == source_id and r.get("target_post_id") == target_id and r.get("status") == "active"), None)
         if dup:
             raise HTTPException(status_code=409, detail="Referral already exists")
 
@@ -2213,9 +2186,7 @@ def create_app(root: Path | None = None) -> FastAPI:
             "created_at": datetime.now(UTC).isoformat(),
         }
 
-        _kassa_referrals_file.parent.mkdir(parents=True, exist_ok=True)
-        with _kassa_referrals_file.open("a") as f:
-            f.write(json.dumps(entry) + "\n")
+        kassa.insert_referral(entry)
 
         audit.log("kassa", "referral_created", {
             "referral_id": ref_id,
@@ -2230,48 +2201,16 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.get("/api/kassa/posts/{post_id}/referrals")
     async def get_post_referrals(post_id: str) -> list:
         """List referrals involving a post (as source or target)."""
-        referrals = _load_kassa_referrals()
+        referrals = kassa.load_referrals()
         return [r for r in referrals if (r.get("source_post_id") == post_id or r.get("target_post_id") == post_id) and r.get("status") == "active"]
 
     @app.get("/api/kassa/agent/{agent_id}/referrals")
     async def get_agent_referrals(agent_id: str) -> list:
         """List all referrals made by an agent."""
-        referrals = _load_kassa_referrals()
-        return [r for r in referrals if r.get("agent_id") == agent_id and r.get("status") == "active"]
+        referrals = kassa.load_referrals(agent_id=agent_id)
+        return [r for r in referrals if r.get("status") == "active"]
 
     # ── Threads (M2) ─────────────────────────────────────────────────────────
-    _kassa_threads_file = root / "data" / "kassa_threads.jsonl"
-    _kassa_thread_msgs_file = root / "data" / "kassa_thread_msgs.jsonl"
-
-    def _load_kassa_threads() -> list[dict]:
-        if not _kassa_threads_file.exists():
-            return []
-        out = []
-        for line in _kassa_threads_file.read_text().splitlines():
-            line = line.strip()
-            if line:
-                out.append(json.loads(line))
-        return out
-
-    def _save_kassa_thread(entry: dict) -> None:
-        _kassa_threads_file.parent.mkdir(parents=True, exist_ok=True)
-        with _kassa_threads_file.open("a") as f:
-            f.write(json.dumps(entry) + "\n")
-
-    def _load_kassa_thread_msgs() -> list[dict]:
-        if not _kassa_thread_msgs_file.exists():
-            return []
-        out = []
-        for line in _kassa_thread_msgs_file.read_text().splitlines():
-            line = line.strip()
-            if line:
-                out.append(json.loads(line))
-        return out
-
-    def _save_kassa_thread_msg(entry: dict) -> None:
-        _kassa_thread_msgs_file.parent.mkdir(parents=True, exist_ok=True)
-        with _kassa_thread_msgs_file.open("a") as f:
-            f.write(json.dumps(entry) + "\n")
 
     def _create_thread(post_id: str, post_tab: str, post_title: str,
                        agent_id: str, agent_name: str,
@@ -2294,21 +2233,20 @@ def create_app(root: Path | None = None) -> FastAPI:
             "created_at": datetime.now(UTC).isoformat(),
             "updated_at": datetime.now(UTC).isoformat(),
         }
-        _save_kassa_thread(entry)
+        kassa.insert_thread(entry)
         return {**entry, "_magic_token_plain": magic_token}
 
     @app.get("/api/kassa/threads")
     async def get_agent_threads(request: Request) -> list:
         """List threads for the authenticated agent."""
         agent = _get_agent_from_token(request)
-        threads = _load_kassa_threads()
-        return [t for t in threads if t.get("agent_id") == agent["agent_id"] and t.get("status") == "open"]
+        threads = kassa.load_threads(agent_id=agent["agent_id"])
+        return [t for t in threads if t.get("status") == "open"]
 
     @app.get("/api/kassa/threads/{thread_id}")
     async def get_thread(thread_id: str, request: Request, magic: str = "") -> dict:
         """Get thread details. Access via JWT (agent) or magic token (poster)."""
-        threads = _load_kassa_threads()
-        thread = next((t for t in threads if t.get("thread_id") == thread_id), None)
+        thread = kassa.get_thread(thread_id)
         if not thread:
             raise HTTPException(status_code=404, detail="Thread not found")
 
@@ -2331,8 +2269,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.get("/api/kassa/threads/{thread_id}/messages")
     async def get_thread_messages(thread_id: str, request: Request, magic: str = "") -> list:
         """Get messages in a thread. Auth via JWT or magic token."""
-        threads = _load_kassa_threads()
-        thread = next((t for t in threads if t.get("thread_id") == thread_id), None)
+        thread = kassa.get_thread(thread_id)
         if not thread:
             raise HTTPException(status_code=404, detail="Thread not found")
 
@@ -2347,14 +2284,12 @@ def create_app(root: Path | None = None) -> FastAPI:
         else:
             raise HTTPException(status_code=401, detail="Auth required")
 
-        msgs = _load_kassa_thread_msgs()
-        return [m for m in msgs if m.get("thread_id") == thread_id]
+        return kassa.load_thread_messages(thread_id)
 
     @app.post("/api/kassa/threads/{thread_id}/messages")
     async def post_thread_message(thread_id: str, request: Request, payload: dict) -> dict:
         """Post a message to a thread. Auth via JWT (agent) or magic token (poster)."""
-        threads = _load_kassa_threads()
-        thread = next((t for t in threads if t.get("thread_id") == thread_id), None)
+        thread = kassa.get_thread(thread_id)
         if not thread:
             raise HTTPException(status_code=404, detail="Thread not found")
         if thread.get("status") != "open":
@@ -2392,17 +2327,14 @@ def create_app(root: Path | None = None) -> FastAPI:
             "text": text,
             "created_at": datetime.now(UTC).isoformat(),
         }
-        _save_kassa_thread_msg(entry)
+        kassa.insert_thread_message(entry)
 
         # Update thread timestamp and count
-        thread["updated_at"] = datetime.now(UTC).isoformat()
-        thread["message_count"] = thread.get("message_count", 0) + 1
-        all_threads = _load_kassa_threads()
-        for i, t in enumerate(all_threads):
-            if t.get("thread_id") == thread_id:
-                all_threads[i] = thread
-                break
-        _atomic_write(_kassa_threads_file, "\n".join(json.dumps(t) for t in all_threads) + "\n")
+        new_count = thread.get("message_count", 0) + 1
+        kassa.update_thread(thread_id, {
+            "updated_at": datetime.now(UTC).isoformat(),
+            "message_count": new_count,
+        })
 
         # Broadcast to WebSocket listeners
         await emit("kassa_thread_message", {
@@ -2853,23 +2785,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         return meeting
 
     # ── KA§§A contact inbox ───────────────────────────────────────────────────
-    _kassa_messages_file = root / "data" / "kassa_messages.jsonl"
     _notify_email = os.environ.get("NOTIFY_EMAIL", "")
-
-    def _load_kassa_messages() -> list[dict]:
-        if not _kassa_messages_file.exists():
-            return []
-        out = []
-        for line in _kassa_messages_file.read_text().splitlines():
-            line = line.strip()
-            if line:
-                out.append(json.loads(line))
-        return out
-
-    def _save_kassa_message(entry: dict) -> None:
-        _kassa_messages_file.parent.mkdir(parents=True, exist_ok=True)
-        with _kassa_messages_file.open("a") as f:
-            f.write(json.dumps(entry) + "\n")
 
     def _send_notify_email(entry: dict) -> None:
         if not _notify_email:
@@ -2904,59 +2820,11 @@ def create_app(root: Path | None = None) -> FastAPI:
     from .models import KassaContact, KassaPostCreate
 
     # ── KA§§A posts board ─────────────────────────────────────────────────────
-    _kassa_posts_file   = root / "data" / "kassa_posts.jsonl"
-    _kassa_reviews_file = root / "data" / "kassa_reviews.jsonl"
-
-    def _load_kassa_posts() -> list[dict]:
-        if not _kassa_posts_file.exists():
-            return []
-        out = []
-        for line in _kassa_posts_file.read_text().splitlines():
-            line = line.strip()
-            if line:
-                out.append(json.loads(line))
-        return out
-
-    def _save_kassa_posts(posts: list[dict]) -> None:
-        _atomic_write(_kassa_posts_file, "\n".join(json.dumps(p) for p in posts) + "\n")
-
-    def _load_kassa_reviews() -> list[dict]:
-        if not _kassa_reviews_file.exists():
-            return []
-        out = []
-        for line in _kassa_reviews_file.read_text().splitlines():
-            line = line.strip()
-            if line:
-                out.append(json.loads(line))
-        return out
-
-    def _save_kassa_review(entry: dict) -> None:
-        _kassa_reviews_file.parent.mkdir(parents=True, exist_ok=True)
-        with _kassa_reviews_file.open("a") as f:
-            f.write(json.dumps(entry) + "\n")
-
-    def _next_k_serial() -> str:
-        all_ids = [p["id"] for p in _load_kassa_posts() + _load_kassa_reviews() if "id" in p]
-        # also check review posts nested under "post" key
-        all_ids += [r["post"]["id"] for r in _load_kassa_reviews() if "post" in r and "id" in r["post"]]
-        max_n = 0
-        for kid in all_ids:
-            try:
-                n = int(str(kid).split("-")[1])
-                if n > max_n:
-                    max_n = n
-            except (IndexError, ValueError):
-                pass
-        return f"K-{max_n + 1:05d}"
 
     @app.get("/api/kassa/posts")
     async def get_kassa_posts(tab: str = "", status: str = "", sort: str = "recent") -> list:
-        posts = _load_kassa_posts()
-        if tab:
-            posts = [p for p in posts if p.get("tab") == tab]
-        if status:
-            posts = [p for p in posts if p.get("status") == status]
-        else:
+        posts = kassa.load_posts(tab=tab, status=status)
+        if not status:
             posts = [p for p in posts if p.get("status") != "closed"]
         if sort == "upvotes":
             posts.sort(key=lambda p: p.get("upvotes", 0), reverse=True)
@@ -2968,15 +2836,14 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     @app.get("/api/kassa/posts/{post_id}")
     async def get_kassa_post(post_id: str) -> dict:
-        posts = _load_kassa_posts()
-        post = next((p for p in posts if p.get("id") == post_id), None)
+        post = kassa.get_post(post_id)
         if not post:
             raise HTTPException(status_code=404, detail=f"Post {post_id} not found")
         return post
 
     @app.post("/api/kassa/posts")
     async def submit_kassa_post(payload: KassaPostCreate) -> dict:
-        kid = _next_k_serial()
+        kid = kassa.next_k_serial()
         now = datetime.now(UTC).isoformat()
         review_entry = {
             "_v": 1,
@@ -3000,51 +2867,41 @@ def create_app(root: Path | None = None) -> FastAPI:
             "submitted_at": now,
             "status": "pending",
         }
-        _save_kassa_review(review_entry)
+        kassa.insert_review(review_entry)
         audit.log("kassa", "post_submitted", {"id": kid, "tab": payload.tab, "from_email": payload.from_email})
         await emit("kassa_post_submitted", {"id": kid, "tab": payload.tab})
         return {"ok": True, "id": kid, "message": "Post submitted for review. We\u2019ll publish it shortly."}
 
     @app.post("/api/kassa/posts/{post_id}/upvote")
     async def upvote_kassa_post(post_id: str) -> dict:
-        posts = _load_kassa_posts()
-        for post in posts:
-            if post.get("id") == post_id:
-                post["upvotes"] = post.get("upvotes", 0) + 1
-                post["updated_at"] = datetime.now(UTC).isoformat()
-                _save_kassa_posts(posts)
-                return {"ok": True, "id": post_id, "upvotes": post["upvotes"]}
-        raise HTTPException(status_code=404, detail="Post not found")
+        post = kassa.get_post(post_id)
+        if not post:
+            raise HTTPException(status_code=404, detail="Post not found")
+        new_count = kassa.increment_upvotes(post_id)
+        return {"ok": True, "id": post_id, "upvotes": new_count}
 
     @app.get("/api/operator/reviews")
     async def get_review_queue(status: str = "pending") -> list:
-        reviews = _load_kassa_reviews()
-        if status:
-            reviews = [r for r in reviews if r.get("status") == status]
-        return reviews
+        return kassa.load_reviews(status=status)
 
     @app.patch("/api/operator/reviews/{review_id}")
     async def update_review(review_id: str, action: str) -> dict:
-        reviews = _load_kassa_reviews()
-        for r in reviews:
-            if r.get("review_id") == review_id:
-                if action == "approve":
-                    r["status"] = "approved"
-                    posts = _load_kassa_posts()
-                    posts.append(r["post"])
-                    _save_kassa_posts(posts)
-                    audit.log("kassa", "post_approved", {"review_id": review_id, "post_id": r["post"]["id"]})
-                elif action == "reject":
-                    r["status"] = "rejected"
-                    audit.log("kassa", "post_rejected", {"review_id": review_id})
-                else:
-                    raise HTTPException(status_code=400, detail="action must be 'approve' or 'reject'")
-                _kassa_reviews_file.write_text(
-                    "\n".join(json.dumps(rv) for rv in reviews) + "\n"
-                )
-                await emit("review_updated", {"review_id": review_id, "status": r["status"]})
-                return r
-        raise HTTPException(status_code=404, detail="Review not found")
+        r = kassa.get_review(review_id)
+        if not r:
+            raise HTTPException(status_code=404, detail="Review not found")
+        if action == "approve":
+            kassa.insert_post(r["post"])
+            kassa.update_review(review_id, {"status": "approved"})
+            r["status"] = "approved"
+            audit.log("kassa", "post_approved", {"review_id": review_id, "post_id": r["post"]["id"]})
+        elif action == "reject":
+            kassa.update_review(review_id, {"status": "rejected"})
+            r["status"] = "rejected"
+            audit.log("kassa", "post_rejected", {"review_id": review_id})
+        else:
+            raise HTTPException(status_code=400, detail="action must be 'approve' or 'reject'")
+        await emit("review_updated", {"review_id": review_id, "status": r["status"]})
+        return r
 
     @app.post("/api/kassa/contact")
     async def kassa_contact(payload: KassaContact) -> dict:
@@ -3059,7 +2916,7 @@ def create_app(root: Path | None = None) -> FastAPI:
             "message": payload.message,
             "status": "new",
         }
-        _save_kassa_message(entry)
+        kassa.insert_contact_message(entry)
         audit.log("kassa", "contact_received", {
             "post_id": payload.post_id,
             "tab": payload.tab,
@@ -3071,16 +2928,14 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     @app.get("/api/kassa/messages")
     async def get_kassa_messages(tab: str = "", status: str = "") -> list:
-        messages = _load_kassa_messages()
-        if tab:
-            messages = [m for m in messages if m.get("tab") == tab]
-        if status:
-            messages = [m for m in messages if m.get("status") == status]
-        return messages
+        return kassa.load_contact_messages(tab=tab, status=status)
 
     @app.on_event("startup")
     async def startup_event() -> None:
         audit.log("server", "started", {"root": str(root)})
+        migrated = kassa.migrate_from_jsonl(root / "data")
+        if any(v > 0 for v in migrated.values()):
+            audit.log("kassa", "jsonl_migrated", migrated)
         # Give the event loop a chance before initial broadcast in tests/manual runs.
         await asyncio.sleep(0)
 
