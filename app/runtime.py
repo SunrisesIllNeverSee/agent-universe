@@ -101,6 +101,12 @@ class RuntimeState:
             os.fsync(handle.fileno())
         os.replace(tmp_path, path)
 
+    def persist_registry(self) -> None:
+        """Write provision.json back with current registry state."""
+        payload = {"provision": self.provision, "registry": self.registry}
+        with self._lock:
+            self._atomic_write_json(self.config_dir / "provision.json", payload)
+
     def persist(self) -> None:
         payload = {
             "governance": self.governance.model_dump(mode="json"),

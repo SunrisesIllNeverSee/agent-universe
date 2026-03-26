@@ -28,6 +28,15 @@
         .then(function (r) { return r.json(); });
     },
 
+    /** Fetch a single post by ID. */
+    getPost: function (postId) {
+      return fetch(base() + '/api/kassa/posts/' + postId)
+        .then(function (r) {
+          if (!r.ok) throw new Error('Post not found');
+          return r.json();
+        });
+    },
+
     /** Submit a new post (goes to operator review queue). */
     submitPost: function (payload) {
       return fetch(base() + '/api/kassa/posts', {
