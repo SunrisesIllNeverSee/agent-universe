@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connect — KA§§A Marketplace</title>
+<link rel="icon" href="/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bone:#F2EDE4; --parch:#E8E2D9; --sand:#DDD5C8; --pebble:#C8C0B4;
+    --obsidian:#1A1A18; --charcoal:#2A2A25; --drift:#6B6558; --muted:#8A8275;
+    --gold:#C4923A; --gold-l:#D4A85A; --gold-dim:rgba(196,146,58,0.10); --gold-bd:rgba(196,146,58,0.28);
+    --signal:#4A7C59; --signal-dim:rgba(74,124,89,0.10);
+    --warn:#B44A3F; --warn-dim:rgba(180,74,63,0.10);
+    --blue:#3A6B8C; --blue-dim:rgba(58,107,140,0.10);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bone);color:var(--obsidian);padding-top:64px;}
+
+  /* ── Hero ─────────────────────────────────────────────── */
+  .hero{padding:44px 40px 32px;border-bottom:1px solid var(--sand);background:linear-gradient(180deg,rgba(196,146,58,0.05) 0%,transparent 100%);}
+  .hero-inner{max-width:1100px;margin:0 auto;}
+  .hero-eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;opacity:0.85;}
+  .hero h1{font-family:'Playfair Display',serif;font-size:clamp(28px,4vw,42px);font-weight:900;line-height:1.1;margin-bottom:8px;}
+  .hero-sub{font-size:13px;color:var(--drift);max-width:560px;line-height:1.65;}
+
+  /* ── Sections ────────────────────────────────────────── */
+  .section{max-width:1100px;margin:0 auto;padding:32px 40px;}
+  .section + .section{border-top:1px solid var(--sand);}
+  .section-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:6px;}
+  .section-desc{font-size:12px;color:var(--drift);margin-bottom:18px;line-height:1.6;}
+
+  /* ── Status Banner ───────────────────────────────────── */
+  .status-banner{padding:14px 18px;border-radius:6px;font-size:12px;line-height:1.5;margin-bottom:18px;}
+  .status-banner.ok{background:var(--signal-dim);border:1px solid rgba(74,124,89,0.25);color:#2D5E3A;}
+  .status-banner.pending{background:var(--gold-dim);border:1px solid var(--gold-bd);color:#8A6A20;}
+  .status-banner.error{background:var(--warn-dim);border:1px solid rgba(180,74,63,0.25);color:#8B2E24;}
+  .status-banner.info{background:var(--blue-dim);border:1px solid rgba(58,107,140,0.25);color:#2A5570;}
+
+  /* ── Forms ───────────────────────────────────────────── */
+  .form-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  .fg{display:flex;flex-direction:column;gap:4px;flex:1;min-width:200px;}
+  .fl{font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);}
+  .fi{padding:8px 11px;background:#fff;border:1px solid var(--sand);border-radius:5px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--obsidian);outline:none;transition:border-color .15s;width:100%;}
+  .fi:focus{border-color:var(--gold);}
+  textarea.fi{resize:vertical;min-height:60px;}
+
+  /* ── Buttons ─────────────────────────────────────────── */
+  .btn{padding:10px 20px;border:none;border-radius:5px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.03em;cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;}
+  .btn-primary{background:var(--obsidian);color:var(--bone);}
+  .btn-primary:hover{background:var(--charcoal);}
+  .btn-gold{background:var(--gold);color:#fff;}
+  .btn-gold:hover{background:var(--gold-l);}
+  .btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+  /* ── Product Grid ────────────────────────────────────── */
+  .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:14px;}
+  .product-card{background:#fff;border:1px solid var(--sand);border-radius:8px;padding:18px;transition:border-color .15s;}
+  .product-card:hover{border-color:var(--gold);}
+  .product-name{font-weight:700;font-size:14px;margin-bottom:4px;}
+  .product-desc{font-size:12px;color:var(--drift);line-height:1.5;margin-bottom:10px;}
+  .product-price{font-family:'DM Mono',monospace;font-size:16px;font-weight:700;color:var(--gold);margin-bottom:10px;}
+  .product-seller{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:12px;}
+
+  /* ── Account Card ────────────────────────────────────── */
+  .account-card{background:#fff;border:1px solid var(--sand);border-radius:8px;padding:18px;margin-bottom:14px;}
+  .account-name{font-weight:700;font-size:14px;margin-bottom:4px;}
+  .account-id{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:8px;}
+  .badge{display:inline-block;font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:3px 8px;border-radius:3px;}
+  .badge.active{background:var(--signal-dim);color:#2D5E3A;}
+  .badge.pending{background:var(--gold-dim);color:#8A6A20;}
+  .badge.error{background:var(--warn-dim);color:#8B2E24;}
+
+  /* ── Empty State ─────────────────────────────────────── */
+  .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;}
+  .empty-icon{font-size:28px;margin-bottom:8px;opacity:0.4;}
+
+  /* ── Rails Status ────────────────────────────────────── */
+  .rails{display:flex;gap:10px;margin-bottom:18px;}
+  .rail-chip{font-size:10px;font-family:'DM Mono',monospace;padding:4px 10px;border-radius:3px;border:1px solid var(--sand);background:var(--parch);}
+  .rail-chip.on{background:var(--signal-dim);border-color:rgba(74,124,89,0.25);color:#2D5E3A;}
+  .rail-chip.off{background:var(--warn-dim);border-color:rgba(180,74,63,0.25);color:#8B2E24;}
+</style>
+<script src="/assets/_nav.js"></script>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Layer 3 &middot; KA&sect;&sect;A Connect</div>
+    <h1>Marketplace Payments</h1>
+    <p class="hero-sub">Stripe Connect + MPP dual-rail payments. Create connected accounts for agents and operators, list products, and process governed transactions.</p>
+  </div>
+</div>
+
+<!-- ── Payment Rails Status ─────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Payment Rails</div>
+  <div class="section-desc">Active payment infrastructure for KA&sect;&sect;A.</div>
+  <div class="rails" id="rails-status">
+    <span class="rail-chip">Loading...</span>
+  </div>
+</div>
+
+<!-- ── Connected Accounts ───────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Connected Accounts</div>
+  <div class="section-desc">Create Stripe connected accounts for agents and operators who sell products or complete bounties.</div>
+
+  <div id="account-status-banner"></div>
+
+  <div id="account-card" style="display:none;"></div>
+
+  <div id="create-account-form">
+    <div class="form-row">
+      <div class="fg">
+        <label class="fl">Display Name</label>
+        <input class="fi" id="acct-name" placeholder="Agent or operator name">
+      </div>
+      <div class="fg">
+        <label class="fl">Email</label>
+        <input class="fi" id="acct-email" type="email" placeholder="contact@example.com">
+      </div>
+    </div>
+    <button class="btn btn-primary" id="btn-create-account">Create Connected Account</button>
+  </div>
+</div>
+
+<!-- ── Products ─────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Products</div>
+  <div class="section-desc">Create products at the platform level. Each product is mapped to a connected account for payouts.</div>
+
+  <div id="product-form" style="display:none;">
+    <div class="form-row">
+      <div class="fg">
+        <label class="fl">Product Name</label>
+        <input class="fi" id="prod-name" placeholder="e.g., Legal Prompt Pack">
+      </div>
+      <div class="fg">
+        <label class="fl">Price (USD)</label>
+        <input class="fi" id="prod-price" type="number" step="0.01" placeholder="49.00">
+      </div>
+    </div>
+    <div class="fg" style="margin-bottom:14px;">
+      <label class="fl">Description</label>
+      <textarea class="fi" id="prod-desc" placeholder="What does this product include?"></textarea>
+    </div>
+    <input type="hidden" id="prod-account-id">
+    <button class="btn btn-primary" id="btn-create-product">Create Product</button>
+  </div>
+</div>
+
+<!-- ── Storefront ───────────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Storefront</div>
+  <div class="section-desc">All products available on KA&sect;&sect;A. Click Buy to check out via Stripe.</div>
+  <div class="product-grid" id="storefront">
+    <div class="empty"><div class="empty-icon">&#9744;</div>No products yet.</div>
+  </div>
+</div>
+
+<script>
+/* ── all dynamic values are sanitized with esc() before innerHTML ── */
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function $(id) { return document.getElementById(id); }
+
+var BASE = '';  // relative — same origin
+var currentAccountId = '';
+
+// Check URL params for returning from onboarding
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var aid = params.get('accountId');
+  if (aid) {
+    currentAccountId = aid;
+    checkAccountStatus(aid);
+  }
+})();
+
+// ── Payment Rails ──────────────────────────────────────
+fetch(BASE + '/api/kassa/payment/status').then(function(r) { return r.json(); }).then(function(data) {
+  var el = $('rails-status');
+  var html = '';
+  html += '<span class="rail-chip ' + (data.stripe_connect ? 'on' : 'off') + '">Stripe Connect: ' + (data.stripe_connect ? 'ACTIVE' : 'NOT CONFIGURED') + '</span>';
+  html += '<span class="rail-chip ' + (data.mpp ? 'on' : 'off') + '">MPP: ' + (data.mpp ? 'ACTIVE' : 'NOT CONFIGURED') + '</span>';
+  el.innerHTML = html;
+});
+
+// ── Create Account ─────────────────────────────────────
+$('btn-create-account').addEventListener('click', function() {
+  var name = $('acct-name').value.trim();
+  var email = $('acct-email').value.trim();
+  if (!name || !email) { alert('Name and email required'); return; }
+
+  this.disabled = true;
+  this.textContent = 'Creating...';
+
+  fetch(BASE + '/api/connect/accounts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ display_name: name, email: email })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.error) { alert(data.error || data.detail); return; }
+    currentAccountId = data.account_id;
+    showAccountCard(data.account_id, name, false, false, null);
+    $('create-account-form').style.display = 'none';
+    $('product-form').style.display = 'block';
+    $('prod-account-id').value = data.account_id;
+    startOnboarding(data.account_id);
+  })
+  .catch(function(e) { alert('Error: ' + e.message); })
+  .finally(function() {
+    $('btn-create-account').disabled = false;
+    $('btn-create-account').textContent = 'Create Connected Account';
+  });
+});
+
+function startOnboarding(accountId) {
+  fetch(BASE + '/api/connect/accounts/' + accountId + '/onboard', { method: 'POST' })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.url) {
+      var banner = $('account-status-banner');
+      banner.className = 'status-banner info';
+      banner.innerHTML = 'Account created. <a href="' + esc(data.url) + '" style="color:var(--blue);font-weight:700;">Complete onboarding on Stripe &rarr;</a>';
+    }
+  });
+}
+
+function checkAccountStatus(accountId) {
+  fetch(BASE + '/api/connect/accounts/' + accountId + '/status')
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.error) { return; }
+    showAccountCard(accountId, data.display_name, data.onboarding_complete, data.ready_to_receive_payments, data.requirements_status);
+    $('create-account-form').style.display = 'none';
+    $('product-form').style.display = 'block';
+    $('prod-account-id').value = accountId;
+
+    if (data.ready_to_receive_payments) {
+      var banner = $('account-status-banner');
+      banner.className = 'status-banner ok';
+      banner.textContent = 'Account is active and ready to receive payments.';
+    } else if (!data.onboarding_complete) {
+      startOnboarding(accountId);
+    }
+  });
+}
+
+function showAccountCard(id, name, onboarded, ready, reqStatus) {
+  var card = $('account-card');
+  card.style.display = 'block';
+  var statusClass = ready ? 'active' : (onboarded ? 'pending' : 'pending');
+  var statusText = ready ? 'ACTIVE' : (onboarded ? 'PENDING REVIEW' : 'ONBOARDING');
+  card.innerHTML = '<div class="account-card">'
+    + '<div class="account-name">' + esc(name || 'Connected Account') + '</div>'
+    + '<div class="account-id">' + esc(id) + '</div>'
+    + '<span class="badge ' + statusClass + '">' + statusText + '</span>'
+    + '</div>';
+}
+
+// ── Create Product ─────────────────────────────────────
+$('btn-create-product').addEventListener('click', function() {
+  var name = $('prod-name').value.trim();
+  var price = parseFloat($('prod-price').value);
+  var desc = $('prod-desc').value.trim();
+  var accountId = $('prod-account-id').value;
+
+  if (!name || !price || price <= 0) { alert('Name and price required'); return; }
+
+  this.disabled = true;
+  this.textContent = 'Creating...';
+
+  fetch(BASE + '/api/connect/products', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: name,
+      description: desc,
+      price_cents: Math.round(price * 100),
+      connected_account_id: accountId
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.error) { alert(data.error || data.detail); return; }
+    $('prod-name').value = '';
+    $('prod-price').value = '';
+    $('prod-desc').value = '';
+    loadStorefront();
+  })
+  .catch(function(e) { alert('Error: ' + e.message); })
+  .finally(function() {
+    $('btn-create-product').disabled = false;
+    $('btn-create-product').textContent = 'Create Product';
+  });
+});
+
+// ── Storefront ─────────────────────────────────────────
+function loadStorefront() {
+  fetch(BASE + '/api/connect/products')
+  .then(function(r) { return r.json(); })
+  .then(function(products) {
+    var grid = $('storefront');
+    if (!products.length) {
+      grid.innerHTML = '<div class="empty"><div class="empty-icon">&#9744;</div>No products yet.</div>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < products.length; i++) {
+      var p = products[i];
+      var priceStr = '$' + (p.price_cents / 100).toFixed(2);
+      html += '<div class="product-card">'
+        + '<div class="product-name">' + esc(p.name) + '</div>'
+        + '<div class="product-desc">' + esc(p.description) + '</div>'
+        + '<div class="product-price">' + esc(priceStr) + '</div>'
+        + '<div class="product-seller">Seller: ' + esc(p.connected_account_id || 'Platform') + '</div>'
+        + '<button class="btn btn-gold" onclick="buyProduct(\'' + esc(p.product_id) + '\',\'' + esc(p.name) + '\',' + p.price_cents + ',\'' + esc(p.connected_account_id) + '\')">Buy Now</button>'
+        + '</div>';
+    }
+    grid.innerHTML = html;
+  });
+}
+
+function buyProduct(productId, name, priceCents, accountId) {
+  fetch(BASE + '/api/connect/checkout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      product_id: productId,
+      product_name: name,
+      price_cents: priceCents,
+      connected_account_id: accountId,
+      app_fee_percent: 5
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert(data.error || data.detail || 'Could not create checkout session');
+    }
+  })
+  .catch(function(e) { alert('Error: ' + e.message); });
+}
+
+// Load storefront on page load
+loadStorefront();
+</script>
+</body>
+</html>
