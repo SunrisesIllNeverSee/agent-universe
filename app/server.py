@@ -108,6 +108,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/kassa/posts",
         "/api/kassa/agent/register",
         "/api/kassa/agent/login",
+        "/api/kassa/threads/",
     )
 
     @app.middleware("http")
@@ -253,7 +254,7 @@ def create_app(root: Path | None = None) -> FastAPI:
             "civitae-map", "civitae-roadmap", "civitas", "command", "console",
             "dashboard", "deploy", "economics", "entry", "flowchart",
             "governance", "helpwanted", "hiring", "index", "iso-collaborators",
-            "kassa", "kassa-post", "kingdoms", "leaderboard", "mission", "missions",
+            "kassa", "kassa-post", "kassa-thread", "kingdoms", "leaderboard", "mission", "missions",
             "products", "refinery", "services", "sig-arena", "sitemap",
             "slots", "switchboard", "vault", "wave-registry", "welcome", "world",
         }
@@ -2103,7 +2104,38 @@ def create_app(root: Path | None = None) -> FastAPI:
         audit.log("kassa", "stake_placed", {"stake_id": stake_id, "post_id": post_id, "agent_id": agent_id})
         await emit("kassa_stake", entry)
 
-        return {"staked": True, "stake_id": stake_id, "post_id": post_id}
+        # Auto-create thread between agent and poster
+        # Look up poster info from review queue (submitted posts have from_name/email)
+        reviews = _load_kassa_reviews()
+        review = next((r for r in reviews if r.get("post", {}).get("id") == post_id), None)
+        poster_name = review.get("from_name", "Poster") if review else "Poster"
+        poster_email = review.get("from_email", "") if review else ""
+
+        thread_result = _create_thread(
+            post_id=post_id,
+            post_tab=post.get("tab", ""),
+            post_title=post.get("title", ""),
+            agent_id=agent_id,
+            agent_name=agent.get("name", ""),
+            poster_name=poster_name,
+            poster_email=poster_email,
+        )
+
+        magic_link = f"/kassa/thread/{thread_result['thread_id']}?magic={thread_result['_magic_token_plain']}"
+
+        audit.log("kassa", "thread_created", {
+            "thread_id": thread_result["thread_id"],
+            "post_id": post_id,
+            "agent_id": agent_id,
+        })
+
+        return {
+            "staked": True,
+            "stake_id": stake_id,
+            "post_id": post_id,
+            "thread_id": thread_result["thread_id"],
+            "magic_link": magic_link,
+        }
 
     @app.get("/api/kassa/posts/{post_id}/stakes")
     async def get_post_stakes(post_id: str) -> list:
@@ -2206,6 +2238,189 @@ def create_app(root: Path | None = None) -> FastAPI:
         """List all referrals made by an agent."""
         referrals = _load_kassa_referrals()
         return [r for r in referrals if r.get("agent_id") == agent_id and r.get("status") == "active"]
+
+    # ── Threads (M2) ─────────────────────────────────────────────────────────
+    _kassa_threads_file = root / "data" / "kassa_threads.jsonl"
+    _kassa_thread_msgs_file = root / "data" / "kassa_thread_msgs.jsonl"
+
+    def _load_kassa_threads() -> list[dict]:
+        if not _kassa_threads_file.exists():
+            return []
+        out = []
+        for line in _kassa_threads_file.read_text().splitlines():
+            line = line.strip()
+            if line:
+                out.append(json.loads(line))
+        return out
+
+    def _save_kassa_thread(entry: dict) -> None:
+        _kassa_threads_file.parent.mkdir(parents=True, exist_ok=True)
+        with _kassa_threads_file.open("a") as f:
+            f.write(json.dumps(entry) + "\n")
+
+    def _load_kassa_thread_msgs() -> list[dict]:
+        if not _kassa_thread_msgs_file.exists():
+            return []
+        out = []
+        for line in _kassa_thread_msgs_file.read_text().splitlines():
+            line = line.strip()
+            if line:
+                out.append(json.loads(line))
+        return out
+
+    def _save_kassa_thread_msg(entry: dict) -> None:
+        _kassa_thread_msgs_file.parent.mkdir(parents=True, exist_ok=True)
+        with _kassa_thread_msgs_file.open("a") as f:
+            f.write(json.dumps(entry) + "\n")
+
+    def _create_thread(post_id: str, post_tab: str, post_title: str,
+                       agent_id: str, agent_name: str,
+                       poster_name: str, poster_email: str) -> dict:
+        """Create a thread between a staked agent and the poster."""
+        thread_id = f"thr-{secrets.token_hex(8)}"
+        magic_token = secrets.token_urlsafe(32)
+        entry = {
+            "thread_id": thread_id,
+            "post_id": post_id,
+            "post_tab": post_tab,
+            "post_title": post_title,
+            "agent_id": agent_id,
+            "agent_name": agent_name,
+            "poster_name": poster_name,
+            "poster_email": poster_email,
+            "magic_token": _hash_key(magic_token),
+            "status": "open",
+            "message_count": 0,
+            "created_at": datetime.now(UTC).isoformat(),
+            "updated_at": datetime.now(UTC).isoformat(),
+        }
+        _save_kassa_thread(entry)
+        return {**entry, "_magic_token_plain": magic_token}
+
+    @app.get("/api/kassa/threads")
+    async def get_agent_threads(request: Request) -> list:
+        """List threads for the authenticated agent."""
+        agent = _get_agent_from_token(request)
+        threads = _load_kassa_threads()
+        return [t for t in threads if t.get("agent_id") == agent["agent_id"] and t.get("status") == "open"]
+
+    @app.get("/api/kassa/threads/{thread_id}")
+    async def get_thread(thread_id: str, request: Request, magic: str = "") -> dict:
+        """Get thread details. Access via JWT (agent) or magic token (poster)."""
+        threads = _load_kassa_threads()
+        thread = next((t for t in threads if t.get("thread_id") == thread_id), None)
+        if not thread:
+            raise HTTPException(status_code=404, detail="Thread not found")
+
+        # Auth: either agent JWT or poster magic token
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            claims = _verify_jwt(auth_header[7:])
+            if not claims or claims.get("sub") != thread.get("agent_id"):
+                raise HTTPException(status_code=403, detail="Not your thread")
+        elif magic:
+            if _hash_key(magic) != thread.get("magic_token"):
+                raise HTTPException(status_code=403, detail="Invalid magic link")
+        else:
+            raise HTTPException(status_code=401, detail="Auth required — use Bearer token or magic link")
+
+        # Strip magic_token hash from response
+        safe = {k: v for k, v in thread.items() if k != "magic_token"}
+        return safe
+
+    @app.get("/api/kassa/threads/{thread_id}/messages")
+    async def get_thread_messages(thread_id: str, request: Request, magic: str = "") -> list:
+        """Get messages in a thread. Auth via JWT or magic token."""
+        threads = _load_kassa_threads()
+        thread = next((t for t in threads if t.get("thread_id") == thread_id), None)
+        if not thread:
+            raise HTTPException(status_code=404, detail="Thread not found")
+
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            claims = _verify_jwt(auth_header[7:])
+            if not claims or claims.get("sub") != thread.get("agent_id"):
+                raise HTTPException(status_code=403, detail="Not your thread")
+        elif magic:
+            if _hash_key(magic) != thread.get("magic_token"):
+                raise HTTPException(status_code=403, detail="Invalid magic link")
+        else:
+            raise HTTPException(status_code=401, detail="Auth required")
+
+        msgs = _load_kassa_thread_msgs()
+        return [m for m in msgs if m.get("thread_id") == thread_id]
+
+    @app.post("/api/kassa/threads/{thread_id}/messages")
+    async def post_thread_message(thread_id: str, request: Request, payload: dict) -> dict:
+        """Post a message to a thread. Auth via JWT (agent) or magic token (poster)."""
+        threads = _load_kassa_threads()
+        thread = next((t for t in threads if t.get("thread_id") == thread_id), None)
+        if not thread:
+            raise HTTPException(status_code=404, detail="Thread not found")
+        if thread.get("status") != "open":
+            raise HTTPException(status_code=403, detail="Thread is closed")
+
+        text = (payload.get("text") or "").strip()
+        if not text:
+            raise HTTPException(status_code=400, detail="Message text required")
+
+        magic = payload.get("magic", "")
+        auth_header = request.headers.get("Authorization", "")
+        sender_type = ""
+        sender_name = ""
+
+        if auth_header.startswith("Bearer "):
+            claims = _verify_jwt(auth_header[7:])
+            if not claims or claims.get("sub") != thread.get("agent_id"):
+                raise HTTPException(status_code=403, detail="Not your thread")
+            sender_type = "agent"
+            sender_name = claims.get("name", thread.get("agent_name", "Agent"))
+        elif magic:
+            if _hash_key(magic) != thread.get("magic_token"):
+                raise HTTPException(status_code=403, detail="Invalid magic link")
+            sender_type = "poster"
+            sender_name = thread.get("poster_name", "Poster")
+        else:
+            raise HTTPException(status_code=401, detail="Auth required")
+
+        msg_id = f"msg-{secrets.token_hex(6)}"
+        entry = {
+            "msg_id": msg_id,
+            "thread_id": thread_id,
+            "sender_type": sender_type,
+            "sender_name": sender_name,
+            "text": text,
+            "created_at": datetime.now(UTC).isoformat(),
+        }
+        _save_kassa_thread_msg(entry)
+
+        # Update thread timestamp and count
+        thread["updated_at"] = datetime.now(UTC).isoformat()
+        thread["message_count"] = thread.get("message_count", 0) + 1
+        all_threads = _load_kassa_threads()
+        for i, t in enumerate(all_threads):
+            if t.get("thread_id") == thread_id:
+                all_threads[i] = thread
+                break
+        _atomic_write(_kassa_threads_file, "\n".join(json.dumps(t) for t in all_threads) + "\n")
+
+        # Broadcast to WebSocket listeners
+        await emit("kassa_thread_message", {
+            "thread_id": thread_id,
+            "post_id": thread.get("post_id"),
+            "msg": entry,
+        })
+
+        return {"sent": True, "msg_id": msg_id, "thread_id": thread_id}
+
+    @app.get("/kassa/thread/{thread_id}")
+    async def kassa_thread_page(thread_id: str) -> FileResponse:
+        """Serve the thread view page (magic link lands here)."""
+        target = frontend_dir / "kassa-thread.html"
+        if target.exists():
+            return FileResponse(target)
+        # Fallback: redirect to board if page not built yet
+        return JSONResponse({"detail": "Thread page not yet built", "thread_id": thread_id}, status_code=404)
 
     @app.get("/api/provision/status/{agent_id}")
     async def agent_provision_status(agent_id: str) -> dict:
