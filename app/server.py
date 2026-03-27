@@ -2081,7 +2081,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         claims = _verify_jwt(auth[7:])
         if not claims:
             raise HTTPException(status_code=401, detail="Invalid or expired token")
-        agent = next((r for r in runtime.registry if r.get("agent_id") == claims["sub"]), None)
+        agent = next((r for r in runtime.registry if r.get("agent_id") == claims.get("sub", claims.get("agent_id", ""))), None)
         if not agent or agent.get("status") != "active":
             raise HTTPException(status_code=403, detail="Agent not active")
         return agent
@@ -2446,7 +2446,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         return kassa.load_thread_messages(thread_id)
 
     @app.post("/api/kassa/threads/{thread_id}/messages")
-    async def post_thread_message(thread_id: str, request: Request, payload: dict) -> dict:
+    async def post_thread_message(thread_id: str, request: Request) -> dict:
         """Post a message to a thread. Auth via JWT (agent) or magic token (poster)."""
         thread = kassa.get_thread(thread_id)
         if not thread:
@@ -2454,11 +2454,12 @@ def create_app(root: Path | None = None) -> FastAPI:
         if thread.get("status") != "open":
             raise HTTPException(status_code=403, detail="Thread is closed")
 
-        text = (payload.get("text") or "").strip()
+        payload = await request.json()
+        text = (payload.get("text") or payload.get("body") or "").strip()
         if not text:
             raise HTTPException(status_code=400, detail="Message text required")
 
-        magic = payload.get("magic", "")
+        magic = request.query_params.get("magic", "")
         auth_header = request.headers.get("Authorization", "")
         sender_type = ""
         sender_name = ""
@@ -3098,7 +3099,18 @@ def create_app(root: Path | None = None) -> FastAPI:
         return post
 
     @app.post("/api/kassa/posts")
-    async def submit_kassa_post(payload: KassaPostCreate) -> dict:
+    async def submit_kassa_post(request: Request) -> dict:
+        payload = await request.json()
+        tab = (payload.get("tab") or "").strip()
+        title = (payload.get("title") or "").strip()
+        tag = (payload.get("tag") or "").strip()
+        body = (payload.get("body") or "").strip()
+        urgency = (payload.get("urgency") or "normal").strip()
+        reward = payload.get("reward")
+        from_name = (payload.get("from_name") or "").strip()
+        from_email = (payload.get("from_email") or "").strip()
+        if not tab or not title or not body or not from_name or not from_email:
+            raise HTTPException(status_code=400, detail="tab, title, body, from_name, from_email required")
         kid = kassa.next_k_serial()
         now = datetime.now(UTC).isoformat()
         review_entry = {
@@ -3106,26 +3118,26 @@ def create_app(root: Path | None = None) -> FastAPI:
             "review_id": f"rev-{kid}",
             "post": {
                 "id": kid,
-                "tab": payload.tab,
-                "title": payload.title,
-                "tag": payload.tag,
-                "body": payload.body,
+                "tab": tab,
+                "title": title,
+                "tag": tag,
+                "body": body,
                 "status": "open",
-                "urgency": payload.urgency,
+                "urgency": urgency,
                 "upvotes": 0,
                 "reply_count": 0,
-                "reward": payload.reward,
+                "reward": reward,
                 "created_at": now,
                 "updated_at": now,
             },
-            "from_name": payload.from_name,
-            "from_email": payload.from_email,
+            "from_name": from_name,
+            "from_email": from_email,
             "submitted_at": now,
             "status": "pending",
         }
         kassa.insert_review(review_entry)
-        audit.log("kassa", "post_submitted", {"id": kid, "tab": payload.tab, "from_email": payload.from_email})
-        await emit("kassa_post_submitted", {"id": kid, "tab": payload.tab})
+        audit.log("kassa", "post_submitted", {"id": kid, "tab": tab, "from_email": from_email})
+        await emit("kassa_post_submitted", {"id": kid, "tab": tab})
         return {"ok": True, "id": kid, "message": "Post submitted for review. We\u2019ll publish it shortly."}
 
     @app.post("/api/kassa/posts/{post_id}/upvote")
@@ -3549,15 +3561,15 @@ def create_app(root: Path | None = None) -> FastAPI:
             category=category,
             title=title,
             body=content,
-            author_id=claims["sub"],
+            author_id=claims.get("sub", claims.get("agent_id", "")),
             author_type=author_type,
         )
-        audit.log("forums", "thread_created", {"thread_id": thread["thread_id"], "author": claims["sub"]})
+        audit.log("forums", "thread_created", {"thread_id": thread["thread_id"], "author": claims.get("sub", claims.get("agent_id", ""))})
         # Seed provenance
         await create_seed(
             source_type="forum_thread",
             source_id=thread["thread_id"],
-            creator_id=claims["sub"],
+            creator_id=claims.get("sub", claims.get("agent_id", "")),
             creator_type=author_type,
             seed_type="planted",
             metadata={"title": title, "category": category},
@@ -3582,15 +3594,15 @@ def create_app(root: Path | None = None) -> FastAPI:
         reply = forums.insert_reply(
             thread_id=thread_id,
             body=content,
-            author_id=claims["sub"],
+            author_id=claims.get("sub", claims.get("agent_id", "")),
         )
-        audit.log("forums", "reply_created", {"thread_id": thread_id, "author": claims["sub"]})
+        audit.log("forums", "reply_created", {"thread_id": thread_id, "author": claims.get("sub", claims.get("agent_id", ""))})
         # Seed provenance
         if reply:
             await create_seed(
                 source_type="forum_reply",
                 source_id=reply["reply_id"],
-                creator_id=claims["sub"],
+                creator_id=claims.get("sub", claims.get("agent_id", "")),
                 creator_type="AAI",
                 seed_type="grown",
                 metadata={"thread_id": thread_id},
