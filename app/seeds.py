@@ -39,7 +39,7 @@ class SeedRecord(BaseModel):
     doi: str
     content_hash: str
     seed_type: str          # planted | touched | grown
-    source_type: str        # post | stake | message | vote | agent | document | thread | forum_thread | forum_reply | registration | contact | mission | slot_fill | slot_leave | motion | kassa_post | treasury_action
+    source_type: str        # post | stake | message | vote | agent | document | thread | forum_thread | forum_reply | registration | contact | mission | slot_fill | slot_leave | motion | kassa_post | treasury_action | profile_update
     source_id: str
     creator_id: str
     creator_type: str       # AAI | BI | system
