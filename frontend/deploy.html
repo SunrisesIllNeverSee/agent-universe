@@ -281,11 +281,21 @@ function renderPieces() {
   if (entries.length === 0) {
     list.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--muted);">Drag agents from bench to grid</div>';
   } else {
-    list.innerHTML = entries.map(([idx, u]) => {
+    while (list.firstChild) list.removeChild(list.firstChild);
+    entries.forEach(([idx, u]) => {
       const r = Math.floor(idx / GRID_COLS);
       const c = idx % GRID_COLS;
-      return `<div class="placed-item"><span>${u.name}</span><span class="pos">${String.fromCharCode(65+c)}${r+1}</span></div>`;
-    }).join('');
+      const row = document.createElement('div');
+      row.className = 'placed-item';
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = u.name;
+      const posSpan = document.createElement('span');
+      posSpan.className = 'pos';
+      posSpan.textContent = String.fromCharCode(65 + c) + (r + 1);
+      row.appendChild(nameSpan);
+      row.appendChild(posSpan);
+      list.appendChild(row);
+    });
   }
 }
 
@@ -297,24 +307,63 @@ async function loadBench() {
     const sysBench = document.getElementById('system-bench');
     const configs = state.config_systems || [];
     const runtimes = state.systems || {};
-    sysBench.innerHTML = configs.map(s => {
+    while (sysBench.firstChild) sysBench.removeChild(sysBench.firstChild);
+    configs.forEach(s => {
       const rt = runtimes[s.id] || {};
       const role = rt.role && rt.role !== 'none' ? rt.role : 'secondary';
-      return `<div class="bench-agent" draggable="true" data-type="system" data-id="${s.id}" data-name="${s.name}" data-role="${role}">
-        <div class="name"><span class="dot ${role}"></span>${s.name}</div>
-        <div class="role">${s.provider} · ${role}</div>
-      </div>`;
-    }).join('');
+      const el = document.createElement('div');
+      el.className = 'bench-agent';
+      el.draggable = true;
+      el.dataset.type = 'system';
+      el.dataset.id = s.id;
+      el.dataset.name = s.name;
+      el.dataset.role = role;
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'name';
+      const dot = document.createElement('span');
+      dot.className = 'dot ' + role;
+      nameDiv.appendChild(dot);
+      nameDiv.appendChild(document.createTextNode(s.name));
+      const roleDiv = document.createElement('div');
+      roleDiv.className = 'role';
+      roleDiv.textContent = (s.provider || '') + ' \u00b7 ' + role;
+      el.appendChild(nameDiv);
+      el.appendChild(roleDiv);
+      sysBench.appendChild(el);
+    });
 
     // Agents
     const agentBench = document.getElementById('agent-bench');
     const agents = (state.registry || []).filter(r => r.type === 'agent' && r.status === 'active');
-    agentBench.innerHTML = agents.map(a => {
-      return `<div class="bench-agent" draggable="true" data-type="agent" data-id="${a.agent_id}" data-name="${a.name}" data-role="agent-piece">
-        <div class="name"><span class="dot agent"></span>${a.name}</div>
-        <div class="role">${a.system || 'unassigned'} · ${a.governance || ''}</div>
-      </div>`;
-    }).join('') || '<div style="font-family:var(--mono);font-size:10px;color:var(--muted);">No active agents</div>';
+    while (agentBench.firstChild) agentBench.removeChild(agentBench.firstChild);
+    if (agents.length === 0) {
+      const emptyDiv = document.createElement('div');
+      emptyDiv.style.cssText = 'font-family:var(--mono);font-size:10px;color:var(--muted);';
+      emptyDiv.textContent = 'No active agents';
+      agentBench.appendChild(emptyDiv);
+    } else {
+      agents.forEach(a => {
+        const el = document.createElement('div');
+        el.className = 'bench-agent';
+        el.draggable = true;
+        el.dataset.type = 'agent';
+        el.dataset.id = a.agent_id;
+        el.dataset.name = a.name;
+        el.dataset.role = 'agent-piece';
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'name';
+        const dot = document.createElement('span');
+        dot.className = 'dot agent';
+        nameDiv.appendChild(dot);
+        nameDiv.appendChild(document.createTextNode(a.name));
+        const roleDiv = document.createElement('div');
+        roleDiv.className = 'role';
+        roleDiv.textContent = (a.system || 'unassigned') + ' \u00b7 ' + (a.governance || '');
+        el.appendChild(nameDiv);
+        el.appendChild(roleDiv);
+        agentBench.appendChild(el);
+      });
+    }
 
     // Add drag handlers to all bench items
     document.querySelectorAll('.bench-agent[draggable]').forEach(el => {
@@ -361,9 +410,15 @@ function updateFormationButtons() {
   const posture = currentPosture.toUpperCase();
   const formations = formationLibrary[posture] || [];
 
-  container.innerHTML = formations.map(f =>
-    `<button class="grid-btn" onclick="applyFormation('${f.id}')" title="${f.description}\n[${f.source}]">${f.name}</button>`
-  ).join('');
+  while (container.firstChild) container.removeChild(container.firstChild);
+  formations.forEach(f => {
+    const btn = document.createElement('button');
+    btn.className = 'grid-btn';
+    btn.addEventListener('click', () => applyFormation(f.id));
+    btn.title = (f.description || '') + '\n[' + (f.source || '') + ']';
+    btn.textContent = f.name;
+    container.appendChild(btn);
+  });
 }
 
 function applyFormation(formationId) {

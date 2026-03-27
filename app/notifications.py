@@ -170,6 +170,7 @@ async def send_message_notification(
     thread_id: str,
     sender_name: str,
     message_preview: str,
+    magic_token: str = "",
 ) -> bool:
     """
     Send notification to poster that a new message arrived in their thread.
@@ -181,6 +182,7 @@ async def send_message_notification(
         thread_id:       Thread ID for the conversation
         sender_name:     Name of the agent/user who sent the message
         message_preview: First ~200 chars of the message body
+        magic_token:     Plain magic token for poster access link
 
     Returns:
         True if sent (or logged) successfully, False on error or rate-limited skip.
@@ -193,6 +195,8 @@ async def send_message_notification(
         return False
 
     thread_url = f"{BASE_URL}/kassa/thread/{thread_id}"
+    if magic_token:
+        thread_url += f"?magic={magic_token}"
 
     # Truncate preview to keep email clean
     preview = message_preview[:200]
