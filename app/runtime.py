@@ -249,11 +249,12 @@ class RuntimeState:
         return self.cursors.get(agent_name, {}).get(channel, 0)
 
     def check_action(self, action_description: str) -> dict[str, Any]:
+        from .moses_core.governance import GovernanceStateData
         return check_action_permitted(
             action_description,
-            governance=type("GovernanceProxy", (), {
-                "mode": self.governance.mode,
-                "posture": self.governance.posture,
-                "role": self.governance.role,
-            })(),
+            governance=GovernanceStateData(
+                mode=self.governance.mode,
+                posture=self.governance.posture,
+                role=self.governance.role,
+            ),
         )
