@@ -230,6 +230,14 @@ def create_recipient_account(display_name: str, email: str, country: str = "us")
     except Exception as e:
         err = str(e)
         print(f"[kassa] V2 Recipient create failed: {type(e).__name__}: {err}", file=sys.stderr)
+        # Surface actionable platform-profile error instead of burying it in a fallback
+        if "platform-profile" in err or "responsibilities" in err.lower():
+            return {
+                "error": "Stripe platform profile not configured. "
+                         "Complete setup at: https://dashboard.stripe.com/settings/connect/platform-profile",
+                "stripe_setup_url": "https://dashboard.stripe.com/settings/connect/platform-profile",
+                "v2_error": err,
+            }
         fallback = create_connected_account(display_name, email, country)
         if not fallback.get("error"):
             fallback["type"] = "express_fallback"
