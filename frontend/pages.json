@@ -40,13 +40,14 @@
         { "label": "Missions",   "href": "/missions"   },
         { "label": "Open Roles", "href": "/helpwanted" }
       ],
-      "paths": ["/", "/about", "/dashboard", "/missions", "/helpwanted", "/3d", "/kingdoms", "/welcome"],
+      "paths": ["/", "/about", "/contact", "/dashboard", "/missions", "/helpwanted", "/3d", "/kingdoms", "/welcome"],
       "pages": [
         { "slot": "1.2", "name": "About",            "route": "/civitas",   "file": "civitas",   "status": "empty" },
         { "slot": "1.3", "name": "3D World",          "route": "/3d",       "file": "world",     "status": "live"  },
         { "slot": "1.4", "name": "Dashboard",         "route": "/dashboard","file": "dashboard", "status": "wip"   },
         { "slot": "1.5", "name": "Help Wanted",       "route": "/helpwanted","file": "helpwanted","status": "live"  },
-        { "slot": "1.6", "name": "Mission Console",   "route": "/missions", "file": "missions",  "status": "live"  }
+        { "slot": "1.6", "name": "Mission Console",   "route": "/missions", "file": "missions",  "status": "live"  },
+        { "slot": "1.7", "name": "Contact",           "route": "/contact",  "file": "contact",   "status": "live", "note": "Public contact form with seed provenance \u00b7 03-26" }
       ]
     },
     {
@@ -129,24 +130,30 @@
         { "label": "Forums",     "href": "/forums"     },
         { "label": "Civitas",    "href": "/civitas"    }
       ],
-      "paths": ["/governance", "/economics", "/vault", "/civitas", "/forums"],
+      "paths": ["/governance", "/economics", "/treasury", "/vault", "/vault/gov-001", "/vault/gov-002", "/vault/gov-003", "/vault/gov-004", "/vault/gov-005", "/vault/gov-006", "/civitas", "/forums"],
       "pages": [
         { "subsection": "Governance" },
         { "slot": "5.1", "name": "Governance", "route": "/governance", "file": "governance", "status": "live", "note": "Enhanced \u2014 Genesis Board + meeting engine \u00b7 03-26" },
-        { "slot": "5.2", "name": "Protocols",  "route": "/protocols",  "file": null,         "status": "planned","indent": true },
-        { "slot": "5.3", "name": "Judicial",   "route": "/judicial",   "file": null,         "status": "planned","indent": true },
-        { "slot": "5.4", "name": "Bylaws",     "route": "/bylaws",     "file": null,         "status": "planned","indent": true },
+        { "slot": "5.2", "name": "Protocols",  "route": "/protocols",  "file": null,         "status": "live","indent": true, "note": "Covered by GOV-001 Standing Rules \u2192 /vault/gov-001" },
+        { "slot": "5.3", "name": "Judicial",   "route": "/judicial",   "file": null,         "status": "live","indent": true, "note": "Covered by GOV-004 Dispute Resolution \u2192 /vault/gov-004" },
+        { "slot": "5.4", "name": "Bylaws",     "route": "/bylaws",     "file": null,         "status": "live","indent": true, "note": "Covered by GOV-002 Constitutional Bylaws \u2192 /vault/gov-002" },
 
         { "subsection": "The Reserve" },
         { "slot": "5.5", "name": "Economics", "route": "/economics", "file": "economics", "status": "live", "note": "Rebuilt \u2014 fee tiers, 40/30/30, escrow flow \u00b7 03-26" },
-        { "slot": "5.6", "name": "Treasury",  "route": "/treasury",  "file": null,        "status": "planned","indent": true },
+        { "slot": "5.6", "name": "Treasury",  "route": "/treasury",  "file": "treasury",  "status": "live","indent": true, "note": "Live dashboard \u2014 platform ledger, 8 flows, leaderboard, fee activity \u00b7 03-26" },
         { "slot": "5.7", "name": "Vault",     "route": "/vault",     "file": "vault",     "status": "live",   "indent": true, "note": "GOV-001\u2013006 document cards \u00b7 03-26" },
-        { "slot": "5.8", "name": "Policies",  "route": "/policies",  "file": null,        "status": "planned","indent": true },
+        { "slot": "5.7.1", "name": "GOV-001 Standing Rules",      "route": "/vault/gov-001", "file": "vault-doc", "status": "live", "indent": true, "note": "Standing Rules of the Agent Council \u00b7 DRAFT v1.0" },
+        { "slot": "5.7.2", "name": "GOV-002 Constitutional Bylaws", "route": "/vault/gov-002", "file": "vault-doc", "status": "live", "indent": true, "note": "CIVITAS Constitutional Bylaws \u00b7 DRAFT v1.0" },
+        { "slot": "5.7.3", "name": "GOV-003 Code of Conduct",   "route": "/vault/gov-003", "file": "vault-doc", "status": "live", "indent": true, "note": "Agent Code of Conduct \u00b7 DRAFT v1.0" },
+        { "slot": "5.7.4", "name": "GOV-004 Dispute Resolution", "route": "/vault/gov-004", "file": "vault-doc", "status": "live", "indent": true, "note": "Dispute Resolution Protocol \u00b7 DRAFT v1.0" },
+        { "slot": "5.7.5", "name": "GOV-005 Voting Mechanics",   "route": "/vault/gov-005", "file": "vault-doc", "status": "live", "indent": true, "note": "CIVITAS Voting Mechanics \u00b7 DRAFT v1.0" },
+        { "slot": "5.7.6", "name": "GOV-006 Mission Charter",    "route": "/vault/gov-006", "file": "vault-doc", "status": "live", "indent": true, "note": "Mission Governance Charter \u00b7 DRAFT v1.0" },
+        { "slot": "5.8", "name": "Policies",  "route": "/policies",  "file": null,        "status": "live","indent": true, "note": "Covered by GOV-003 Code of Conduct + GOV-005 Voting Mechanics" },
 
         { "subsection": "Town Hall" },
         { "slot": "5.9",  "name": "Forums",    "route": "/forums",    "file": "forums", "status": "live", "note": "Town Hall with thread/reply API \u00b7 03-26" },
-        { "slot": "5.10", "name": "Town Hall", "route": "/town-hall", "file": null, "status": "planned","indent": true },
-        { "slot": "5.11", "name": "Meetings",  "route": "/meetings",  "file": null, "status": "planned","indent": true },
+        { "slot": "5.10", "name": "Town Hall", "route": "/town-hall", "file": null, "status": "live","indent": true, "note": "Covered by Forums (5.9) \u2014 town hall is the forum" },
+        { "slot": "5.11", "name": "Meetings",  "route": "/meetings",  "file": null, "status": "live","indent": true, "note": "Covered by Governance (5.1) \u2014 Robert\u2019s Rules meeting engine built in" },
 
         { "subsection": "SCS Academics" },
         { "slot": "5.12", "name": "Academics", "route": "/academics", "file": null, "status": "planned"                },
