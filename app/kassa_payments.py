@@ -92,14 +92,13 @@ def payment_status() -> dict:
     }
 
 
-# ── Connected Accounts (V2 API) ───────────────────────────────────────────
+# ── Connected Accounts (V1 API) ───────────────────────────────────────────
 
 def create_connected_account(display_name: str, email: str, country: str = "us") -> dict:
-    """Create a Stripe connected account using the V2 Accounts API.
+    """Create a Stripe connected account using the V1 API (standard Connect).
 
-    The platform is responsible for fees and losses (application-managed).
-    Dashboard is 'express' so the connected account gets a lightweight Stripe UI.
-    Capabilities request stripe_balance with stripe_transfers for payouts.
+    Uses controller-based account creation per Stripe's marketplace quickstart.
+    Platform is responsible for fees and losses. Stripe hosts the dashboard.
 
     Args:
         display_name: The name shown on the connected account (agent/operator name).
@@ -111,37 +110,32 @@ def create_connected_account(display_name: str, email: str, country: str = "us")
     """
     if not _stripe_ready:
         return {"error": "Stripe not configured. Set STRIPE_SECRET_KEY."}
-    if not _stripe_v2_ready or _client is None:
-        return {"error": "Stripe Accounts V2 requires a newer Stripe SDK with StripeClient support."}
 
-    # V2 account creation — platform manages fees and losses.
-    # Do NOT pass type='express' at top level (V2 uses dashboard='express' instead).
     try:
-        account = _client.v2.core.accounts.create(
-            params={
-                "display_name": display_name,
-                "contact_email": email,
-                "identity": {"country": country},
-                "dashboard": "express",
-                "defaults": {
-                    "responsibilities": {
-                        "fees_collector": "application",
-                        "losses_collector": "application",
-                    },
-                },
-                "configuration": {
-                    "recipient": {
-                        "capabilities": {
-                            "stripe_balance": {
-                                "stripe_transfers": {"requested": True},
-                            },
-                        },
-                    },
-                },
-            }
-        )
+        params = {
+            "controller": {
+                "stripe_dashboard": {"type": "express"},
+                "fees": {"payer": "application"},
+                "losses": {"payments": "application"},
+                "requirement_collection": "stripe",
+            },
+            "capabilities": {
+                "transfers": {"requested": True},
+            },
+            "country": country.upper(),
+        }
+        if email:
+            params["email"] = email
+        if display_name:
+            params["business_profile"] = {"name": display_name}
+
+        if _stripe_v2_ready and _client is not None:
+            account = _client.v1.accounts.create(params=params)
+        else:
+            account = _stripe_module.Account.create(**params)
     except Exception as e:
         return {"error": f"Stripe account creation failed: {e}"}
+
     return {
         "account_id": account.id,
         "display_name": display_name,
@@ -167,26 +161,21 @@ def create_account_link(account_id: str, return_url: str, refresh_url: str) -> d
     """
     if not _stripe_ready:
         return {"error": "Stripe not configured. Set STRIPE_SECRET_KEY."}
-    if not _stripe_v2_ready or _client is None:
-        return {"error": "Stripe Accounts V2 requires a newer Stripe SDK with StripeClient support."}
 
-    # V2 account links API for onboarding
     try:
-        link = _client.v2.core.account_links.create(
-            params={
-                "account": account_id,
-                "use_case": {
-                    "type": "account_onboarding",
-                    "account_onboarding": {
-                        "configurations": ["recipient"],
-                        "refresh_url": refresh_url,
-                        "return_url": f"{return_url}?accountId={account_id}",
-                    },
-                },
-            }
-        )
+        params = {
+            "account": account_id,
+            "refresh_url": refresh_url,
+            "return_url": f"{return_url}?accountId={account_id}",
+            "type": "account_onboarding",
+        }
+        if _stripe_v2_ready and _client is not None:
+            link = _client.v1.account_links.create(params=params)
+        else:
+            link = _stripe_module.AccountLink.create(**params)
     except Exception as e:
         return {"error": f"Stripe onboarding link failed: {e}"}
+
     return {"url": link.url, "account_id": account_id}
 
 
@@ -204,34 +193,36 @@ def get_account_status(account_id: str) -> dict:
     """
     if not _stripe_ready:
         return {"error": "Stripe not configured. Set STRIPE_SECRET_KEY."}
-    if not _stripe_v2_ready or _client is None:
-        return {"error": "Stripe Accounts V2 requires a newer Stripe SDK with StripeClient support."}
 
-    # Retrieve account with configuration and requirements included
     try:
-        account = _client.v2.core.accounts.retrieve(
-            account_id,
-            params={"include": ["configuration.recipient", "requirements"]},
-        )
+        if _stripe_v2_ready and _client is not None:
+            account = _client.v1.accounts.retrieve(account_id)
+        else:
+            account = _stripe_module.Account.retrieve(account_id)
     except Exception as e:
         return {"error": f"Stripe account retrieve failed: {e}"}
 
     # Check if transfers capability is active
     ready_to_receive = False
     try:
-        ready_to_receive = (
-            account.configuration.recipient.capabilities
-            .stripe_balance.stripe_transfers.status == "active"
-        )
+        ready_to_receive = account.capabilities.get("transfers") == "active"
     except AttributeError:
         pass
 
-    # Check if onboarding requirements are satisfied
-    requirements_status = None
+    # Check onboarding requirements
     onboarding_complete = False
+    requirements_status = None
     try:
-        requirements_status = account.requirements.summary.minimum_deadline.status
-        onboarding_complete = requirements_status not in ("currently_due", "past_due")
+        req = account.requirements
+        currently_due = getattr(req, "currently_due", []) or []
+        past_due = getattr(req, "past_due", []) or []
+        onboarding_complete = len(currently_due) == 0 and len(past_due) == 0
+        if past_due:
+            requirements_status = "past_due"
+        elif currently_due:
+            requirements_status = "currently_due"
+        else:
+            requirements_status = "complete"
     except AttributeError:
         pass
 
