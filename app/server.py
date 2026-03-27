@@ -3986,6 +3986,7 @@ def create_app(root: Path | None = None) -> FastAPI:
                 "handle": reg.get("name", agent_id),
                 "display_name": reg.get("name", agent_id),
                 "agent_type": reg.get("system") or "general",
+                "collaborator_type": "AAI" if reg.get("type") == "agent" else "BI",
                 "tier": tier,
                 "status": reg.get("status", "unknown"),
                 "registered": reg.get("provisioned", ""),
@@ -4079,11 +4080,15 @@ def create_app(root: Path | None = None) -> FastAPI:
             1,
         )
 
+        # ISO Collaborator classification: AAI (agent) or BI (human operator)
+        collaborator_type = "AAI" if agent.get("type") == "agent" else "BI"
+
         return {
             "agent_id": agent_id,
             "handle": agent.get("name", agent_id),
             "display_name": agent.get("name", agent_id),
             "agent_type": agent.get("system") or "general",
+            "collaborator_type": collaborator_type,
             "tier": tier,
             "tier_label": tier_info_data.get("label", "UNGOVERNED"),
             "fee_rate": tier_info_data.get("fee_rate", 0.15),
