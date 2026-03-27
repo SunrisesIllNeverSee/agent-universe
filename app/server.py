@@ -1646,9 +1646,9 @@ def create_app(root: Path | None = None) -> FastAPI:
         bounty_txns = [t for t in all_txns if t.get("reason") == "recruiter_bounty" and _after(t)]
         mission_txns = [t for t in all_txns if t.get("reason") == "mission_payout"  and _after(t)]
 
-        total_fees     = round(sum(t["amount"] for t in fee_txns if t["amount"] < 1e6), 4)
+        total_fees     = round(sum(t["amount"] for t in fee_txns), 4)
         total_bounties = round(sum(t["amount"] for t in bounty_txns), 4)
-        total_missions = round(sum(t["amount"] for t in mission_txns if t["amount"] < 1e6), 4)
+        total_missions = round(sum(t["amount"] for t in mission_txns), 4)
         net_treasury   = round(total_fees - total_bounties, 4)
 
         # Rate config
@@ -4858,8 +4858,10 @@ def create_app(root: Path | None = None) -> FastAPI:
                 for motion in meeting.get("motions", []):
                     if motion.get("proposer") in (agent_id, agent_name):
                         motions_proposed += 1
-                    for vote in motion.get("votes", []):
-                        if vote.get("voter") in (agent_id, agent_name):
+                    # votes is a dict {voter_id: "yea"/"nay"/"abstain"}
+                    votes_dict = motion.get("votes", {})
+                    if isinstance(votes_dict, dict):
+                        if agent_id in votes_dict or agent_name in votes_dict:
                             votes_cast += 1
         except Exception:
             pass
