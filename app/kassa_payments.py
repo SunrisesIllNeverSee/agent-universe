@@ -13,9 +13,14 @@ Set MPP_SECRET_KEY in environment to activate MPP.
 """
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import json
 import os
 import secrets
 import sys
+import time
 from datetime import datetime, UTC
 
 # ── Configuration ──────────────────────────────────────────────────────────
@@ -33,6 +38,12 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 # MPP keys for Machine Payments Protocol (agent micropayments)
 MPP_SECRET_KEY = os.environ.get("MPP_SECRET_KEY", "")
 MPP_RECIPIENT = os.environ.get("MPP_RECIPIENT", "")
+
+# In-memory challenge store: { challenge_id: { ...challenge, expires_at: float } }
+# Challenges expire after 1 hour. Cleared on restart (acceptable for stateless pay flow).
+_mpp_challenges: dict[str, dict] = {}
+_MPP_CHALLENGE_TTL = 3600  # seconds
+_MPP_CREDENTIAL_TTL = 300  # 5-minute access window per credential
 
 # The governance-tier application fee percentage.
 # Ungoverned: 15%, Governed: 5%, Constitutional: 2%, Black Card: custom
@@ -614,18 +625,50 @@ def parse_thin_event(payload: bytes, sig_header: str) -> dict | None:
 
 # ── MPP (Machine Payments Protocol) ───────────────────────────────────────
 
-def mpp_challenge(amount_usd: str, resource_id: str, description: str) -> dict:
-    """Generate an MPP 402 challenge response for an agent payment.
+def _mpp_signing_key() -> bytes:
+    """Return the HMAC signing key for MPP credentials."""
+    key = MPP_SECRET_KEY or STRIPE_SECRET_KEY or "civitae-dev-key"
+    return key.encode()
 
-    When an agent requests a paid resource, the server returns HTTP 402
-    with payment details. The agent's client creates credentials and
-    retries the request with an Authorization header containing the
-    MPP credential.
+
+def _mpp_sign(payload: dict) -> str:
+    """Encode and sign an MPP payload. Returns base64_payload.hex_sig."""
+    payload_bytes = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode()
+    payload_b64 = base64.urlsafe_b64encode(payload_bytes).decode()
+    sig = hmac.new(_mpp_signing_key(), payload_b64.encode(), hashlib.sha256).hexdigest()
+    return f"{payload_b64}.{sig}"
+
+
+def _mpp_unsign(token: str) -> dict | None:
+    """Verify HMAC signature and decode payload. Returns None if invalid."""
+    try:
+        payload_b64, sig = token.rsplit(".", 1)
+    except ValueError:
+        return None
+    expected = hmac.new(_mpp_signing_key(), payload_b64.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(sig, expected):
+        return None
+    try:
+        return json.loads(base64.urlsafe_b64decode(payload_b64))
+    except Exception:
+        return None
+
+
+def _mpp_purge_expired() -> None:
+    """Remove expired challenges from the in-memory store."""
+    now = time.time()
+    expired = [k for k, v in _mpp_challenges.items() if v.get("expires_at", 0) < now]
+    for k in expired:
+        del _mpp_challenges[k]
+
+
+def mpp_challenge(amount_usd: str, resource_id: str, description: str) -> dict:
+    """Generate and store an MPP 402 challenge for an agent payment.
 
     Flow:
     1. Agent → GET /resource → Server returns 402 + challenge
-    2. Agent authorizes payment → creates MPP credential
-    3. Agent → GET /resource (Authorization: MPP <credential>) → Server verifies → 200
+    2. Agent → POST /api/mpp/pay { challenge_id, agent_id } → Server debits treasury, returns token
+    3. Agent → GET /resource (Authorization: MPP <token>) → Server verifies → 200
 
     Args:
         amount_usd: Payment amount as string (e.g., "0.50").
@@ -635,7 +678,18 @@ def mpp_challenge(amount_usd: str, resource_id: str, description: str) -> dict:
     Returns:
         Challenge payload to return as HTTP 402 response body.
     """
+    _mpp_purge_expired()
     challenge_id = f"ch_{secrets.token_hex(16)}"
+    now = time.time()
+    _mpp_challenges[challenge_id] = {
+        "challenge_id": challenge_id,
+        "amount": amount_usd,
+        "resource": resource_id,
+        "description": description,
+        "created_at": now,
+        "expires_at": now + _MPP_CHALLENGE_TTL,
+        "paid": False,
+    }
     return {
         "type": "https://paymentauth.org/problems/payment-required",
         "status": 402,
@@ -646,59 +700,107 @@ def mpp_challenge(amount_usd: str, resource_id: str, description: str) -> dict:
         "description": description,
         "methods": _mpp_methods(),
         "recipient": MPP_RECIPIENT or "civitae-treasury",
+        "pay_url": "/api/mpp/pay",
         "rail": "mpp",
     }
 
 
 def _mpp_methods() -> list[dict]:
     """Available MPP payment methods."""
-    methods = []
-    if MPP_SECRET_KEY:
-        methods.append({
-            "type": "tempo",
-            "network": "tempo",
-            "currency": "USDC",
-            "label": "Pay with USDC (Tempo)",
-        })
+    methods = [
+        {
+            "type": "treasury_balance",
+            "network": "civitae",
+            "currency": "USD",
+            "label": "Pay from agent treasury balance",
+        }
+    ]
     if _stripe_ready:
         methods.append({
             "type": "spt",
             "network": "stripe",
             "payment_method_types": ["card", "link"],
-            "label": "Pay with card (via Stripe SPT)",
+            "label": "Pay with card (via Stripe)",
         })
     return methods
+
+
+def mpp_pay(challenge_id: str, agent_id: str, treasury) -> dict:
+    """Authorize an MPP challenge by debiting the agent's treasury balance.
+
+    Args:
+        challenge_id: The challenge ID from the 402 response.
+        agent_id: The paying agent's handle/ID.
+        treasury: AgentTreasury instance for balance operations.
+
+    Returns:
+        dict with 'token' (the MPP Authorization value) on success, or 'error'.
+    """
+    _mpp_purge_expired()
+    challenge = _mpp_challenges.get(challenge_id)
+    if not challenge:
+        return {"error": "Challenge not found or expired"}
+    if challenge["paid"]:
+        return {"error": "Challenge already redeemed"}
+    if time.time() > challenge["expires_at"]:
+        return {"error": "Challenge expired"}
+
+    amount = float(challenge["amount"])
+    debit_result = treasury.debit(agent_id, amount, f"mpp:{challenge['resource']}")
+    if debit_result.get("error"):
+        return {"error": debit_result["error"]}
+
+    challenge["paid"] = True
+    challenge["paid_by"] = agent_id
+    challenge["paid_at"] = time.time()
+
+    now = time.time()
+    credential_payload = {
+        "challenge_id": challenge_id,
+        "resource": challenge["resource"],
+        "amount": challenge["amount"],
+        "agent_id": agent_id,
+        "iat": int(now),
+        "exp": int(now + _MPP_CREDENTIAL_TTL),
+    }
+    token = _mpp_sign(credential_payload)
+    return {
+        "token": f"MPP {token}",
+        "resource": challenge["resource"],
+        "amount": challenge["amount"],
+        "expires_in": _MPP_CREDENTIAL_TTL,
+    }
 
 
 def mpp_verify_credential(authorization: str) -> dict | None:
     """Verify an MPP credential from the Authorization header.
 
-    In production with the mppx Python SDK:
-      from mppx.server import Mppx
-      mppx = Mppx.create(secretKey=MPP_SECRET_KEY, methods=[...])
-      receipt = mppx.verify(authorization)
-
-    Full mppx integration requires the npm package (Node.js) or
-    Python implementation (pending).
+    Validates HMAC signature and token expiry. Returns the decoded
+    payload (resource, agent_id, amount, timestamps) if valid, None otherwise.
 
     Args:
-        authorization: The full Authorization header value (MPP <credential>).
+        authorization: The full Authorization header value (MPP <token>).
 
     Returns:
-        Payment receipt dict if valid, None if invalid.
+        Decoded credential payload if valid, None if invalid or expired.
     """
     if not authorization or not authorization.startswith("MPP "):
         return None
-
-    credential_data = authorization[4:]
-    if len(credential_data) < 10:
+    token = authorization[4:]
+    payload = _mpp_unsign(token)
+    if not payload:
         return None
-
+    if time.time() > payload.get("exp", 0):
+        return None
     return {
         "verified": True,
-        "credential": credential_data[:12] + "...",
+        "challenge_id": payload.get("challenge_id"),
+        "resource": payload.get("resource"),
+        "amount": payload.get("amount"),
+        "agent_id": payload.get("agent_id"),
         "rail": "mpp",
-        "timestamp": datetime.now(UTC).isoformat(),
+        "issued_at": datetime.fromtimestamp(payload["iat"], UTC).isoformat(),
+        "expires_at": datetime.fromtimestamp(payload["exp"], UTC).isoformat(),
     }
 
 

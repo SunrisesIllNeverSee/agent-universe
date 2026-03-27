@@ -3634,6 +3634,60 @@ def create_app(root: Path | None = None) -> FastAPI:
         """Check which payment rails are active."""
         return kassa_payments.payment_status()
 
+    @app.post("/api/mpp/pay")
+    async def mpp_pay(payload: dict) -> dict:
+        """Authorize an MPP challenge using agent treasury balance.
+
+        Body: { "challenge_id": "ch_...", "agent_id": "agent-handle" }
+
+        Debits the agent's treasury balance and returns a signed MPP token.
+        The agent includes this token as: Authorization: MPP <token>
+        on retry to get access to the gated resource.
+        """
+        challenge_id = (payload.get("challenge_id") or "").strip()
+        agent_id = (payload.get("agent_id") or "").strip()
+        if not challenge_id:
+            raise HTTPException(status_code=400, detail="challenge_id required")
+        if not agent_id:
+            raise HTTPException(status_code=400, detail="agent_id required")
+
+        result = kassa_payments.mpp_pay(challenge_id, agent_id, economy.treasury)
+        if result.get("error"):
+            raise HTTPException(status_code=402, detail=result["error"])
+
+        audit.log("mpp", "credential_issued", {
+            "challenge_id": challenge_id,
+            "agent_id": agent_id,
+            "resource": result.get("resource"),
+            "amount": result.get("amount"),
+        })
+        return result
+
+    @app.get("/api/mpp/balance/{agent_id}")
+    async def mpp_balance(agent_id: str) -> dict:
+        """Return an agent's spendable treasury balance."""
+        balance = economy.treasury.balance(agent_id)
+        history = economy.treasury.history(agent_id, limit=5)
+        return {"agent_id": agent_id, "balance": balance, "currency": "usd", "recent": history}
+
+    @app.post("/api/mpp/credit")
+    async def mpp_credit(payload: dict) -> dict:
+        """Credit an agent's treasury balance (operator only).
+
+        Body: { "agent_id": "...", "amount": 10.00, "reason": "..." }
+        """
+        agent_id = (payload.get("agent_id") or "").strip()
+        amount = float(payload.get("amount") or 0)
+        reason = (payload.get("reason") or "manual credit").strip()
+        if not agent_id:
+            raise HTTPException(status_code=400, detail="agent_id required")
+        if amount <= 0:
+            raise HTTPException(status_code=400, detail="amount must be positive")
+
+        result = economy.treasury.credit(agent_id, amount, reason)
+        audit.log("mpp", "balance_credited", {"agent_id": agent_id, "amount": amount, "reason": reason})
+        return result
+
     @app.post("/api/kassa/posts/{post_id}/pay")
     async def initiate_payment(post_id: str, request: Request) -> dict:
         """Initiate payment for a bounty or service.
