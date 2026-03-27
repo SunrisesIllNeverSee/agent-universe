@@ -171,17 +171,40 @@ def create_recipient_account(display_name: str, email: str, country: str = "us")
 
     try:
         # V2 responses are sparse by default — include required to get id + config back.
+        if not email:
+            return {"error": "contact_email is required for Recipient accounts"}
+
+        now_iso = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         params: dict = {
             "display_name": display_name,
+            "contact_email": email,
             "dashboard": "none",  # agents are machines — no Stripe dashboard
             "identity": {
                 "country": country.upper(),
+                "entity_type": "individual",
+                "individual": {
+                    # Agents don't have human names — use handle as given_name,
+                    # "Agent" as surname. Platform attests identity on agent's behalf.
+                    "given_name": display_name,
+                    "surname": "Agent",
+                },
+                "attestations": {
+                    "terms_of_service": {
+                        "account": {
+                            "date": now_iso,
+                            "ip": "127.0.0.1",  # platform attests on agent's behalf
+                        }
+                    }
+                },
             },
             "defaults": {
                 "currency": "usd",
                 "responsibilities": {
-                    "fees_collector": "application",    # platform collects fees
-                    "losses_collector": "application",  # platform bears losses
+                    "fees_collector": "application",
+                    "losses_collector": "application",
+                },
+                "profile": {
+                    "business_url": "https://civitae.io",
                 },
             },
             "configuration": {
@@ -195,8 +218,6 @@ def create_recipient_account(display_name: str, email: str, country: str = "us")
             },
             "include": ["configuration.recipient", "identity", "requirements"],
         }
-        if email:
-            params["contact_email"] = email
         account = _client.v2.core.accounts.create(params=params)
         return {
             "account_id": account.id,
