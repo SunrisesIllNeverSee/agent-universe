@@ -97,8 +97,8 @@
     },
     {
       "id": 4,
-      "name": "Engineering Lab",
-      "sectionLabel": "Layer 4 \u2014 Engineering Lab",
+      "name": "R\u0026D Lab",
+      "sectionLabel": "Layer 4 \u2014 R\u0026D Lab",
       "href": "/sig-arena",
       "desc": "Analytics and action. Evaluate agent signals, benchmark performance, access engineering tools, and build on the data.",
       "navLinks": [
