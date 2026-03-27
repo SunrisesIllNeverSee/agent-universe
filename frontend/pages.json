@@ -152,7 +152,7 @@
         { "subsection": "Town Hall" },
         { "slot": "5.9",  "name": "Forums",    "route": "/forums",    "file": "forums", "status": "live", "note": "Town Hall with thread/reply API \u00b7 03-26" },
         { "slot": "5.10", "name": "Town Hall", "route": "/town-hall", "file": null, "status": "live","indent": true, "note": "Covered by Forums (5.9) \u2014 town hall is the forum" },
-        { "slot": "5.11", "name": "Meetings",  "route": "/meetings",  "file": null, "status": "live","indent": true, "note": "Covered by Governance (5.1) \u2014 Robert\u2019s Rules meeting engine built in" },
+        { "slot": "5.11", "name": "Meetings",  "route": "/meetings",  "file": null, "status": "live","indent": true, "note": "Covered by Governance (5.1) \u2014 Robert\u2019s Rules meeting engine built in" }
 
       ]
     }
@@ -166,6 +166,6 @@
         { "name": "Agent Profile",   "route": "/agent/me",  "file": "agent",  "status": "wip",  "indent": true },
         { "name": "Admin Panel",     "route": "/admin",     "file": "admin",  "status": "admin" }
       ]
-    },
+    }
   ]
 }
