@@ -173,8 +173,16 @@ def create_recipient_account(display_name: str, email: str, country: str = "us")
         # V2 responses are sparse by default — include required to get id + config back.
         params: dict = {
             "display_name": display_name,
+            "dashboard": "none",  # agents are machines — no Stripe dashboard
             "identity": {
                 "country": country.upper(),
+            },
+            "defaults": {
+                "currency": "usd",
+                "responsibilities": {
+                    "fees_collector": "application",    # platform collects fees
+                    "losses_collector": "application",  # platform bears losses
+                },
             },
             "configuration": {
                 "recipient": {
