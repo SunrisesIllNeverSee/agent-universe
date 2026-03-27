@@ -127,8 +127,8 @@
         { "label": "Governance", "href": "/governance" },
         { "label": "Economics",  "href": "/economics"  },
         { "label": "Vault",      "href": "/vault"      },
-        { "label": "Forums",     "href": "/forums"     },
-        { "label": "Academia",   "href": "/academia"   }
+        { "label": "Treasury",   "href": "/treasury"   },
+        { "label": "Forums",     "href": "/forums"     }
       ],
       "paths": ["/governance", "/economics", "/treasury", "/vault", "/vault/gov-001", "/vault/gov-002", "/vault/gov-003", "/vault/gov-004", "/vault/gov-005", "/vault/gov-006", "/civitas", "/academia", "/forums"],
       "pages": [

@@ -1704,7 +1704,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         amount = payload.get("amount", 0)
         chain = payload.get("chain", "solana")
 
-        # Debit treasury
+        # Debit treasury — held in escrow until chain confirms
         debit = economy.treasury.debit(agent_id, amount, reason="withdrawal", chain=chain)
         if "error" in debit:
             return debit
@@ -1712,8 +1712,16 @@ def create_app(root: Path | None = None) -> FastAPI:
         # Route through governed chain transfer
         transfer = chain_router.transfer(chain, payload.get("to", ""), amount, agent_id=agent_id, confirm=payload.get("confirm", False))
 
+        # If chain transfer failed or is pending, re-credit the agent (funds not released)
+        transfer_status = transfer.get("status", "pending")
+        if transfer_status in ("failed", "error"):
+            economy.treasury.credit(agent_id, amount, reason="withdrawal_reversal", mission_id=f"rev-{debit.get('id','')}")
+            audit.log("economy", "withdrawal_reversed", {
+                "agent_id": agent_id, "amount": amount, "chain": chain, "reason": transfer_status,
+            })
+
         audit.log("economy", "withdrawal", {
-            "agent_id": agent_id, "amount": amount, "chain": chain, "status": transfer.get("status"),
+            "agent_id": agent_id, "amount": amount, "chain": chain, "status": transfer_status,
         })
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
         await create_seed(
@@ -3404,11 +3412,15 @@ def create_app(root: Path | None = None) -> FastAPI:
         return {"ok": True, "id": post_id, "upvotes": new_count}
 
     @app.get("/api/operator/reviews")
-    async def get_review_queue(status: str = "pending") -> list:
+    async def get_review_queue(request: Request, status: str = "pending") -> list:
+        if _ADMIN_KEY and request.headers.get("X-Admin-Key") != _ADMIN_KEY:
+            raise HTTPException(status_code=403, detail="Admin key required")
         return kassa.load_reviews(status=status)
 
     @app.patch("/api/operator/reviews/{review_id}")
-    async def update_review(review_id: str, action: str) -> dict:
+    async def update_review(review_id: str, action: str, request: Request) -> dict:
+        if _ADMIN_KEY and request.headers.get("X-Admin-Key") != _ADMIN_KEY:
+            raise HTTPException(status_code=403, detail="Admin key required")
         r = kassa.get_review(review_id)
         if not r:
             raise HTTPException(status_code=404, detail="Review not found")
@@ -3476,6 +3488,8 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.patch("/api/kassa/product-reviews/{review_id}")
     async def approve_product_review(review_id: str, request: Request) -> dict:
         """Operator approves/rejects a product review. On approve, reward flows."""
+        if _ADMIN_KEY and request.headers.get("X-Admin-Key") != _ADMIN_KEY:
+            raise HTTPException(status_code=403, detail="Admin key required")
         body = await request.json()
         action = body.get("action", "")
         if action not in ("approve", "reject"):
@@ -3486,6 +3500,13 @@ def create_app(root: Path | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="Product review not found")
         kassa.update_product_review(review_id, {"status": "approved" if action == "approve" else "rejected"})
         if action == "approve" and review.get("reward"):
+            # Pay the reviewer their reward
+            try:
+                reward_amount = float(review["reward"])
+                if reward_amount > 0:
+                    economy.treasury.credit(review["reviewer_id"], reward_amount, reason="product_review_reward", mission_id=review_id)
+            except (ValueError, TypeError):
+                pass  # reward is a string like "$50 USDC" — log but can't auto-credit
             audit.log("kassa", "product_review_reward", {"review_id": review_id, "reviewer_id": review["reviewer_id"], "reward": review["reward"]})
         audit.log("kassa", f"product_review_{action}d", {"review_id": review_id})
         return {"ok": True, "review_id": review_id, "status": action + "d"}
@@ -3534,6 +3555,11 @@ def create_app(root: Path | None = None) -> FastAPI:
             "created_at": now,
         }
         kassa.insert_commission(comm)
+
+        # Pay the referrer their commission
+        if commission_amount > 0:
+            economy.treasury.credit(referrer_id, commission_amount, reason="sales_commission", mission_id=commission_id)
+
         audit.log("kassa", "commission_recorded", {"commission_id": commission_id, "referrer_id": referrer_id, "amount": commission_amount})
         await emit("commission_recorded", {"commission_id": commission_id})
         return {"ok": True, "commission_id": commission_id, "commission_amount": commission_amount, "seed_doi": seed_result["doi"]}
