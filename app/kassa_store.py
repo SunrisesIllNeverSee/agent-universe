@@ -97,6 +97,49 @@ CREATE TABLE IF NOT EXISTS contact_messages (
     status      TEXT NOT NULL DEFAULT 'new'
 );
 
+CREATE TABLE IF NOT EXISTS product_reviews (
+    review_id      TEXT PRIMARY KEY,
+    product_post_id TEXT NOT NULL,
+    reviewer_id    TEXT NOT NULL,
+    reviewer_name  TEXT,
+    reviewer_type  TEXT NOT NULL DEFAULT 'AAI',
+    rating         INTEGER NOT NULL DEFAULT 0,
+    body           TEXT NOT NULL DEFAULT '',
+    status         TEXT NOT NULL DEFAULT 'pending',
+    reward         TEXT,
+    seed_doi       TEXT,
+    created_at     TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS commissions (
+    commission_id  TEXT PRIMARY KEY,
+    referrer_id    TEXT NOT NULL,
+    referrer_name  TEXT,
+    buyer_id       TEXT NOT NULL,
+    product_post_id TEXT NOT NULL,
+    purchase_amount REAL NOT NULL DEFAULT 0,
+    commission_rate REAL NOT NULL DEFAULT 0,
+    commission_amount REAL NOT NULL DEFAULT 0,
+    status         TEXT NOT NULL DEFAULT 'pending',
+    seed_doi       TEXT,
+    created_at     TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS recruitments (
+    recruitment_id TEXT PRIMARY KEY,
+    recruiter_id   TEXT NOT NULL,
+    recruiter_name TEXT,
+    recruited_id   TEXT NOT NULL,
+    recruited_name TEXT,
+    recruited_type TEXT NOT NULL DEFAULT 'AAI',
+    reward_exp     REAL NOT NULL DEFAULT 0,
+    reward_economic REAL NOT NULL DEFAULT 0,
+    multiplier     REAL NOT NULL DEFAULT 1.0,
+    status         TEXT NOT NULL DEFAULT 'active',
+    seed_doi       TEXT,
+    created_at     TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_posts_tab    ON posts(tab);
 CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
 CREATE INDEX IF NOT EXISTS idx_stakes_post  ON stakes(post_id);
@@ -105,6 +148,12 @@ CREATE INDEX IF NOT EXISTS idx_referrals_agent ON referrals(agent_id);
 CREATE INDEX IF NOT EXISTS idx_threads_post ON threads(post_id);
 CREATE INDEX IF NOT EXISTS idx_thread_msgs_thread ON thread_messages(thread_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_status ON reviews(status);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_product ON product_reviews(product_post_id);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_reviewer ON product_reviews(reviewer_id);
+CREATE INDEX IF NOT EXISTS idx_commissions_referrer ON commissions(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_commissions_product ON commissions(product_post_id);
+CREATE INDEX IF NOT EXISTS idx_recruitments_recruiter ON recruitments(recruiter_id);
+CREATE INDEX IF NOT EXISTS idx_recruitments_recruited ON recruitments(recruited_id);
 """
 
 

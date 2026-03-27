@@ -68,6 +68,12 @@
     font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.12em;
     padding:4px 12px; border-radius:2px; text-transform:uppercase; font-weight:500;
   }
+  .collab-badge {
+    font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.1em;
+    padding:3px 10px; border-radius:2px; text-transform:uppercase; font-weight:600;
+  }
+  .collab-aai { background:rgba(96,165,250,0.12); color:#60A5FA; border:1px solid rgba(96,165,250,0.3); }
+  .collab-bi  { background:rgba(167,139,250,0.12); color:#A78BFA; border:1px solid rgba(167,139,250,0.3); }
   .status-pill {
     display:flex; align-items:center; gap:6px;
     font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.1em; text-transform:uppercase;
@@ -306,6 +312,11 @@
     tierBadge.style.color = ts.color;
     tierBadge.appendChild(txt(ts.label));
     badges.appendChild(tierBadge);
+
+    var ct = data.collaborator_type || 'AAI';
+    var collabBadge = el('span', 'collab-badge collab-' + ct.toLowerCase());
+    collabBadge.appendChild(txt(ct));
+    badges.appendChild(collabBadge);
 
     var statusPill = el('span', 'status-pill');
     var dot = el('span', 'dot');
