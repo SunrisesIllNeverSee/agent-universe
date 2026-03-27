@@ -352,6 +352,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def about_page() -> FileResponse:
         return FileResponse(frontend_dir / "about.html")
 
+    @app.get("/skill.md")
+    async def skill_md() -> FileResponse:
+        return FileResponse(frontend_dir / "skill.md", media_type="text/markdown")
+
     @app.get("/services")
     async def services_page() -> FileResponse:
         return FileResponse(frontend_dir / "services.html")
@@ -816,8 +820,10 @@ def create_app(root: Path | None = None) -> FastAPI:
         """Create a new DEPLOY mission."""
         import secrets as _sec
         missions = _load_missions()
+        mid = f"mission-{_sec.token_hex(4)}"
         mission = {
-            "id": f"mission-{_sec.token_hex(4)}",
+            "id": mid,
+            "mission_id": mid,  # alias — both keys resolve to the same value
             "label": payload.get("label", ""),
             "objective": payload.get("objective", ""),
             "posture": payload.get("posture", "SCOUT"),
@@ -1699,21 +1705,54 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     @app.post("/api/economy/withdraw")
     async def withdraw(payload: dict) -> dict:
-        """Withdraw from treasury to external chain. Goes through governance gate."""
+        """Withdraw from treasury to external chain. Goes through governance gate.
+
+        Chain adapters are currently stubbed — they return SIGNED but never submit.
+        To prevent balance drain, we check for stub responses and hold funds in escrow.
+        Real withdrawals will work once chain adapters are connected to RPC endpoints.
+        """
         agent_id = payload.get("agent_id", "")
         amount = payload.get("amount", 0)
         chain = payload.get("chain", "solana")
 
-        # Debit treasury — held in escrow until chain confirms
+        # Pre-flight: check governance gate before touching the ledger
+        transfer = chain_router.transfer(chain, payload.get("to", ""), amount, agent_id=agent_id, confirm=payload.get("confirm", False))
+
+        # Governance blocked the transfer — don't touch treasury
+        if transfer.get("status") in ("BLOCKED", "AWAITING_CONFIRMATION"):
+            return {"withdrawal": None, "chain_transfer": transfer}
+
+        # Detect stub adapter — transfer "succeeded" but no real chain submission
+        is_stub = "stub" in (transfer.get("note") or "").lower()
+        if is_stub:
+            # Don't debit real treasury for stub transfers — record as pending
+            audit.log("economy", "withdrawal_pending_stub", {
+                "agent_id": agent_id, "amount": amount, "chain": chain,
+                "note": "Chain adapter is stubbed. Funds held. Will execute when adapter is live.",
+            })
+            await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+            await create_seed(
+                source_type="treasury_action",
+                source_id=agent_id,
+                creator_id=agent_id,
+                creator_type="AAI",
+                seed_type="planted",
+                metadata={"action": "withdrawal_pending", "amount": amount, "chain": chain, "status": "PENDING_ADAPTER"},
+            )
+            return {
+                "withdrawal": {"status": "pending", "agent_id": agent_id, "amount": amount},
+                "chain_transfer": {**transfer, "status": "PENDING_ADAPTER"},
+                "note": f"Chain adapter for {chain} is not yet live. Your balance is preserved. Withdrawal will execute when the adapter connects to RPC.",
+            }
+
+        # Real adapter — debit treasury and execute
         debit = economy.treasury.debit(agent_id, amount, reason="withdrawal", chain=chain)
         if "error" in debit:
             return debit
 
-        # Route through governed chain transfer
-        transfer = chain_router.transfer(chain, payload.get("to", ""), amount, agent_id=agent_id, confirm=payload.get("confirm", False))
-
-        # If chain transfer failed or is pending, re-credit the agent (funds not released)
         transfer_status = transfer.get("status", "pending")
+
+        # If chain transfer failed, reverse the debit
         if transfer_status in ("failed", "error"):
             economy.treasury.credit(agent_id, amount, reason="withdrawal_reversal", mission_id=f"rev-{debit.get('id','')}")
             audit.log("economy", "withdrawal_reversed", {
@@ -1730,7 +1769,7 @@ def create_app(root: Path | None = None) -> FastAPI:
             creator_id=agent_id,
             creator_type="AAI",
             seed_type="planted",
-            metadata={"action": "withdrawal", "amount": amount, "chain": chain, "status": transfer.get("status")},
+            metadata={"action": "withdrawal", "amount": amount, "chain": chain, "status": transfer_status},
         )
 
         return {"withdrawal": debit, "chain_transfer": transfer}
@@ -2685,13 +2724,35 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     @app.post("/api/provision/heartbeat/{agent_id}")
     async def agent_heartbeat(agent_id: str) -> dict:
-        """Update agent last_seen timestamp. Keeps liveness signal current."""
+        """Update agent last_seen timestamp. Keeps liveness signal current.
+        Also auto-bootstraps a metrics entry if one doesn't exist yet."""
         agent = next((r for r in runtime.registry if r.get("agent_id") == agent_id), None)
         if not agent:
             return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
-        agent["last_seen"] = datetime.now(UTC).isoformat()
+        now = datetime.now(UTC).isoformat()
+        agent["last_seen"] = now
         runtime.persist_registry()
-        return {"ok": True, "agent_id": agent_id, "last_seen": agent["last_seen"]}
+
+        # Auto-populate metrics entry on first heartbeat
+        m = _load_metrics()
+        if agent_id not in m.get("agents", {}):
+            if "agents" not in m:
+                m["agents"] = {}
+            m["agents"][agent_id] = {
+                "name": agent.get("agent_name", agent_id),
+                "missions_completed": 0,
+                "missions_failed": 0,
+                "governance_checks": 0,
+                "governance_violations": 0,
+                "messages_sent": 0,
+                "revenue_generated": 0,
+                "costs_incurred": 0,
+                "uptime_hours": 0,
+                "last_active": now,
+            }
+            _save_metrics(m)
+
+        return {"ok": True, "agent_id": agent_id, "last_seen": now}
 
     @app.post("/api/provision/suspend")
     async def suspend_agent(payload: dict) -> dict:
@@ -3701,11 +3762,14 @@ def create_app(root: Path | None = None) -> FastAPI:
         return {"agent_id": agent_id, "balance": balance, "currency": "usd", "recent": history}
 
     @app.post("/api/mpp/credit")
-    async def mpp_credit(payload: dict) -> dict:
+    async def mpp_credit(request: Request) -> dict:
         """Credit an agent's treasury balance (operator only).
 
         Body: { "agent_id": "...", "amount": 10.00, "reason": "..." }
         """
+        if _ADMIN_KEY and request.headers.get("X-Admin-Key") != _ADMIN_KEY:
+            raise HTTPException(status_code=403, detail="Admin key required")
+        payload = await request.json()
         agent_id = (payload.get("agent_id") or "").strip()
         amount = float(payload.get("amount") or 0)
         reason = (payload.get("reason") or "manual credit").strip()
