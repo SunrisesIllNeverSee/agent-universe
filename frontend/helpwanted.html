@@ -1530,11 +1530,17 @@ function buildLiveCard(slot) {
     card.appendChild(comp);
   }
 
-  // Apply button
-  const applyHref = slot.apply_url || '/entry';
+  // Apply button — open inline modal; fall back to custom URL only if explicitly set
   const btn = document.createElement('a');
   btn.className = 'apply-btn';
-  btn.href = applyHref;
+  if (slot.apply_url && !slot.apply_url.includes('/entry')) {
+    btn.href = slot.apply_url;
+  } else {
+    btn.href = '#';
+    const slotTitle = slot.title || slot.role || slot.slot_id || 'Open Slot';
+    const slotId = slot.slot_id || slugify(slotTitle);
+    btn.onclick = (e) => { e.preventDefault(); openApply(slotId, slotTitle); };
+  }
   btn.textContent = 'Apply';
   card.appendChild(btn);
 
@@ -1568,6 +1574,10 @@ async function loadLiveOpenings() {
 // ---------------------------------------------------------------------------
 // INBOX APPLY MODAL
 // ---------------------------------------------------------------------------
+function slugify(text) {
+  return String(text).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+}
+
 let _applyJobId = '';
 let _applyJobTitle = '';
 
@@ -1633,9 +1643,9 @@ async function submitApplication(e) {
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.job-card').forEach((card, i) => {
     const title = card.querySelector('.job-title')?.textContent || `Position ${i + 1}`;
-    const jobId = title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const jobId = slugify(title);
     const btn = card.querySelector('.apply-btn');
-    if (btn && btn.href.includes('/api/provision/signup')) {
+    if (btn) {
       btn.removeAttribute('href');
       btn.onclick = (e) => { e.preventDefault(); openApply(jobId, title); };
     }
