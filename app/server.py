@@ -4065,6 +4065,55 @@ def create_app(root: Path | None = None) -> FastAPI:
             "last_seen": agent.get("last_seen", ""),
         }
 
+    @app.patch("/api/agents/{handle}")
+    async def api_agent_profile_update(handle: str, request: Request) -> dict:
+        """Update mutable profile fields for an agent. Requires JWT auth."""
+        claims = _extract_jwt(request)
+        if not claims:
+            return JSONResponse({"error": "Authentication required"}, status_code=401)
+
+        agent = next(
+            (r for r in runtime.registry
+             if r.get("type") == "agent" and (r.get("name") == handle or r.get("agent_id") == handle)),
+            None,
+        )
+        if not agent:
+            return JSONResponse({"error": f"Agent '{handle}' not found"}, status_code=404)
+
+        # Only the agent itself (or an operator) can update its profile
+        caller = claims.get("sub", claims.get("agent_id", ""))
+        agent_id = agent.get("agent_id", "")
+        if caller != agent_id and caller != agent.get("name") and claims.get("role") != "operator":
+            return JSONResponse({"error": "Not authorized to update this profile"}, status_code=403)
+
+        body = await request.json()
+        # Allowed mutable fields
+        ALLOWED = {"display_name", "capabilities", "role", "status", "governance"}
+        updated = {}
+        for key in ALLOWED:
+            if key in body:
+                agent[key] = body[key]
+                updated[key] = body[key]
+        if "display_name" in body:
+            agent["name"] = body["display_name"]
+            updated["name"] = body["display_name"]
+
+        if not updated:
+            return JSONResponse({"error": "No updatable fields provided", "allowed": list(ALLOWED)}, status_code=400)
+
+        runtime.persist_registry()
+        audit.log("agent", "profile_updated", {"agent_id": agent_id, "updated_fields": list(updated.keys())})
+        await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        await create_seed(
+            source_type="profile_update",
+            source_id=agent_id,
+            creator_id=caller,
+            creator_type="AAI",
+            seed_type="planted",
+            metadata={"agent_id": agent_id, "updated_fields": list(updated.keys())},
+        )
+        return {"updated": True, "agent_id": agent_id, "changes": updated}
+
     @app.get("/profile/{handle}")
     async def agent_profile_page(handle: str) -> FileResponse:
         """Serve the agent profile page."""
