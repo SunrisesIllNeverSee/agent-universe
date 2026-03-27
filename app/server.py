@@ -496,6 +496,27 @@ def create_app(root: Path | None = None) -> FastAPI:
     import time as _time
     _BOOT_TIME = _time.time()
 
+    # ── Reusable IP rate limiter ────────────────────────────────────────────
+    _rate_stores: dict[str, dict] = {}
+
+    def _check_rate_limit(request: Request, bucket_name: str, max_hits: int, window_s: int = 3600):
+        """Enforce per-IP rate limit. Raises 429 if exceeded."""
+        fwd = request.headers.get("x-forwarded-for", "")
+        ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
+        ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:16]
+        now = _time.time()
+        if bucket_name not in _rate_stores:
+            _rate_stores[bucket_name] = {}
+        bucket = _rate_stores[bucket_name]
+        # Evict stale entries
+        _rate_stores[bucket_name] = {k: v for k, v in bucket.items() if v and now - v[-1] < window_s}
+        bucket = _rate_stores[bucket_name]
+        recent = [t for t in bucket.get(ip_hash, []) if now - t < window_s]
+        if len(recent) >= max_hits:
+            raise HTTPException(status_code=429, detail=f"Rate limit: {max_hits} requests per hour")
+        recent.append(now)
+        bucket[ip_hash] = recent
+
     @app.get("/health")
     async def health() -> dict:
         return {
@@ -2151,12 +2172,13 @@ def create_app(root: Path | None = None) -> FastAPI:
     # ── Agent Self-Signup / Provision API ────────────────────────
 
     @app.post("/api/provision/signup")
-    async def agent_signup(payload: dict) -> dict:
+    async def agent_signup(request: Request, payload: dict) -> dict:
         """
         Agent self-registration. The Snowmaker endpoint.
         Agent provides name, optional system preference, and gets a key + governance assignment.
         Respects provision config: require_governance, max_agents, approval_mode, rate_limit.
         """
+        _check_rate_limit(request, "provision_signup", max_hits=10)
         agent_name = payload.get("name", "").strip()
         if not agent_name:
             return JSONResponse({"error": "Agent name required"}, status_code=400)
@@ -3028,8 +3050,9 @@ def create_app(root: Path | None = None) -> FastAPI:
     inbox_path = root / "data" / "inbox.jsonl"
 
     @app.post("/api/inbox/apply")
-    async def inbox_apply(payload: dict) -> dict:
-        """Capture a Help Wanted application. Emits inbox_application over WebSocket."""
+    async def inbox_apply(request: Request, payload: dict) -> dict:
+        """Capture an Open Roles application. Emits inbox_application over WebSocket."""
+        _check_rate_limit(request, "inbox_apply", max_hits=5)
         if not payload.get("name") or not payload.get("role"):
             return JSONResponse({"error": "name and role are required"}, status_code=400)
         import secrets as _sec2
@@ -3659,6 +3682,7 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     @app.post("/api/kassa/posts")
     async def submit_kassa_post(request: Request) -> dict:
+        _check_rate_limit(request, "kassa_posts", max_hits=5)
         payload = await request.json()
         tab = (payload.get("tab") or "").strip()
         title = (payload.get("title") or "").strip()
@@ -4743,28 +4767,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         if subject and subject not in VALID_SUBJECTS:
             subject = "Other"
 
-        # FIX-11: In-memory IP rate limit — 3 submissions per hour.
-        # Resets on server restart (acceptable for Railway long-lived processes).
-        # Uses hashed IP to avoid storing raw addresses. Not persistent across
-        # restarts — a more durable approach would use Redis or SQLite if needed.
-        # Respect X-Forwarded-For behind Railway/proxy; fall back to direct IP
-        forwarded = request.headers.get("x-forwarded-for", "")
-        client_ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
-        ip_hash = hashlib.sha256(client_ip.encode()).hexdigest()[:16]
-
-        now_ts = _time.time()
-        if not hasattr(contact_submit, "_rate_store"):
-            contact_submit._rate_store = {}
-        bucket = contact_submit._rate_store
-        # Clean old entries (evict IPs whose last submission was >1hr ago)
-        bucket = {k: v for k, v in bucket.items() if v and now_ts - v[-1] < 3600}
-        contact_submit._rate_store = bucket
-        recent = bucket.get(ip_hash, [])
-        recent = [t for t in recent if now_ts - t < 3600]
-        if len(recent) >= 3:
-            raise HTTPException(status_code=429, detail="Rate limit: 3 submissions per hour")
-        recent.append(now_ts)
-        bucket[ip_hash] = recent
+        _check_rate_limit(request, "contact", max_hits=3)
 
         contact_id = f"contact-{uuid.uuid4().hex[:12]}"
         record = {
