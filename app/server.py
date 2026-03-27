@@ -257,8 +257,9 @@ def create_app(root: Path | None = None) -> FastAPI:
         return FileResponse(frontend_dir / "kingdoms.html")
 
     @app.get("/welcome")
-    async def welcome_page() -> FileResponse:
-        return FileResponse(frontend_dir / "welcome.html")
+    async def welcome_page():
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse("/academia")
 
     @app.get("/sir-hawk.png")
     async def sir_hawk_img() -> FileResponse:
@@ -321,8 +322,9 @@ def create_app(root: Path | None = None) -> FastAPI:
         return JSONResponse({"error": f"page '{safe}' not found"}, status_code=404)
 
     @app.get("/entry")
-    async def entry_page() -> FileResponse:
-        return FileResponse(frontend_dir / "entry.html")
+    async def entry_page():
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse("/academia#register")
 
     @app.get("/governance")
     async def governance_page() -> FileResponse:
@@ -339,6 +341,14 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.get("/openroles")
     async def openroles_page() -> FileResponse:
         return FileResponse(frontend_dir / "helpwanted.html")
+
+    @app.get("/iso-collaborators")
+    async def iso_collaborators_page() -> FileResponse:
+        return FileResponse(frontend_dir / "iso-collaborators.html")
+
+    @app.get("/hiring")
+    async def hiring_page() -> FileResponse:
+        return FileResponse(frontend_dir / "hiring.html")
 
     @app.get("/sig-arena")
     async def sig_arena_page() -> FileResponse:
@@ -359,6 +369,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.get("/skill.md")
     async def skill_md() -> FileResponse:
         return FileResponse(frontend_dir / "skill.md", media_type="text/markdown")
+
+    @app.get("/seeds")
+    async def seeds_page() -> FileResponse:
+        return FileResponse(frontend_dir / "seeds.html")
 
     @app.get("/services")
     async def services_page() -> FileResponse:
@@ -381,12 +395,14 @@ def create_app(root: Path | None = None) -> FastAPI:
         return FileResponse(frontend_dir / "index.html")
 
     @app.get("/civitae-map")
-    async def civitae_map_page() -> FileResponse:
-        return FileResponse(frontend_dir / "civitae-map.html")
+    async def civitae_map_page():
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse("/")
 
     @app.get("/civitae-roadmap")
-    async def civitae_roadmap_page() -> FileResponse:
-        return FileResponse(frontend_dir / "civitae-roadmap.html")
+    async def civitae_roadmap_page():
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse("/sitemap")
 
     @app.get("/treasury")
     async def treasury_page() -> FileResponse:
