@@ -3393,9 +3393,50 @@ def create_app(root: Path | None = None) -> FastAPI:
         })
         return result
 
+    @app.post("/api/connect/v2/accounts")
+    async def create_recipient_account(payload: dict) -> dict:
+        """Create a Stripe V2 Recipient account for agent payouts.
+
+        Body: { "display_name": "...", "email": "...", "country": "us" }
+
+        V2 Recipient accounts are machine-native — for autonomous agents receiving
+        mission/bounty payouts. Falls back to V1 Express if V2 API not enabled.
+        """
+        name = (payload.get("display_name") or "").strip()
+        email = (payload.get("email") or "").strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="display_name required")
+
+        result = kassa_payments.create_recipient_account(
+            display_name=name,
+            email=email,
+            country=payload.get("country", "us"),
+        )
+        if result.get("error"):
+            raise HTTPException(status_code=503, detail=result["error"])
+
+        audit.log("kassa", "recipient_account_created", {
+            "account_id": result["account_id"],
+            "type": result.get("type", "recipient"),
+            "name": name,
+        })
+        return result
+
+    @app.post("/api/connect/accounts/{account_id}/session")
+    async def create_connect_session(account_id: str) -> dict:
+        """Create a Stripe Account Session for embedded Connect onboarding.
+
+        Returns a client_secret for use with Stripe.js loadConnectAndInitialize().
+        Enables embedded (non-redirect) onboarding for both V1 and V2 accounts.
+        """
+        result = kassa_payments.create_account_session(account_id)
+        if result.get("error"):
+            raise HTTPException(status_code=503, detail=result["error"])
+        return result
+
     @app.post("/api/connect/accounts/{account_id}/onboard")
     async def onboard_connect_account(account_id: str, request: Request) -> dict:
-        """Generate an onboarding link for a connected account."""
+        """Generate an onboarding link for a connected account (V1 hosted redirect)."""
         base = str(request.base_url).rstrip("/")
         result = kassa_payments.create_account_link(
             account_id=account_id,
