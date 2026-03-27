@@ -116,29 +116,32 @@ def create_connected_account(display_name: str, email: str, country: str = "us")
 
     # V2 account creation — platform manages fees and losses.
     # Do NOT pass type='express' at top level (V2 uses dashboard='express' instead).
-    account = _client.v2.core.accounts.create(
-        params={
-            "display_name": display_name,
-            "contact_email": email,
-            "identity": {"country": country},
-            "dashboard": "express",
-            "defaults": {
-                "responsibilities": {
-                    "fees_collector": "application",
-                    "losses_collector": "application",
+    try:
+        account = _client.v2.core.accounts.create(
+            params={
+                "display_name": display_name,
+                "contact_email": email,
+                "identity": {"country": country},
+                "dashboard": "express",
+                "defaults": {
+                    "responsibilities": {
+                        "fees_collector": "application",
+                        "losses_collector": "application",
+                    },
                 },
-            },
-            "configuration": {
-                "recipient": {
-                    "capabilities": {
-                        "stripe_balance": {
-                            "stripe_transfers": {"requested": True},
+                "configuration": {
+                    "recipient": {
+                        "capabilities": {
+                            "stripe_balance": {
+                                "stripe_transfers": {"requested": True},
+                            },
                         },
                     },
                 },
-            },
-        }
-    )
+            }
+        )
+    except Exception as e:
+        return {"error": f"Stripe account creation failed: {e}"}
     return {
         "account_id": account.id,
         "display_name": display_name,
@@ -168,19 +171,22 @@ def create_account_link(account_id: str, return_url: str, refresh_url: str) -> d
         return {"error": "Stripe Accounts V2 requires a newer Stripe SDK with StripeClient support."}
 
     # V2 account links API for onboarding
-    link = _client.v2.core.account_links.create(
-        params={
-            "account": account_id,
-            "use_case": {
-                "type": "account_onboarding",
-                "account_onboarding": {
-                    "configurations": ["recipient"],
-                    "refresh_url": refresh_url,
-                    "return_url": f"{return_url}?accountId={account_id}",
+    try:
+        link = _client.v2.core.account_links.create(
+            params={
+                "account": account_id,
+                "use_case": {
+                    "type": "account_onboarding",
+                    "account_onboarding": {
+                        "configurations": ["recipient"],
+                        "refresh_url": refresh_url,
+                        "return_url": f"{return_url}?accountId={account_id}",
+                    },
                 },
-            },
-        }
-    )
+            }
+        )
+    except Exception as e:
+        return {"error": f"Stripe onboarding link failed: {e}"}
     return {"url": link.url, "account_id": account_id}
 
 
@@ -202,10 +208,13 @@ def get_account_status(account_id: str) -> dict:
         return {"error": "Stripe Accounts V2 requires a newer Stripe SDK with StripeClient support."}
 
     # Retrieve account with configuration and requirements included
-    account = _client.v2.core.accounts.retrieve(
-        account_id,
-        params={"include": ["configuration.recipient", "requirements"]},
-    )
+    try:
+        account = _client.v2.core.accounts.retrieve(
+            account_id,
+            params={"include": ["configuration.recipient", "requirements"]},
+        )
+    except Exception as e:
+        return {"error": f"Stripe account retrieve failed: {e}"}
 
     # Check if transfers capability is active
     ready_to_receive = False
@@ -263,34 +272,25 @@ def create_product(
         return {"error": "Stripe not configured. Set STRIPE_SECRET_KEY."}
 
     # Create product at platform level with connected account in metadata
-    if _stripe_v2_ready and _client is not None:
-        product = _client.products.create(
-            params={
-                "name": name,
-                "description": description,
-                "default_price_data": {
-                    "unit_amount": price_cents,
-                    "currency": currency,
-                },
-                "metadata": {
-                    "connected_account_id": connected_account_id,
-                    "platform": "civitae_kassa",
-                },
-            }
-        )
-    else:
-        product = _stripe_module.Product.create(
-            name=name,
-            description=description,
-            default_price_data={
-                "unit_amount": price_cents,
-                "currency": currency,
-            },
-            metadata={
-                "connected_account_id": connected_account_id,
-                "platform": "civitae_kassa",
-            },
-        )
+    product_params = {
+        "name": name,
+        "description": description,
+        "default_price_data": {
+            "unit_amount": price_cents,
+            "currency": currency,
+        },
+        "metadata": {
+            "connected_account_id": connected_account_id,
+            "platform": "civitae_kassa",
+        },
+    }
+    try:
+        if _stripe_v2_ready and _client is not None:
+            product = _client.v1.products.create(params=product_params)
+        else:
+            product = _stripe_module.Product.create(**product_params)
+    except Exception as e:
+        return {"error": f"Stripe product creation failed: {e}"}
     return {
         "product_id": product.id,
         "price_id": product.default_price,
@@ -307,12 +307,14 @@ def list_products() -> list[dict]:
     if not _stripe_ready:
         return []
 
-    if _stripe_v2_ready and _client is not None:
-        products = _client.products.list(params={"active": True, "limit": 100})
+    try:
+        if _stripe_v2_ready and _client is not None:
+            products = _client.v1.products.list(params={"active": True, "limit": 100})
+        else:
+            products = _stripe_module.Product.list(active=True, limit=100)
         product_rows = products.data
-    else:
-        products = _stripe_module.Product.list(active=True, limit=100)
-        product_rows = products.data
+    except Exception:
+        return []
     result = []
     for p in product_rows:
         # Get the default price amount
@@ -322,7 +324,7 @@ def list_products() -> list[dict]:
             price_id = p.default_price if isinstance(p.default_price, str) else p.default_price.id
             try:
                 if _stripe_v2_ready and _client is not None:
-                    price = _client.prices.retrieve(price_id)
+                    price = _client.v1.prices.retrieve(price_id)
                 else:
                     price = _stripe_module.Price.retrieve(price_id)
                 price_cents = price.unit_amount or 0
@@ -401,10 +403,13 @@ def create_checkout_session(
         "cancel_url": cancel_url,
         "metadata": metadata or {},
     }
-    if _stripe_v2_ready and _client is not None:
-        session = _client.checkout.sessions.create(params=session_params)
-    else:
-        session = _stripe_module.checkout.Session.create(**session_params)
+    try:
+        if _stripe_v2_ready and _client is not None:
+            session = _client.v1.checkout.sessions.create(params=session_params)
+        else:
+            session = _stripe_module.checkout.Session.create(**session_params)
+    except Exception as e:
+        return {"error": f"Stripe checkout failed: {e}"}
     return {
         "session_id": session.id,
         "url": session.url,
@@ -417,10 +422,13 @@ def retrieve_checkout_session(session_id: str) -> dict:
     """Retrieve details of a completed checkout session."""
     if not _stripe_ready:
         return {"error": "Stripe not configured."}
-    if _stripe_v2_ready and _client is not None:
-        session = _client.checkout.sessions.retrieve(session_id)
-    else:
-        session = _stripe_module.checkout.Session.retrieve(session_id)
+    try:
+        if _stripe_v2_ready and _client is not None:
+            session = _client.v1.checkout.sessions.retrieve(session_id)
+        else:
+            session = _stripe_module.checkout.Session.retrieve(session_id)
+    except Exception as e:
+        return {"error": f"Stripe session retrieve failed: {e}"}
     return {
         "session_id": session.id,
         "payment_status": session.payment_status,
@@ -433,10 +441,11 @@ def retrieve_checkout_session(session_id: str) -> dict:
 # ── Webhooks (Thin Events for V2) ─────────────────────────────────────────
 
 def parse_thin_event(payload: bytes, sig_header: str) -> dict | None:
-    """Parse a Stripe thin event from a webhook payload.
+    """Parse a Stripe V2 event notification from a webhook payload.
 
-    Thin events are used with V2 accounts. They contain only the event ID
-    and type — the full event data must be fetched separately.
+    V2 event notifications are used with V2 accounts. The SDK method
+    parse_event_notification() validates the signature and returns a
+    typed event object.
 
     For webhook setup:
     1. Dashboard → Developers → Webhooks → + Add destination
@@ -461,17 +470,15 @@ def parse_thin_event(payload: bytes, sig_header: str) -> dict | None:
         return None
 
     try:
-        # Parse the thin event — validates signature against webhook secret
-        thin_event = _client.parse_thin_event(
-            payload.decode("utf-8"),
+        # parse_event_notification validates signature and returns typed event
+        event = _client.parse_event_notification(
+            payload,
             sig_header,
             STRIPE_WEBHOOK_SECRET,
         )
-        # Fetch the full event data from Stripe
-        event = _client.v2.core.events.retrieve(thin_event.id)
         return {
-            "id": event.id,
-            "type": event.type,
+            "id": event.id if hasattr(event, "id") else "",
+            "type": event.type if hasattr(event, "type") else "",
             "data": event.data if hasattr(event, "data") else None,
             "related_object": event.related_object if hasattr(event, "related_object") else None,
         }

@@ -843,6 +843,19 @@ def create_app(root: Path | None = None) -> FastAPI:
             "governance": mission["governance_at_launch"],
         })
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+
+        try:
+            await create_seed(
+                source_type="mission",
+                source_id=mission["id"],
+                creator_id=payload.get("agent_id", "operator"),
+                creator_type="BI",
+                seed_type="planted",
+                metadata={"label": mission["label"], "posture": mission["posture"]},
+            )
+        except Exception:
+            pass
+
         return mission
 
     @app.get("/api/missions")
@@ -1292,6 +1305,18 @@ def create_app(root: Path | None = None) -> FastAPI:
             "governance": slot["governance"],
         })
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+
+        try:
+            await create_seed(
+                source_type="slot_fill",
+                source_id=slot_id,
+                creator_id=agent_id,
+                creator_type="AAI",
+                seed_type="planted",
+                metadata={"mission_id": slot["mission_id"], "role": slot["role"]},
+            )
+        except Exception:
+            pass
 
         return {
             "filled": True,
@@ -2214,6 +2239,18 @@ def create_app(root: Path | None = None) -> FastAPI:
         audit.log("kassa", "stake_placed", {"stake_id": stake_id, "post_id": post_id, "agent_id": agent_id})
         await emit("kassa_stake", entry)
 
+        try:
+            await create_seed(
+                source_type="stake",
+                source_id=stake_id,
+                creator_id=agent_id,
+                creator_type="AAI",
+                seed_type="planted",
+                metadata={"post_id": post_id},
+            )
+        except Exception:
+            pass
+
         # Auto-create thread between agent and poster
         # Look up poster info from review queue (submitted posts have from_name/email)
         reviews = kassa.load_reviews()
@@ -2975,6 +3012,19 @@ def create_app(root: Path | None = None) -> FastAPI:
         _save_meetings(meetings)
         audit.log("governance", "motion_proposed", {"meeting_id": meeting_id, "motion_id": motion["id"], "proposer": proposer})
         await emit("motion_proposed", {"meeting_id": meeting_id, "motion_id": motion["id"], "motion": motion_text})
+
+        try:
+            await create_seed(
+                source_type="motion",
+                source_id=motion["id"],
+                creator_id=proposer,
+                creator_type="AAI",
+                seed_type="planted",
+                metadata={"meeting_id": meeting_id, "motion": motion_text},
+            )
+        except Exception:
+            pass
+
         return motion
 
     @app.post("/api/governance/meeting/{meeting_id}/vote")
@@ -3019,6 +3069,19 @@ def create_app(root: Path | None = None) -> FastAPI:
             })
             await emit("motion_resolved", {"meeting_id": meeting_id, "motion_id": motion_id, "result": motion["status"]})
         _save_meetings(meetings)
+
+        try:
+            await create_seed(
+                source_type="vote",
+                source_id=f"{meeting_id}-{motion_id}-{voter}",
+                creator_id=voter,
+                creator_type="AAI",
+                seed_type="planted",
+                metadata={"meeting_id": meeting_id, "motion_id": motion_id, "vote": vote},
+            )
+        except Exception:
+            pass
+
         return {"motion_id": motion_id, "voter": voter, "vote": vote, "votes_cast": len(motion["votes"]), "total_voters": len(meeting["attendees"])}
 
     @app.post("/api/governance/meeting/{meeting_id}/adjourn")
@@ -3138,6 +3201,19 @@ def create_app(root: Path | None = None) -> FastAPI:
         kassa.insert_review(review_entry)
         audit.log("kassa", "post_submitted", {"id": kid, "tab": tab, "from_email": from_email})
         await emit("kassa_post_submitted", {"id": kid, "tab": tab})
+
+        try:
+            await create_seed(
+                source_type="kassa_post",
+                source_id=kid,
+                creator_id=from_email or from_name,
+                creator_type="BI",
+                seed_type="planted",
+                metadata={"tab": tab, "title": title},
+            )
+        except Exception:
+            pass
+
         return {"ok": True, "id": kid, "message": "Post submitted for review. We\u2019ll publish it shortly."}
 
     @app.post("/api/kassa/posts/{post_id}/upvote")
