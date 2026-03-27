@@ -84,6 +84,7 @@ def payment_status() -> dict:
     """Return current payment rail availability."""
     return {
         "stripe_connect": stripe_ready(),
+        "stripe_v2": _stripe_v2_ready,
         "mpp": mpp_ready(),
         "rails": [
             r for r in ["stripe_connect", "mpp"]
@@ -92,7 +93,7 @@ def payment_status() -> dict:
     }
 
 
-# ── Connected Accounts (V1 API) ───────────────────────────────────────────
+# ── Connected Accounts (V1 API — Operators/Sellers) ───────────────────────
 
 def create_connected_account(display_name: str, email: str, country: str = "us") -> dict:
     """Create a Stripe connected account using the V1 API (standard Connect).
@@ -142,6 +143,100 @@ def create_connected_account(display_name: str, email: str, country: str = "us")
         "email": email,
         "created": True,
     }
+
+
+# ── Connected Accounts (V2 API — Agents/Recipients) ───────────────────────
+
+def create_recipient_account(display_name: str, email: str, country: str = "us") -> dict:
+    """Create a Stripe V2 Recipient account for agent payouts.
+
+    V2 Recipient accounts are machine-native — designed for autonomous agents
+    that receive payments for completing missions/bounties. Unlike V1 Express
+    accounts (for humans selling products), Recipients don't need Stripe's hosted
+    onboarding dashboard and can receive transfers directly.
+
+    Requires Stripe to enable V2 API on your platform account. If not enabled,
+    falls back to creating a V1 Express account with the same parameters.
+
+    Args:
+        display_name: The agent's display name.
+        email: Contact email for the recipient.
+        country: ISO country code (default: 'us').
+
+    Returns:
+        dict with account_id, type ('recipient' or 'express'), and status.
+    """
+    if not _stripe_v2_ready or _client is None:
+        return {"error": "Stripe V2 SDK not available. Update stripe SDK."}
+
+    try:
+        params: dict = {
+            "display_name": display_name,
+            "configuration": {
+                "recipient": {
+                    "capabilities": {
+                        "bank_transfers": {"requested": True},
+                        "stripe_balance": {"requested": True},
+                    }
+                }
+            },
+            "identity": {
+                "country": country.upper(),
+            },
+        }
+        if email:
+            params["identity"]["email"] = email
+        account = _client.v2.core.accounts.create(params=params)
+        return {
+            "account_id": account.id,
+            "display_name": display_name,
+            "email": email,
+            "type": "recipient",
+            "created": True,
+        }
+    except Exception as e:
+        err = str(e)
+        # V2 not enabled on this Stripe account — fall back to V1 Express
+        if "v2" in err.lower() or "not" in err.lower() or "permission" in err.lower():
+            fallback = create_connected_account(display_name, email, country)
+            if not fallback.get("error"):
+                fallback["type"] = "express_fallback"
+                fallback["v2_note"] = "V2 Recipient API not enabled; created V1 Express account instead."
+            return fallback
+        return {"error": f"Stripe Recipient account creation failed: {e}"}
+
+
+def create_account_session(account_id: str) -> dict:
+    """Create a Stripe Account Session for embedded Connect components.
+
+    Used with Stripe.js Connect Components to render the onboarding flow
+    inline on the page (no redirect). The client_secret is passed to
+    loadConnectAndInitialize() in the frontend.
+
+    Args:
+        account_id: The Stripe connected or recipient account ID.
+
+    Returns:
+        dict with client_secret for use with Stripe.js.
+    """
+    if not _stripe_ready:
+        return {"error": "Stripe not configured."}
+
+    try:
+        params = {
+            "account": account_id,
+            "components": {
+                "account_onboarding": {"enabled": True},
+            },
+        }
+        if _stripe_v2_ready and _client is not None:
+            session = _client.v1.account_sessions.create(params=params)
+        else:
+            session = _stripe_module.AccountSession.create(**params)
+    except Exception as e:
+        return {"error": f"Stripe account session failed: {e}"}
+
+    return {"client_secret": session.client_secret, "account_id": account_id}
 
 
 def create_account_link(account_id: str, return_url: str, refresh_url: str) -> dict:
