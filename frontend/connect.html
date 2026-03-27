@@ -226,14 +226,29 @@ $('btn-create-account').addEventListener('click', function() {
 });
 
 function startOnboarding(accountId) {
+  var banner = $('account-status-banner');
+  banner.className = 'status-banner info';
+  banner.textContent = 'Generating onboarding link...';
+
   fetch(BASE + '/api/connect/accounts/' + accountId + '/onboard', { method: 'POST' })
   .then(function(r) { return r.json(); })
   .then(function(data) {
     if (data.url) {
-      var banner = $('account-status-banner');
       banner.className = 'status-banner info';
-      banner.innerHTML = 'Account created. <a href="' + esc(data.url) + '" style="color:var(--blue);font-weight:700;">Complete onboarding on Stripe &rarr;</a>';
+      var link = document.createElement('a');
+      link.href = data.url;
+      link.style.cssText = 'color:var(--blue);font-weight:700;';
+      link.textContent = 'Complete onboarding on Stripe \u2192';
+      banner.textContent = 'Account created. ';
+      banner.appendChild(link);
+    } else {
+      banner.className = 'status-banner error';
+      banner.textContent = 'Onboarding link failed: ' + (data.detail || data.error || 'Unknown error');
     }
+  })
+  .catch(function(e) {
+    banner.className = 'status-banner error';
+    banner.textContent = 'Onboarding request failed: ' + e.message;
   });
 }
 
