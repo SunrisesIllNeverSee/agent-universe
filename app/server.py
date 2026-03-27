@@ -1347,6 +1347,14 @@ def create_app(root: Path | None = None) -> FastAPI:
 
         audit.log("deploy", "slot_vacated", {"slot_id": slot_id, "previous_agent": old_agent})
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        await create_seed(
+            source_type="slot_leave",
+            source_id=slot_id,
+            creator_id=old_agent or "unknown",
+            creator_type="AAI",
+            seed_type="planted",
+            metadata={"slot_id": slot_id, "previous_agent": old_agent},
+        )
         return {"vacated": True, "slot_id": slot_id}
 
     @app.post("/api/slots/bounty")
@@ -1525,6 +1533,14 @@ def create_app(root: Path | None = None) -> FastAPI:
             "recruiter_bounty": result.get("recruiter_bounty"),
         })
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        await create_seed(
+            source_type="treasury_action",
+            source_id=payload.get("mission_id", ""),
+            creator_id=agent_id,
+            creator_type="AAI",
+            seed_type="planted",
+            metadata={"action": "mission_payout", "tier": result["tier"], "gross": amount, "mission_id": payload.get("mission_id", "")},
+        )
         return result
 
     @app.get("/api/economy/balance/{agent_id}")
@@ -1696,6 +1712,14 @@ def create_app(root: Path | None = None) -> FastAPI:
             "agent_id": agent_id, "amount": amount, "chain": chain, "status": transfer.get("status"),
         })
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        await create_seed(
+            source_type="treasury_action",
+            source_id=agent_id,
+            creator_id=agent_id,
+            creator_type="AAI",
+            seed_type="planted",
+            metadata={"action": "withdrawal", "amount": amount, "chain": chain, "status": transfer.get("status")},
+        )
 
         return {"withdrawal": debit, "chain_transfer": transfer}
 
