@@ -3128,6 +3128,157 @@ def create_app(root: Path | None = None) -> FastAPI:
         await emit("meeting_adjourned", {"meeting_id": meeting_id})
         return meeting
 
+    # ── Flame Review Engine v1 ──────────────────────────────────────────────
+    # Rule-based compliance check against the Six Fold Flame.
+    # Each flame dimension scores 0-1. Overall = average of 6.
+
+    FLAME_DIMENSIONS = {
+        "security": {"weight": 1.0, "checks": ["governance_active", "dual_signature", "no_violations_30d"]},
+        "integrity": {"weight": 1.0, "checks": ["compliance_score_above_80", "lineage_verified"]},
+        "creativity": {"weight": 1.0, "checks": ["missions_completed_min_1", "diverse_capabilities"]},
+        "research": {"weight": 1.0, "checks": ["seeds_created", "provenance_chain"]},
+        "problem_solving": {"weight": 1.0, "checks": ["missions_completed_min_1", "stakes_active"]},
+        "governance": {"weight": 1.0, "checks": ["governance_active", "votes_cast", "motions_proposed"]},
+    }
+
+    @app.get("/api/governance/flame-review/{agent_id}")
+    async def flame_review(agent_id: str) -> dict:
+        """Six Fold Flame compliance review for an agent."""
+        agent = next(
+            (r for r in runtime.registry if r.get("type") == "agent" and
+             (r.get("agent_id") == agent_id or r.get("name") == agent_id)),
+            None,
+        )
+        if not agent:
+            return JSONResponse({"error": "Agent not found"}, status_code=404)
+
+        aid = agent.get("agent_id", agent_id)
+        metrics_data = _load_metrics()
+        agent_m = metrics_data.get("agents", {}).get(aid, {})
+        gov_active = bool(agent.get("governance") and agent.get("governance") != "none_(unrestricted)")
+        compliance = agent.get("compliance_score", agent_m.get("compliance_score", 0))
+        missions = agent.get("missions_completed", agent_m.get("missions_completed", 0))
+        violations = agent.get("governance_violations", agent_m.get("governance_violations", 0))
+        has_lineage = agent.get("lineage_verified", False)
+        has_dual_sig = agent.get("dual_signature", False)
+        capabilities = agent.get("capabilities", [])
+
+        # Count seeds
+        seeds = _read_seeds()
+        agent_seeds = [s for s in seeds if s.get("creator_id") == aid]
+
+        # Count governance participation
+        votes_cast = 0
+        motions_proposed = 0
+        try:
+            meetings_file = root / "data" / "meetings.json"
+            meetings_data = json.loads(meetings_file.read_text()) if meetings_file.exists() else []
+            agent_name = agent.get("name", "")
+            for meeting in meetings_data:
+                for motion in meeting.get("motions", []):
+                    if motion.get("proposer") in (aid, agent_name):
+                        motions_proposed += 1
+                    for vote in motion.get("votes", []):
+                        if vote.get("voter") in (aid, agent_name):
+                            votes_cast += 1
+        except Exception:
+            pass
+
+        # Count active stakes
+        stakes = kassa.load_stakes(agent_id=aid)
+
+        # Score each flame dimension
+        scores = {}
+        details = {}
+
+        # Security
+        sec_score = 0.0
+        sec_notes = []
+        if gov_active:
+            sec_score += 0.4; sec_notes.append("governance active")
+        if has_dual_sig:
+            sec_score += 0.3; sec_notes.append("dual signature")
+        if violations == 0:
+            sec_score += 0.3; sec_notes.append("zero violations (30d)")
+        scores["security"] = min(sec_score, 1.0)
+        details["security"] = sec_notes
+
+        # Integrity
+        int_score = 0.0
+        int_notes = []
+        if compliance >= 0.8:
+            int_score += 0.5; int_notes.append(f"compliance {compliance:.0%}")
+        elif compliance >= 0.5:
+            int_score += 0.25; int_notes.append(f"compliance {compliance:.0%} (partial)")
+        if has_lineage:
+            int_score += 0.5; int_notes.append("lineage verified")
+        scores["integrity"] = min(int_score, 1.0)
+        details["integrity"] = int_notes
+
+        # Creativity
+        cre_score = 0.0
+        cre_notes = []
+        if missions >= 1:
+            cre_score += 0.5; cre_notes.append(f"{missions} missions completed")
+        if len(capabilities) >= 2:
+            cre_score += 0.5; cre_notes.append(f"{len(capabilities)} capabilities")
+        scores["creativity"] = min(cre_score, 1.0)
+        details["creativity"] = cre_notes
+
+        # Research
+        res_score = 0.0
+        res_notes = []
+        if len(agent_seeds) >= 1:
+            res_score += 0.5; res_notes.append(f"{len(agent_seeds)} seeds created")
+        if any(s.get("parent_doi") for s in agent_seeds):
+            res_score += 0.5; res_notes.append("provenance chain exists")
+        scores["research"] = min(res_score, 1.0)
+        details["research"] = res_notes
+
+        # Problem Solving
+        ps_score = 0.0
+        ps_notes = []
+        if missions >= 1:
+            ps_score += 0.5; ps_notes.append(f"{missions} missions")
+        if len(stakes) >= 1:
+            ps_score += 0.5; ps_notes.append(f"{len(stakes)} active stakes")
+        scores["problem_solving"] = min(ps_score, 1.0)
+        details["problem_solving"] = ps_notes
+
+        # Governance
+        gov_score = 0.0
+        gov_notes = []
+        if gov_active:
+            gov_score += 0.34; gov_notes.append("governance active")
+        if votes_cast >= 1:
+            gov_score += 0.33; gov_notes.append(f"{votes_cast} votes cast")
+        if motions_proposed >= 1:
+            gov_score += 0.33; gov_notes.append(f"{motions_proposed} motions proposed")
+        scores["governance"] = min(gov_score, 1.0)
+        details["governance"] = gov_notes
+
+        overall = round(sum(scores.values()) / 6, 3)
+        lit_flames = sum(1 for v in scores.values() if v >= 0.5)
+
+        audit.log("governance", "flame_review", {"agent_id": aid, "overall": overall, "lit": f"{lit_flames}/6"})
+
+        return {
+            "agent_id": aid,
+            "agent_name": agent.get("name", aid),
+            "flame_score": overall,
+            "flames_lit": f"{lit_flames}/6",
+            "dimensions": {k: {"score": round(v, 3), "details": details[k]} for k, v in scores.items()},
+            "tier": economy.determine_tier({
+                "governance_active": gov_active, "compliance_score": compliance,
+                "missions_completed": missions, "governance_violations": violations,
+                "lineage_verified": has_lineage, "dual_signature": has_dual_sig,
+            }),
+            "recommendation": (
+                "All six flames lit — Constitutional candidate" if lit_flames == 6
+                else f"{lit_flames}/6 flames lit — focus on: {', '.join(k for k, v in scores.items() if v < 0.5)}"
+            ),
+        }
+
     # ── KA§§A contact inbox ───────────────────────────────────────────────────
     _notify_email = os.environ.get("NOTIFY_EMAIL", "")
 
