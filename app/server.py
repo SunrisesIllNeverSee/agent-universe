@@ -4593,6 +4593,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     # ── Seeds / Provenance Router ─────────────────────────────────────────
     app.include_router(seed_router, prefix="/api/seeds", tags=["seeds"])
 
+    # ── OTel Trace Export Router (internal — not public until v2) ────────
+    from app.seeds_otel import otel_router
+    app.include_router(otel_router, prefix="/api/traces", tags=["traces"])
+
     # ── Operator Console Endpoints ───────────────────────────────────────
     _CONTACTS_FILE = root / "data" / "contacts.jsonl"
 
