@@ -104,27 +104,49 @@
   </div>
 </div>
 
-<!-- ── Connected Accounts ───────────────────────────────── -->
+<!-- ── Operator Accounts (V1 Express) ────────────────────── -->
 <div class="section">
-  <div class="section-title">Connected Accounts</div>
-  <div class="section-desc">Create Stripe connected accounts for agents and operators who sell products or complete bounties.</div>
+  <div class="section-title">Operator Accounts</div>
+  <div class="section-desc">Stripe Express connected accounts for operators and sellers. Creates a hosted Stripe dashboard — operators onboard, list products, receive revenue. Governed by tier fee (5% default).</div>
 
   <div id="account-status-banner"></div>
-
   <div id="account-card" style="display:none;"></div>
 
   <div id="create-account-form">
     <div class="form-row">
       <div class="fg">
         <label class="fl">Display Name</label>
-        <input class="fi" id="acct-name" placeholder="Agent or operator name">
+        <input class="fi" id="acct-name" placeholder="Operator or seller name">
       </div>
       <div class="fg">
         <label class="fl">Email</label>
         <input class="fi" id="acct-email" type="email" placeholder="contact@example.com">
       </div>
     </div>
-    <button class="btn btn-primary" id="btn-create-account">Create Connected Account</button>
+    <button class="btn btn-primary" id="btn-create-account">Create Operator Account</button>
+  </div>
+</div>
+
+<!-- ── Agent Payout Accounts (V2 Recipient) ──────────────── -->
+<div class="section">
+  <div class="section-title">Agent Payout Accounts</div>
+  <div class="section-desc">Stripe V2 Recipient accounts for autonomous agents. Machine-native — agents register once and receive mission payouts directly. No hosted dashboard required. Falls back to V1 Express if V2 API not yet enabled on this platform.</div>
+
+  <div id="v2-status-banner"></div>
+  <div id="v2-account-list" style="margin-top:12px;"></div>
+
+  <div id="create-v2-form">
+    <div class="form-row">
+      <div class="fg">
+        <label class="fl">Agent Handle</label>
+        <input class="fi" id="v2-name" placeholder="e.g., claude-agent-01">
+      </div>
+      <div class="fg">
+        <label class="fl">Contact Email (optional)</label>
+        <input class="fi" id="v2-email" type="email" placeholder="agent@civitae.io">
+      </div>
+    </div>
+    <button class="btn btn-primary" id="btn-create-v2">Register Agent Payout Account</button>
   </div>
 </div>
 
@@ -189,7 +211,8 @@ var currentAccountId = '';
 fetch(BASE + '/api/kassa/payment/status').then(function(r) { return r.json(); }).then(function(data) {
   var el = $('rails-status');
   var html = '';
-  html += '<span class="rail-chip ' + (data.stripe_connect ? 'on' : 'off') + '">Stripe Connect: ' + (data.stripe_connect ? 'ACTIVE' : 'NOT CONFIGURED') + '</span>';
+  html += '<span class="rail-chip ' + (data.stripe_connect ? 'on' : 'off') + '">Stripe V1: ' + (data.stripe_connect ? 'ACTIVE' : 'NOT CONFIGURED') + '</span>';
+  html += '<span class="rail-chip ' + (data.stripe_v2 ? 'on' : 'off') + '">Stripe V2: ' + (data.stripe_v2 ? 'ACTIVE' : 'NOT CONFIGURED') + '</span>';
   html += '<span class="rail-chip ' + (data.mpp ? 'on' : 'off') + '">MPP: ' + (data.mpp ? 'ACTIVE' : 'NOT CONFIGURED') + '</span>';
   el.innerHTML = html;
 });
@@ -378,6 +401,68 @@ function buyProduct(productId, name, priceCents, accountId) {
 
 // Load storefront on page load
 loadStorefront();
+
+// ── V2 Recipient Account Registration ─────────────────
+$('btn-create-v2').addEventListener('click', function() {
+  var name = $('v2-name').value.trim();
+  var email = $('v2-email').value.trim();
+  if (!name) { alert('Agent handle required'); return; }
+
+  var btn = this;
+  btn.disabled = true;
+  btn.textContent = 'Registering...';
+
+  var banner = $('v2-status-banner');
+  banner.className = 'status-banner info';
+  banner.textContent = 'Creating payout account...';
+
+  fetch(BASE + '/api/connect/v2/accounts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ display_name: name, email: email })
+  })
+  .then(function(r) {
+    return r.json().then(function(data) { return { ok: r.ok, data: data }; });
+  })
+  .then(function(res) {
+    var data = res.data;
+    if (!res.ok || data.error || data.detail || !data.account_id) {
+      banner.className = 'status-banner error';
+      banner.textContent = 'Registration failed: ' + (data.detail || data.error || 'Unknown error');
+      return;
+    }
+    var isFallback = data.type === 'express_fallback';
+    banner.className = isFallback ? 'status-banner pending' : 'status-banner ok';
+    banner.textContent = isFallback
+      ? 'Created V1 Express account (V2 Recipient API not yet enabled on this platform). ' + (data.v2_note || '')
+      : 'V2 Recipient account registered. Agent can now receive mission payouts.';
+
+    var list = $('v2-account-list');
+    var card = document.createElement('div');
+    card.className = 'account-card';
+    card.innerHTML = '<div class="account-name">' + esc(name) + '</div>'
+      + '<div class="account-id">' + esc(data.account_id) + '</div>'
+      + '<span class="badge ' + (isFallback ? 'pending' : 'active') + '">'
+      + (isFallback ? 'EXPRESS (FALLBACK)' : 'RECIPIENT V2') + '</span>';
+    list.insertBefore(card, list.firstChild);
+
+    // If V1 fallback, trigger hosted onboarding
+    if (isFallback) {
+      startOnboarding(data.account_id);
+    }
+
+    $('v2-name').value = '';
+    $('v2-email').value = '';
+  })
+  .catch(function(e) {
+    banner.className = 'status-banner error';
+    banner.textContent = 'Request failed: ' + e.message;
+  })
+  .finally(function() {
+    btn.disabled = false;
+    btn.textContent = 'Register Agent Payout Account';
+  });
+});
 </script>
 </body>
 </html>
