@@ -6,9 +6,9 @@
     { "source": "/3d", "destination": "/world", "statusCode": 308 }
   ],
   "rewrites": [
+    { "source": "/", "destination": "/kingdoms.html" },
     { "source": "/api/:path*", "destination": "https://agent-universe-production.up.railway.app/api/:path*" },
     { "source": "/assets/:path*", "destination": "/:path*" },
-    { "source": "/", "destination": "/kingdoms.html" },
     { "source": "/agent/:slug", "destination": "/agent.html" },
     { "source": "/kassa/post/:id", "destination": "/kassa-post.html" },
     { "source": "/kassa/thread/:id", "destination": "/kassa-thread.html" }
