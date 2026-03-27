@@ -248,6 +248,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def civitas_page() -> FileResponse:
         return FileResponse(frontend_dir / "civitas.html")
 
+    @app.get("/senate")
+    async def senate_page() -> FileResponse:
+        return FileResponse(frontend_dir / "senate.html")
+
     @app.get("/academia")
     async def academia_page() -> FileResponse:
         return FileResponse(frontend_dir / "academia.html")
