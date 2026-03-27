@@ -260,9 +260,12 @@ function startOnboarding(accountId) {
   banner.textContent = 'Generating onboarding link...';
 
   fetch(BASE + '/api/connect/accounts/' + accountId + '/onboard', { method: 'POST' })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (data.url) {
+  .then(function(r) {
+    return r.json().then(function(data) { return { ok: r.ok, status: r.status, data: data }; });
+  })
+  .then(function(res) {
+    var data = res.data;
+    if (res.ok && data.url) {
       banner.className = 'status-banner info';
       var link = document.createElement('a');
       link.href = data.url;
@@ -272,7 +275,7 @@ function startOnboarding(accountId) {
       banner.appendChild(link);
     } else {
       banner.className = 'status-banner error';
-      banner.textContent = 'Onboarding link failed: ' + (data.detail || data.error || 'Unknown error');
+      banner.textContent = 'Onboarding link failed (' + res.status + '): ' + (data.detail || data.error || JSON.stringify(data));
     }
   })
   .catch(function(e) {

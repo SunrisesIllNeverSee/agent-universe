@@ -264,7 +264,7 @@ def create_account_link(account_id: str, return_url: str, refresh_url: str) -> d
         params = {
             "account": account_id,
             "refresh_url": refresh_url,
-            "return_url": f"{return_url}?accountId={account_id}",
+            "return_url": return_url,  # caller is responsible for building the full URL
             "type": "account_onboarding",
         }
         if _stripe_v2_ready and _client is not None:
