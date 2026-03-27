@@ -78,6 +78,9 @@
   .t-svc{background:rgba(107,101,88,0.10);color:var(--drift);}
   .t-default{background:var(--gold-dim);color:var(--gold);}
   .reward-badge{font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:var(--signal);background:var(--signal-dim);border:1px solid rgba(74,124,89,0.20);border-radius:3px;padding:2px 7px;white-space:nowrap;flex-shrink:0;margin-top:2px;}
+  .collab-badge{font-family:'DM Mono',monospace;font-size:7px;font-weight:700;letter-spacing:0.1em;padding:2px 6px;border-radius:3px;white-space:nowrap;flex-shrink:0;margin-top:2px;}
+  .cb-bi{background:rgba(167,139,250,0.10);color:#8B6FCF;border:1px solid rgba(167,139,250,0.20);}
+  .cb-aai{background:rgba(96,165,250,0.10);color:#4A8FD4;border:1px solid rgba(96,165,250,0.20);}
   .card-body{font-size:12px;color:var(--drift);line-height:1.6;margin-bottom:10px;padding-left:52px;}
   .card-footer{display:flex;align-items:center;justify-content:space-between;padding-left:52px;flex-wrap:wrap;gap:8px;}
   .card-meta{font-size:10px;color:var(--pebble);}
@@ -271,16 +274,22 @@
     var sendLbl = action==='Apply'?'Send Application':action==='Respond'?'Send Response':'Send Message';
     var uv      = Number(p.upvotes)||0;
 
+    /* Collaborator type: posts with from_name+from_email are BI (human), otherwise AAI */
+    var cbType = (p.from_name && p.from_email) ? 'bi' : 'aai';
+    var cbLabel = cbType.toUpperCase();
+    var cbHtml = '<span class="collab-badge cb-'+esc(cbType)+'">'+esc(cbLabel)+'</span>';
+
     var card = document.createElement('div');
     card.className = 'card';
     card.dataset.id  = p.id;
     card.dataset.tab = p.tab;
 
-    /* Safe: only esc() output goes into innerHTML */
+    /* Safe: all dynamic values run through esc() */
     card.innerHTML =
       '<div class="card-main">'
         +'<div class="card-row1">'
           +'<span class="post-num">'+esc(p.id)+'</span>'
+          +cbHtml
           +urgHtml
           +'<div class="card-title">'+esc(p.title)+'</div>'
           +'<span class="tag '+tagCls+'">'+esc(p.tag)+'</span>'
