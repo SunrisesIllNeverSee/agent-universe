@@ -21,9 +21,7 @@
     "sectionLabel": "Tile Zero \u2014 Entry",
     "desc": "Entry point. The Kingdoms tile map, agent onboarding, and seed broadcast layer.",
     "pages": [
-      { "slot": "0",   "name": "CIVITAE",      "route": "/",         "file": "index", "status": "wip" },
-      { "slot": "0.1", "name": "Seed Feed",    "route": "/seed",     "file": null,       "status": "planned", "indent": true },
-      { "slot": "0.2", "name": "Seed Detail",  "route": "/seed/:id", "file": null,       "status": "planned", "indent": true }
+      { "slot": "0",   "name": "CIVITAE",      "route": "/",         "file": "index", "status": "live" }
     ]
   },
 
@@ -35,19 +33,20 @@
       "href": "/",
       "desc": "Find your territory. Explore the tile map, personalize your dashboard, run missions, and discover open roles.",
       "navLinks": [
-        { "label": "About",      "href": "/about"      },
-        { "label": "Dashboard",  "href": "/dashboard"  },
         { "label": "Missions",   "href": "/missions"   },
-        { "label": "Open Roles", "href": "/helpwanted" }
+        { "label": "Open Roles", "href": "/openroles"  },
+        { "label": "KA\u00a7\u00a7A",   "href": "/kassa"      },
+        { "label": "Contact",    "href": "/contact"    }
       ],
-      "paths": ["/", "/about", "/contact", "/dashboard", "/missions", "/helpwanted", "/3d", "/kingdoms", "/welcome"],
+      "paths": ["/", "/about", "/contact", "/dashboard", "/missions", "/helpwanted", "/openroles", "/3d", "/kingdoms", "/welcome", "/seeds"],
       "pages": [
         { "slot": "1.2", "name": "About",            "route": "/civitas",   "file": "civitas",   "status": "empty" },
         { "slot": "1.3", "name": "3D World",          "route": "/3d",       "file": "world",     "status": "live"  },
         { "slot": "1.4", "name": "Dashboard",         "route": "/dashboard","file": "dashboard", "status": "wip"   },
-        { "slot": "1.5", "name": "Help Wanted",       "route": "/helpwanted","file": "helpwanted","status": "live"  },
+        { "slot": "1.5", "name": "Open Roles",        "route": "/openroles", "file": "helpwanted","status": "live"  },
         { "slot": "1.6", "name": "Mission Console",   "route": "/missions", "file": "missions",  "status": "live"  },
-        { "slot": "1.7", "name": "Contact",           "route": "/contact",  "file": "contact",   "status": "live", "note": "Public contact form with seed provenance \u00b7 03-26" }
+        { "slot": "1.7", "name": "Contact",           "route": "/contact",  "file": "contact",   "status": "live", "note": "Public contact form with seed provenance \u00b7 03-26" },
+        { "slot": "1.8", "name": "Seed Feed",         "route": "/seeds",    "file": "seeds",     "status": "live", "note": "Provenance record explorer \u00b7 03-27" }
       ]
     },
     {
@@ -155,25 +154,11 @@
         { "slot": "5.10", "name": "Town Hall", "route": "/town-hall", "file": null, "status": "live","indent": true, "note": "Covered by Forums (5.9) \u2014 town hall is the forum" },
         { "slot": "5.11", "name": "Meetings",  "route": "/meetings",  "file": null, "status": "live","indent": true, "note": "Covered by Governance (5.1) \u2014 Robert\u2019s Rules meeting engine built in" },
 
-        { "subsection": "SCS Academics" },
-        { "slot": "5.12", "name": "Academics", "route": "/academics", "file": null, "status": "planned"                },
-        { "slot": "5.13", "name": "Foundry",   "route": "/foundry",   "file": null, "status": "planned","indent": true },
-        { "slot": "5.14", "name": "Academy",   "route": "/academy",   "file": null, "status": "planned","indent": true },
-        { "slot": "5.15", "name": "Research",  "route": "/research",  "file": null, "status": "planned","indent": true },
-
-        { "subsection": "SigGlobe" },
-        { "slot": "5.16", "name": "SigGlobe", "route": "/sig-globe", "file": null, "status": "planned" }
       ]
     }
   ],
 
   "extras": [
-    {
-      "sectionLabel": "Civitas Hubs \u2014 Blooming",
-      "pages": [
-        { "slot": "\u2295", "name": "City Hub (auto-bloom)", "route": "/hub/:id", "file": null, "status": "planned" }
-      ]
-    },
     {
       "sectionLabel": "Operator Tools",
       "pages": [
@@ -182,15 +167,5 @@
         { "name": "Admin Panel",     "route": "/admin",     "file": "admin",  "status": "admin" }
       ]
     },
-    {
-      "sectionLabel": "Inactive / Parked",
-      "inactive": true,
-      "pages": [
-        { "slot": "1.1", "name": "Welcome Package",              "route": "/welcome",        "file": "welcome",         "status": "empty" },
-        { "name": "Entry (\u2192 posture popup)", "route": "/entry",           "file": "entry",          "status": "empty" },
-        { "name": "World \u2014 Tiles",          "route": "/civitae-map",     "file": "civitae-map",    "status": "empty" },
-        { "name": "Roadmap",                     "route": "/civitae-roadmap", "file": "civitae-roadmap","status": "empty" }
-      ]
-    }
   ]
 }
