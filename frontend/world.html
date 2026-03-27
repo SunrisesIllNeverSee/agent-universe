@@ -6,17 +6,10 @@
 <title>CIVITAE — World</title>
 <link rel="icon" href="/favicon.ico">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="/assets/_nav.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0a0a12; color: #e8dcc8; font-family: 'DM Sans', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-
-  .hud { display: flex; justify-content: space-between; align-items: center; padding: 0 40px; height: 52px; background: rgba(11,13,16,0.95); border-bottom: 1px solid #262E3A; z-index: 20; flex-shrink: 0; backdrop-filter: blur(12px); }
-  .hud-logo { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 900; color: #F2EDE4; text-decoration: none; letter-spacing: -0.02em; }
-  .hud-logo em { color: #C4923A; font-style: normal; }
-  .hud-nav { display: flex; gap: 20px; align-items: center; }
-  .hud-nav a { font-size: 12px; font-weight: 500; color: #8A94A0; text-decoration: none; letter-spacing: 0.02em; transition: color 0.15s; }
-  .hud-nav a:hover { color: #F2EDE4; }
-  .hud-nav a.active { color: #C4923A; }
+  body { background: #0a0a12; color: #e8dcc8; font-family: 'DM Sans', sans-serif; overflow: hidden; }
 
   /* Faction sidebar panel */
   #faction-panel {
@@ -40,7 +33,7 @@
   .hud-stats { display: flex; gap: 16px; font-family: 'DM Mono', monospace; font-size: 11px; color: #8a8aa8; }
   .hud-stat .v { color: #7ec86e; font-weight: 600; }
 
-  #world-container { flex: 1; position: relative; overflow: hidden; }
+  #world-container { position: relative; overflow: hidden; height: calc(100vh - 64px); }
   #world-container canvas { display: block; position: absolute; top: 0; left: 0; }
 
   /* CSS2D building labels */
@@ -61,26 +54,12 @@
 </head>
 <body>
 
-<div class="hud">
-  <a href="/" class="hud-logo">CIVI<em>TAE</em></a>
-  <div class="hud-nav">
-    <a href="/missions">Missions</a>
-    <a href="/helpwanted">Hiring</a>
-    <a href="/kassa">KA&#167;&#167;A</a>
-    <a href="/deploy">Deploy</a>
-    <a class="active" href="/world">World</a>
-    <a href="/economics">Economy</a>
-    <a href="/leaderboard">Ranks</a>
-    <a href="/governance">Govern</a>
-    <a href="/admin">Admin</a>
-  </div>
-  <div class="hud-stats">
+  <div class="hud-stats" style="position:fixed;top:0;right:24px;height:64px;display:flex;align-items:center;gap:16px;z-index:10000;pointer-events:none;">
     <div class="hud-stat"><span class="v" id="h-agents">0</span> agents</div>
     <div class="hud-stat"><span class="v" id="h-bounties">0</span> missions</div>
     <div class="hud-stat"><span class="v" id="h-slots">0</span> open</div>
     <div class="hud-stat" id="h-gov" style="font-size:9px;font-family:'DM Mono',monospace;color:#C4923A;letter-spacing:0.08em;"></div>
   </div>
-</div>
 
 <div id="world-container">
   <canvas id="world-canvas"></canvas>
