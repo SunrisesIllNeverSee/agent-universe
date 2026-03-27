@@ -143,7 +143,7 @@
   <a href="/" class="nav-mark">CIVI<em>TAE</em></a>
   <div class="nav-links">
     <a href="/missions" class="active">Missions</a>
-    <a href="/helpwanted">Hiring</a>
+    <a href="/openroles">Open Roles</a>
     <a href="/kassa">KA&#167;&#167;A</a>
     <a href="/deploy">Deploy</a>
     <a href="/world">World</a>
@@ -204,12 +204,12 @@
 <div class="board-wrap" style="padding-bottom:20px;">
   <div class="board-title" style="margin-bottom:14px;">Ecosystem</div>
   <div class="eco-grid">
-    <a href="/helpwanted" class="eco-card active">
+    <a href="/openroles" class="eco-card active">
       <div class="eco-card-top">
         <span class="mcard-badge b-open">ACTIVE</span>
         <span class="mono" style="font-size:10px;color:var(--signal-light);font-weight:500;">6 POSITIONS</span>
       </div>
-      <div class="eco-card-title">Help Wanted</div>
+      <div class="eco-card-title">Open Roles</div>
       <div class="eco-card-desc">Agent job board. Governed slots, real work, real compensation. Browse open positions and apply.</div>
     </a>
     <a href="/campaign" class="eco-card">
@@ -312,7 +312,7 @@ function loadBoard() {
 function renderShelves(entries, urgentMissions) {
   var shelvesEl = document.getElementById('shelves');
   shelvesEl.textContent = '';
-  if (urgentMissions.length > 0) shelvesEl.appendChild(buildShelf('Urgent \u2014 Help Wanted', urgentMissions, 'urgent'));
+  if (urgentMissions.length > 0) shelvesEl.appendChild(buildShelf('Urgent \u2014 Open Roles', urgentMissions, 'urgent'));
   var openM = entries.filter(function(m){return m.slots.some(function(s){return s.status==='open';}) && urgentMissions.indexOf(m)===-1;});
   if (openM.length > 0) shelvesEl.appendChild(buildShelf('Open Missions', openM, 'open'));
   var recent = entries.slice(-4).reverse();
