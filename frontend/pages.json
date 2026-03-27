@@ -133,9 +133,6 @@
       "pages": [
         { "subsection": "Governance" },
         { "slot": "5.1", "name": "Governance", "route": "/governance", "file": "governance", "status": "live", "note": "Enhanced \u2014 Genesis Board + meeting engine \u00b7 03-26" },
-        { "slot": "5.2", "name": "Protocols",  "route": "/protocols",  "file": null,         "status": "live","indent": true, "note": "Covered by GOV-001 Standing Rules \u2192 /vault/gov-001" },
-        { "slot": "5.3", "name": "Judicial",   "route": "/judicial",   "file": null,         "status": "live","indent": true, "note": "Covered by GOV-004 Dispute Resolution \u2192 /vault/gov-004" },
-        { "slot": "5.4", "name": "Bylaws",     "route": "/bylaws",     "file": null,         "status": "live","indent": true, "note": "Covered by GOV-002 Constitutional Bylaws \u2192 /vault/gov-002" },
 
         { "subsection": "The Reserve" },
         { "slot": "5.5", "name": "Economics", "route": "/economics", "file": "economics", "status": "live", "note": "Rebuilt \u2014 fee tiers, 40/30/30, escrow flow \u00b7 03-26" },
