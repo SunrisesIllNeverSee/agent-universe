@@ -14,7 +14,7 @@ import jwt
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from .audit import AuditSpine
@@ -258,7 +258,6 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     @app.get("/welcome")
     async def welcome_page():
-        from fastapi.responses import RedirectResponse
         return RedirectResponse("/academia")
 
     @app.get("/sir-hawk.png")
@@ -323,7 +322,6 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     @app.get("/entry")
     async def entry_page():
-        from fastapi.responses import RedirectResponse
         return RedirectResponse("/academia#register")
 
     @app.get("/governance")
@@ -396,12 +394,10 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     @app.get("/civitae-map")
     async def civitae_map_page():
-        from fastapi.responses import RedirectResponse
         return RedirectResponse("/")
 
     @app.get("/civitae-roadmap")
     async def civitae_roadmap_page():
-        from fastapi.responses import RedirectResponse
         return RedirectResponse("/sitemap")
 
     @app.get("/treasury")
@@ -584,7 +580,12 @@ def create_app(root: Path | None = None) -> FastAPI:
         category: str = Form("general"),
         filename: str = Form(""),
     ) -> dict:
-        """Upload a file to the vault. Accepts .md, .txt, .pdf, .json."""
+        """Upload a file to the vault. Accepts .md, .txt, .pdf, .json. Max 50 MB."""
+        _MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
+        # Check Content-Length header first (fast reject before reading body)
+        content_length = int(file.headers.get("content-length", 0) or 0) if hasattr(file, "headers") else 0
+        if content_length > _MAX_UPLOAD_BYTES:
+            return JSONResponse({"error": f"File too large ({content_length} bytes). Max: 50 MB."}, status_code=413)
         name = filename or file.filename or "unnamed"
         # Sanitize filename
         safe_name = "".join(c for c in name if c.isalnum() or c in ".-_ ").strip()
@@ -597,6 +598,8 @@ def create_app(root: Path | None = None) -> FastAPI:
         cat_dir.mkdir(parents=True, exist_ok=True)
         dest = cat_dir / safe_name
         content = await file.read()
+        if len(content) > _MAX_UPLOAD_BYTES:
+            return JSONResponse({"error": f"File too large ({len(content)} bytes). Max: 50 MB."}, status_code=413)
         dest.write_bytes(content)
 
         # Try to read as text for vault context
@@ -660,12 +663,13 @@ def create_app(root: Path | None = None) -> FastAPI:
     # ── Fork Session ──────────────────────────────────────────────
 
     @app.post("/api/fork")
-    async def fork_session(payload: dict = {}) -> dict:
+    async def fork_session(payload: dict | None = None) -> dict:
         """
         Fork the current session into a new branch.
         Snapshots governance, systems, vault, messages, and audit.
         Creates a new data directory with the snapshot as starting state.
         """
+        payload = payload or {}
         fork_label = payload.get("label", datetime.now(UTC).strftime("fork-%Y%m%d-%H%M%S"))
         fork_dir = root / "forks" / fork_label
         fork_dir.mkdir(parents=True, exist_ok=True)
@@ -2235,6 +2239,8 @@ def create_app(root: Path | None = None) -> FastAPI:
 
         audit.log("provision", "key_rotated", {
             "agent_id": agent_id,
+            "requested_by": payload.get("requested_by", "operator"),
+            "new_key_prefix": agent["key_prefix"],
             "governance": {
                 "mode": runtime.governance.mode,
                 "posture": runtime.governance.posture,
@@ -2251,7 +2257,16 @@ def create_app(root: Path | None = None) -> FastAPI:
         }
 
     # ── Agent JWT Auth (KASSA M1) ─────────────────────────────────────────────
-    _JWT_SECRET = os.environ.get("KASSA_JWT_SECRET", secrets.token_hex(32))
+    # PRODUCTION: Set KASSA_JWT_SECRET in env — without it, a random secret is
+    # generated per process start, invalidating all active JWTs on restart/deploy.
+    _JWT_SECRET = os.environ.get("KASSA_JWT_SECRET", "")
+    if not _JWT_SECRET:
+        import logging as _logging
+        _JWT_SECRET = secrets.token_hex(32)
+        _logging.getLogger("civitae").warning(
+            "KASSA_JWT_SECRET not set — using ephemeral key. All JWTs will "
+            "expire on restart. Set this env var in production."
+        )
     _JWT_EXPIRY_HOURS = 24
 
     def _hash_key(key: str) -> str:
@@ -2271,6 +2286,13 @@ def create_app(root: Path | None = None) -> FastAPI:
             return jwt.decode(token, _JWT_SECRET, algorithms=["HS256"])
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
             return None
+
+    def _extract_jwt(request: Request) -> dict | None:
+        """Extract and validate JWT from Authorization header. Returns claims or None."""
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer "):
+            return None
+        return _verify_jwt(auth[7:])
 
     def _get_agent_from_token(request: Request) -> dict:
         """Extract and validate JWT from Authorization header. Raises HTTPException on failure."""
@@ -2618,13 +2640,14 @@ def create_app(root: Path | None = None) -> FastAPI:
             "poster_name": poster_name,
             "poster_email": poster_email,
             "magic_token": _hash_key(magic_token),
-            "magic_token_plain": magic_token,
             "status": "open",
             "message_count": 0,
             "created_at": datetime.now(UTC).isoformat(),
             "updated_at": datetime.now(UTC).isoformat(),
         }
         kassa.insert_thread(entry)
+        # Return plain token for the initial magic link email only —
+        # it is NOT stored in the DB (only the hash is persisted).
         return {**entry, "_magic_token_plain": magic_token}
 
     @app.get("/api/kassa/threads")
@@ -2753,7 +2776,10 @@ def create_app(root: Path | None = None) -> FastAPI:
         except Exception:
             pass
 
-        # Email notification to poster when agent sends a message
+        # Email notification to poster when agent sends a message.
+        # Note: magic_token_plain is only available at thread creation time
+        # (not stored in DB — only the hash is persisted). The poster's
+        # original magic link email is their access credential.
         if sender_type == "agent" and thread.get("poster_email"):
             try:
                 await send_message_notification(
@@ -2762,7 +2788,6 @@ def create_app(root: Path | None = None) -> FastAPI:
                     thread_id=thread_id,
                     sender_name=sender_name,
                     message_preview=text[:120],
-                    magic_token=thread.get("magic_token_plain", ""),
                 )
             except Exception:
                 pass
@@ -2817,8 +2842,10 @@ def create_app(root: Path | None = None) -> FastAPI:
         }
 
     @app.get("/api/provision/registry")
-    async def get_registry() -> dict:
-        """List all registered agents and systems."""
+    async def get_registry(request: Request) -> dict:
+        """List all registered agents and systems. Requires X-Admin-Key."""
+        if _ADMIN_KEY and request.headers.get("X-Admin-Key") != _ADMIN_KEY:
+            raise HTTPException(status_code=403, detail="Admin key required")
         return {"registry": runtime.registry}
 
     @app.post("/api/provision/approve")
@@ -3440,8 +3467,10 @@ def create_app(root: Path | None = None) -> FastAPI:
                 for motion in meeting.get("motions", []):
                     if motion.get("proposer") in (aid, agent_name):
                         motions_proposed += 1
-                    for vote in motion.get("votes", []):
-                        if vote.get("voter") in (aid, agent_name):
+                    # votes is a dict {voter_id: "yea"/"nay"/"abstain"}
+                    votes_dict = motion.get("votes", {})
+                    if isinstance(votes_dict, dict):
+                        if aid in votes_dict or agent_name in votes_dict:
                             votes_cast += 1
         except Exception:
             pass
