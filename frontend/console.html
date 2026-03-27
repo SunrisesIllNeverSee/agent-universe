@@ -356,6 +356,84 @@ body {
   letter-spacing: 0.06em;
 }
 
+/* ── Stats grid ──────────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px 10px 10px;
+  text-align: center;
+}
+.stat-value {
+  font-family: var(--mono);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--gold);
+  line-height: 1.1;
+}
+.stat-label {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* ── Contact cards ───────────────────────────────────────────── */
+.contact-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-size: 0.76rem;
+}
+.contact-card:hover { border-color: var(--border2); }
+.contact-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+.contact-name {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+.contact-date {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  color: var(--muted);
+}
+.contact-subject {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  color: var(--cmd);
+  margin-bottom: 4px;
+}
+.contact-email {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.contact-message {
+  font-size: 0.74rem;
+  color: var(--text);
+  line-height: 1.4;
+  max-height: 3.6em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .feed-entry {
   border-left: 2px solid var(--border2);
   border-radius: 0;
