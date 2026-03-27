@@ -474,7 +474,7 @@ async function loadRealmStats() {
     const res = await fetch('/api/state');
     if (!res.ok) return;
     const data = await res.json();
-    const agents   = data.agents_count   ?? data.agents   ?? '—';
+    const agents   = data.agents_count   ?? (Array.isArray(data.agents) ? data.agents.length : data.agents) ?? '—';
     const bounties = data.bounties_count ?? data.bounties ?? '—';
     const slots    = data.open_slots     ?? data.slots    ?? '—';
     const audit    = data.audit_count    ?? '—';
