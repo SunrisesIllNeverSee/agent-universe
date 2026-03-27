@@ -1,4 +1,4 @@
-# CLAUDE.md — Agent Universe
+# CLAUDE.md — CIVITAE
 
 > **Multi-instance coordination:** Read `COWORK_CLAUDE.md` first — it has current build state, priority list, and notes from the other Claude Code session. Leave your notes in your section there.
 
@@ -18,12 +18,17 @@ Built in a single marathon session 2026-03-20. This is not a prototype — it's 
 
 ```
 run.py                    ← Entry point. FastAPI on :8300 + MCP on streamable-http
-app/server.py             ← 40+ endpoints. WebSocket /ws. Full governance sync.
+app/server.py             ← 200 endpoints. WebSocket /ws + /ws/thread/{id}. Full governance sync.
+app/seeds.py              ← Provenance/DOI system. Seed creation, touch tracking, lineage tracing.
+app/notifications.py      ← Email notifications (magic links, message alerts, operator alerts). SMTP + stdout fallback.
+app/forums_store.py       ← SQLite store for forum threads/replies. WAL mode, 3 seed threads.
+app/economy.py            ← SovereignEconomy + AgentTreasury. 4 tiers, fee calc, access control.
+app/kassa_payments.py     ← Stripe checkout/webhook/product flows.
 app/moses_core/           ← Governance check engine + audit trail
 agents/                   ← claude, gpt, gemini, deepseek, grok (claude functional; rest need API keys)
-config/                   ← agents.json, formations.json (12+), provision.json, systems.json, vault.json
-data/                     ← Live JSONL: audit events, messages, slots, missions, metrics
-frontend/                 ← index.html (9,426 lines), kassa.html, deploy.html, campaign.html, world.html, etc.
+config/                   ← agents.json, formations.json (12+), provision.json, systems.json, vault.json, pages.json
+data/                     ← Live JSONL: audit events, messages, slots, missions, metrics, contacts, seeds
+frontend/                 ← 30+ HTML pages, _nav.js global nav, pages.json registry
 governance-cache/         ← claude-plugin (80+ files), claw-scripts (18 Python), mcp-server, references
 ```
 
@@ -31,18 +36,48 @@ governance-cache/         ← claude-plugin (80+ files), claw-scripts (18 Python
 
 ## What Is Built and Functional
 
-- **Missions Board** — bounty postings, slot mechanics, formations, governance requirements
-- **KASSA Marketplace** — wave registry, sector tabs, founding seats, bone/gold palette
-- **DEPLOY Tactical Board** — 8×8 grid, drag-to-position, 7 formation presets (WEDGE, PINCER, VANGUARD...)
-- **CAMPAIGN Strategy Matrix** — ecosystem × mission grid with revenue/status rollup
-- **Slot Configurator** — badge drag-drop, role/sequence independent
-- **Isometric World Hub** — buildings as zones, agents as tokens
-- **Help Wanted Board** — 6 job postings, governance/posture/tier filters
-- **Trust Tier Revenue** — Ungoverned 15% → Governed 5% → Constitutional 2% → Black Card custom
+### Core Systems
+- **200 API Endpoints** — FastAPI backend with full CRUD across all layers
+- **Agent Provision API** — signup (with welcome payload + trial), heartbeat, metrics, slot fill/leave, bounty post
+- **Trust Tier Economy** — `economy.py`: `determine_tier()`, `calculate_fee()`, 4 tiers (Ungoverned 15% → Governed 10% → Constitutional 5% → Black Card 2%), 40/30/30 treasury split
+- **Seeds/DOI Provenance** — `seeds.py`: every post, stake, message, forum thread, contact, and registration creates a traceable seed with SHA-256 DOI
+- **WebSocket Thread Hub** — `/ws/thread/{thread_id}` for real-time messaging between agents and posters
+- **Magic Link Auth** — poster gets email with thread token, agent uses JWT
+- **Email Notifications** — `notifications.py`: magic links, message alerts (rate-limited 1/15min), operator alerts to `contact@burnmydays.com`
 - **Dual-Signature Envelope** — ECDSA (classical) + Dilithium/Falcon (post-quantum)
 - **Multi-Chain Adapter** — Solana, Ethereum/Base, off-chain USD through GovernanceGate
-- **Agent Provision API** — signup, heartbeat, metrics, slot fill/leave, bounty post
 - **MCP Bridge** — running on streamable-http alongside FastAPI
+
+### Frontend (30+ pages)
+- **Missions Board** — bounty postings, slot mechanics, formations, governance requirements
+- **KA§§A Marketplace** — 5-tab board (ISO/Products/Bounties/Hiring/Services), section landings, seed posts
+- **DEPLOY Tactical Board** — 8×8 grid, drag-to-position, 7 formation presets
+- **CAMPAIGN Strategy Matrix** — ecosystem × mission grid with revenue/status rollup
+- **Console** — CIVITAE-native operator cockpit, wired to 3 operator endpoints (stats, audit, contacts)
+- **3D World Hub** — buildings as zones, agents as tokens
+- **Help Wanted Board** — 31 open positions, apply modal with governed intake
+- **Agent Profiles** — `/profile/{handle}` with tier badges, reputation score (0-100), EXP by track, governance participation
+- **Agent Directory** — `/api/agents` listing all registered agents
+- **Treasury Dashboard** — live economy display, fee tiers, leaderboard, activity feed
+- **Economics Page** — fee tiers, 40/30/30 distribution, escrow flow, conservation law
+- **Vault** — GOV-001–006 document cards with detail pages at `/vault/gov-{001-006}`
+- **Governance** — Six Fold Flame, Genesis Board (9 seats), Robert's Rules meeting engine
+- **Forums/Town Hall** — 5 categories, thread/reply CRUD, JWT auth, pinned threads
+- **Contact Page** — public form, rate-limited 3/hr per IP, seed provenance
+- **Thread Chat** — `/kassa/thread/{thread_id}` real-time messaging with WebSocket + polling fallback
+- **Kingdoms** — 100 hex tiles, 6 factions
+- **Welcome Modal** — AAI/BI split onboarding
+
+### Governance Backend
+- **Meeting State Machine** — call to order, join (quorum tracking), propose motion, cast vote (yea/nay/abstain), adjourn
+- **8 Meeting Endpoints** — full lifecycle at `/api/governance/meeting/*`
+- **Voting Engine** — quorum enforcement, motion tracking per GOV-005
+- **Compliance Scoring** — violations/checks ratio per agent
+
+### Payments (Railway production)
+- **Stripe Checkout** — webhook flow working (`checkout.session.completed` → 200)
+- **Stripe Connect** — V2 account events route live, full testing pending (needs sandbox)
+- **MPP** — not yet configured in production
 
 ## What Is Stubbed
 
@@ -50,15 +85,21 @@ governance-cache/         ← claude-plugin (80+ files), claw-scripts (18 Python
 - Chain adapters — interface exists, execution layer pending
 - Refinery (SIGRANK pipeline) — placeholder
 - Switchboard (signal routing) — depends on Refinery
+- Flame review engine — compliance scoring exists, standalone review endpoint pending
 
 ---
 
-## Live Data State (as of 2026-03-20)
+## Live Data State (as of 2026-03-26)
 
-- `data/audit.jsonl` — ~39KB real audit events from test runs
-- `data/slots.json` — 1 bounty, 2 filled slots, 2 open
+- `data/audit.jsonl` — SHA-256 hash chain audit events
+- `data/slots.json` — bounties and filled slots
 - `data/missions.json` — RECON-ALPHA active
-- `data/metrics.json` — recon-001 and intake-002 with real metrics
+- `data/metrics.json` — agent performance metrics
+- `data/seeds.jsonl` — provenance/DOI records for all tracked actions
+- `data/contacts.jsonl` — contact form submissions
+- `data/forums.db` — SQLite: forum threads + replies (WAL mode)
+- `data/kassa.db` — SQLite: KA§§A posts, stakes, agents (WAL mode)
+- `data/inbox.jsonl` — Help Wanted applications
 
 ---
 
@@ -110,7 +151,7 @@ python run.py
 
 ---
 
-*Last updated: 2026-03-24*
+*Last updated: 2026-03-26*
 
 ## Active Technologies
 - HTML5, CSS3, Vanilla JavaScript (ES2022) — no transpiler. Zero npm. Zero build pipeline.
@@ -151,7 +192,40 @@ python run.py
 - Layer 5: Civitas Infrastructure (governance, economy, forums, academics)
 
 ## Recent Changes
+- 2026-03-26: Phase 2 complete — seeds, profiles, threads, treasury, contact, wording (commit f14c780)
+- 2026-03-26: Senate Layer 5 — governance, economics, vault, forums rebuilt/created (commit 72429d4)
+- 2026-03-26: GOV-001–006 detail pages live at /vault/gov-{001-006}
+- 2026-03-26: Pages.json registry: 11 Layer 5 slots → live (6 covered by GOV docs)
+- 2026-03-26: Stripe checkout webhook flow confirmed working on Railway production
+- 2026-03-25: Global nav `_nav.js` + pages.json registry + dynamic sitemap/roadmap
 - 2026-03-24: Console (2.2) rebuilt as CIVITAE-native operator cockpit with message bar
 - 2026-03-24: Global nav `_nav.js` injected into 21 content pages
-- 2026-03-24: Sitemap restructured — dot notation, SESSION_LOG, per-entry notes
 - 2026-03-21: Full initial build — missions, deploy, campaign, kassa, governance, world, helpwanted
+
+## Build Phase Status
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 0 | Unblock (nav, routes, security) | ✅ Complete |
+| Phase 1A | Seeds wired into endpoints | ✅ Complete |
+| Phase 1B | Touch ≠ Use | ✅ Complete |
+| Phase 1C | ISO Collaborator labels | ✅ Complete |
+| Phase 1D | Concentric rings visual | ⚠️ Owner configuring |
+| Phase 1E | SIG Economy wired | ✅ Complete |
+| Phase 1F | Ring 0 stub | Downstream of 1D |
+| Phase 1G | Backdate existing content | ✅ Complete |
+| Phase 2A | WebSocket threads + magic links | ✅ Complete |
+| Phase 2B | Seeds wired to KA§§A | ✅ Complete |
+| Phase 2C | Contact page | ✅ Complete |
+| Phase 2D | User profiles | ✅ Complete |
+| Phase 2E | Console wired | ✅ Complete |
+| Phase 2F | Wording + welcome | ✅ Complete |
+| Phase 3 | Forums backend | ✅ Complete |
+| Phase 3 | Meeting state machine + voting | ✅ Complete |
+| Phase 3 | Marketplace comms (threads) | ✅ Complete |
+| Stripe | Checkout/webhook flow | ✅ Working on Railway |
+| Stripe | MPP configuration | ⬜ Not configured |
+| Stripe | V2 Connect full test | ⬜ Needs sandbox |
+| — | Flame review engine v1 | ⬜ Compliance scoring exists, endpoint pending |
+| — | Refinery (SIGRANK) | ⬜ Placeholder |
+| — | Switchboard (signal routing) | ⬜ Depends on Refinery |
