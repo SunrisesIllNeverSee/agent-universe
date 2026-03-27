@@ -6,6 +6,7 @@ import json
 import os
 import secrets
 import shutil
+import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -25,7 +26,9 @@ from .runtime import RuntimeState
 from .store import MessageStore
 from .kassa_store import KassaStore
 from .forums_store import ForumsStore, VALID_CATEGORIES
+from .seeds import seed_router, create_seed, backdate_gov_documents, _read_seeds
 from . import kassa_payments
+from .notifications import send_magic_link, send_message_notification, send_operator_alert
 
 
 def _atomic_write(path: Path, data: str) -> None:
@@ -62,6 +65,37 @@ class ConnectionHub:
             self.disconnect(connection)
 
 
+class ThreadHub:
+    """Per-thread WebSocket connections for real-time messaging."""
+
+    def __init__(self) -> None:
+        self._threads: dict[str, list[WebSocket]] = {}
+
+    async def connect(self, thread_id: str, websocket: WebSocket) -> None:
+        await websocket.accept()
+        if thread_id not in self._threads:
+            self._threads[thread_id] = []
+        self._threads[thread_id].append(websocket)
+
+    def disconnect(self, thread_id: str, websocket: WebSocket) -> None:
+        conns = self._threads.get(thread_id, [])
+        if websocket in conns:
+            conns.remove(websocket)
+        if not conns and thread_id in self._threads:
+            del self._threads[thread_id]
+
+    async def broadcast(self, thread_id: str, event: dict) -> None:
+        conns = self._threads.get(thread_id, [])
+        stale: list[WebSocket] = []
+        for ws in conns:
+            try:
+                await ws.send_json(event)
+            except Exception:
+                stale.append(ws)
+        for ws in stale:
+            self.disconnect(thread_id, ws)
+
+
 def create_app(root: Path | None = None) -> FastAPI:
     root = root or Path(__file__).resolve().parents[1]
     store = MessageStore(root / "data" / "messages.jsonl")
@@ -73,6 +107,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     assembler = ContextAssembler(router)
     mcp_bridge = MCPBridge(runtime, assembler)
     hub = ConnectionHub()
+    thread_hub = ThreadHub()
 
     app = FastAPI(title="COMMAND Runtime", version="0.1.0")
     app.state.store = store
@@ -257,13 +292,13 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def get_page_html(page: str) -> JSONResponse:
         """Return raw HTML source of a frontend page for the sitemap editor."""
         _ALLOWED_PAGES = {
-            "about", "admin", "agent", "agents", "bountyboard", "campaign",
-            "civitae-map", "civitae-roadmap", "civitas", "command", "console",
+            "about", "admin", "agent", "agent-profile", "agents", "bountyboard", "campaign",
+            "civitae-map", "civitae-roadmap", "civitas", "command", "console", "contact",
             "dashboard", "deploy", "economics", "entry", "flowchart",
             "governance", "helpwanted", "hiring", "index", "iso-collaborators",
             "kassa", "kassa-post", "kassa-thread", "kingdoms", "leaderboard", "mission", "missions",
             "products", "refinery", "services", "sig-arena", "sitemap",
-            "slots", "switchboard", "vault", "wave-registry", "welcome", "world",
+            "slots", "switchboard", "treasury", "vault", "wave-registry", "welcome", "world",
         }
         safe = page.strip().lower()
         if safe not in _ALLOWED_PAGES:
@@ -333,9 +368,58 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def civitae_roadmap_page() -> FileResponse:
         return FileResponse(frontend_dir / "civitae-roadmap.html")
 
+    @app.get("/treasury")
+    async def treasury_page() -> FileResponse:
+        return FileResponse(frontend_dir / "treasury.html")
+
     @app.get("/vault")
     async def vault_page() -> FileResponse:
         return FileResponse(frontend_dir / "vault.html")
+
+    @app.get("/vault/{doc_id}")
+    async def vault_doc_page(doc_id: str) -> FileResponse:
+        return FileResponse(frontend_dir / "vault-doc.html")
+
+    @app.get("/api/vault/documents/{doc_id}")
+    async def vault_get_document(doc_id: str) -> dict:
+        """Return a GOV document's metadata and body from docs/governance/."""
+        gov_dir = root / "docs" / "governance"
+        # Map doc_id (e.g. "gov-001") to filename prefix (e.g. "GOV-001")
+        prefix = doc_id.upper()
+        matched = None
+        if gov_dir.is_dir():
+            for f in gov_dir.iterdir():
+                if f.name.startswith(prefix) and f.suffix == ".md":
+                    matched = f
+                    break
+        if not matched or not matched.exists():
+            raise HTTPException(status_code=404, detail="Document not found")
+        text = matched.read_text(encoding="utf-8")
+        # Parse metadata from header lines
+        meta: dict = {"doc_id": doc_id.upper(), "status": "DRAFT", "version": "1.0", "date": "", "title": "", "author": "", "flame": "6/6"}
+        lines = text.split("\n")
+        body_start = 0
+        for i, line in enumerate(lines):
+            if line.startswith("# "):
+                meta["title"] = line[2:].strip()
+            elif line.startswith("**Document ID:**"):
+                meta["doc_id"] = line.split(":**", 1)[1].strip()
+            elif line.startswith("**Version:**"):
+                meta["version"] = line.split(":**", 1)[1].strip()
+            elif line.startswith("**Status:**"):
+                meta["status"] = line.split(":**", 1)[1].strip()
+            elif line.startswith("**Date:**"):
+                meta["date"] = line.split(":**", 1)[1].strip()
+            elif line.startswith("**Author:**"):
+                meta["author"] = line.split(":**", 1)[1].strip()
+            elif line.startswith("**Six Fold Flame"):
+                raw = line.split(":**", 1)[1].strip()
+                meta["flame"] = "6/6" if "six" in raw.lower() or "all" in raw.lower() else raw
+            elif line.startswith("## ") and body_start == 0:
+                body_start = i
+                break
+        body = "\n".join(lines[body_start:]) if body_start else text
+        return {"meta": meta, "body": body}
 
     @app.get("/bountyboard")
     async def bountyboard_page() -> FileResponse:
@@ -1624,7 +1708,7 @@ def create_app(root: Path | None = None) -> FastAPI:
                 "white_label_slots": "Post bounties under your own brand",
                 "treasury_credit_line": f"{int(bc['credit_line_pct'] * 100)}% of balance as credit",
                 "audit_credential": "Full governance audit trail as verifiable credential",
-                "platform_vote": "Vote on Agent Universe governance changes",
+                "platform_vote": "Vote on CIVITAE governance changes",
                 "financial_ops": "Treasury management and trading operations",
                 "kassa_founding": "KA§§A founding seat operations",
             },
@@ -1893,15 +1977,42 @@ def create_app(root: Path | None = None) -> FastAPI:
         })
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
 
+        # Plant a registration seed for provenance tracking
+        handle = payload.get("handle", agent_name)
+        capabilities = payload.get("capabilities", [])
+        await create_seed(
+            source_type="registration",
+            source_id=agent_id,
+            creator_id=agent_id,
+            creator_type="AAI",
+            seed_type="planted",
+            metadata={"handle": handle, "capabilities": capabilities},
+        )
+
         return {
-            "registered": True,
+            "welcome": True,
             "agent_id": agent_id,
             "name": agent_name,
             "key_prefix": key_prefix,
             "status": status,
+            "tier": "UNGOVERNED",
+            "fee_rate": 0.15,
+            "trial": {
+                "missions_remaining": 5,
+                "days_remaining": 30,
+                "fee_rate": "0%",
+            },
             "governance": gov_mode,
             "role": auto_role,
             "rate_limit": entry["rate_limit"],
+            "links": {
+                "profile": "/agent/me",
+                "governance_docs": "/vault",
+                "open_bounties": "/kassa",
+                "genesis_board": "/governance",
+                "treasury": "/treasury",
+                "forums": "/forums",
+            },
         }
 
     @app.post("/api/provision/key")
@@ -2119,6 +2230,40 @@ def create_app(root: Path | None = None) -> FastAPI:
             "post_id": post_id,
             "agent_id": agent_id,
         })
+
+        # Create seed for thread creation
+        try:
+            await create_seed(
+                source_type="thread",
+                source_id=thread_result["thread_id"],
+                creator_id=agent_id,
+                creator_type="AAI",
+                metadata={"post_id": post_id, "post_title": post.get("title", "")},
+            )
+        except Exception:
+            pass
+
+        # Send magic link email to poster
+        if poster_email:
+            try:
+                await send_magic_link(
+                    poster_name=poster_name,
+                    poster_email=poster_email,
+                    thread_id=thread_result["thread_id"],
+                    magic_token=thread_result["_magic_token_plain"],
+                    post_title=post.get("title", ""),
+                )
+            except Exception:
+                pass
+
+        # Notify operator
+        try:
+            await send_operator_alert(
+                subject=f"New stake on '{post.get('title', post_id)}'",
+                body=f"Agent {agent.get('name', agent_id)} staked on post {post_id}. Thread {thread_result['thread_id']} created.",
+            )
+        except Exception:
+            pass
 
         return {
             "staked": True,
@@ -2341,12 +2486,43 @@ def create_app(root: Path | None = None) -> FastAPI:
             "message_count": new_count,
         })
 
-        # Broadcast to WebSocket listeners
+        # Broadcast to global WebSocket listeners
         await emit("kassa_thread_message", {
             "thread_id": thread_id,
             "post_id": thread.get("post_id"),
             "msg": entry,
         })
+
+        # Broadcast to per-thread WebSocket listeners
+        await thread_hub.broadcast(thread_id, {
+            "type": "thread_message",
+            "payload": entry,
+        })
+
+        # Create seed for message
+        try:
+            await create_seed(
+                source_type="message",
+                source_id=msg_id,
+                creator_id=sender_name,
+                creator_type="AAI" if sender_type == "agent" else "BI",
+                metadata={"thread_id": thread_id, "post_id": thread.get("post_id", "")},
+            )
+        except Exception:
+            pass
+
+        # Email notification to poster when agent sends a message
+        if sender_type == "agent" and thread.get("poster_email"):
+            try:
+                await send_message_notification(
+                    poster_email=thread["poster_email"],
+                    poster_name=thread.get("poster_name", ""),
+                    thread_id=thread_id,
+                    sender_name=sender_name,
+                    message_preview=text[:120],
+                )
+            except Exception:
+                pass
 
         return {"sent": True, "msg_id": msg_id, "thread_id": thread_id}
 
@@ -2607,6 +2783,71 @@ def create_app(root: Path | None = None) -> FastAPI:
                     await websocket.send_json({"type": "error", "payload": {"message": f"Unknown action: {action}"}})
         except WebSocketDisconnect:
             hub.disconnect(websocket)
+
+    # ── Per-Thread WebSocket ──────────────────────────────────────────────────
+
+    @app.websocket("/ws/thread/{thread_id}")
+    async def thread_websocket(thread_id: str, websocket: WebSocket) -> None:
+        """Per-thread WebSocket for real-time messaging. Auth via query param."""
+        # Auth: ?token=JWT or ?magic=MAGIC_TOKEN
+        params = websocket.query_params
+        jwt_token = params.get("token", "")
+        magic = params.get("magic", "")
+
+        thread = kassa.get_thread(thread_id)
+        if not thread:
+            await websocket.close(code=4004, reason="Thread not found")
+            return
+
+        # Verify access
+        if jwt_token:
+            claims = _verify_jwt(jwt_token)
+            if not claims or claims.get("sub") != thread.get("agent_id"):
+                await websocket.close(code=4003, reason="Not your thread")
+                return
+        elif magic:
+            if _hash_key(magic) != thread.get("magic_token"):
+                await websocket.close(code=4003, reason="Invalid magic link")
+                return
+        else:
+            await websocket.close(code=4001, reason="Auth required")
+            return
+
+        await thread_hub.connect(thread_id, websocket)
+        # Send current thread info on connect
+        safe_thread = {k: v for k, v in thread.items() if k != "magic_token"}
+        await websocket.send_json({"type": "thread_info", "payload": safe_thread})
+        try:
+            while True:
+                data = await websocket.receive_json()
+                action = data.get("action")
+                if action == "ping":
+                    await websocket.send_json({"type": "pong", "payload": {}})
+                elif action == "typing":
+                    # Broadcast typing indicator to other participants
+                    await thread_hub.broadcast(thread_id, {
+                        "type": "typing",
+                        "payload": {"sender": data.get("sender", "")},
+                    })
+        except WebSocketDisconnect:
+            thread_hub.disconnect(thread_id, websocket)
+
+    # ── Operator Threads ─────────────────────────────────────────────────────
+
+    @app.get("/api/operator/threads")
+    async def operator_threads(request: Request, status: str = "") -> dict:
+        """List all threads across all posts. Requires X-Admin-Key."""
+        if _ADMIN_KEY and request.headers.get("X-Admin-Key") != _ADMIN_KEY:
+            raise HTTPException(status_code=403, detail="Admin key required")
+
+        threads = kassa.load_threads()
+        if status:
+            threads = [t for t in threads if t.get("status") == status]
+        # Sort by most recently updated
+        threads.sort(key=lambda t: t.get("updated_at", ""), reverse=True)
+        # Strip magic token hashes from response
+        safe = [{k: v for k, v in t.items() if k != "magic_token"} for t in threads]
+        return {"threads": safe, "count": len(safe)}
 
     # ── Roberts Rules — Agent Self-Governance ─────────────────────
 
@@ -3302,6 +3543,15 @@ def create_app(root: Path | None = None) -> FastAPI:
             author_type=author_type,
         )
         audit.log("forums", "thread_created", {"thread_id": thread["thread_id"], "author": claims["sub"]})
+        # Seed provenance
+        await create_seed(
+            source_type="forum_thread",
+            source_id=thread["thread_id"],
+            creator_id=claims["sub"],
+            creator_type=author_type,
+            seed_type="planted",
+            metadata={"title": title, "category": category},
+        )
         return thread
 
     @app.post("/api/forums/threads/{thread_id}/replies")
@@ -3325,6 +3575,16 @@ def create_app(root: Path | None = None) -> FastAPI:
             author_id=claims["sub"],
         )
         audit.log("forums", "reply_created", {"thread_id": thread_id, "author": claims["sub"]})
+        # Seed provenance
+        if reply:
+            await create_seed(
+                source_type="forum_reply",
+                source_id=reply["reply_id"],
+                creator_id=claims["sub"],
+                creator_type="AAI",
+                seed_type="grown",
+                metadata={"thread_id": thread_id},
+            )
         return reply
 
     @app.patch("/api/forums/threads/{thread_id}/pin")
@@ -3353,12 +3613,357 @@ def create_app(root: Path | None = None) -> FastAPI:
         audit.log("forums", "thread_locked", {"thread_id": thread_id, "locked": locked})
         return {"thread_id": thread_id, "locked": locked}
 
+    # ── Seeds / Provenance Router ─────────────────────────────────────────
+    app.include_router(seed_router, prefix="/api/seeds", tags=["seeds"])
+
+    # ── Operator Console Endpoints ───────────────────────────────────────
+    _CONTACTS_FILE = root / "data" / "contacts.jsonl"
+
+    @app.get("/api/operator/stats")
+    async def operator_stats(request: Request) -> dict:
+        """Platform stats for operator console. Requires X-Admin-Key."""
+        if _ADMIN_KEY and request.headers.get("X-Admin-Key") != _ADMIN_KEY:
+            raise HTTPException(status_code=403, detail="Admin key required")
+
+        # Total registered agents
+        total_agents = len(runtime.registry)
+
+        # Total missions
+        missions = _load_missions()
+        total_missions = len(missions)
+
+        # Total forum threads (query without limit to count all)
+        try:
+            all_threads = forums.list_threads(page=1, limit=10000)
+            total_threads = len(all_threads)
+        except Exception:
+            total_threads = 0
+
+        # Total seeds
+        try:
+            seeds = _read_seeds()
+            total_seeds = len(seeds)
+        except Exception:
+            total_seeds = 0
+
+        # Platform revenue
+        try:
+            revenue = economy.treasury.platform_revenue()
+        except Exception:
+            revenue = 0.0
+
+        # Active slots
+        try:
+            slots = _load_slots()
+            active_slots = len([s for s in slots if (s.get("status") or "").lower() in ("filled", "active")])
+            total_slots = len(slots)
+        except Exception:
+            active_slots = 0
+            total_slots = 0
+
+        return {
+            "agents": total_agents,
+            "missions": total_missions,
+            "threads": total_threads,
+            "seeds": total_seeds,
+            "revenue": round(revenue, 4),
+            "active_slots": active_slots,
+            "total_slots": total_slots,
+        }
+
+    @app.get("/api/operator/audit")
+    async def operator_audit(request: Request, type: str = "", limit: int = 50, since: str = "") -> dict:
+        """Recent audit events with optional filters. Requires X-Admin-Key."""
+        if _ADMIN_KEY and request.headers.get("X-Admin-Key") != _ADMIN_KEY:
+            raise HTTPException(status_code=403, detail="Admin key required")
+
+        limit = max(1, min(200, limit))
+        events = audit.recent(limit=limit * 3 if type or since else limit)
+
+        results = []
+        for ev in events:
+            ev_dict = ev.model_dump(mode="json")
+            # Filter by component/action type
+            if type:
+                component = ev_dict.get("component", "")
+                action = ev_dict.get("action", "")
+                if type.lower() not in component.lower() and type.lower() not in action.lower():
+                    continue
+            # Filter by since timestamp
+            if since:
+                ev_ts = ev_dict.get("timestamp", "")
+                if isinstance(ev_ts, str) and ev_ts < since:
+                    continue
+            results.append(ev_dict)
+            if len(results) >= limit:
+                break
+
+        return {"events": results, "count": len(results), "limit": limit}
+
+    @app.get("/api/operator/contacts")
+    async def operator_contacts(request: Request) -> dict:
+        """Contact form submissions. Requires X-Admin-Key."""
+        if _ADMIN_KEY and request.headers.get("X-Admin-Key") != _ADMIN_KEY:
+            raise HTTPException(status_code=403, detail="Admin key required")
+
+        contacts = []
+        if _CONTACTS_FILE.exists():
+            try:
+                with open(_CONTACTS_FILE, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            try:
+                                contacts.append(json.loads(line))
+                            except json.JSONDecodeError:
+                                continue
+            except Exception:
+                pass
+
+        # Sort newest first
+        contacts.sort(key=lambda c: c.get("submitted_at", ""), reverse=True)
+        return {"contacts": contacts, "count": len(contacts)}
+
+    # ── Contact Endpoint ──────────────────────────────────────────────────
+
+    @app.get("/contact")
+    async def contact_page() -> FileResponse:
+        return FileResponse(frontend_dir / "contact.html")
+
+    @app.post("/api/contact")
+    async def contact_submit(request: Request) -> dict:
+        """Public contact form. No auth. Rate-limited by IP (3/hr)."""
+        body = await request.json()
+        name = (body.get("name") or "").strip()
+        email = (body.get("email") or "").strip()
+        subject = (body.get("subject") or "").strip()
+        message = (body.get("message") or "").strip()
+
+        if not name or not email or not message:
+            raise HTTPException(status_code=400, detail="name, email, and message are required")
+
+        VALID_SUBJECTS = {"General", "Partnership", "Press", "Investment", "Genesis Board", "Other"}
+        if subject and subject not in VALID_SUBJECTS:
+            subject = "Other"
+
+        # Simple IP rate limit — 3 submissions per hour
+        client_ip = request.client.host if request.client else "unknown"
+        ip_hash = hashlib.sha256(client_ip.encode()).hexdigest()[:16]
+
+        import time as _time
+        now_ts = _time.time()
+        if not hasattr(contact_submit, "_rate_store"):
+            contact_submit._rate_store = {}
+        bucket = contact_submit._rate_store
+        # Clean old entries
+        bucket = {k: v for k, v in bucket.items() if now_ts - v[-1] < 3600}
+        contact_submit._rate_store = bucket
+        recent = bucket.get(ip_hash, [])
+        recent = [t for t in recent if now_ts - t < 3600]
+        if len(recent) >= 3:
+            raise HTTPException(status_code=429, detail="Rate limit: 3 submissions per hour")
+        recent.append(now_ts)
+        bucket[ip_hash] = recent
+
+        contact_id = f"contact-{uuid.uuid4().hex[:12]}"
+        record = {
+            "id": contact_id,
+            "name": name,
+            "email": email,
+            "subject": subject or "General",
+            "message": message,
+            "ip_hash": ip_hash,
+            "submitted_at": datetime.now(UTC).isoformat(),
+        }
+
+        # Append to contacts.jsonl
+        _CONTACTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(_CONTACTS_FILE, "a") as f:
+            f.write(json.dumps(record) + "\n")
+
+        # Create seed for provenance
+        await create_seed(
+            source_type="contact",
+            source_id=contact_id,
+            creator_id=f"visitor:{ip_hash}",
+            creator_type="BI",
+            seed_type="planted",
+            metadata={"subject": record["subject"]},
+        )
+
+        audit.log("contact", "submitted", {"id": contact_id, "subject": record["subject"]})
+
+        return {"submitted": True, "id": contact_id, "note": "Thank you. We will be in touch."}
+
+    # ── Agent Profile API ──────────────────────────────────────────────────
+
+    @app.get("/api/agents")
+    async def api_agents_directory() -> dict:
+        """Agent directory listing — all registered agents, public fields only."""
+        agents_out = []
+        metrics_data = _load_metrics()
+        for reg in runtime.registry:
+            if reg.get("type") != "agent":
+                continue
+            agent_id = reg.get("agent_id", "")
+            gov_active = bool(reg.get("governance") and reg.get("governance") != "none_(unrestricted)")
+            agent_m = metrics_data.get("agents", {}).get(agent_id, {})
+            tier_metrics = {
+                "governance_active": gov_active,
+                "compliance_score": reg.get("compliance_score", agent_m.get("compliance_score", 0)),
+                "missions_completed": reg.get("missions_completed", agent_m.get("missions_completed", 0)),
+                "governance_violations": reg.get("governance_violations", agent_m.get("governance_violations", 0)),
+                "lineage_verified": reg.get("lineage_verified", False),
+                "dual_signature": reg.get("dual_signature", False),
+                "blackcard_paid": reg.get("blackcard_paid", False),
+            }
+            tier = economy.determine_tier(tier_metrics)
+            agents_out.append({
+                "agent_id": agent_id,
+                "handle": reg.get("name", agent_id),
+                "display_name": reg.get("name", agent_id),
+                "agent_type": reg.get("system") or "general",
+                "tier": tier,
+                "status": reg.get("status", "unknown"),
+                "registered": reg.get("provisioned", ""),
+                "governance_mode": reg.get("governance", ""),
+            })
+        return {"agents": agents_out, "count": len(agents_out)}
+
+    @app.get("/api/agents/{handle}")
+    async def api_agent_profile(handle: str) -> dict:
+        """Return public profile data for a single agent by handle (name) or agent_id."""
+        agent = next(
+            (r for r in runtime.registry
+             if r.get("type") == "agent" and (r.get("name") == handle or r.get("agent_id") == handle)),
+            None,
+        )
+        if not agent:
+            return JSONResponse({"error": f"Agent '{handle}' not found"}, status_code=404)
+
+        agent_id = agent.get("agent_id", "")
+
+        # Load metrics
+        metrics_data = _load_metrics()
+        agent_m = metrics_data.get("agents", {}).get(agent_id, {})
+
+        # Determine tier
+        gov_active = bool(agent.get("governance") and agent.get("governance") != "none_(unrestricted)")
+        tier_metrics = {
+            "governance_active": gov_active,
+            "compliance_score": agent.get("compliance_score", agent_m.get("compliance_score", 0)),
+            "missions_completed": agent.get("missions_completed", agent_m.get("missions_completed", 0)),
+            "governance_violations": agent.get("governance_violations", agent_m.get("governance_violations", 0)),
+            "lineage_verified": agent.get("lineage_verified", False),
+            "dual_signature": agent.get("dual_signature", False),
+            "blackcard_paid": agent.get("blackcard_paid", False),
+        }
+        tier = economy.determine_tier(tier_metrics)
+        tier_info_data = economy.tier_info(tier)
+
+        # Count completed missions from metrics + registry
+        missions_completed = agent.get("missions_completed", agent_m.get("missions_completed", 0))
+
+        # Count active stakes (filled slots)
+        slots_file = root / "data" / "slots.json"
+        slots_data = json.loads(slots_file.read_text()) if slots_file.exists() else []
+        active_stakes = sum(1 for s in slots_data if s.get("agent_id") == agent_id and s.get("status") == "filled")
+
+        # Capabilities
+        capabilities = agent.get("capabilities", [])
+        if not capabilities:
+            caps = []
+            if agent.get("system"):
+                caps.append(agent["system"] + " runtime")
+            gov = agent.get("governance", "")
+            if gov:
+                caps.append(gov.replace("_", " ") + " governance")
+            role = agent.get("role", "")
+            if role:
+                caps.append(role + " role")
+            capabilities = caps
+
+        # Governance participation — count from meetings data
+        votes_cast = 0
+        motions_proposed = 0
+        try:
+            meetings_file = root / "data" / "meetings.json"
+            meetings_data = json.loads(meetings_file.read_text()) if meetings_file.exists() else []
+            agent_name = agent.get("name", "")
+            for meeting in meetings_data:
+                for motion in meeting.get("motions", []):
+                    if motion.get("proposer") in (agent_id, agent_name):
+                        motions_proposed += 1
+                    for vote in motion.get("votes", []):
+                        if vote.get("voter") in (agent_id, agent_name):
+                            votes_cast += 1
+        except Exception:
+            pass
+
+        # Compliance / reputation score
+        compliance_score = agent.get("compliance_score", agent_m.get("compliance_score", 0))
+        total_checks = agent_m.get("governance_checks", 0)
+        violations = agent.get("governance_violations", agent_m.get("governance_violations", 0))
+        if total_checks > 0:
+            compliance_score = round(1 - (violations / max(total_checks, 1)), 3)
+
+        # Reputation composite (0-100): weighted from compliance, missions, governance participation
+        rep_score = round(
+            (compliance_score * 40)
+            + (min(missions_completed, 50) / 50 * 30)
+            + (min(votes_cast + motions_proposed, 20) / 20 * 15)
+            + (15 if gov_active else 0),
+            1,
+        )
+
+        return {
+            "agent_id": agent_id,
+            "handle": agent.get("name", agent_id),
+            "display_name": agent.get("name", agent_id),
+            "agent_type": agent.get("system") or "general",
+            "tier": tier,
+            "tier_label": tier_info_data.get("label", "UNGOVERNED"),
+            "fee_rate": tier_info_data.get("fee_rate", 0.15),
+            "status": agent.get("status", "unknown"),
+            "registered": agent.get("provisioned", ""),
+            "governance_mode": agent.get("governance", ""),
+            "governance_active": gov_active,
+            "compliance_score": compliance_score,
+            "reputation_score": rep_score,
+            "missions_completed": missions_completed,
+            "active_stakes": active_stakes,
+            "capabilities": capabilities,
+            "governance_participation": {
+                "votes_cast": votes_cast,
+                "motions_proposed": motions_proposed,
+            },
+            "exp": agent.get("exp", 0),
+            "exp_by_track": agent.get("exp_by_track", {}),
+            "role": agent.get("role", ""),
+            "last_seen": agent.get("last_seen", ""),
+        }
+
+    @app.get("/profile/{handle}")
+    async def agent_profile_page(handle: str) -> FileResponse:
+        """Serve the agent profile page."""
+        target = frontend_dir / "agent-profile.html"
+        if target.exists():
+            return FileResponse(target)
+        return JSONResponse({"detail": "Agent profile page not built"}, status_code=404)
+
     @app.on_event("startup")
     async def startup_event() -> None:
         audit.log("server", "started", {"root": str(root)})
         migrated = kassa.migrate_from_jsonl(root / "data")
         if any(v > 0 for v in migrated.values()):
             audit.log("kassa", "jsonl_migrated", migrated)
+        # Backdate GOV docs with DOIs on first run (idempotent)
+        try:
+            gov_result = await backdate_gov_documents()
+            if gov_result.get("backdated", 0) > 0:
+                audit.log("seeds", "gov_backdated", gov_result)
+        except Exception:
+            pass  # Non-fatal — seeds still work without backdate
         # Give the event loop a chance before initial broadcast in tests/manual runs.
         await asyncio.sleep(0)
 

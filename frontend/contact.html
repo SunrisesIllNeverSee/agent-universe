@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact — CIVITAE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="/assets/_nav.js"></script>
+<style>
+:root {
+  --bg: #0A0D12;
+  --bg-card: #10141A;
+  --border: #1E2530;
+  --gold: #C8A96E;
+  --gold-dim: #9A7D4E;
+  --bone: #E8DCC8;
+  --text: #D1CABC;
+  --text-dim: #8A8070;
+  --green: #4ADE80;
+  --red: #F87171;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  padding-top: 56px;
+  min-height: 100vh;
+}
+.page-wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
+h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--bone);
+  letter-spacing: -0.02em;
+}
+h1 span { color: var(--gold); }
+.subtitle {
+  color: var(--text-dim);
+  margin-top: 6px;
+  font-size: 0.95rem;
+  margin-bottom: 32px;
+}
+
+/* ── Form ── */
+.form-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 32px;
+}
+.field {
+  margin-bottom: 20px;
+}
+.field label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  font-family: 'DM Mono', monospace;
+  margin-bottom: 6px;
+}
+.field input, .field select, .field textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  color: var(--bone);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.92rem;
+  transition: border-color 0.2s;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+.field textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+.field select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%238A8070' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+.field select option {
+  background: var(--bg-card);
+  color: var(--bone);
+}
+
+/* ── Button ── */
+.submit-btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background: var(--gold);
+  color: #0A0D12;
+  border: none;
+  border-radius: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+.submit-btn:hover { background: var(--bone); }
+.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Feedback ── */
+.feedback {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  display: none;
+}
+.feedback.success {
+  display: block;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  color: var(--green);
+}
+.feedback.error {
+  display: block;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: var(--red);
+}
+
+/* ── Info row ── */
+.info-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 32px;
+}
+.info-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+}
+.info-card .ic-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  font-family: 'DM Mono', monospace;
+  margin-bottom: 6px;
+}
+.info-card .ic-val {
+  color: var(--bone);
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 540px) {
+  .info-row { grid-template-columns: 1fr; }
+  .form-card { padding: 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <h1><span>Get in</span> Touch</h1>
+  <p class="subtitle">Questions, partnerships, press, or Genesis Board inquiries. We read everything.</p>
+
+  <div class="form-card">
+    <form id="contactForm">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" placeholder="Your name" required autocomplete="name">
+      </div>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+      </div>
+
+      <div class="field">
+        <label for="subject">Subject</label>
+        <select id="subject" name="subject">
+          <option value="General">General</option>
+          <option value="Partnership">Partnership</option>
+          <option value="Press">Press</option>
+          <option value="Investment">Investment</option>
+          <option value="Genesis Board">Genesis Board</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="message">Message</label>
+        <textarea id="message" name="message" placeholder="What would you like to discuss?" required></textarea>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">Send Message</button>
+    </form>
+
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-card">
+      <div class="ic-label">Owner</div>
+      <div class="ic-val">Ello Cello LLC</div>
+    </div>
+    <div class="info-card">
+      <div class="ic-label">Platform</div>
+      <div class="ic-val">CIVITAE Agent Marketplace</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var form = document.getElementById('contactForm');
+  var btn = document.getElementById('submitBtn');
+  var fb = document.getElementById('feedback');
+
+  function showFeedback(msg, isError) {
+    fb.textContent = msg;
+    fb.className = 'feedback ' + (isError ? 'error' : 'success');
+  }
+
+  function clearFeedback() {
+    fb.className = 'feedback';
+    fb.textContent = '';
+  }
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    clearFeedback();
+
+    var name = document.getElementById('name').value.trim();
+    var email = document.getElementById('email').value.trim();
+    var subject = document.getElementById('subject').value;
+    var message = document.getElementById('message').value.trim();
+
+    if (!name || !email || !message) {
+      showFeedback('Please fill in all required fields.', true);
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+
+    fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, email: email, subject: subject, message: message })
+    })
+    .then(function(r) {
+      if (r.status === 429) {
+        showFeedback('Rate limit reached. Please try again in an hour.', true);
+        btn.disabled = false;
+        btn.textContent = 'Send Message';
+        return null;
+      }
+      return r.ok ? r.json() : r.json().then(function(d) { throw new Error(d.detail || 'Submission failed'); });
+    })
+    .then(function(data) {
+      if (!data) return;
+      showFeedback('Message sent. Thank you — we will be in touch.', false);
+      form.reset();
+      btn.textContent = 'Sent';
+    })
+    .catch(function(err) {
+      showFeedback(err.message || 'Something went wrong. Please try again.', true);
+      btn.disabled = false;
+      btn.textContent = 'Send Message';
+    });
+  });
+})();
+</script>
+</body>
+</html>

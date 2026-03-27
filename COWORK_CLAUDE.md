@@ -167,3 +167,62 @@ Vanilla stack stays — no Next.js migration.
 - Patched `railway.json` to start with `/opt/venv/bin/python -m uvicorn ...` and updated `app/kassa_payments.py` so checkout/product/webhook V1 flows work with the installed Stripe SDK while V2 account endpoints fail explicitly unless `StripeClient` is available.
 - Verified `checkout.session.completed` now succeeds end to end with HTTP 200 on `/api/kassa/webhooks/stripe`.
 - Checked the V2 Connect path: `/api/connect/webhooks` is live and rejects unsigned probes with HTTP 400 as expected, but full Accounts V2 event testing is still blocked by Stripe because the current account is in test mode rather than a Stripe sandbox.
+
+**2026-03-26 (Senate Layer 5 session):**
+Executed the full `mossy-inventing-tower` plan. All 10 steps complete. Commit: `72429d4`.
+
+### What was built
+- `app/forums_store.py` (NEW) — SQLite store (WAL mode, threading.Lock), `forum_threads` + `forum_replies` tables, 3 seed threads written on empty DB: Genesis Board (pinned), Flame Q&A, PROP-DRAFT-001
+- `app/server.py` — 6 new forum endpoints: GET /api/forums/threads (paginated, filterable by category), GET /api/forums/threads/{id} (+ replies), POST threads (KASSA JWT), POST replies (KASSA JWT), PATCH pin/lock (admin key); GET /forums page route
+- `frontend/governance.html` — replaced 1013-line Share-Tech-Mono terminal design. DM Sans dark theme, Six Fold Flame 6-card animated grid, Genesis Board 9 vacant seats, Robert's Rules meeting engine (call to order / join / propose / adjourn), live session log
+- `frontend/economics.html` — replaced WIP (had internal competitive analysis exposed). Pure static: treasury hero 4-card row, fee tiers by trust tier (Ungoverned 15%→Governed 10%→Constitutional 5%→Black Card 2%), 40/30/30 distribution, 5-step escrow flow, SigRank tiers, conservation law C(T(S))=C(S), platform rules
+- `frontend/vault.html` — replaced 167-line stub. GOV-001–006 document cards (DRAFT badge, 6/6 Flame, v1.0), Six Fold Flame origin block with 8 AI signatories, session archive empty state, sealed protocols section
+- `frontend/forums.html` (NEW) — Town Hall page. Category tabs (general/proposals/governance_qa/mission_reports/iso_collab), thread list from fetch, pinned thread highlight, new thread modal with JWT auth. All DOM built with createElement/textContent (no innerHTML — security hook compliance)
+- `frontend/pages.json` + `config/pages.json` — 5.1 live (note added), 5.5 wip→live, 5.7 empty→live, 5.9 planned→live (file="forums"), Forums added to Layer 5 navLinks
+- `frontend/sitemap.html` — SESSION_LOG entry added
+
+### Known issues / handoff notes
+- `/vault/gov-001` through `/vault/gov-006` still 404 — Vault cards link to these but detail routes not built yet. High-value next step.
+- Forums require KASSA JWT to post — the auth flow to acquire a token (agent login via `/api/kassa/auth/login`) isn't surfaced to new visitors. Needs onboarding path.
+- Genesis Board 9 seats on governance.html are static renders — joining is visual only, no persistence endpoint yet.
+- All JS in the 4 new pages uses createElement/textContent exclusively (security hook blocks innerHTML with variable interpolation). Keep this pattern for any new dynamic pages.
+
+**2026-03-26 (Session continued — Treasury + Seeds + Contact):**
+
+### What was built
+- `frontend/treasury.html` (NEW) — Live dashboard fetching from `/api/treasury` + `/api/economy/leaderboard`. Hero row (net balance, fees, earnings, bounties), 8 Economic Flows grid (4 active, 4 planned), fee rate table, agent leaderboard top 15, recent activity feed, trial economy lifecycle cards.
+- `app/server.py` — `GET /treasury` route, `treasury` added to `_ALLOWED_PAGES`
+- `app/seeds.py` (NEW) — Provenance & DOI system. `create_seed()` for any endpoint, `record_touch()` for lightweight views, `trace_lineage()` for backward chain, `backdate_gov_documents()` for retroactive GOV-001–006 DOIs. JSONL storage with file locking. FastAPI router at `/api/seeds` with query/stats/lookup/lineage/backdate endpoints.
+- `app/server.py` — `seed_router` wired at `/api/seeds`, `backdate_gov_documents()` runs on startup (idempotent), seeds wired into forum thread creation (`forum_thread` seed) and reply creation (`forum_reply` seed)
+- `frontend/contact.html` (NEW) — Public contact form. Name/email/subject dropdown (General, Partnership, Press, Investment, Genesis Board, Other)/message. POSTs to `/api/contact`. Rate limited 3/hr per IP. Each submission creates a `contact` seed for provenance.
+- `app/server.py` — `GET /contact` route, `POST /api/contact` endpoint, IP rate limiter, `contacts.jsonl` storage, `contact` added to `_ALLOWED_PAGES`
+- `frontend/pages.json` + `config/pages.json` — Treasury 5.6 → live, Contact 1.7 → live (new entry), 6 Layer 5 slots mapped to GOV docs (5.2, 5.3, 5.4, 5.8, 5.10, 5.11 all → live)
+
+### Phase 2 plan received
+- DOC 01.2 Phase 2 build plan loaded (2A–2F). Seeds integration (2B foundation) and Contact page (2C) completed this session.
+
+**2026-03-26 (Phase 2 completion session):**
+
+### Phase 2D/2E/2F — delivered via parallel agents
+- `frontend/agent-profile.html` (NEW) — API-driven agent profile at `/profile/{handle}`. Tier badges, reputation score (0-100 composite), missions, stakes, capabilities, EXP by track, governance participation. Responsive layout.
+- `app/server.py` — `GET /api/agents` directory listing, `GET /api/agents/{handle}` full public profile with tier/reputation/EXP, `GET /profile/{handle}` page route
+- `app/server.py` — 3 operator endpoints: `GET /api/operator/stats`, `GET /api/operator/audit`, `GET /api/operator/contacts`. Console.html wired to fetch real data.
+- Welcome payload on `/api/provision/signup` — tier, trial info (5 missions, 30 days, 0% fee), navigation links, registration seed
+- "Agent Universe" → "CIVITAE" in 5 frontend files, "CIVITAS" → "CIVITAE" in kingdoms.html (6 occurrences), AAI label corrected in forums.html
+
+### Phase 2A — WebSocket Threads + Magic Links (the backbone)
+- `app/notifications.py` (NEW) — Email notification module. SMTP-based with env var config (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`). Falls back to stdout logging when SMTP not configured. Three functions: `send_magic_link()`, `send_message_notification()` (rate-limited 1/15min per thread), `send_operator_alert()`. Operator email: `contact@burnmydays.com` default.
+- `app/server.py` — `ThreadHub` class for per-thread WebSocket connections. `/ws/thread/{thread_id}` endpoint with JWT or magic token auth, typing indicators, auto-cleanup on disconnect.
+- `app/server.py` — `GET /api/operator/threads` endpoint (admin-key protected), returns all threads sorted by update time.
+- `app/server.py` — Seeds wired into stake (thread creation seed) and message posting (message seed). Email notifications wired: magic link on stake, message notification on agent reply, operator alert on new stake.
+- `frontend/kassa-thread.html` (NEW) — Thread chat page. Poster access via magic link, agent access via JWT. WebSocket real-time with polling fallback. Message list with sender alignment (agent right, poster left), connection indicator, typing state, thread close state. All DOM via createElement/textContent.
+- Route count: 200 (up from 198)
+
+### Phase 2 status
+All 6 sub-phases complete:
+- 2A: WebSocket threads + magic links ✅
+- 2B: Seeds wired to KA§§A ✅
+- 2C: Contact page ✅
+- 2D: Agent profiles ✅
+- 2E: Console wired ✅
+- 2F: Wording + Welcome ✅
