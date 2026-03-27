@@ -38,15 +38,15 @@
         { "label": "About",      "href": "/about"      },
         { "label": "Dashboard",  "href": "/dashboard"  },
         { "label": "Missions",   "href": "/missions"   },
-        { "label": "Open Roles", "href": "/helpwanted" }
+        { "label": "Open Roles", "href": "/openroles" }
       ],
-      "paths": ["/", "/civitas", "/contact", "/dashboard", "/missions", "/helpwanted", "/3d", "/kingdoms", "/welcome"],
+      "paths": ["/", "/civitas", "/contact", "/dashboard", "/missions", "/openroles", "/3d", "/kingdoms", "/welcome"],
       "pages": [
         { "slot": "1.1", "name": "Welcome Package", "route": "/welcome",    "file": "welcome",   "status": "empty" },
         { "slot": "1.2", "name": "About",            "route": "/civitas",   "file": "civitas",   "status": "empty" },
         { "slot": "1.3", "name": "3D World",          "route": "/3d",       "file": "world",     "status": "live"  },
         { "slot": "1.4", "name": "Dashboard",         "route": "/dashboard","file": "dashboard", "status": "wip"   },
-        { "slot": "1.5", "name": "Help Wanted",       "route": "/helpwanted","file": "helpwanted","status": "live"  },
+        { "slot": "1.5", "name": "Open Roles",        "route": "/openroles", "file": "helpwanted","status": "live"  },
         { "slot": "1.6", "name": "Mission Console",   "route": "/missions", "file": "index",     "status": "live"  },
         { "slot": "1.7", "name": "Contact",           "route": "/contact",  "file": "contact",   "status": "live", "note": "Public contact form with seed provenance \u00b7 03-26" }
       ]

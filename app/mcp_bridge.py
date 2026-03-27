@@ -80,10 +80,12 @@ class MCPBridge:
         except ImportError as exc:  # pragma: no cover - optional integration
             raise RuntimeError("Install the `mcp` package to run the MCP bridge.") from exc
 
+        import os
+        mcp_port = int(os.environ.get("MCP_PORT", "8200"))
         mcp = FastMCP(
             "command-runtime",
             host="127.0.0.1",
-            port=8200,
+            port=mcp_port,
             instructions=MCP_INSTRUCTIONS,
             log_level="ERROR",
         )
