@@ -841,6 +841,11 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     # ── Missions (DEPLOY) + Campaigns ─────────────────────────────
 
+    # FIX-12: JSON file-backed state — missions, slots, tasks, campaigns, metrics.
+    # Each _load_*() re-reads from disk on every call. This is simple and correct
+    # (no stale cache, atomic writes guarantee consistency) but becomes an I/O
+    # bottleneck at high traffic. If needed post-launch, add an in-memory cache
+    # with TTL or migrate hot paths to SQLite (like kassa/forums already use).
     missions_path = root / "data" / "missions.json"
     campaigns_path = root / "data" / "campaigns.json"
 
@@ -3452,7 +3457,9 @@ def create_app(root: Path | None = None) -> FastAPI:
         has_dual_sig = agent.get("dual_signature", False)
         capabilities = agent.get("capabilities", [])
 
-        # Count seeds
+        # FIX-13: Count seeds for this agent. _read_seeds() loads the full JSONL
+        # file — acceptable at current scale (<10K seeds) but should migrate to
+        # indexed SQLite query if seed volume grows significantly post-launch.
         seeds = _read_seeds()
         agent_seeds = [s for s in seeds if s.get("creator_id") == aid]
 
@@ -4709,7 +4716,10 @@ def create_app(root: Path | None = None) -> FastAPI:
         if subject and subject not in VALID_SUBJECTS:
             subject = "Other"
 
-        # Simple IP rate limit — 3 submissions per hour
+        # FIX-11: In-memory IP rate limit — 3 submissions per hour.
+        # Resets on server restart (acceptable for Railway long-lived processes).
+        # Uses hashed IP to avoid storing raw addresses. Not persistent across
+        # restarts — a more durable approach would use Redis or SQLite if needed.
         client_ip = request.client.host if request.client else "unknown"
         ip_hash = hashlib.sha256(client_ip.encode()).hexdigest()[:16]
 
@@ -4718,8 +4728,8 @@ def create_app(root: Path | None = None) -> FastAPI:
         if not hasattr(contact_submit, "_rate_store"):
             contact_submit._rate_store = {}
         bucket = contact_submit._rate_store
-        # Clean old entries
-        bucket = {k: v for k, v in bucket.items() if now_ts - v[-1] < 3600}
+        # Clean old entries (evict IPs whose last submission was >1hr ago)
+        bucket = {k: v for k, v in bucket.items() if v and now_ts - v[-1] < 3600}
         contact_submit._rate_store = bucket
         recent = bucket.get(ip_hash, [])
         recent = [t for t in recent if now_ts - t < 3600]
