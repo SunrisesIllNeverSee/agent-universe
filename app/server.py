@@ -164,7 +164,8 @@ def create_app(root: Path | None = None) -> FastAPI:
                     if request.headers.get("X-Admin-Key") != _ADMIN_KEY:
                         return JSONResponse({"detail": "Admin key required"}, status_code=403)
                 else:
-                    host = request.client.host if request.client else ""
+                    fwd = request.headers.get("x-forwarded-for", "")
+                    host = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "")
                     if host not in ("127.0.0.1", "::1", "localhost"):
                         return JSONResponse({"detail": "Admin key not configured"}, status_code=403)
         return await call_next(request)
@@ -343,13 +344,14 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def refinery_page() -> FileResponse:
         return FileResponse(frontend_dir / "refinery.html")
 
-    @app.get("/helpwanted")
-    async def helpwanted_page() -> FileResponse:
-        return FileResponse(frontend_dir / "helpwanted.html")
-
     @app.get("/openroles")
     async def openroles_page() -> FileResponse:
         return FileResponse(frontend_dir / "helpwanted.html")
+
+    @app.get("/helpwanted")
+    async def helpwanted_redirect():
+        from starlette.responses import RedirectResponse
+        return RedirectResponse("/openroles", status_code=301)
 
     @app.get("/iso-collaborators")
     async def iso_collaborators_page() -> FileResponse:
@@ -491,9 +493,17 @@ def create_app(root: Path | None = None) -> FastAPI:
                 pass
         return {"sessions": sessions, "count": len(sessions)}
 
+    import time as _time
+    _BOOT_TIME = _time.time()
+
     @app.get("/health")
     async def health() -> dict:
-        return {"ok": True}
+        return {
+            "ok": True,
+            "version": "0.9.0",
+            "uptime_s": round(_time.time() - _BOOT_TIME),
+            "ts": datetime.now(UTC).isoformat(),
+        }
 
     @app.get("/api/state")
     async def get_state() -> dict:
@@ -4737,10 +4747,11 @@ def create_app(root: Path | None = None) -> FastAPI:
         # Resets on server restart (acceptable for Railway long-lived processes).
         # Uses hashed IP to avoid storing raw addresses. Not persistent across
         # restarts — a more durable approach would use Redis or SQLite if needed.
-        client_ip = request.client.host if request.client else "unknown"
+        # Respect X-Forwarded-For behind Railway/proxy; fall back to direct IP
+        forwarded = request.headers.get("x-forwarded-for", "")
+        client_ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
         ip_hash = hashlib.sha256(client_ip.encode()).hexdigest()[:16]
 
-        import time as _time
         now_ts = _time.time()
         if not hasattr(contact_submit, "_rate_store"):
             contact_submit._rate_store = {}
