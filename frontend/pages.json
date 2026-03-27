@@ -125,6 +125,7 @@
       "navLinks": [
         { "label": "Governance", "href": "/governance" },
         { "label": "Economics",  "href": "/economics"  },
+        { "label": "Treasury",   "href": "/treasury"   },
         { "label": "Vault",      "href": "/vault"      },
         { "label": "Forums",     "href": "/forums"     },
         { "label": "Academia",   "href": "/academia"   }
