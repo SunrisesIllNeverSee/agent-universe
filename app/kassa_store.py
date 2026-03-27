@@ -462,6 +462,137 @@ class KassaStore:
                  msg.get("status", "new")))
             self._conn.commit()
 
+    # ── PRODUCT REVIEWS ─────────────────────────────────────────────────
+
+    def load_product_reviews(self, product_post_id: str = "", reviewer_id: str = "", status: str = "") -> list[dict]:
+        with self._lock:
+            sql = "SELECT * FROM product_reviews WHERE 1=1"
+            params: list = []
+            if product_post_id:
+                sql += " AND product_post_id = ?"
+                params.append(product_post_id)
+            if reviewer_id:
+                sql += " AND reviewer_id = ?"
+                params.append(reviewer_id)
+            if status:
+                sql += " AND status = ?"
+                params.append(status)
+            sql += " ORDER BY created_at DESC"
+            return self._rows_to_list(self._conn.execute(sql, params).fetchall())
+
+    def insert_product_review(self, review: dict) -> None:
+        with self._lock:
+            self._conn.execute(
+                """INSERT INTO product_reviews (review_id, product_post_id, reviewer_id,
+                   reviewer_name, reviewer_type, rating, body, status, reward, seed_doi, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (review["review_id"], review["product_post_id"], review["reviewer_id"],
+                 review.get("reviewer_name"), review.get("reviewer_type", "AAI"),
+                 review.get("rating", 0), review.get("body", ""),
+                 review.get("status", "pending"), review.get("reward"),
+                 review.get("seed_doi"), review["created_at"]))
+            self._conn.commit()
+
+    def update_product_review(self, review_id: str, updates: dict) -> None:
+        with self._lock:
+            sets = ", ".join(f"{k} = ?" for k in updates)
+            vals = list(updates.values()) + [review_id]
+            self._conn.execute(f"UPDATE product_reviews SET {sets} WHERE review_id = ?", vals)
+            self._conn.commit()
+
+    # ── COMMISSIONS ───────────────────────────────────────────────────────
+
+    def load_commissions(self, referrer_id: str = "", product_post_id: str = "") -> list[dict]:
+        with self._lock:
+            sql = "SELECT * FROM commissions WHERE 1=1"
+            params: list = []
+            if referrer_id:
+                sql += " AND referrer_id = ?"
+                params.append(referrer_id)
+            if product_post_id:
+                sql += " AND product_post_id = ?"
+                params.append(product_post_id)
+            sql += " ORDER BY created_at DESC"
+            return self._rows_to_list(self._conn.execute(sql, params).fetchall())
+
+    def insert_commission(self, comm: dict) -> None:
+        with self._lock:
+            self._conn.execute(
+                """INSERT INTO commissions (commission_id, referrer_id, referrer_name,
+                   buyer_id, product_post_id, purchase_amount, commission_rate,
+                   commission_amount, status, seed_doi, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (comm["commission_id"], comm["referrer_id"], comm.get("referrer_name"),
+                 comm["buyer_id"], comm["product_post_id"],
+                 comm.get("purchase_amount", 0), comm.get("commission_rate", 0),
+                 comm.get("commission_amount", 0), comm.get("status", "pending"),
+                 comm.get("seed_doi"), comm["created_at"]))
+            self._conn.commit()
+
+    def update_commission(self, commission_id: str, updates: dict) -> None:
+        with self._lock:
+            sets = ", ".join(f"{k} = ?" for k in updates)
+            vals = list(updates.values()) + [commission_id]
+            self._conn.execute(f"UPDATE commissions SET {sets} WHERE commission_id = ?", vals)
+            self._conn.commit()
+
+    # ── RECRUITMENTS ──────────────────────────────────────────────────────
+
+    def load_recruitments(self, recruiter_id: str = "", recruited_id: str = "") -> list[dict]:
+        with self._lock:
+            sql = "SELECT * FROM recruitments WHERE 1=1"
+            params: list = []
+            if recruiter_id:
+                sql += " AND recruiter_id = ?"
+                params.append(recruiter_id)
+            if recruited_id:
+                sql += " AND recruited_id = ?"
+                params.append(recruited_id)
+            sql += " ORDER BY created_at DESC"
+            return self._rows_to_list(self._conn.execute(sql, params).fetchall())
+
+    def insert_recruitment(self, rec: dict) -> None:
+        with self._lock:
+            self._conn.execute(
+                """INSERT INTO recruitments (recruitment_id, recruiter_id, recruiter_name,
+                   recruited_id, recruited_name, recruited_type, reward_exp,
+                   reward_economic, multiplier, status, seed_doi, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (rec["recruitment_id"], rec["recruiter_id"], rec.get("recruiter_name"),
+                 rec["recruited_id"], rec.get("recruited_name"),
+                 rec.get("recruited_type", "AAI"), rec.get("reward_exp", 0),
+                 rec.get("reward_economic", 0), rec.get("multiplier", 1.0),
+                 rec.get("status", "active"), rec.get("seed_doi"),
+                 rec["created_at"]))
+            self._conn.commit()
+
+    def update_recruitment(self, recruitment_id: str, updates: dict) -> None:
+        with self._lock:
+            sets = ", ".join(f"{k} = ?" for k in updates)
+            vals = list(updates.values()) + [recruitment_id]
+            self._conn.execute(f"UPDATE recruitments SET {sets} WHERE recruitment_id = ?", vals)
+            self._conn.commit()
+
+    def recruiter_stats(self, recruiter_id: str) -> dict:
+        """Get recruitment stats for a recruiter."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT recruited_type, COUNT(*) as cnt, SUM(reward_exp) as total_exp, "
+                "SUM(reward_economic) as total_economic FROM recruitments "
+                "WHERE recruiter_id = ? AND status = 'active' GROUP BY recruited_type",
+                (recruiter_id,)).fetchall()
+            stats = {"total": 0, "aai": 0, "bi": 0, "total_exp": 0, "total_economic": 0}
+            for r in rows:
+                d = dict(r)
+                stats["total"] += d["cnt"]
+                if d["recruited_type"] == "BI":
+                    stats["bi"] += d["cnt"]
+                else:
+                    stats["aai"] += d["cnt"]
+                stats["total_exp"] += d["total_exp"] or 0
+                stats["total_economic"] += d["total_economic"] or 0
+            return stats
+
     # ── MIGRATION ──────────────────────────────────────────────────────────
 
     def migrate_from_jsonl(self, data_dir: Path) -> dict[str, int]:
