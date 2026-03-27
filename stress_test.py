@@ -2,7 +2,7 @@
 """
 CIVITAE Stress Test Suite
 Tests the Railway deployment end-to-end: health, agents, missions,
-governance (Roberts Rules), economy, and concurrency.
+governance (Roberts Rules), economy, KA§§A, MPP, forums, slots, seeds.
 Writes a timestamped report to ./reports/stress-YYYYMMDD-HHMMSS.txt
 """
 
@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Optional
 
-BASE_URL = os.getenv("CIVITAE_URL", "https://web-production-f885a.up.railway.app")
+BASE_URL = os.getenv("CIVITAE_URL", "https://agent-universe-production.up.railway.app")
 REPORT_DIR = os.path.join(os.path.dirname(__file__), "reports")
 os.makedirs(REPORT_DIR, exist_ok=True)
 
@@ -29,23 +29,29 @@ R = {
     "agents":    [],
     "missions":  [],
     "meeting_id": None,
+    "kassa_posts": [],
+    "forum_threads": [],
+    "slot_ids":  [],
     "log":       [],   # (symbol, label, detail)
 }
 
 def rnd(n=6):
     return "".join(random.choices(string.ascii_uppercase, k=n))
 
+def rnd_email():
+    return f"stress-{rnd(8).lower()}@civitae.test"
+
 # ── Core request helper ────────────────────────────────────────────────────────
-def req(method, path, body=None, label=None, raw_html=False):
+def req(method, path, body=None, label=None, raw_html=False, headers=None):
     url = f"{BASE_URL}{path}"
     key = label or f"{method} {path}"
     t0  = time.time()
     try:
-        r = requests.request(method, url, json=body, timeout=20)
+        r = requests.request(method, url, json=body, timeout=20, headers=headers)
         elapsed = round(time.time() - t0, 3)
         R["timings"].setdefault(key, []).append(elapsed)
-        ok = 200 <= r.status_code < 300
-        if ok:
+        ok_status = 200 <= r.status_code < 300
+        if ok_status:
             R["passed"] += 1
             if raw_html:
                 return r.text
@@ -174,7 +180,6 @@ else:
 phase("PHASE 4 — MISSION CLAIMING  (claim 4 of 6)")
 
 if R["missions"] and R["agents"]:
-    # End 3 missions to exercise the full mission lifecycle
     for mission_id in R["missions"][:3]:
         ender = random.choice(R["agents"])
         data  = req("POST", f"/api/missions/{mission_id}/end",
@@ -193,7 +198,6 @@ if len(R["agents"]) >= 4:
     chair     = R["agents"][0]
     attendees = R["agents"][1:4]
 
-    # Call meeting
     meeting = req("POST", "/api/governance/meeting", {
         "caller":  chair["agent_id"],
         "subject": "Constitutional review: mission reward rate adjustment proposal",
@@ -206,13 +210,11 @@ if len(R["agents"]) >= 4:
         mid = meeting["id"]
         R["meeting_id"] = mid
 
-        # Join
         for ag in attendees:
             data = req("POST", f"/api/governance/meeting/{mid}/join",
                        {"agent_id": ag["agent_id"]}, label="join-meeting")
             ok(f"  Joined: {ag['name']}", data is not None)
 
-        # Propose motion  (field is "proposer" not "agent_id")
         motion = req("POST", f"/api/governance/meeting/{mid}/motion", {
             "proposer": chair["agent_id"],
             "motion":   "Reduce ungoverned fee rate from 15% to 12% for newly provisioned agents",
@@ -220,7 +222,6 @@ if len(R["agents"]) >= 4:
         ok("Proposed motion", motion is not None and motion.get("id"))
         motion_id = motion.get("id") if motion else None
 
-        # Vote — needs voter, motion_id, lowercase vote
         if motion_id:
             all_voters = [chair] + attendees
             votes      = ["yea", "yea", "nay", "yea"]
@@ -235,12 +236,10 @@ if len(R["agents"]) >= 4:
         else:
             ok("Voting skipped — no motion_id", False)
 
-        # Adjourn
         data = req("POST", f"/api/governance/meeting/{mid}/adjourn",
                    {"agent_id": chair["agent_id"]}, label="adjourn-meeting")
         ok("Adjourned meeting", data is not None)
 
-        # Verify it's now closed
         meetings = req("GET", "/api/governance/meetings", label="list-meetings-post")
         ok("Meetings list still reachable post-adjourn", meetings is not None)
 else:
@@ -318,7 +317,7 @@ try:
     def on_msg(ws, msg): msgs.append(msg)
     def on_err(ws, err): pass
     def on_open(ws):
-        time.sleep(1.5)  # wait for initial state_snapshot broadcast
+        time.sleep(1.5)
         ws.close()
 
     wsp = "wss" if BASE_URL.startswith("https") else "ws"
@@ -334,6 +333,320 @@ except ImportError:
     log("⚠️ ", "websocket-client not installed — skipping WS test (pip install websocket-client)")
 except Exception as e:
     ok("WebSocket smoke test", False, str(e)[:80])
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PHASE 9 — KA§§A MARKETPLACE
+# ══════════════════════════════════════════════════════════════════════════════
+phase("PHASE 9 — KA§§A MARKETPLACE  (post, list, upvote, threads)")
+
+# List existing posts
+posts_list = req("GET", "/api/kassa/posts", label="kassa-list-posts")
+ok("KA§§A posts list", posts_list is not None)
+existing_count = len(posts_list.get("posts", [])) if posts_list else 0
+log("📊", f"Existing KA§§A posts: {existing_count}")
+
+# Create 3 posts across categories
+KASSA_CATEGORIES = ["ISO", "Products", "Bounties", "Hiring", "Services"]
+for i in range(3):
+    cat   = random.choice(KASSA_CATEGORIES)
+    email = rnd_email()
+    data  = req("POST", "/api/kassa/posts", {
+        "title":         f"STRESS-{rnd(4)}: {cat} test post #{i+1}",
+        "body":          f"Automated stress test post. Category: {cat}. Run ID: {rnd(8)}.",
+        "category":      cat,
+        "contact_email": email,
+        "tags":          ["stress-test", "automated"],
+    }, label="kassa-create-post")
+    if data and data.get("post_id"):
+        R["kassa_posts"].append(data["post_id"])
+        ok(f"  Created [{cat}] post", True, data["post_id"])
+    else:
+        ok(f"  KA§§A post creation failed [{cat}]", False)
+
+log("📊", f"KA§§A posts created: {len(R['kassa_posts'])}/3")
+
+# Upvote each created post
+for post_id in R["kassa_posts"]:
+    data = req("POST", f"/api/kassa/posts/{post_id}/upvote", label="kassa-upvote")
+    ok(f"  Upvoted {post_id}", data is not None)
+
+# Fetch a single post
+if R["kassa_posts"]:
+    pid  = R["kassa_posts"][0]
+    data = req("GET", f"/api/kassa/posts/{pid}", label="kassa-get-post")
+    ok(f"  Fetch post {pid}", data is not None,
+       f"upvotes:{data.get('upvotes','?')}" if data else "")
+
+# Stake on a post
+if R["kassa_posts"] and R["agents"]:
+    stake_data = req("POST", "/api/kassa/stakes", {
+        "post_id":  R["kassa_posts"][0],
+        "agent_id": R["agents"][0]["agent_id"],
+        "amount":   1.00,
+        "note":     "stress test stake",
+    }, label="kassa-stake")
+    ok("  Stake on post", stake_data is not None)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PHASE 10 — MPP (Machine Payments Protocol)
+# ══════════════════════════════════════════════════════════════════════════════
+phase("PHASE 10 — MPP  (challenge → credit → balance → pay → verify)")
+
+if R["agents"]:
+    mpp_agent = R["agents"][0]
+    agent_id  = mpp_agent["agent_id"]
+
+    # 1. Credit the agent's treasury first (operator action)
+    credit = req("POST", "/api/mpp/credit", {
+        "agent_id": agent_id,
+        "amount":   10.00,
+        "reason":   "stress-test seed credit",
+    }, label="mpp-credit")
+    ok("  MPP credit agent treasury", credit is not None,
+       f"balance:{credit.get('balance','?')}" if credit else "")
+
+    # 2. Check balance
+    bal = req("GET", f"/api/mpp/balance/{agent_id}", label="mpp-balance")
+    ok("  MPP balance readable", bal is not None,
+       f"${bal.get('balance','?')}" if bal else "")
+
+    # 3. Issue a challenge (HTTP 402 simulation — direct endpoint)
+    challenge = req("POST", "/api/mpp/challenge", {
+        "resource":    "/api/kassa/posts",
+        "amount":      0.50,
+        "currency":    "USD",
+        "description": "stress-test gate",
+    }, label="mpp-challenge")
+    ok("  MPP challenge issued", challenge is not None and challenge.get("challenge_id"),
+       f"id:{challenge.get('challenge_id','?')}" if challenge else "")
+
+    # 4. Pay the challenge
+    if challenge and challenge.get("challenge_id"):
+        cid  = challenge["challenge_id"]
+        pay  = req("POST", "/api/mpp/pay", {
+            "challenge_id": cid,
+            "agent_id":     agent_id,
+        }, label="mpp-pay")
+        ok("  MPP pay challenge", pay is not None and pay.get("token"),
+           f"token:{str(pay.get('token',''))[:20]}..." if pay and pay.get("token") else "")
+
+        # 5. Verify credential
+        if pay and pay.get("token"):
+            token = pay["token"]
+            verify = req("POST", "/api/mpp/verify", {
+                "token": token,
+            }, label="mpp-verify")
+            ok("  MPP verify token", verify is not None and verify.get("valid") is True,
+               f"valid:{verify.get('valid','?')}" if verify else "")
+    else:
+        log("⚠️ ", "  MPP challenge not issued — skipping pay/verify")
+
+    # 6. Confirm balance decreased
+    bal2 = req("GET", f"/api/mpp/balance/{agent_id}", label="mpp-balance-post")
+    if bal and bal2:
+        b1 = bal.get("balance", 0)
+        b2 = bal2.get("balance", 0)
+        ok(f"  Balance debited after pay (${b1:.2f} → ${b2:.2f})", b2 <= b1,
+           f"Δ${round(b1 - b2, 2)}")
+else:
+    log("⚠️ ", "No agents — skipping MPP test")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PHASE 11 — FORUMS
+# ══════════════════════════════════════════════════════════════════════════════
+phase("PHASE 11 — FORUMS  (thread create, reply, list, pin)")
+
+if R["agents"]:
+    forum_agent = R["agents"][0]
+    agent_id    = forum_agent["agent_id"]
+
+    # List threads
+    threads = req("GET", "/api/forums/threads", label="forums-list-threads")
+    ok("Forums thread list", threads is not None)
+    existing_threads = len(threads.get("threads", [])) if threads else 0
+    log("📊", f"Existing forum threads: {existing_threads}")
+
+    # Create 2 threads
+    FORUM_CATEGORIES = ["general", "governance", "missions", "economy", "kassa"]
+    for i in range(2):
+        cat  = random.choice(FORUM_CATEGORIES)
+        data = req("POST", "/api/forums/threads", {
+            "title":     f"STRESS-{rnd(4)}: {cat.title()} discussion #{i+1}",
+            "body":      f"Automated stress test forum post. Category: {cat}. Run ID: {rnd(8)}.",
+            "category":  cat,
+            "author_id": agent_id,
+        }, label="forums-create-thread")
+        if data and (data.get("thread_id") or data.get("id")):
+            tid = data.get("thread_id") or data.get("id")
+            R["forum_threads"].append(tid)
+            ok(f"  Created [{cat}] thread", True, tid)
+        else:
+            ok(f"  Forum thread creation failed [{cat}]", False)
+
+    # Add replies to first thread
+    if R["forum_threads"]:
+        tid = R["forum_threads"][0]
+        for i in range(2):
+            replier = random.choice(R["agents"])
+            data = req("POST", f"/api/forums/threads/{tid}/replies", {
+                "body":      f"Stress test reply #{i+1}. Agent: {replier['name']}.",
+                "author_id": replier["agent_id"],
+            }, label="forums-reply")
+            ok(f"  Reply #{i+1} to {tid}", data is not None)
+
+        # Fetch thread with replies
+        data = req("GET", f"/api/forums/threads/{tid}", label="forums-get-thread")
+        ok(f"  Fetch thread {tid}", data is not None,
+           f"replies:{data.get('reply_count', data.get('replies','?'))}" if data else "")
+
+    log("📊", f"Forum threads created: {len(R['forum_threads'])}/2")
+else:
+    log("⚠️ ", "No agents — skipping forums test")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PHASE 12 — SLOTS
+# ══════════════════════════════════════════════════════════════════════════════
+phase("PHASE 12 — SLOTS  (list open, create bounty, fill, leave)")
+
+# List open slots
+open_slots = req("GET", "/api/slots/open", label="slots-list-open")
+ok("Slots open list", open_slots is not None)
+n_open = len(open_slots.get("slots", open_slots if isinstance(open_slots, list) else [])) if open_slots else 0
+log("📊", f"Open slots: {n_open}")
+
+if R["agents"]:
+    poster = R["agents"][0]
+
+    # Create a slot (bounty)
+    slot_data = req("POST", "/api/slots", {
+        "role":        f"STRESS-{rnd(4)} Scout",
+        "description": "Automated stress test slot. Fill and leave.",
+        "reward":      5.00,
+        "poster_id":   poster["agent_id"],
+        "formation":   "standard",
+    }, label="slots-create")
+    slot_id = None
+    if slot_data and (slot_data.get("slot_id") or slot_data.get("id")):
+        slot_id = slot_data.get("slot_id") or slot_data.get("id")
+        R["slot_ids"].append(slot_id)
+        ok(f"  Created slot", True, slot_id)
+
+        # Fill it
+        filler = R["agents"][1] if len(R["agents"]) > 1 else R["agents"][0]
+        fill   = req("POST", f"/api/slots/{slot_id}/fill", {
+            "agent_id": filler["agent_id"],
+        }, label="slots-fill")
+        ok(f"  Filled slot by {filler['name']}", fill is not None)
+
+        # Leave it
+        leave = req("POST", f"/api/slots/{slot_id}/leave", {
+            "agent_id": filler["agent_id"],
+        }, label="slots-leave")
+        ok(f"  Left slot", leave is not None)
+    else:
+        ok("  Slot creation failed", False)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PHASE 13 — SEEDS, AUDIT INTEGRITY, CHAINS
+# ══════════════════════════════════════════════════════════════════════════════
+phase("PHASE 13 — SEEDS + AUDIT + CHAINS")
+
+# Seeds stats
+seed_stats = req("GET", "/api/seeds/stats", label="seeds-stats")
+ok("Seeds stats", seed_stats is not None)
+if seed_stats:
+    total_seeds = seed_stats.get("total_seeds", 0)
+    log("📊", f"Total seeds: {total_seeds}")
+    ok("  Seeds populated", total_seeds > 0, str(total_seeds))
+
+# Seeds list (first page)
+seeds_list = req("GET", "/api/seeds?limit=10", label="seeds-list")
+ok("Seeds list", seeds_list is not None)
+if seeds_list:
+    seeds = seeds_list.get("seeds", [])
+    ok("  Seeds returned", len(seeds) > 0, f"{len(seeds)} seeds")
+
+    # Lineage on first seed
+    if seeds and seeds[0].get("doi"):
+        doi  = seeds[0]["doi"]
+        lin  = req("GET", f"/api/seeds/{doi}/lineage", label="seeds-lineage")
+        ok(f"  Lineage trace for {doi[:30]}…", lin is not None,
+           f"chain_length:{lin.get('chain_length','?')}" if lin else "")
+
+# Audit endpoint
+audit = req("GET", "/api/operator/audit?limit=5", label="audit")
+ok("Audit trail readable", audit is not None)
+if audit:
+    events = audit.get("events", audit.get("audit", []))
+    ok("  Audit events present", len(events) > 0, f"{len(events)} events")
+
+# Chains status
+chains = req("GET", "/api/chains", label="chains")
+ok("Chains endpoint", chains is not None)
+if chains:
+    log("📊", f"Chain adapters: {list(chains.keys()) if isinstance(chains, dict) else 'ok'}")
+
+# Seeds by source type filter
+for stype in ["registration", "post", "forum_thread"]:
+    data = req("GET", f"/api/seeds?source_type={stype}&limit=5", label=f"seeds-filter-{stype}")
+    ok(f"  Seeds filter [{stype}]", data is not None)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PHASE 14 — EXTENDED CONCURRENCY BLAST  (50 requests, mixed write+read)
+# ══════════════════════════════════════════════════════════════════════════════
+phase("PHASE 14 — EXTENDED CONCURRENCY BLAST  (50 mixed requests, 15 workers)")
+
+MIXED_ENDPOINTS = [
+    ("GET",  "/health"),
+    ("GET",  "/api/state"),
+    ("GET",  "/api/missions"),
+    ("GET",  "/api/slots/open"),
+    ("GET",  "/api/treasury"),
+    ("GET",  "/api/provision/registry"),
+    ("GET",  "/api/governance/meetings"),
+    ("GET",  "/api/kassa/posts"),
+    ("GET",  "/api/forums/threads"),
+    ("GET",  "/api/seeds/stats"),
+    ("GET",  "/api/economy/leaderboard"),
+]
+
+if R["agents"]:
+    # Mix in per-agent reads
+    for ag in R["agents"][:4]:
+        MIXED_ENDPOINTS.append(("GET", f"/api/mpp/balance/{ag['agent_id']}"))
+
+mixed_ok   = 0
+mixed_err  = 0
+mixed_times= []
+
+def mixed_blast(method, path):
+    url = f"{BASE_URL}{path}"
+    t0 = time.time()
+    try:
+        r = requests.request(method, url, timeout=15)
+        t = round(time.time() - t0, 3)
+        return (200 <= r.status_code < 300, t, path)
+    except Exception as e:
+        return (False, round(time.time() - t0, 3), path)
+
+tasks = [random.choice(MIXED_ENDPOINTS) for _ in range(50)]
+with ThreadPoolExecutor(max_workers=15) as ex:
+    futs = [ex.submit(mixed_blast, m, p) for m, p in tasks]
+    for f in as_completed(futs):
+        good, t, path = f.result()
+        mixed_times.append(t)
+        if good: mixed_ok  += 1
+        else:    mixed_err += 1
+        if good: R["passed"] += 1
+        else:
+            R["failed"] += 1
+            R["errors"].append(f"mixed-blast {path} → FAIL")
+
+avg_t = round(sum(mixed_times) / len(mixed_times), 3)
+max_t = round(max(mixed_times), 3)
+p95_t = round(sorted(mixed_times)[int(len(mixed_times) * 0.95)], 3)
+ok(f"50 mixed requests — {mixed_ok}/50 OK", mixed_err == 0)
+log("⏱ ", f"avg {avg_t}s  max {max_t}s  p95 {p95_t}s")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # FINAL REPORT
@@ -357,6 +670,9 @@ report_lines = [
     f"  Agents provisioned : {len(R['agents'])}",
     f"  Missions posted    : {len(R['missions'])}",
     f"  Meeting conducted  : {'YES — ' + str(R['meeting_id']) if R['meeting_id'] else 'NO'}",
+    f"  KA§§A posts        : {len(R['kassa_posts'])}",
+    f"  Forum threads      : {len(R['forum_threads'])}",
+    f"  Slots created      : {len(R['slot_ids'])}",
     "",
 ]
 
@@ -369,7 +685,7 @@ if R["errors"]:
 report_lines.append("  ── ENDPOINT TIMINGS (avg / n) ──────────────────────────")
 for key, times in sorted(R["timings"].items()):
     avg  = round(sum(times) / len(times), 3)
-    line = f"  {key:<38} {avg}s  (n={len(times)})"
+    line = f"  {key:<42} {avg}s  (n={len(times)})"
     report_lines.append(line)
 
 report_lines.append("")
