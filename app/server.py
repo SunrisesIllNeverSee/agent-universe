@@ -3437,7 +3437,9 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.post("/api/connect/accounts/{account_id}/onboard")
     async def onboard_connect_account(account_id: str, request: Request) -> dict:
         """Generate an onboarding link for a connected account (V1 hosted redirect)."""
-        base = str(request.base_url).rstrip("/")
+        proto = request.headers.get("x-forwarded-proto", "http")
+        host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost")
+        base = f"{proto}://{host}"
         result = kassa_payments.create_account_link(
             account_id=account_id,
             return_url=f"{base}/connect?accountId={account_id}",
@@ -3497,7 +3499,9 @@ def create_app(root: Path | None = None) -> FastAPI:
         Body: { "product_id": "...", "product_name": "...", "price_cents": 4900,
                 "connected_account_id": "acct_...", "app_fee_percent": 5 }
         """
-        base = str(request.base_url).rstrip("/")
+        proto = request.headers.get("x-forwarded-proto", "http")
+        host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost")
+        base = f"{proto}://{host}"
         product_name = payload.get("product_name", "KA§§A Purchase")
         price_cents = int(payload.get("price_cents", 0))
         account_id = payload.get("connected_account_id", "")
