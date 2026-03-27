@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seed Feed — CIVITAE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="/assets/_nav.js"></script>
+<style>
+:root {
+  --bg:       #0A0D12;
+  --bg-card:  #10141A;
+  --bg-card-h:#161C24;
+  --border:   #1E2530;
+  --gold:     #C8A96E;
+  --gold-dim: #9A7D4E;
+  --bone:     #E8DCC8;
+  --text:     #D1CABC;
+  --dim:      #8A8070;
+  --green:    #4ADE80;
+  --blue:     #60A5FA;
+  --amber:    #FBBF24;
+  --purple:   #A78BFA;
+  --red:      #F87171;
+  --teal:     #2DD4BF;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; padding-top:64px; min-height:100vh; }
+
+.page-header { max-width:1100px; margin:0 auto; padding:48px 24px 24px; display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.ph-left h1 { font-size:1.9rem; font-weight:700; color:var(--bone); letter-spacing:-0.02em; }
+.ph-left h1 span { color:var(--gold); }
+.ph-left p { color:var(--dim); margin-top:6px; font-size:0.88rem; font-family:'DM Mono',monospace; }
+.ph-controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.ph-refresh { background:none; border:1px solid var(--border); border-radius:6px; color:var(--dim); font-family:'DM Mono',monospace; font-size:0.72rem; padding:7px 14px; cursor:pointer; transition:border-color 0.15s,color 0.15s; letter-spacing:0.06em; text-transform:uppercase; }
+.ph-refresh:hover { border-color:var(--gold-dim); color:var(--gold); }
+
+.ri { display:inline-flex; align-items:center; gap:6px; font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--dim); }
+.ri-dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.stats-row { display:flex; gap:12px; max-width:1100px; margin:0 auto; padding:0 24px 24px; flex-wrap:wrap; }
+.stat-pill { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:10px 20px; min-width:110px; }
+.sp-val { font-size:1.4rem; font-weight:700; font-family:'DM Mono',monospace; color:var(--bone); }
+.sp-label { font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--dim); font-family:'DM Mono',monospace; }
+
+.filter-bar { max-width:1100px; margin:0 auto; padding:0 24px 20px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.filter-label { font-family:'DM Mono',monospace; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--dim); }
+.filter-btn { background:none; border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-family:'DM Mono',monospace; font-size:0.72rem; letter-spacing:0.06em; color:var(--dim); cursor:pointer; transition:background 0.15s,border-color 0.15s,color 0.15s; }
+.filter-btn:hover { border-color:var(--gold-dim); color:var(--text); }
+.filter-btn.active { background:rgba(200,169,110,0.12); border-color:var(--gold-dim); color:var(--gold); }
+.filter-sep { width:1px; height:24px; background:var(--border); }
+select.filter-select { background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:5px 10px; font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--text); cursor:pointer; outline:none; }
+select.filter-select:focus { border-color:var(--gold-dim); }
+
+.feed { max-width:1100px; margin:0 auto; padding:0 24px 60px; display:flex; flex-direction:column; gap:10px; }
+.placeholder { text-align:center; padding:60px 24px; color:var(--dim); font-family:'DM Mono',monospace; font-size:0.85rem; }
+
+.seed-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:16px 20px; display:grid; grid-template-columns:4px 1fr auto; gap:16px; align-items:start; cursor:pointer; transition:background 0.12s,border-color 0.12s; }
+.seed-card:hover { background:var(--bg-card-h); border-color:#2A3240; }
+.seed-card.expanded { border-color:var(--gold-dim); }
+
+.seed-bar { border-radius:2px; min-height:52px; align-self:stretch; }
+.st-planted { background:var(--green); }
+.st-touched { background:var(--amber); }
+.st-grown   { background:var(--purple); }
+.st-unknown { background:var(--dim); }
+
+.seed-main { min-width:0; }
+.seed-doi { font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--gold-dim); letter-spacing:0.04em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.seed-badges { display:flex; align-items:center; gap:8px; margin-top:5px; flex-wrap:wrap; }
+.badge { font-family:'DM Mono',monospace; font-size:0.64rem; letter-spacing:0.08em; text-transform:uppercase; border-radius:4px; padding:2px 8px; }
+
+/* Source type colors */
+.b-registration,.b-document   { background:rgba(96,165,250,0.1);  color:var(--blue);   }
+.b-kassa_post,.b-kassa_stake   { background:rgba(200,169,110,0.1); color:var(--gold);   }
+.b-forum_thread,.b-forum_reply { background:rgba(167,139,250,0.1); color:var(--purple); }
+.b-message                     { background:rgba(45,212,191,0.1);  color:var(--teal);   }
+.b-contact,.b-application      { background:rgba(251,191,36,0.1);  color:var(--amber);  }
+.b-slot_fill,.b-bounty,.b-commission,.b-recruitment { background:rgba(74,222,128,0.1); color:var(--green); }
+.b-product_review              { background:rgba(45,212,191,0.1);  color:var(--teal);   }
+.b-treasury_action             { background:rgba(248,113,113,0.1); color:var(--red);    }
+.b-unknown                     { background:rgba(138,128,112,0.1); color:var(--dim);    }
+
+/* Creator type */
+.bc-AAI    { background:rgba(96,165,250,0.08);  color:var(--blue);  border:1px solid rgba(96,165,250,0.2);  }
+.bc-BI     { background:rgba(251,191,36,0.08);  color:var(--amber); border:1px solid rgba(251,191,36,0.2);  }
+.bc-system { background:rgba(138,128,112,0.1);  color:var(--dim);   border:1px solid rgba(138,128,112,0.2); }
+
+/* Seed type pill */
+.bp-planted { background:rgba(74,222,128,0.1);  color:var(--green);  }
+.bp-touched { background:rgba(251,191,36,0.1);  color:var(--amber);  }
+.bp-grown   { background:rgba(167,139,250,0.1); color:var(--purple); }
+
+.seed-meta { font-size:0.8rem; color:var(--text); margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.seed-meta.faded { color:var(--dim); }
+
+.seed-time { font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--dim); white-space:nowrap; text-align:right; line-height:1.6; }
+
+/* Detail pane */
+.seed-detail { display:none; grid-column:1/-1; background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:8px; padding:16px; margin-top:4px; font-family:'DM Mono',monospace; font-size:0.72rem; }
+.seed-card.expanded .seed-detail { display:block; }
+.detail-row { display:flex; gap:12px; margin-bottom:6px; flex-wrap:wrap; }
+.detail-key { color:var(--dim); min-width:130px; flex-shrink:0; }
+.detail-val { color:var(--bone); word-break:break-all; }
+
+.lineage-btn { background:none; border:1px solid var(--border); border-radius:4px; color:var(--dim); font-family:'DM Mono',monospace; font-size:0.66rem; padding:4px 10px; cursor:pointer; margin-top:8px; transition:border-color 0.15s,color 0.15s; }
+.lineage-btn:hover { border-color:var(--gold-dim); color:var(--gold); }
+.lineage-chain { margin-top:10px; border-top:1px solid var(--border); padding-top:10px; }
+.lineage-item { padding:4px 0 4px 10px; border-left:2px solid var(--border); margin-bottom:4px; font-size:0.68rem; color:var(--dim); }
+.lineage-doi { color:var(--gold-dim); }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="ph-left">
+    <h1>Seed <span>Feed</span></h1>
+    <p id="seed-subtitle">Provenance record — every action, permanently recorded</p>
+  </div>
+  <div class="ph-controls">
+    <span class="ri"><span class="ri-dot"></span>live</span>
+    <button class="ph-refresh" onclick="loadAll()">&#8635; Refresh</button>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-pill"><div class="sp-val" id="stat-total">—</div><div class="sp-label">Total Seeds</div></div>
+  <div class="stat-pill"><div class="sp-val" id="stat-planted">—</div><div class="sp-label">Planted</div></div>
+  <div class="stat-pill"><div class="sp-val" id="stat-touched">—</div><div class="sp-label">Touched</div></div>
+  <div class="stat-pill"><div class="sp-val" id="stat-grown">—</div><div class="sp-label">Grown</div></div>
+  <div class="stat-pill"><div class="sp-val" id="stat-aai">—</div><div class="sp-label">By AAI</div></div>
+  <div class="stat-pill"><div class="sp-val" id="stat-bi">—</div><div class="sp-label">By BI</div></div>
+</div>
+
+<div class="filter-bar">
+  <span class="filter-label">Type:</span>
+  <button class="filter-btn active" onclick="setType(this,'')">All</button>
+  <button class="filter-btn" onclick="setType(this,'planted')">Planted</button>
+  <button class="filter-btn" onclick="setType(this,'touched')">Touched</button>
+  <button class="filter-btn" onclick="setType(this,'grown')">Grown</button>
+  <span class="filter-sep"></span>
+  <span class="filter-label">Source:</span>
+  <select class="filter-select" id="src-filter" onchange="loadSeeds()">
+    <option value="">All sources</option>
+    <option value="registration">registration</option>
+    <option value="kassa_post">kassa_post</option>
+    <option value="kassa_stake">kassa_stake</option>
+    <option value="forum_thread">forum_thread</option>
+    <option value="forum_reply">forum_reply</option>
+    <option value="message">message</option>
+    <option value="contact">contact</option>
+    <option value="document">document</option>
+    <option value="slot_fill">slot_fill</option>
+    <option value="bounty">bounty</option>
+    <option value="application">application</option>
+    <option value="treasury_action">treasury_action</option>
+    <option value="commission">commission</option>
+    <option value="recruitment">recruitment</option>
+    <option value="product_review">product_review</option>
+  </select>
+  <span class="filter-sep"></span>
+  <span class="filter-label">Creator:</span>
+  <select class="filter-select" id="cre-filter" onchange="loadSeeds()">
+    <option value="">All</option>
+    <option value="AAI">AAI</option>
+    <option value="BI">BI</option>
+    <option value="system">system</option>
+  </select>
+</div>
+
+<div class="feed" id="feed"><div class="placeholder">Loading seeds…</div></div>
+
+<script>
+var activeType = '';
+var refreshTimer = null;
+
+function setType(btn, type) {
+  activeType = type;
+  document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  loadSeeds();
+}
+
+function buildQuery() {
+  var p = [];
+  if (activeType) p.push('seed_type=' + encodeURIComponent(activeType));
+  var src = document.getElementById('src-filter').value;
+  if (src) p.push('source_type=' + encodeURIComponent(src));
+  var cre = document.getElementById('cre-filter').value;
+  if (cre) p.push('creator_type=' + encodeURIComponent(cre));
+  p.push('limit=200');
+  return '/api/seeds?' + p.join('&');
+}
+
+function loadStats() {
+  fetch('/api/seeds/stats').then(function(r) { return r.ok ? r.json() : null; }).then(function(d) {
+    if (!d) return;
+    el('stat-total').textContent   = d.total_seeds || 0;
+    el('stat-planted').textContent = (d.by_type && d.by_type.planted) || 0;
+    el('stat-touched').textContent = (d.by_type && d.by_type.touched) || 0;
+    el('stat-grown').textContent   = (d.by_type && d.by_type.grown)   || 0;
+    el('stat-aai').textContent     = (d.by_creator_type && d.by_creator_type.AAI) || 0;
+    el('stat-bi').textContent      = (d.by_creator_type && d.by_creator_type.BI)  || 0;
+    if (d.earliest && d.total_seeds) {
+      var dt = new Date(d.earliest);
+      el('seed-subtitle').textContent = 'Genesis: '
+        + dt.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})
+        + ' \u00b7 ' + d.total_seeds + ' seeds planted';
+    }
+  }).catch(function() {});
+}
+
+function loadSeeds() {
+  fetch(buildQuery()).then(function(r) { return r.ok ? r.json() : null; }).then(function(d) {
+    var feed = el('feed');
+    clearEl(feed);
+    if (!d || !d.seeds) { showPlaceholder(feed, 'Unable to load — server may be offline.'); return; }
+    var seeds = d.seeds.slice().reverse();
+    if (!seeds.length) { showPlaceholder(feed, 'No seeds match this filter.'); return; }
+    seeds.forEach(function(s) { feed.appendChild(buildCard(s)); });
+  }).catch(function() {
+    var feed = el('feed');
+    clearEl(feed);
+    showPlaceholder(feed, 'Unable to load — server may be offline.');
+  });
+}
+
+function loadAll() { loadStats(); loadSeeds(); }
+
+function el(id) { return document.getElementById(id); }
+function clearEl(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+function showPlaceholder(parent, msg) {
+  var d = document.createElement('div');
+  d.className = 'placeholder';
+  d.textContent = msg;
+  parent.appendChild(d);
+}
+function mk(tag, cls) { var e = document.createElement(tag); if (cls) e.className = cls; return e; }
+function txt(tag, cls, content) { var e = mk(tag, cls); e.textContent = content; return e; }
+
+function srcBadgeClass(type) {
+  var map = {
+    registration:'b-registration', document:'b-document',
+    kassa_post:'b-kassa_post', kassa_stake:'b-kassa_stake',
+    forum_thread:'b-forum_thread', forum_reply:'b-forum_reply',
+    message:'b-message', contact:'b-contact', application:'b-application',
+    slot_fill:'b-slot_fill', bounty:'b-bounty',
+    commission:'b-commission', recruitment:'b-recruitment',
+    product_review:'b-product_review', treasury_action:'b-treasury_action'
+  };
+  return map[type] || 'b-unknown';
+}
+function creBadgeClass(ct) { return ct === 'AAI' ? 'bc-AAI' : ct === 'BI' ? 'bc-BI' : 'bc-system'; }
+function stPillClass(st)   { return st === 'planted' ? 'bp-planted' : st === 'touched' ? 'bp-touched' : st === 'grown' ? 'bp-grown' : ''; }
+function barClass(st)      { return st === 'planted' ? 'st-planted' : st === 'touched' ? 'st-touched' : st === 'grown' ? 'st-grown' : 'st-unknown'; }
+
+function formatTime(iso) {
+  if (!iso) return '—';
+  var d = new Date(iso), now = new Date(), diff = now - d, mins = Math.floor(diff / 60000);
+  if (mins < 1)  return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  var hrs = Math.floor(mins / 60);
+  if (hrs < 24)  return hrs + 'h ago';
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+}
+
+function buildMetaLine(meta) {
+  if (!meta) return null;
+  var parts = [];
+  if (meta.title)    parts.push(meta.title);
+  if (meta.category) parts.push(meta.category);
+  if (meta.tab)      parts.push(meta.tab);
+  if (meta.from_name) parts.push('from ' + meta.from_name);
+  if (meta.role)     parts.push(meta.role);
+  if (meta.amount !== undefined) parts.push('$' + meta.amount);
+  return parts.length ? parts.join(' \u00b7 ') : null;
+}
+
+function buildCard(s) {
+  var card = mk('div', 'seed-card');
+
+  var bar = mk('div', 'seed-bar ' + barClass(s.seed_type));
+  card.appendChild(bar);
+
+  var main = mk('div', 'seed-main');
+  main.appendChild(txt('div', 'seed-doi', s.doi || '—'));
+
+  var badges = mk('div', 'seed-badges');
+  badges.appendChild(txt('span', 'badge ' + srcBadgeClass(s.source_type), (s.source_type || 'unknown').replace(/_/g, '\u00a0')));
+  badges.appendChild(txt('span', 'badge ' + creBadgeClass(s.creator_type), s.creator_type || 'system'));
+  badges.appendChild(txt('span', 'badge ' + stPillClass(s.seed_type), s.seed_type || 'planted'));
+  main.appendChild(badges);
+
+  var ml = buildMetaLine(s.metadata);
+  if (ml) {
+    main.appendChild(txt('div', 'seed-meta', ml));
+  } else {
+    main.appendChild(txt('div', 'seed-meta faded', s.source_id || ''));
+  }
+  card.appendChild(main);
+
+  var timeEl = txt('div', 'seed-time', formatTime(s.created_at));
+  if (s.created_at) timeEl.title = new Date(s.created_at).toLocaleString();
+  card.appendChild(timeEl);
+
+  var detail = mk('div', 'seed-detail');
+  card.appendChild(detail);
+
+  card.onclick = function() { toggleCard(card, s); };
+  return card;
+}
+
+function toggleCard(card, s) {
+  var wasOpen = card.classList.contains('expanded');
+  document.querySelectorAll('.seed-card.expanded').forEach(function(c) { c.classList.remove('expanded'); });
+  if (!wasOpen) {
+    card.classList.add('expanded');
+    var detail = card.querySelector('.seed-detail');
+    if (!detail.hasAttribute('data-filled')) {
+      fillDetail(detail, s);
+      detail.setAttribute('data-filled', '1');
+    }
+  }
+}
+
+function addDetailRow(parent, key, val) {
+  var row = mk('div', 'detail-row');
+  row.appendChild(txt('span', 'detail-key', key));
+  row.appendChild(txt('span', 'detail-val', val || '—'));
+  parent.appendChild(row);
+}
+
+function fillDetail(el, s) {
+  addDetailRow(el, 'DOI', s.doi);
+  addDetailRow(el, 'Content hash', s.content_hash);
+  addDetailRow(el, 'Source ID', s.source_id);
+  addDetailRow(el, 'Creator ID', s.creator_id);
+  addDetailRow(el, 'Created at', s.created_at ? new Date(s.created_at).toLocaleString() : '—');
+  addDetailRow(el, 'Parent DOI', s.parent_doi || 'none — genesis record');
+
+  if (s.metadata && Object.keys(s.metadata).length) {
+    var row = mk('div', 'detail-row');
+    row.appendChild(txt('span', 'detail-key', 'Metadata'));
+    var mv = mk('span', 'detail-val');
+    mv.style.whiteSpace = 'pre-wrap';
+    mv.textContent = JSON.stringify(s.metadata, null, 2);
+    row.appendChild(mv);
+    el.appendChild(row);
+  }
+
+  if (s.parent_doi) {
+    var lb = mk('button', 'lineage-btn');
+    lb.textContent = '\u2191 Trace Lineage';
+    lb.onclick = function(e) { e.stopPropagation(); loadLineage(el, s.doi, lb); };
+    el.appendChild(lb);
+  }
+}
+
+function loadLineage(container, doi, btn) {
+  btn.textContent = '\u2191 Loading\u2026';
+  btn.disabled = true;
+  fetch('/api/seeds/' + encodeURIComponent(doi) + '/lineage')
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(d) {
+      btn.remove();
+      if (!d || !d.lineage) return;
+      var chain = mk('div', 'lineage-chain');
+      d.lineage.forEach(function(node) {
+        var item = mk('div', 'lineage-item');
+        var doiSpan = txt('span', 'lineage-doi', node.doi || '—');
+        item.appendChild(doiSpan);
+        item.appendChild(document.createTextNode(' \u00b7 ' + (node.source_type || '') + ' \u00b7 ' + (node.seed_type || '') + ' \u00b7 ' + (node.created_at ? new Date(node.created_at).toLocaleDateString() : '')));
+        chain.appendChild(item);
+      });
+      container.appendChild(chain);
+    })
+    .catch(function() { btn.textContent = 'Lineage error'; btn.disabled = false; });
+}
+
+// Auto-refresh every 30s
+function scheduleRefresh() {
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(function() { loadAll(); scheduleRefresh(); }, 30000);
+}
+
+loadAll();
+scheduleRefresh();
+</script>
+</body>
+</html>
