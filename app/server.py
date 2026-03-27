@@ -268,25 +268,27 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def sir_hawk_img() -> FileResponse:
         return FileResponse(frontend_dir / "sir-hawk.png")
 
-    @app.get("/agents")
-    async def agents_page() -> FileResponse:
-        return FileResponse(frontend_dir / "agents.html")
+    # STASHED — restore post-launch
+    # @app.get("/agents")
+    # async def agents_page() -> FileResponse:
+    #     return FileResponse(frontend_dir / "agents.html")
 
-    @app.get("/agent/{slug}")
-    async def agent_detail(slug: str) -> FileResponse:
-        return FileResponse(frontend_dir / "agent.html")
+    # @app.get("/agent/{slug}")
+    # async def agent_detail(slug: str) -> FileResponse:
+    #     return FileResponse(frontend_dir / "agent.html")
 
     @app.get("/dashboard")
     async def dashboard_page() -> FileResponse:
         return FileResponse(frontend_dir / "dashboard.html")
 
-    @app.get("/admin")
-    async def admin_page() -> FileResponse:
-        return FileResponse(frontend_dir / "admin.html")
+    # STASHED — restore post-launch
+    # @app.get("/admin")
+    # async def admin_page() -> FileResponse:
+    #     return FileResponse(frontend_dir / "admin.html")
 
-    @app.get("/sitemap")
-    async def sitemap_page() -> FileResponse:
-        return FileResponse(frontend_dir / "sitemap.html")
+    # @app.get("/sitemap")
+    # async def sitemap_page() -> FileResponse:
+    #     return FileResponse(frontend_dir / "sitemap.html")
 
     @app.get("/api/pages")
     async def get_pages() -> JSONResponse:
@@ -400,9 +402,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     async def civitae_map_page():
         return RedirectResponse("/")
 
-    @app.get("/civitae-roadmap")
-    async def civitae_roadmap_page():
-        return RedirectResponse("/sitemap")
+    # STASHED — restore post-launch
+    # @app.get("/civitae-roadmap")
+    # async def civitae_roadmap_page():
+    #     return RedirectResponse("/sitemap")
 
     @app.get("/treasury")
     async def treasury_page() -> FileResponse:
