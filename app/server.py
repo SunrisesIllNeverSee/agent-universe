@@ -534,6 +534,17 @@ def create_app(root: Path | None = None) -> FastAPI:
         loaded = runtime.load_context(payload.file)
         await emit("vault_updated", {"loaded_context": loaded})
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        try:
+            await create_seed(
+                source_type="vault_loaded",
+                source_id=payload.file,
+                creator_id="operator",
+                creator_type="BI",
+                seed_type="planted",
+                metadata={"file": payload.file},
+            )
+        except Exception:
+            pass
         return {"loaded_context": loaded}
 
     @app.post("/api/vault/unload")
@@ -598,7 +609,17 @@ def create_app(root: Path | None = None) -> FastAPI:
 
         await emit("vault_updated", {"loaded_context": loaded})
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
-
+        try:
+            await create_seed(
+                source_type="vault_upload",
+                source_id=safe_name,
+                creator_id="operator",
+                creator_type="BI",
+                seed_type="planted",
+                metadata={"file": safe_name, "category": category, "size": len(content)},
+            )
+        except Exception:
+            pass
         return {
             "uploaded": safe_name,
             "category": category,
@@ -909,6 +930,17 @@ def create_app(root: Path | None = None) -> FastAPI:
         })
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
         await emit("mission_ended", {"mission_id": mission_id, "payouts": len(payouts)})
+        try:
+            await create_seed(
+                source_type="mission_ended",
+                source_id=mission_id,
+                creator_id="operator",
+                creator_type="BI",
+                seed_type="planted",
+                metadata={"mission_id": mission_id, "slots_paid": len(payouts), "payout_per_slot": payout_amount},
+            )
+        except Exception:
+            pass
         return mission
 
     @app.post("/api/missions/{mission_id}/update")
@@ -1255,6 +1287,17 @@ def create_app(root: Path | None = None) -> FastAPI:
             "posture": posture,
         })
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        try:
+            await create_seed(
+                source_type="slot_created",
+                source_id=mission_id,
+                creator_id="operator",
+                creator_type="BI",
+                seed_type="planted",
+                metadata={"mission_id": mission_id, "formation_id": formation_id, "slots_created": len(new_slots)},
+            )
+        except Exception:
+            pass
         return {"created": len(new_slots), "mission_id": mission_id, "slots": new_slots}
 
     @app.get("/api/slots")
@@ -1795,6 +1838,17 @@ def create_app(root: Path | None = None) -> FastAPI:
             },
         })
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        try:
+            await create_seed(
+                source_type="blackcard_purchase",
+                source_id=agent_id,
+                creator_id=agent_id,
+                creator_type="AAI",
+                seed_type="planted",
+                metadata={"agent_id": agent_id, "price_usd": TIERS["blackcard"]["price_usd"]},
+            )
+        except Exception:
+            pass
         return result
 
     @app.get("/api/economy/blackcard/info")
@@ -1934,6 +1988,19 @@ def create_app(root: Path | None = None) -> FastAPI:
 
         agent["last_active"] = datetime.now(UTC).isoformat()
         _save_metrics(m)
+        # Seed only significant events — skip high-volume message_sent/cost/revenue
+        if event in ("mission_complete", "mission_failed", "governance_check", "governance_violation"):
+            try:
+                await create_seed(
+                    source_type="metric_logged",
+                    source_id=f"{agent_id}-{event}-{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}",
+                    creator_id=agent_id,
+                    creator_type="AAI",
+                    seed_type="planted",
+                    metadata={"agent_id": agent_id, "event": event},
+                )
+            except Exception:
+                pass
         return {"logged": True, "agent_id": agent_id, "event": event}
 
     @app.get("/api/metrics")
@@ -2016,6 +2083,18 @@ def create_app(root: Path | None = None) -> FastAPI:
             mission["costs"] += payload.get("amount", 0)
 
         _save_metrics(m)
+        if event == "ended":
+            try:
+                await create_seed(
+                    source_type="mission_metric",
+                    source_id=mission_id,
+                    creator_id="operator",
+                    creator_type="BI",
+                    seed_type="planted",
+                    metadata={"mission_id": mission_id, "outcome": payload.get("outcome", "completed")},
+                )
+            except Exception:
+                pass
         return {"logged": True, "mission_id": mission_id, "event": event}
 
     # ── Agent Self-Signup / Provision API ────────────────────────
@@ -2412,6 +2491,17 @@ def create_app(root: Path | None = None) -> FastAPI:
         kassa.update_stake(stake_id, {"status": "withdrawn"})
 
         audit.log("kassa", "stake_withdrawn", {"stake_id": stake_id, "agent_id": agent["agent_id"]})
+        try:
+            await create_seed(
+                source_type="stake_withdrawn",
+                source_id=stake_id,
+                creator_id=agent["agent_id"],
+                creator_type="AAI",
+                seed_type="planted",
+                metadata={"stake_id": stake_id, "agent_id": agent["agent_id"]},
+            )
+        except Exception:
+            pass
         return {"withdrawn": True, "stake_id": stake_id}
 
     # ── Referrals (agent cross-post matching, M1) ─────────────────────────────
@@ -2465,7 +2555,17 @@ def create_app(root: Path | None = None) -> FastAPI:
             "target": target_id,
         })
         await emit("kassa_referral", entry)
-
+        try:
+            await create_seed(
+                source_type="kassa_referral",
+                source_id=ref_id,
+                creator_id=agent["agent_id"],
+                creator_type="AAI",
+                seed_type="planted",
+                metadata={"referral_id": ref_id, "source_post_id": source_id, "target_post_id": target_id},
+            )
+        except Exception:
+            pass
         return {"referred": True, "referral_id": ref_id, "source": source_id, "target": target_id}
 
     @app.get("/api/kassa/posts/{post_id}/referrals")
@@ -2752,6 +2852,20 @@ def create_app(root: Path | None = None) -> FastAPI:
             }
             _save_metrics(m)
 
+        # Sample 1-in-10 heartbeats to avoid seed volume explosion
+        import random as _rand
+        if _rand.random() < 0.1:
+            try:
+                await create_seed(
+                    source_type="heartbeat",
+                    source_id=agent_id,
+                    creator_id=agent_id,
+                    creator_type="AAI",
+                    seed_type="planted",
+                    metadata={"agent_id": agent_id, "last_seen": now},
+                )
+            except Exception:
+                pass
         return {"ok": True, "agent_id": agent_id, "last_seen": now}
 
     @app.post("/api/provision/suspend")
@@ -2766,6 +2880,17 @@ def create_app(root: Path | None = None) -> FastAPI:
         runtime.persist_registry()
         audit.log("provision", "agent_suspended", {"agent_id": agent_id})
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        try:
+            await create_seed(
+                source_type="agent_suspended",
+                source_id=agent_id,
+                creator_id="operator",
+                creator_type="BI",
+                seed_type="planted",
+                metadata={"agent_id": agent_id},
+            )
+        except Exception:
+            pass
         return {"suspended": True, "agent_id": agent_id}
 
     @app.delete("/api/provision/decommission/{agent_id}")
@@ -2778,6 +2903,17 @@ def create_app(root: Path | None = None) -> FastAPI:
         runtime.persist_registry()
         audit.log("provision", "agent_decommissioned", {"agent_id": agent_id})
         await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+        try:
+            await create_seed(
+                source_type="agent_decommissioned",
+                source_id=agent_id,
+                creator_id="operator",
+                creator_type="BI",
+                seed_type="planted",
+                metadata={"agent_id": agent_id},
+            )
+        except Exception:
+            pass
         return {"decommissioned": True, "agent_id": agent_id}
 
     @app.get("/api/mcp/status")
@@ -3036,6 +3172,17 @@ def create_app(root: Path | None = None) -> FastAPI:
         _save_meetings(meetings)
         audit.log("governance", "meeting_called", {"meeting_id": meeting["id"], "caller": caller, "subject": subject})
         await emit("meeting_called", {"meeting_id": meeting["id"], "caller": caller, "subject": subject})
+        try:
+            await create_seed(
+                source_type="meeting_called",
+                source_id=meeting["id"],
+                creator_id=caller,
+                creator_type="AAI",
+                seed_type="planted",
+                metadata={"meeting_id": meeting["id"], "caller": caller, "subject": subject},
+            )
+        except Exception:
+            pass
         return meeting
 
     @app.get("/api/governance/meetings")
@@ -3071,6 +3218,17 @@ def create_app(root: Path | None = None) -> FastAPI:
         _save_meetings(meetings)
         has_quorum = len(meeting["attendees"]) >= meeting["quorum"]
         await emit("meeting_joined", {"meeting_id": meeting_id, "agent_id": agent_id, "has_quorum": has_quorum})
+        try:
+            await create_seed(
+                source_type="meeting_joined",
+                source_id=f"{meeting_id}-{agent_id}",
+                creator_id=agent_id,
+                creator_type="AAI",
+                seed_type="planted",
+                metadata={"meeting_id": meeting_id, "agent_id": agent_id, "has_quorum": has_quorum},
+            )
+        except Exception:
+            pass
         return {"meeting_id": meeting_id, "agent_id": agent_id, "attendees": len(meeting["attendees"]), "has_quorum": has_quorum}
 
     @app.post("/api/governance/meeting/{meeting_id}/motion")
@@ -3199,6 +3357,17 @@ def create_app(root: Path | None = None) -> FastAPI:
         _save_meetings(meetings)
         audit.log("governance", "meeting_adjourned", {"meeting_id": meeting_id})
         await emit("meeting_adjourned", {"meeting_id": meeting_id})
+        try:
+            await create_seed(
+                source_type="meeting_adjourned",
+                source_id=meeting_id,
+                creator_id="operator",
+                creator_type="BI",
+                seed_type="planted",
+                metadata={"meeting_id": meeting_id},
+            )
+        except Exception:
+            pass
         return meeting
 
     # ── Flame Review Engine v1 ──────────────────────────────────────────────
@@ -3470,6 +3639,17 @@ def create_app(root: Path | None = None) -> FastAPI:
         if not post:
             raise HTTPException(status_code=404, detail="Post not found")
         new_count = kassa.increment_upvotes(post_id)
+        try:
+            await create_seed(
+                source_type="kassa_upvote",
+                source_id=f"{post_id}-{new_count}",
+                creator_id="anonymous",
+                creator_type="BI",
+                seed_type="planted",
+                metadata={"post_id": post_id, "upvotes": new_count},
+            )
+        except Exception:
+            pass
         return {"ok": True, "id": post_id, "upvotes": new_count}
 
     @app.get("/api/operator/reviews")
@@ -3490,10 +3670,32 @@ def create_app(root: Path | None = None) -> FastAPI:
             kassa.update_review(review_id, {"status": "approved"})
             r["status"] = "approved"
             audit.log("kassa", "post_approved", {"review_id": review_id, "post_id": r["post"]["id"]})
+            try:
+                await create_seed(
+                    source_type="kassa_post_approved",
+                    source_id=review_id,
+                    creator_id="operator",
+                    creator_type="BI",
+                    seed_type="planted",
+                    metadata={"review_id": review_id, "post_id": r["post"]["id"]},
+                )
+            except Exception:
+                pass
         elif action == "reject":
             kassa.update_review(review_id, {"status": "rejected"})
             r["status"] = "rejected"
             audit.log("kassa", "post_rejected", {"review_id": review_id})
+            try:
+                await create_seed(
+                    source_type="kassa_post_rejected",
+                    source_id=review_id,
+                    creator_id="operator",
+                    creator_type="BI",
+                    seed_type="planted",
+                    metadata={"review_id": review_id},
+                )
+            except Exception:
+                pass
         else:
             raise HTTPException(status_code=400, detail="action must be 'approve' or 'reject'")
         await emit("review_updated", {"review_id": review_id, "status": r["status"]})
@@ -3570,6 +3772,17 @@ def create_app(root: Path | None = None) -> FastAPI:
                 pass  # reward is a string like "$50 USDC" — log but can't auto-credit
             audit.log("kassa", "product_review_reward", {"review_id": review_id, "reviewer_id": review["reviewer_id"], "reward": review["reward"]})
         audit.log("kassa", f"product_review_{action}d", {"review_id": review_id})
+        try:
+            await create_seed(
+                source_type="review_approved" if action == "approve" else "review_rejected",
+                source_id=review_id,
+                creator_id="operator",
+                creator_type="BI",
+                seed_type="planted",
+                metadata={"review_id": review_id, "action": action},
+            )
+        except Exception:
+            pass
         return {"ok": True, "review_id": review_id, "status": action + "d"}
 
     # ── KA§§A: Sales Commissions ──────────────────────────────────────────
@@ -3780,6 +3993,17 @@ def create_app(root: Path | None = None) -> FastAPI:
 
         result = economy.treasury.credit(agent_id, amount, reason)
         audit.log("mpp", "balance_credited", {"agent_id": agent_id, "amount": amount, "reason": reason})
+        try:
+            await create_seed(
+                source_type="manual_credit",
+                source_id=agent_id,
+                creator_id="operator",
+                creator_type="BI",
+                seed_type="planted",
+                metadata={"agent_id": agent_id, "amount": amount, "reason": reason},
+            )
+        except Exception:
+            pass
         return result
 
     @app.post("/api/kassa/posts/{post_id}/pay")
@@ -3842,6 +4066,17 @@ def create_app(root: Path | None = None) -> FastAPI:
         audit.log("kassa", "payment_initiated", {
             "post_id": post_id, "amount": amount, "rail": result.get("rail"),
         })
+        try:
+            await create_seed(
+                source_type="payment_initiated",
+                source_id=post_id,
+                creator_id="operator",
+                creator_type="BI",
+                seed_type="planted",
+                metadata={"post_id": post_id, "amount": amount, "rail": result.get("rail")},
+            )
+        except Exception:
+            pass
         return result
 
     # ── Stripe Connect: Connected Accounts ────────────────────────────────
@@ -4048,6 +4283,17 @@ def create_app(root: Path | None = None) -> FastAPI:
                 "event_id": event["id"],
                 "type": event_type,
             })
+            try:
+                await create_seed(
+                    source_type="connect_event",
+                    source_id=event["id"],
+                    creator_id="stripe",
+                    creator_type="BI",
+                    seed_type="planted",
+                    metadata={"event_id": event["id"], "type": event_type},
+                )
+            except Exception:
+                pass
 
         elif "capability_status" in event_type:
             # Capability status changed — check if account is now active
@@ -4055,6 +4301,17 @@ def create_app(root: Path | None = None) -> FastAPI:
                 "event_id": event["id"],
                 "type": event_type,
             })
+            try:
+                await create_seed(
+                    source_type="connect_event",
+                    source_id=event["id"],
+                    creator_id="stripe",
+                    creator_type="BI",
+                    seed_type="planted",
+                    metadata={"event_id": event["id"], "type": event_type},
+                )
+            except Exception:
+                pass
 
         return {"received": True}
 
@@ -4092,16 +4349,29 @@ def create_app(root: Path | None = None) -> FastAPI:
             post_id = ""
             if isinstance(metadata, dict):
                 post_id = metadata.get("post_id", "")
+            _stripe_amount = ((getattr(data, "amount_total", 0) if not isinstance(data, dict) else data.get("amount_total", 0)) or 0) / 100
+            _session_id = getattr(data, "id", None) if not isinstance(data, dict) else data.get("id")
             audit.log("kassa", "stripe_payment_completed", {
                 "post_id": post_id,
-                "amount": getattr(data, "amount_total", 0) if not isinstance(data, dict) else data.get("amount_total", 0),
-                "session_id": getattr(data, "id", None) if not isinstance(data, dict) else data.get("id"),
+                "amount": _stripe_amount,
+                "session_id": _session_id,
             })
             await emit("kassa_payment", {
                 "post_id": post_id,
                 "rail": "stripe_connect",
-                "amount": ((getattr(data, "amount_total", 0) if not isinstance(data, dict) else data.get("amount_total", 0)) or 0) / 100,
+                "amount": _stripe_amount,
             })
+            try:
+                await create_seed(
+                    source_type="payment_completed",
+                    source_id=_session_id or post_id,
+                    creator_id="stripe",
+                    creator_type="BI",
+                    seed_type="planted",
+                    metadata={"post_id": post_id, "amount": _stripe_amount, "session_id": _session_id, "rail": "stripe"},
+                )
+            except Exception:
+                pass
 
         return {"received": True}
 
