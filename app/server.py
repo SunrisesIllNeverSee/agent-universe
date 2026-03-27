@@ -3271,6 +3271,184 @@ def create_app(root: Path | None = None) -> FastAPI:
         await emit("review_updated", {"review_id": review_id, "status": r["status"]})
         return r
 
+    # ── KA§§A: Product Reviews ────────────────────────────────────────────
+
+    @app.get("/api/kassa/product-reviews")
+    async def get_product_reviews(product_post_id: str = "", reviewer_id: str = "", status: str = "") -> list:
+        return kassa.load_product_reviews(product_post_id=product_post_id, reviewer_id=reviewer_id, status=status)
+
+    @app.post("/api/kassa/product-reviews")
+    async def submit_product_review(request: Request) -> dict:
+        """Agent submits a product review. Creates seed, tracks for reward."""
+        body = await request.json()
+        product_post_id = body.get("product_post_id", "")
+        reviewer_id = body.get("reviewer_id", "")
+        if not product_post_id or not reviewer_id:
+            raise HTTPException(status_code=400, detail="product_post_id and reviewer_id required")
+        post = kassa.get_post(product_post_id)
+        if not post:
+            raise HTTPException(status_code=404, detail="Product post not found")
+        import secrets as _sec
+        review_id = f"PR-{_sec.token_hex(6)}"
+        now = datetime.now(UTC).isoformat()
+        seed_result = await create_seed(
+            source_type="product_review",
+            source_id=review_id,
+            creator_id=reviewer_id,
+            creator_type=body.get("reviewer_type", "AAI"),
+            seed_type="grown",
+            parent_doi=None,
+            metadata={"product_post_id": product_post_id, "rating": body.get("rating", 0)},
+        )
+        review = {
+            "review_id": review_id,
+            "product_post_id": product_post_id,
+            "reviewer_id": reviewer_id,
+            "reviewer_name": body.get("reviewer_name"),
+            "reviewer_type": body.get("reviewer_type", "AAI"),
+            "rating": body.get("rating", 0),
+            "body": body.get("body", ""),
+            "status": "pending",
+            "reward": body.get("reward"),
+            "seed_doi": seed_result["doi"],
+            "created_at": now,
+        }
+        kassa.insert_product_review(review)
+        audit.log("kassa", "product_review_submitted", {"review_id": review_id, "product_post_id": product_post_id})
+        await emit("product_review_submitted", {"review_id": review_id})
+        return {"ok": True, "review_id": review_id, "seed_doi": seed_result["doi"]}
+
+    @app.patch("/api/kassa/product-reviews/{review_id}")
+    async def approve_product_review(review_id: str, request: Request) -> dict:
+        """Operator approves/rejects a product review. On approve, reward flows."""
+        body = await request.json()
+        action = body.get("action", "")
+        if action not in ("approve", "reject"):
+            raise HTTPException(status_code=400, detail="action must be 'approve' or 'reject'")
+        reviews = kassa.load_product_reviews()
+        review = next((r for r in reviews if r["review_id"] == review_id), None)
+        if not review:
+            raise HTTPException(status_code=404, detail="Product review not found")
+        kassa.update_product_review(review_id, {"status": "approved" if action == "approve" else "rejected"})
+        if action == "approve" and review.get("reward"):
+            audit.log("kassa", "product_review_reward", {"review_id": review_id, "reviewer_id": review["reviewer_id"], "reward": review["reward"]})
+        audit.log("kassa", f"product_review_{action}d", {"review_id": review_id})
+        return {"ok": True, "review_id": review_id, "status": action + "d"}
+
+    # ── KA§§A: Sales Commissions ──────────────────────────────────────────
+
+    @app.get("/api/kassa/commissions")
+    async def get_commissions(referrer_id: str = "", product_post_id: str = "") -> list:
+        return kassa.load_commissions(referrer_id=referrer_id, product_post_id=product_post_id)
+
+    @app.post("/api/kassa/commissions")
+    async def record_commission(request: Request) -> dict:
+        """Record a sales commission when a referred buyer purchases."""
+        body = await request.json()
+        referrer_id = body.get("referrer_id", "")
+        buyer_id = body.get("buyer_id", "")
+        product_post_id = body.get("product_post_id", "")
+        purchase_amount = float(body.get("purchase_amount", 0))
+        if not referrer_id or not buyer_id or not product_post_id:
+            raise HTTPException(status_code=400, detail="referrer_id, buyer_id, product_post_id required")
+        import secrets as _sec
+        commission_id = f"COM-{_sec.token_hex(6)}"
+        commission_rate = float(body.get("commission_rate", 0.05))
+        commission_amount = round(purchase_amount * commission_rate, 4)
+        now = datetime.now(UTC).isoformat()
+        seed_result = await create_seed(
+            source_type="commission",
+            source_id=commission_id,
+            creator_id=referrer_id,
+            creator_type="AAI",
+            seed_type="grown",
+            parent_doi=body.get("referral_seed_doi"),
+            metadata={"buyer_id": buyer_id, "product_post_id": product_post_id, "amount": commission_amount},
+        )
+        comm = {
+            "commission_id": commission_id,
+            "referrer_id": referrer_id,
+            "referrer_name": body.get("referrer_name"),
+            "buyer_id": buyer_id,
+            "product_post_id": product_post_id,
+            "purchase_amount": purchase_amount,
+            "commission_rate": commission_rate,
+            "commission_amount": commission_amount,
+            "status": "pending",
+            "seed_doi": seed_result["doi"],
+            "created_at": now,
+        }
+        kassa.insert_commission(comm)
+        audit.log("kassa", "commission_recorded", {"commission_id": commission_id, "referrer_id": referrer_id, "amount": commission_amount})
+        await emit("commission_recorded", {"commission_id": commission_id})
+        return {"ok": True, "commission_id": commission_id, "commission_amount": commission_amount, "seed_doi": seed_result["doi"]}
+
+    # ── KA§§A: Recruitment Rewards ────────────────────────────────────────
+
+    @app.get("/api/kassa/recruitments")
+    async def get_recruitments(recruiter_id: str = "", recruited_id: str = "") -> list:
+        return kassa.load_recruitments(recruiter_id=recruiter_id, recruited_id=recruited_id)
+
+    @app.get("/api/kassa/recruitments/{recruiter_id}/stats")
+    async def get_recruiter_stats(recruiter_id: str) -> dict:
+        return kassa.recruiter_stats(recruiter_id)
+
+    @app.post("/api/kassa/recruitments")
+    async def record_recruitment(request: Request) -> dict:
+        """Record a recruitment event. BI recruitment pays more (2x multiplier)."""
+        body = await request.json()
+        recruiter_id = body.get("recruiter_id", "")
+        recruited_id = body.get("recruited_id", "")
+        if not recruiter_id or not recruited_id:
+            raise HTTPException(status_code=400, detail="recruiter_id and recruited_id required")
+        import secrets as _sec
+        recruitment_id = f"REC-{_sec.token_hex(6)}"
+        recruited_type = body.get("recruited_type", "AAI")
+        # BI recruitment is harder and more valuable — 2x multiplier
+        multiplier = 2.0 if recruited_type == "BI" else 1.0
+        base_exp = float(body.get("base_exp", 100))
+        base_economic = float(body.get("base_economic", 10))
+        reward_exp = round(base_exp * multiplier, 2)
+        reward_economic = round(base_economic * multiplier, 4)
+        now = datetime.now(UTC).isoformat()
+        seed_result = await create_seed(
+            source_type="recruitment",
+            source_id=recruitment_id,
+            creator_id=recruiter_id,
+            creator_type="AAI",
+            seed_type="planted",
+            parent_doi=None,
+            metadata={"recruited_id": recruited_id, "recruited_type": recruited_type, "multiplier": multiplier},
+        )
+        rec = {
+            "recruitment_id": recruitment_id,
+            "recruiter_id": recruiter_id,
+            "recruiter_name": body.get("recruiter_name"),
+            "recruited_id": recruited_id,
+            "recruited_name": body.get("recruited_name"),
+            "recruited_type": recruited_type,
+            "reward_exp": reward_exp,
+            "reward_economic": reward_economic,
+            "multiplier": multiplier,
+            "status": "active",
+            "seed_doi": seed_result["doi"],
+            "created_at": now,
+        }
+        kassa.insert_recruitment(rec)
+        # Credit the recruiter's treasury
+        economy.treasury.credit(recruiter_id, reward_economic, reason="recruitment_reward", mission_id=recruitment_id)
+        audit.log("kassa", "recruitment_recorded", {
+            "recruitment_id": recruitment_id, "recruiter_id": recruiter_id,
+            "recruited_id": recruited_id, "recruited_type": recruited_type,
+            "reward_exp": reward_exp, "reward_economic": reward_economic,
+        })
+        await emit("recruitment_recorded", {"recruitment_id": recruitment_id})
+        return {
+            "ok": True, "recruitment_id": recruitment_id,
+            "reward_exp": reward_exp, "reward_economic": reward_economic,
+            "multiplier": multiplier, "seed_doi": seed_result["doi"],
+        }
+
     @app.post("/api/kassa/contact")
     async def kassa_contact(payload: KassaContact) -> dict:
         import secrets as _sec
