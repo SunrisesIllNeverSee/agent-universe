@@ -151,6 +151,8 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/kassa/threads/",
         "/api/kassa/webhooks/stripe",
         "/api/connect/",
+        "/api/forums/threads",
+        "/api/contact",
     )
 
     @app.middleware("http")
@@ -300,10 +302,16 @@ def create_app(root: Path | None = None) -> FastAPI:
             "products", "refinery", "services", "sig-arena", "sitemap",
             "slots", "switchboard", "treasury", "vault", "wave-registry", "welcome", "world",
         }
+        # Reject path traversal characters before any filesystem operation
+        if ".." in page or "/" in page or "\\" in page:
+            return JSONResponse({"error": "invalid page"}, status_code=400)
         safe = page.strip().lower()
         if safe not in _ALLOWED_PAGES:
             return JSONResponse({"error": "invalid page"}, status_code=400)
-        target = frontend_dir / f"{safe}.html"
+        target = (frontend_dir / f"{safe}.html").resolve()
+        # Defense-in-depth: ensure resolved path is within frontend_dir
+        if not str(target).startswith(str(frontend_dir.resolve())):
+            return JSONResponse({"error": "invalid page"}, status_code=400)
         if target.exists():
             return JSONResponse({"page": safe, "html": target.read_text()})
         return JSONResponse({"error": f"page '{safe}' not found"}, status_code=404)
@@ -2378,6 +2386,7 @@ def create_app(root: Path | None = None) -> FastAPI:
             "poster_name": poster_name,
             "poster_email": poster_email,
             "magic_token": _hash_key(magic_token),
+            "magic_token_plain": magic_token,
             "status": "open",
             "message_count": 0,
             "created_at": datetime.now(UTC).isoformat(),
@@ -2412,8 +2421,8 @@ def create_app(root: Path | None = None) -> FastAPI:
         else:
             raise HTTPException(status_code=401, detail="Auth required — use Bearer token or magic link")
 
-        # Strip magic_token hash from response
-        safe = {k: v for k, v in thread.items() if k != "magic_token"}
+        # Strip magic_token hash and plain token from response
+        safe = {k: v for k, v in thread.items() if k not in ("magic_token", "magic_token_plain")}
         return safe
 
     @app.get("/api/kassa/threads/{thread_id}/messages")
@@ -2520,6 +2529,7 @@ def create_app(root: Path | None = None) -> FastAPI:
                     thread_id=thread_id,
                     sender_name=sender_name,
                     message_preview=text[:120],
+                    magic_token=thread.get("magic_token_plain", ""),
                 )
             except Exception:
                 pass
@@ -2815,7 +2825,7 @@ def create_app(root: Path | None = None) -> FastAPI:
 
         await thread_hub.connect(thread_id, websocket)
         # Send current thread info on connect
-        safe_thread = {k: v for k, v in thread.items() if k != "magic_token"}
+        safe_thread = {k: v for k, v in thread.items() if k not in ("magic_token", "magic_token_plain")}
         await websocket.send_json({"type": "thread_info", "payload": safe_thread})
         try:
             while True:
@@ -2846,7 +2856,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         # Sort by most recently updated
         threads.sort(key=lambda t: t.get("updated_at", ""), reverse=True)
         # Strip magic token hashes from response
-        safe = [{k: v for k, v in t.items() if k != "magic_token"} for t in threads]
+        safe = [{k: v for k, v in t.items() if k not in ("magic_token", "magic_token_plain")} for t in threads]
         return {"threads": safe, "count": len(safe)}
 
     # ── Roberts Rules — Agent Self-Governance ─────────────────────
