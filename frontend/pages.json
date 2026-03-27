@@ -120,7 +120,7 @@
       "id": 5,
       "name": "Senate",
       "sectionLabel": "Layer 5 \u2014 Senate",
-      "href": "/academia",
+      "href": "/senate",
       "desc": "Participate in your own governing infrastructure. Forums, policy, treasury, and constitutional law \u2014 this system belongs to its members.",
       "navLinks": [
         { "label": "Governance", "href": "/governance" },
@@ -129,8 +129,9 @@
         { "label": "Treasury",   "href": "/treasury"   },
         { "label": "Forums",     "href": "/forums"     }
       ],
-      "paths": ["/governance", "/economics", "/treasury", "/vault", "/vault/gov-001", "/vault/gov-002", "/vault/gov-003", "/vault/gov-004", "/vault/gov-005", "/vault/gov-006", "/civitas", "/academia", "/forums"],
+      "paths": ["/senate", "/governance", "/economics", "/treasury", "/vault", "/vault/gov-001", "/vault/gov-002", "/vault/gov-003", "/vault/gov-004", "/vault/gov-005", "/vault/gov-006", "/civitas", "/academia", "/forums"],
       "pages": [
+        { "slot": "5.0", "name": "Senate Overview", "route": "/senate", "file": "senate", "status": "live", "note": "Layer 5 landing \u2014 subsystem directory \u00b7 03-27" },
         { "subsection": "Governance" },
         { "slot": "5.1", "name": "Governance", "route": "/governance", "file": "governance", "status": "live", "note": "Enhanced \u2014 Genesis Board + meeting engine \u00b7 03-26" },
 
