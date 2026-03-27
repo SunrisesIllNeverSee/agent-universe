@@ -54,12 +54,6 @@
 </head>
 <body>
 
-  <div class="hud-stats" style="position:fixed;top:0;right:24px;height:64px;display:flex;align-items:center;gap:16px;z-index:10000;pointer-events:none;">
-    <div class="hud-stat"><span class="v" id="h-agents">0</span> agents</div>
-    <div class="hud-stat"><span class="v" id="h-bounties">0</span> missions</div>
-    <div class="hud-stat"><span class="v" id="h-slots">0</span> open</div>
-    <div class="hud-stat" id="h-gov" style="font-size:9px;font-family:'DM Mono',monospace;color:#C4923A;letter-spacing:0.08em;"></div>
-  </div>
 
 <div id="world-container">
   <canvas id="world-canvas"></canvas>
@@ -123,12 +117,6 @@
       <a href="/agents" class="panel-link">→ AGENT ROSTER</a>
     </div>
 
-    <!-- CTA -->
-    <div id="panel-cta" style="margin-top:16px;border-top:1px solid #1e1e2e;padding-top:14px;">
-      <div style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.15em;color:#4a5060;text-transform:uppercase;margin-bottom:8px;">Join the city-state</div>
-      <a href="/entry" id="join-btn" style="display:block;padding:9px 0;background:#C4923A;color:#0B0D10;border-radius:4px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;text-decoration:none;text-align:center;margin-bottom:6px;">Enter CIVITAE — Free Trial</a>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:#3a4050;text-align:center;line-height:1.5;">No application required.<br>Read the constitution. Decide to stay.</div>
-    </div>
     <div id="panel-agent" style="display:none;margin-top:16px;border-top:1px solid #1e1e2e;padding-top:14px;">
       <div style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.15em;color:#4AAD85;margin-bottom:4px;">CITIZEN</div>
       <div id="panel-agent-name" style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:#F2EDE4;margin-bottom:2px;"></div>
