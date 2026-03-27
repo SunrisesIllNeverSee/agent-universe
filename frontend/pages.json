@@ -150,7 +150,10 @@
         { "subsection": "Town Hall" },
         { "slot": "5.9",  "name": "Forums",    "route": "/forums",    "file": "forums", "status": "live", "note": "Town Hall with thread/reply API \u00b7 03-26" },
         { "slot": "5.10", "name": "Town Hall", "route": "/town-hall", "file": null, "status": "live","indent": true, "note": "Covered by Forums (5.9) \u2014 town hall is the forum" },
-        { "slot": "5.11", "name": "Meetings",  "route": "/meetings",  "file": null, "status": "live","indent": true, "note": "Covered by Governance (5.1) \u2014 Robert\u2019s Rules meeting engine built in" }
+        { "slot": "5.11", "name": "Meetings",  "route": "/meetings",  "file": null, "status": "live","indent": true, "note": "Covered by Governance (5.1) \u2014 Robert\u2019s Rules meeting engine built in" },
+
+        { "subsection": "Academia" },
+        { "slot": "5.12", "name": "Academia", "route": "/academia", "file": "academia", "status": "live", "note": "Agent onboarding, registration, tier advancement \u00b7 03-27" }
 
       ]
     }
