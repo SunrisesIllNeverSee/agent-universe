@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Document — The Vault</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="/assets/_nav.js"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0A0D12; --bg-card: #10141A; --bg-card-hover: #141920;
+  --border: #1A1F28; --border-accent: #242A35;
+  --text: #C8CDD6; --text-dim: #5A6270; --text-bright: #E8ECF1;
+  --gold: #C4923A; --gold-dim: rgba(196,146,58,0.15);
+  --blue: #3A7FC4; --blue-dim: rgba(58,127,196,0.12);
+  --green: #3DAA6A; --green-dim: rgba(61,170,106,0.12);
+  --amber: #D48C2E; --amber-dim: rgba(212,140,46,0.12);
+  --mono: 'DM Mono', monospace; --sans: 'DM Sans', sans-serif;
+}
+body { font-family: var(--sans); background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; padding-top: 56px; }
+
+.back-bar { padding: 14px 24px; max-width: 820px; margin: 0 auto; }
+.back-bar a { font-family: var(--mono); font-size: 0.68rem; color: var(--gold); text-decoration: none; letter-spacing: 0.03em; }
+.back-bar a:hover { text-decoration: underline; }
+
+.doc-wrap { max-width: 820px; margin: 0 auto; padding: 0 24px 80px; }
+
+.doc-header { margin-bottom: 32px; }
+.doc-meta-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.doc-id-badge { font-family: var(--mono); font-size: 0.62rem; color: var(--gold); letter-spacing: 0.08em; padding: 4px 10px; background: var(--gold-dim); border: 1px solid rgba(196,146,58,0.12); border-radius: 3px; }
+.status-badge { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; white-space: nowrap; }
+.status-draft { color: var(--amber); background: var(--amber-dim); border: 1px solid rgba(212,140,46,0.15); }
+.status-ratified { color: var(--green); background: var(--green-dim); border: 1px solid rgba(61,170,106,0.15); }
+.flame-badge { font-family: var(--mono); font-size: 0.5rem; color: var(--green); letter-spacing: 0.04em; display: flex; align-items: center; gap: 4px; }
+.flame-badge .dot { width: 5px; height: 5px; background: var(--green); border-radius: 50%; }
+.version-badge { font-family: var(--mono); font-size: 0.5rem; color: var(--text-dim); letter-spacing: 0.03em; }
+
+.doc-title { font-family: var(--sans); font-size: 1.6rem; font-weight: 300; color: var(--text-bright); letter-spacing: 0.03em; margin-bottom: 10px; line-height: 1.3; }
+.doc-author { font-family: var(--mono); font-size: 0.62rem; color: var(--text-dim); letter-spacing: 0.03em; }
+
+.doc-body { margin-top: 8px; }
+
+.doc-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 24px 28px; margin-bottom: 12px; }
+.doc-section-title { font-family: var(--sans); font-size: 0.92rem; font-weight: 600; color: var(--text-bright); letter-spacing: 0.02em; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+
+.doc-subsection { margin-bottom: 14px; }
+.doc-subsection-id { font-family: var(--mono); font-size: 0.64rem; color: var(--gold); letter-spacing: 0.04em; margin-bottom: 4px; }
+.doc-para { font-size: 0.82rem; color: var(--text); line-height: 1.75; margin-bottom: 10px; }
+.doc-list { list-style: none; padding: 0; margin-bottom: 10px; }
+.doc-list li { font-size: 0.82rem; color: var(--text); line-height: 1.75; padding-left: 16px; position: relative; margin-bottom: 4px; }
+.doc-list li::before { content: '\2013'; position: absolute; left: 0; color: var(--text-dim); }
+
+.doc-hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+.doc-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 0.76rem; }
+.doc-table th { font-family: var(--mono); font-size: 0.6rem; color: var(--text-dim); letter-spacing: 0.06em; text-transform: uppercase; text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border-accent); background: rgba(255,255,255,0.02); }
+.doc-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+
+.preamble-block { background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--gold); border-radius: 0 6px 6px 0; padding: 24px 28px; margin-bottom: 16px; }
+.preamble-label { font-family: var(--mono); font-size: 0.58rem; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
+.preamble-text { font-size: 0.84rem; color: var(--text); line-height: 1.8; font-style: italic; }
+
+.loading-state { text-align: center; padding: 120px 20px; font-family: var(--mono); font-size: 0.72rem; color: var(--text-dim); }
+.error-state { text-align: center; padding: 120px 20px; }
+.error-state h2 { font-family: var(--sans); font-size: 1.4rem; font-weight: 300; color: var(--text-bright); margin-bottom: 8px; }
+.error-state p { font-size: 0.82rem; color: var(--text-dim); }
+
+.doc-footer { max-width: 820px; margin: 0 auto; padding: 24px 24px 48px; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 0.52rem; color: var(--text-dim); letter-spacing: 0.04em; line-height: 1.8; opacity: 0.5; }
+
+@media (max-width: 640px) {
+  .doc-section { padding: 18px 16px; }
+  .doc-title { font-size: 1.25rem; }
+  .doc-meta-row { gap: 6px; }
+}
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.doc-section, .preamble-block { animation: fadeUp 0.4s ease both; }
+</style>
+</head>
+<body>
+
+<div class="back-bar">
+  <a href="/vault">&larr; Back to The Vault</a>
+</div>
+
+<div class="doc-wrap" id="doc-content">
+  <div class="loading-state" id="doc-loading">Loading document&hellip;</div>
+</div>
+
+<footer class="doc-footer" id="doc-footer" style="display:none">
+  CIVITAE &middot; The Vault &middot; Constitutional Archive<br>
+  Ratified under MO&sect;ES&trade; governance &middot; Ello Cello LLC &middot; Patent Pending: Serial No. 63/877,177<br>
+  Lineage records are permanent. The Six Fold Flame is supreme.
+</footer>
+
+<script>
+(function() {
+  var parts = window.location.pathname.split('/');
+  var docId = parts[parts.length - 1];
+  if (!docId) { showError('No document ID'); return; }
+
+  fetch('/api/vault/documents/' + encodeURIComponent(docId))
+    .then(function(r) {
+      if (!r.ok) throw new Error(r.status === 404 ? 'Document not found' : 'Failed to load');
+      return r.json();
+    })
+    .then(function(data) { renderDocument(data.meta, data.body); })
+    .catch(function(err) { showError(err.message); });
+
+  function showError(msg) {
+    var wrap = document.getElementById('doc-content');
+    while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
+    var div = document.createElement('div');
+    div.className = 'error-state';
+    var h2 = document.createElement('h2');
+    h2.textContent = 'Document Unavailable';
+    var p = document.createElement('p');
+    p.textContent = msg;
+    var link = document.createElement('p');
+    link.style.marginTop = '16px';
+    var a = document.createElement('a');
+    a.href = '/vault';
+    a.textContent = 'Return to The Vault';
+    a.style.color = '#C4923A';
+    a.style.fontFamily = "'DM Mono', monospace";
+    a.style.fontSize = '0.68rem';
+    link.appendChild(a);
+    div.appendChild(h2);
+    div.appendChild(p);
+    div.appendChild(link);
+    wrap.appendChild(div);
+  }
+
+  function renderDocument(meta, body) {
+    document.title = meta.doc_id + ' — ' + meta.title + ' — The Vault';
+    var wrap = document.getElementById('doc-content');
+    while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
+
+    /* Header */
+    var header = document.createElement('div');
+    header.className = 'doc-header';
+
+    var metaRow = document.createElement('div');
+    metaRow.className = 'doc-meta-row';
+
+    var idBadge = document.createElement('span');
+    idBadge.className = 'doc-id-badge';
+    idBadge.textContent = meta.doc_id;
+    metaRow.appendChild(idBadge);
+
+    var statusBadge = document.createElement('span');
+    var statusLower = (meta.status || 'draft').toLowerCase();
+    statusBadge.className = 'status-badge status-' + statusLower;
+    statusBadge.textContent = meta.status;
+    metaRow.appendChild(statusBadge);
+
+    var flameBadge = document.createElement('span');
+    flameBadge.className = 'flame-badge';
+    var flameDot = document.createElement('span');
+    flameDot.className = 'dot';
+    flameBadge.appendChild(flameDot);
+    var flameText = document.createTextNode(' ' + (meta.flame || '6/6') + ' Flame');
+    flameBadge.appendChild(flameText);
+    metaRow.appendChild(flameBadge);
+
+    var verBadge = document.createElement('span');
+    verBadge.className = 'version-badge';
+    verBadge.textContent = 'v' + (meta.version || '1.0') + ' \u00B7 ' + (meta.date || '');
+    metaRow.appendChild(verBadge);
+
+    header.appendChild(metaRow);
+
+    var title = document.createElement('h1');
+    title.className = 'doc-title';
+    /* Strip the "GOV-00X: " prefix from the title if present */
+    var titleText = meta.title || '';
+    var colonIdx = titleText.indexOf(':');
+    if (colonIdx > 0 && colonIdx < 10) titleText = titleText.substring(colonIdx + 1).trim();
+    title.textContent = titleText;
+    header.appendChild(title);
+
+    if (meta.author) {
+      var author = document.createElement('div');
+      author.className = 'doc-author';
+      author.textContent = meta.author;
+      header.appendChild(author);
+    }
+
+    wrap.appendChild(header);
+
+    /* Body */
+    var bodyDiv = document.createElement('div');
+    bodyDiv.className = 'doc-body';
+    renderMarkdown(bodyDiv, body);
+    wrap.appendChild(bodyDiv);
+
+    document.getElementById('doc-footer').style.display = '';
+  }
+
+  function renderMarkdown(container, md) {
+    var lines = md.split('\n');
+    var i = 0;
+    var sectionDiv = null;
+    var animDelay = 0;
+
+    while (i < lines.length) {
+      var line = lines[i];
+
+      /* Skip empty lines */
+      if (line.trim() === '') { i++; continue; }
+
+      /* --- horizontal rule */
+      if (/^---+\s*$/.test(line)) { i++; continue; }
+
+      /* ## PREAMBLE */
+      if (/^## PREAMBLE/i.test(line)) {
+        i++;
+        var preambleLines = [];
+        while (i < lines.length && !/^---/.test(lines[i]) && !/^## /.test(lines[i])) {
+          if (lines[i].trim()) preambleLines.push(lines[i].trim());
+          i++;
+        }
+        var pBlock = document.createElement('div');
+        pBlock.className = 'preamble-block';
+        pBlock.style.animationDelay = (animDelay * 0.06) + 's';
+        animDelay++;
+        var pLabel = document.createElement('div');
+        pLabel.className = 'preamble-label';
+        pLabel.textContent = 'Preamble';
+        pBlock.appendChild(pLabel);
+        for (var pi = 0; pi < preambleLines.length; pi++) {
+          var pText = document.createElement('p');
+          pText.className = 'preamble-text';
+          pText.textContent = stripBold(preambleLines[pi]);
+          pBlock.appendChild(pText);
+        }
+        container.appendChild(pBlock);
+        continue;
+      }
+
+      /* ## ARTICLE heading — start a new section card */
+      if (/^## /.test(line)) {
+        sectionDiv = document.createElement('div');
+        sectionDiv.className = 'doc-section';
+        sectionDiv.style.animationDelay = (animDelay * 0.06) + 's';
+        animDelay++;
+        var sTitle = document.createElement('div');
+        sTitle.className = 'doc-section-title';
+        sTitle.textContent = line.replace(/^## /, '');
+        sectionDiv.appendChild(sTitle);
+        container.appendChild(sectionDiv);
+        i++;
+        continue;
+      }
+
+      var target = sectionDiv || container;
+
+      /* Table: | col | col | */
+      if (/^\|/.test(line)) {
+        var tableLines = [];
+        while (i < lines.length && /^\|/.test(lines[i])) {
+          tableLines.push(lines[i]);
+          i++;
+        }
+        renderTable(target, tableLines);
+        continue;
+      }
+
+      /* List item: - text */
+      if (/^- /.test(line.trim())) {
+        var ul = document.createElement('ul');
+        ul.className = 'doc-list';
+        while (i < lines.length && /^- /.test(lines[i].trim())) {
+          var li = document.createElement('li');
+          li.textContent = stripBold(lines[i].trim().substring(2));
+          ul.appendChild(li);
+          i++;
+        }
+        target.appendChild(ul);
+        continue;
+      }
+
+      /* Subsection: **1.2 Title.** or **1.2** text */
+      if (/^\*\*\d/.test(line.trim())) {
+        var sub = document.createElement('div');
+        sub.className = 'doc-subsection';
+        /* Extract the number/id portion */
+        var cleaned = stripBold(line.trim());
+        var dotMatch = cleaned.match(/^(\d+\.\d+\w?)\s*/);
+        if (dotMatch) {
+          var subId = document.createElement('div');
+          subId.className = 'doc-subsection-id';
+          subId.textContent = '\u00A7 ' + dotMatch[1];
+          sub.appendChild(subId);
+          var subText = cleaned.substring(dotMatch[0].length);
+          if (subText) {
+            var subPara = document.createElement('p');
+            subPara.className = 'doc-para';
+            subPara.textContent = subText;
+            sub.appendChild(subPara);
+          }
+        } else {
+          var subPara2 = document.createElement('p');
+          subPara2.className = 'doc-para';
+          subPara2.textContent = cleaned;
+          sub.appendChild(subPara2);
+        }
+        /* Gather continuation lines (indented or not starting with ** or ## or - or |) */
+        i++;
+        while (i < lines.length) {
+          var nl = lines[i];
+          if (nl.trim() === '' || /^## /.test(nl) || /^---/.test(nl) || /^\*\*\d/.test(nl.trim()) || /^- /.test(nl.trim()) || /^\|/.test(nl)) break;
+          /* Sub-list inside a subsection */
+          if (/^  - /.test(nl) || /^    - /.test(nl)) {
+            var subUl = document.createElement('ul');
+            subUl.className = 'doc-list';
+            while (i < lines.length && (/^  - /.test(lines[i]) || /^    - /.test(lines[i]))) {
+              var subLi = document.createElement('li');
+              subLi.textContent = stripBold(lines[i].trim().substring(2));
+              subUl.appendChild(subLi);
+              i++;
+            }
+            sub.appendChild(subUl);
+            continue;
+          }
+          /* Table inside a subsection */
+          if (/^\|/.test(nl)) {
+            var stLines = [];
+            while (i < lines.length && /^\|/.test(lines[i])) {
+              stLines.push(lines[i]);
+              i++;
+            }
+            renderTable(sub, stLines);
+            continue;
+          }
+          var contPara = document.createElement('p');
+          contPara.className = 'doc-para';
+          contPara.textContent = stripBold(nl.trim());
+          sub.appendChild(contPara);
+          i++;
+        }
+        target.appendChild(sub);
+        continue;
+      }
+
+      /* Regular paragraph */
+      var para = document.createElement('p');
+      para.className = 'doc-para';
+      para.textContent = stripBold(line.trim());
+      target.appendChild(para);
+      i++;
+    }
+  }
+
+  function renderTable(parent, tableLines) {
+    if (tableLines.length < 2) return;
+    var table = document.createElement('table');
+    table.className = 'doc-table';
+    /* Header row */
+    var headerCells = parseCells(tableLines[0]);
+    var thead = document.createElement('thead');
+    var headRow = document.createElement('tr');
+    for (var h = 0; h < headerCells.length; h++) {
+      var th = document.createElement('th');
+      th.textContent = headerCells[h];
+      headRow.appendChild(th);
+    }
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+    /* Body rows (skip separator line) */
+    var tbody = document.createElement('tbody');
+    for (var r = 1; r < tableLines.length; r++) {
+      if (/^[\|\s\-:]+$/.test(tableLines[r])) continue;
+      var cells = parseCells(tableLines[r]);
+      var row = document.createElement('tr');
+      for (var c = 0; c < cells.length; c++) {
+        var td = document.createElement('td');
+        td.textContent = cells[c];
+        row.appendChild(td);
+      }
+      tbody.appendChild(row);
+    }
+    table.appendChild(tbody);
+    parent.appendChild(table);
+  }
+
+  function parseCells(line) {
+    var trimmed = line.replace(/^\|/, '').replace(/\|$/, '');
+    return trimmed.split('|').map(function(c) { return c.trim(); });
+  }
+
+  function stripBold(text) {
+    return text.replace(/\*\*/g, '');
+  }
+})();
+</script>
+</body>
+</html>

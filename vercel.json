@@ -11,8 +11,7 @@
     { "source": "/", "destination": "/kingdoms.html" },
     { "source": "/agent/:slug", "destination": "/agent.html" },
     { "source": "/kassa/post/:id", "destination": "/kassa-post.html" },
-    { "source": "/kassa/thread/:id", "destination": "/kassa-thread.html" },
-    { "source": "/vault/:slug", "destination": "/vault-doc.html" }
+    { "source": "/kassa/thread/:id", "destination": "/kassa-thread.html" }
   ],
   "headers": [
     {
