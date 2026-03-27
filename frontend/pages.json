@@ -11,8 +11,7 @@
     { "label": "Missions",   "href": "/missions"   },
     { "label": "COMMAND",    "href": "/command"    },
     { "label": "KA\u00a7\u00a7A", "href": "/kassa" },
-    { "label": "Governance", "href": "/governance" },
-    { "label": "Map",        "href": "/sitemap"    }
+    { "label": "Governance", "href": "/governance" }
   ],
 
   "tileZero": {
@@ -156,14 +155,5 @@
     }
   ],
 
-  "extras": [
-    {
-      "sectionLabel": "Operator Tools",
-      "pages": [
-        { "name": "Agent Directory", "route": "/agents",    "file": "agents", "status": "wip"   },
-        { "name": "Agent Profile",   "route": "/agent/me",  "file": "agent",  "status": "wip",  "indent": true },
-        { "name": "Admin Panel",     "route": "/admin",     "file": "admin",  "status": "admin" }
-      ]
-    }
-  ]
+  "extras": []
 }

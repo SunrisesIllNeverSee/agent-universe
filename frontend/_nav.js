@@ -173,8 +173,8 @@
     var footer = document.createElement('div');
     footer.className = 'cn-dd-footer';
     var mapLink = document.createElement('a');
-    mapLink.href = '/sitemap';
-    mapLink.textContent = 'Full Sitemap \u2192';
+    mapLink.href = '/senate';
+    mapLink.textContent = 'The Senate \u2192';
     mapLink.onclick = function () { closeDropdown(); };
     var ver = document.createElement('span');
     ver.className = 'cn-dd-version';
