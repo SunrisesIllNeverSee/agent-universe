@@ -231,43 +231,101 @@ function renderSlots() {
     return;
   }
 
-  container.innerHTML = slots.map((s, idx) => {
+  while (container.firstChild) container.removeChild(container.firstChild);
+  slots.forEach((s, idx) => {
     const roleClass = s.role === 'primary' ? 'primary-slot' : 'secondary-slot';
+    const slotDiv = document.createElement('div');
+    slotDiv.className = 'slot ' + roleClass;
 
-    const sysBadge = s.system ? makeBadgeHTML(s.system, 'system', idx) : `<span class="empty-slot-hint">drop system/agent</span>`;
-    const docBadge = s.doc ? makeBadgeHTML(s.doc, 'doc', idx) : `<span class="empty-slot-hint">drop doc</span>`;
-    const persBadge = s.persona ? makeBadgeHTML(s.persona, 'persona', idx) : `<span class="empty-slot-hint">drop persona</span>`;
+    const numDiv = document.createElement('div');
+    numDiv.className = 'slot-number';
+    numDiv.textContent = idx + 1;
+    slotDiv.appendChild(numDiv);
 
-    return `<div class="slot ${roleClass}">
-      <div class="slot-number">${idx + 1}</div>
-      <div class="badge-zone ${s.system || s.agent ? 'has-badge' : ''}" data-slot="${idx}" data-type="system" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropBadge(event,${idx},'system')">
-        <div class="badge-zone-label">SYSTEM / AGENT</div>
-        ${sysBadge}
-      </div>
-      <div class="badge-zone ${s.doc ? 'has-badge' : ''}" data-slot="${idx}" data-type="doc" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropBadge(event,${idx},'doc')">
-        <div class="badge-zone-label">DOC</div>
-        ${docBadge}
-      </div>
-      <div class="badge-zone ${s.persona ? 'has-badge' : ''}" data-slot="${idx}" data-type="persona" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropBadge(event,${idx},'persona')">
-        <div class="badge-zone-label">PERSONA</div>
-        ${persBadge}
-      </div>
-      <div style="text-align:center;">
-        <div class="role-toggle">
-          <button class="role-btn ${s.role==='primary'?'active-primary':''}" onclick="setRole(${idx},'primary')">PRI</button>
-          <button class="role-btn ${s.role==='secondary'?'active-secondary':''}" onclick="setRole(${idx},'secondary')">SEC</button>
-        </div>
-        <div class="seq-label">SEQ</div>
-        <input class="seq-input" type="number" min="1" max="9" value="${s.seq}" onchange="setSeq(${idx},this.value)">
-      </div>
-      <div style="cursor:pointer;color:var(--muted);font-size:14px;opacity:0.4;" onclick="removeSlot(${idx})" title="Remove slot">✕</div>
-    </div>`;
-  }).join('');
+    // Badge zone helper
+    function makeBadgeZone(label, type, badgeData) {
+      const zone = document.createElement('div');
+      zone.className = 'badge-zone' + (badgeData ? ' has-badge' : '');
+      zone.dataset.slot = idx;
+      zone.dataset.type = type;
+      zone.addEventListener('dragover', e => dragOver(e));
+      zone.addEventListener('dragleave', e => dragLeave(e));
+      zone.addEventListener('drop', e => dropBadge(e, idx, type));
+      const lbl = document.createElement('div');
+      lbl.className = 'badge-zone-label';
+      lbl.textContent = label;
+      zone.appendChild(lbl);
+      if (badgeData) {
+        zone.appendChild(makeBadgeEl(badgeData, type, idx));
+      } else {
+        const hint = document.createElement('span');
+        hint.className = 'empty-slot-hint';
+        hint.textContent = 'drop ' + (type === 'system' ? 'system/agent' : type);
+        zone.appendChild(hint);
+      }
+      return zone;
+    }
+
+    slotDiv.appendChild(makeBadgeZone('SYSTEM / AGENT', 'system', s.system));
+    slotDiv.appendChild(makeBadgeZone('DOC', 'doc', s.doc));
+    slotDiv.appendChild(makeBadgeZone('PERSONA', 'persona', s.persona));
+
+    // Role toggle + seq
+    const ctrlDiv = document.createElement('div');
+    ctrlDiv.style.textAlign = 'center';
+    const toggleDiv = document.createElement('div');
+    toggleDiv.className = 'role-toggle';
+    const priBtn = document.createElement('button');
+    priBtn.className = 'role-btn' + (s.role === 'primary' ? ' active-primary' : '');
+    priBtn.textContent = 'PRI';
+    priBtn.addEventListener('click', () => setRole(idx, 'primary'));
+    const secBtn = document.createElement('button');
+    secBtn.className = 'role-btn' + (s.role === 'secondary' ? ' active-secondary' : '');
+    secBtn.textContent = 'SEC';
+    secBtn.addEventListener('click', () => setRole(idx, 'secondary'));
+    toggleDiv.appendChild(priBtn);
+    toggleDiv.appendChild(secBtn);
+    ctrlDiv.appendChild(toggleDiv);
+    const seqLabel = document.createElement('div');
+    seqLabel.className = 'seq-label';
+    seqLabel.textContent = 'SEQ';
+    ctrlDiv.appendChild(seqLabel);
+    const seqInput = document.createElement('input');
+    seqInput.className = 'seq-input';
+    seqInput.type = 'number';
+    seqInput.min = '1';
+    seqInput.max = '9';
+    seqInput.value = s.seq;
+    seqInput.addEventListener('change', () => setSeq(idx, seqInput.value));
+    ctrlDiv.appendChild(seqInput);
+    slotDiv.appendChild(ctrlDiv);
+
+    const removeDiv = document.createElement('div');
+    removeDiv.style.cssText = 'cursor:pointer;color:var(--muted);font-size:14px;opacity:0.4;';
+    removeDiv.title = 'Remove slot';
+    removeDiv.textContent = '\u2715';
+    removeDiv.addEventListener('click', () => removeSlot(idx));
+    slotDiv.appendChild(removeDiv);
+
+    container.appendChild(slotDiv);
+  });
 }
 
-function makeBadgeHTML(badge, type, slotIdx) {
+function makeBadgeEl(badge, type, slotIdx) {
   const cls = type === 'system' ? (badge.type === 'agent' ? 'agent' : 'system') : type;
-  return `<div class="badge ${cls}"><span class="badge-icon">${badge.icon || '◆'}</span>${badge.name}<span class="badge-remove" onclick="clearBadge(${slotIdx},'${type}')">✕</span></div>`;
+  const div = document.createElement('div');
+  div.className = 'badge ' + cls;
+  const icon = document.createElement('span');
+  icon.className = 'badge-icon';
+  icon.textContent = badge.icon || '\u25C6';
+  div.appendChild(icon);
+  div.appendChild(document.createTextNode(badge.name));
+  const rm = document.createElement('span');
+  rm.className = 'badge-remove';
+  rm.textContent = '\u2715';
+  rm.addEventListener('click', () => clearBadge(slotIdx, type));
+  div.appendChild(rm);
+  return div;
 }
 
 function clearBadge(idx, type) {
@@ -338,9 +396,33 @@ function renderDrawer() {
     return;
   }
 
-  el.innerHTML = items.map(item =>
-    `<div class="badge ${item.cls}" draggable="true" onmousedown="startDrag('${item.badgeType}',${JSON.stringify(item).replace(/"/g,'&quot;')})" ondragstart="onDragStart(event,'${item.badgeType}',${JSON.stringify(item).replace(/"/g,'&quot;')})" ondragend="onDragEnd(event)"><span class="badge-icon">${item.icon}</span>${item.name}${item.provider ? '<span style="opacity:0.5;margin-left:4px;font-size:9px;">'+item.provider+'</span>' : ''}${item.style ? '<span style="opacity:0.5;margin-left:4px;font-size:9px;">'+item.style+'</span>' : ''}</div>`
-  ).join('');
+  while (el.firstChild) el.removeChild(el.firstChild);
+  items.forEach(item => {
+    const d = document.createElement('div');
+    d.className = 'badge ' + item.cls;
+    d.draggable = true;
+    d.addEventListener('mousedown', () => startDrag(item.badgeType, item));
+    d.addEventListener('dragstart', e => onDragStart(e, item.badgeType, item));
+    d.addEventListener('dragend', e => onDragEnd(e));
+    const ic = document.createElement('span');
+    ic.className = 'badge-icon';
+    ic.textContent = item.icon;
+    d.appendChild(ic);
+    d.appendChild(document.createTextNode(item.name));
+    if (item.provider) {
+      const prov = document.createElement('span');
+      prov.style.cssText = 'opacity:0.5;margin-left:4px;font-size:9px;';
+      prov.textContent = item.provider;
+      d.appendChild(prov);
+    }
+    if (item.style) {
+      const st = document.createElement('span');
+      st.style.cssText = 'opacity:0.5;margin-left:4px;font-size:9px;';
+      st.textContent = item.style;
+      d.appendChild(st);
+    }
+    el.appendChild(d);
+  });
 }
 
 function startDrag(type, data) { dragBadge = { badgeType: type, data }; }

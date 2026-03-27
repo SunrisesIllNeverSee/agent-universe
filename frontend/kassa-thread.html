@@ -598,7 +598,12 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
   // ── WebSocket ────────────────────────────────────────────────────────────
   function connectWS() {
     var proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    var wsUrl = proto + '//' + window.location.host + '/ws';
+    var wsUrl = proto + '//' + window.location.host + '/ws/thread/' + encodeURIComponent(threadId);
+    if (authMode === 'jwt') {
+      wsUrl += '?token=' + encodeURIComponent(jwt);
+    } else if (authMode === 'magic') {
+      wsUrl += '?magic=' + encodeURIComponent(magicToken);
+    }
 
     try {
       ws = new WebSocket(wsUrl);
