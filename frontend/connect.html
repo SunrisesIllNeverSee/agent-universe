@@ -436,9 +436,10 @@ $('btn-create-v2').addEventListener('click', function() {
     }
     var isFallback = data.type === 'express_fallback';
     banner.className = isFallback ? 'status-banner pending' : 'status-banner ok';
-    banner.textContent = isFallback
-      ? 'Created V1 Express account (V2 Recipient API not yet enabled on this platform). ' + (data.v2_note || '')
+    var msg = isFallback
+      ? 'Fell back to V1 Express. V2 error: ' + (data.v2_error || data.v2_note || 'unknown')
       : 'V2 Recipient account registered. Agent can now receive mission payouts.';
+    banner.textContent = msg;
 
     var list = $('v2-account-list');
     var card = document.createElement('div');

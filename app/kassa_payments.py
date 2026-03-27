@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import os
 import secrets
+import sys
 from datetime import datetime, UTC
 
 # ── Configuration ──────────────────────────────────────────────────────────
@@ -228,14 +229,13 @@ def create_recipient_account(display_name: str, email: str, country: str = "us")
         }
     except Exception as e:
         err = str(e)
-        # V2 not enabled or sandbox required — fall back to V1 Express
-        if any(k in err.lower() for k in ("v2", "sandbox", "not supported", "permission", "forbidden")):
-            fallback = create_connected_account(display_name, email, country)
-            if not fallback.get("error"):
-                fallback["type"] = "express_fallback"
-                fallback["v2_note"] = "V2 Recipient API requires live mode or a Stripe sandbox; created V1 Express account instead."
-            return fallback
-        return {"error": f"Stripe Recipient account creation failed: {e}"}
+        print(f"[kassa] V2 Recipient create failed: {type(e).__name__}: {err}", file=sys.stderr)
+        fallback = create_connected_account(display_name, email, country)
+        if not fallback.get("error"):
+            fallback["type"] = "express_fallback"
+            fallback["v2_error"] = err
+            fallback["v2_note"] = "V2 Recipient creation failed; created V1 Express account instead."
+        return fallback
 
 
 def create_account_session(account_id: str) -> dict:
