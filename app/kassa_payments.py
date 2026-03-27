@@ -170,22 +170,25 @@ def create_recipient_account(display_name: str, email: str, country: str = "us")
         return {"error": "Stripe V2 SDK not available. Update stripe SDK."}
 
     try:
+        # V2 responses are sparse by default — include required to get id + config back.
         params: dict = {
             "display_name": display_name,
-            "configuration": {
-                "recipient": {
-                    "capabilities": {
-                        "bank_transfers": {"requested": True},
-                        "stripe_balance": {"requested": True},
-                    }
-                }
-            },
             "identity": {
                 "country": country.upper(),
             },
+            "configuration": {
+                "recipient": {
+                    "capabilities": {
+                        "stripe_balance": {
+                            "stripe_transfers": {"requested": True},
+                        },
+                    }
+                }
+            },
+            "include": ["configuration.recipient", "identity", "requirements"],
         }
         if email:
-            params["identity"]["email"] = email
+            params["contact_email"] = email
         account = _client.v2.core.accounts.create(params=params)
         return {
             "account_id": account.id,
@@ -196,12 +199,12 @@ def create_recipient_account(display_name: str, email: str, country: str = "us")
         }
     except Exception as e:
         err = str(e)
-        # V2 not enabled on this Stripe account — fall back to V1 Express
-        if "v2" in err.lower() or "not" in err.lower() or "permission" in err.lower():
+        # V2 not enabled or sandbox required — fall back to V1 Express
+        if any(k in err.lower() for k in ("v2", "sandbox", "not supported", "permission", "forbidden")):
             fallback = create_connected_account(display_name, email, country)
             if not fallback.get("error"):
                 fallback["type"] = "express_fallback"
-                fallback["v2_note"] = "V2 Recipient API not enabled; created V1 Express account instead."
+                fallback["v2_note"] = "V2 Recipient API requires live mode or a Stripe sandbox; created V1 Express account instead."
             return fallback
         return {"error": f"Stripe Recipient account creation failed: {e}"}
 
