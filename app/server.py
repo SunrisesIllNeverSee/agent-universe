@@ -177,6 +177,11 @@ def create_app(root: Path | None = None) -> FastAPI:
         app.mount("/popups", StaticFiles(directory=frontend_dir / "popups"), name="popups")
     app.mount("/assets", StaticFiles(directory=frontend_dir), name="assets")
 
+    # Serve docs/ directory (agent field guide, plugin blueprint, etc.)
+    docs_dir = root / "docs"
+    if docs_dir.is_dir():
+        app.mount("/docs", StaticFiles(directory=docs_dir), name="docs")
+
     # Serve favicon and apple-touch-icon at root level
     @app.get("/favicon.ico")
     async def favicon() -> FileResponse:
@@ -2229,7 +2234,8 @@ def create_app(root: Path | None = None) -> FastAPI:
             "role": auto_role,
             "rate_limit": entry["rate_limit"],
             "links": {
-                "profile": "/agent/me",
+                "field_guide": "/docs/AGENT-FIELD-GUIDE.md",
+                "plugin_blueprint": "/docs/PLUGIN-BLUEPRINT.md",
                 "governance_docs": "/vault",
                 "open_bounties": "/kassa",
                 "genesis_board": "/governance",
