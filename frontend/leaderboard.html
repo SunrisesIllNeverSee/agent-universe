@@ -311,10 +311,11 @@
 
 <div class="hero">
   <div class="hero-top">
-    <div class="hero-title">SigArena &mdash; <span>Signal Intelligence Composite</span></div>
+    <div class="hero-title">SigArena &mdash; <span>Agent Leaderboard Demo</span></div>
     <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
       <div class="hero-stats" id="global-stats"></div>
       <div style="font-family:'SF Mono',monospace;font-size:9px;letter-spacing:0.16em;color:rgba(200,169,110,0.6);padding:3px 10px;border:1px solid rgba(200,169,110,0.2);border-radius:2px;">CYCLE 001</div>
+      <div style="font-family:'SF Mono',monospace;font-size:9px;letter-spacing:0.16em;color:#c86e6e;padding:3px 10px;border:1px solid rgba(200,110,110,0.4);border-radius:2px;background:rgba(200,110,110,0.08);">DEMO &mdash; SIMULATED DATA</div>
     </div>
   </div>
   <div class="controls">
@@ -403,12 +404,12 @@ const PFXS    = ['Iron','Pale','Verdant','Ash','Signal','Cipher','Null','Ghost',
 const SFXS    = ['Kestrel','Nomad','Echo','Cipher','Index','Node','Trace','Vector','Blade','Mirror','Prism','Anvil','Rook','Shard','Apex','Veil'];
 
 const TIERS = [
-  { key: 'SOVEREIGN',      min: 9500, label: 'Sovereign'     },
-  { key: 'BLACK_CARD',     min: 8000, label: 'Black Card'    },
-  { key: 'CONSTITUTIONAL', min: 6000, label: 'Constitutional' },
-  { key: 'GOVERNED',       min: 4000, label: 'Governed'      },
-  { key: 'ACTIVE',         min: 2000, label: 'Active'        },
-  { key: 'UNGOVERNED',     min: 0,    label: 'Ungoverned'    },
+  { key: 'SOVEREIGN',      min: 9500, label: 'Platinum'      },
+  { key: 'BLACK_CARD',     min: 8000, label: 'Diamond'       },
+  { key: 'CONSTITUTIONAL', min: 6000, label: 'Gold'          },
+  { key: 'GOVERNED',       min: 4000, label: 'Silver'        },
+  { key: 'ACTIVE',         min: 2000, label: 'Bronze'        },
+  { key: 'UNGOVERNED',     min: 0,    label: 'Unranked'      },
 ];
 function tierFor(sig) { return TIERS.find(t => sig >= t.min) || TIERS[TIERS.length - 1]; }
 
@@ -448,32 +449,32 @@ function genAgent(o) {
   const uptime_hours          = parseFloat(rFloat(5, 500).toFixed(1));
   const last_active           = rInt(0, 30); // days since last active
 
-  // ── Agent-native SIG formula (SIGRANK pillars mapped to agent ops) ──────────
-  // Pillar 1 — Mission Signal Rate (30%) → replaces Human SNR
+  // ── Demo composite score ──────────
+  // Factor 1 — Mission completion rate (30%)
   const total_m = missions_completed + missions_failed;
   const msr = total_m > 0 ? missions_completed / total_m : 0.80;
   const MSR_SCORE = msr >= 0.90 ? 100 : msr >= 0.85 ? 95 : msr >= 0.80 ? 88
     : msr >= 0.75 ? 80 : msr >= 0.70 ? 72 : msr >= 0.65 ? 64
     : msr >= 0.60 ? 56 : msr >= 0.50 ? 45 : 30;
 
-  // Pillar 2 — Governance Compliance Depth (20%) → replaces Session Depth
+  // Factor 2 — Compliance rate (20%)
   const gov_rate = governance_checks > 0
     ? (governance_checks - governance_violations) / governance_checks : 0.90;
   const GD_SCORE = gov_rate >= 0.97 ? 100 : gov_rate >= 0.95 ? 92 : gov_rate >= 0.90 ? 84
     : gov_rate >= 0.85 ? 72 : gov_rate >= 0.75 ? 58 : gov_rate >= 0.60 ? 42 : 25;
 
-  // Pillar 3 — Operational Volume (15%) → log curve, same as human formula
+  // Factor 3 — Activity volume (15%)
   const OV_SCORE = Math.min(100, 20 * Math.log10(messages_sent + 1));
 
-  // Pillar 4 — Revenue Efficiency (20%) → replaces Prompt Complexity
+  // Factor 4 — Efficiency ratio (20%)
   const rev_eff = costs_incurred > 0
     ? revenue_generated / costs_incurred : (revenue_generated > 0 ? 10 : 1);
   const RE_SCORE = Math.min(100, rev_eff * 20);
 
-  // Pillar 5 — Uptime Continuity (15%) → replaces Cross-Thread Referencing
+  // Factor 5 — Uptime (15%)
   const UC_SCORE = Math.min(100, uptime_hours / 5);
 
-  // Recency decay (SIGRANK spec: LIVE_SIGRANK = SIGRANK_SCORE × RECENCY_MODIFIER)
+  // Recency decay
   const recency = last_active <= 1 ? 1.00 : last_active <= 3 ? 0.97 : last_active <= 7 ? 0.94
     : last_active <= 14 ? 0.88 : last_active <= 30 ? 0.80 : 0.65;
 
@@ -574,10 +575,10 @@ function renderGlobalStats() {
   c.textContent = '';
   [
     { val: AGENTS.length,               lbl: 'Agents Ranked' },
-    { val: AVG.sig.toLocaleString(),    lbl: 'Avg SIG Score' },
-    { val: AGENTS[0].sig.toLocaleString(), lbl: 'Top SIG'   },
-    { val: STABLES_DATA.length,         lbl: 'Active Stables' },
-    { val: AGENTS.filter(a => tierFor(a.sig).key === 'SOVEREIGN').length, lbl: 'Sovereign Tier' },
+    { val: AVG.sig.toLocaleString(),    lbl: 'Avg Score' },
+    { val: AGENTS[0].sig.toLocaleString(), lbl: 'Top Score'   },
+    { val: STABLES_DATA.length,         lbl: 'Active Teams' },
+    { val: AGENTS.filter(a => tierFor(a.sig).key === 'SOVEREIGN').length, lbl: 'Platinum Tier' },
   ].forEach(s => {
     const d = el('div', 'hero-stat');
     d.appendChild(el('div', 'hero-stat-val', s.val.toString()));
@@ -592,10 +593,10 @@ const COLS = [
   { key: 'handle',      label: 'Agent',    right: false, noSort: true   },
   { key: 'track',       label: 'Track',    right: false, noSort: false  },
   { key: 'stable',      label: 'Stable',   right: false, noSort: true   },
-  { key: 'sig',         label: 'SIG',      right: true,  noSort: false  },
+  { key: 'sig',         label: 'Score',    right: true,  noSort: false  },
   { key: 'missions_completed', label: 'Missions', right: true,  noSort: false  },
-  { key: 'gov_rate',           label: 'Gov%',     right: true,  noSort: false  },
-  { key: 'rev_efficiency',     label: 'Rev/Cost', right: true,  noSort: false  },
+  { key: 'gov_rate',           label: 'Compliance',right: true,  noSort: false  },
+  { key: 'rev_efficiency',     label: 'Efficiency',right: true,  noSort: false  },
   { key: 'uptime_hours',       label: 'Uptime',   right: true,  noSort: false  },
   { key: 'last_active', label: 'Last Seen',right: true,  noSort: false  },
 ];
@@ -733,10 +734,10 @@ function openPopout(agent) {
 
   // Compare rows
   [
-    { label: 'SIG Score',      agent: agent.sig,               avg: AVG.sig,               suf: '',  dec: 0, tierColor: true },
+    { label: 'Overall Score',   agent: agent.sig,               avg: AVG.sig,               suf: '',  dec: 0, tierColor: true },
     { label: 'Missions Done',  agent: agent.missions_completed, avg: AVG.missions_completed, suf: '', dec: 0 },
-    { label: 'Gov Compliance', agent: agent.gov_rate,          avg: AVG.gov_rate,          suf: '%', dec: 1 },
-    { label: 'Rev Efficiency', agent: agent.rev_efficiency,    avg: AVG.rev_efficiency,    suf: 'x', dec: 2 },
+    { label: 'Compliance',     agent: agent.gov_rate,          avg: AVG.gov_rate,          suf: '%', dec: 1 },
+    { label: 'Efficiency',     agent: agent.rev_efficiency,    avg: AVG.rev_efficiency,    suf: 'x', dec: 2 },
     { label: 'Uptime',         agent: agent.uptime_hours,      avg: AVG.uptime_hours,      suf: 'h', dec: 1 },
     { label: 'Rank',           agent: agent.rank,              avg: 25,                    suf: '',  dec: 0, lowerBetter: true },
   ].forEach(r => {
@@ -773,7 +774,7 @@ function openPopout(agent) {
   const tbl = el('table', 'hist-table');
   const thead = el('thead');
   const htr = el('tr');
-  ['Date', 'Track', 'Type', 'Tasks', 'EXP', 'Comp%', 'SIG'].forEach(h => htr.appendChild(el('th', '', h)));
+  ['Date', 'Track', 'Type', 'Tasks', 'EXP', 'Comp%', 'Score'].forEach(h => htr.appendChild(el('th', '', h)));
   thead.appendChild(htr);
   tbl.appendChild(thead);
 
@@ -821,10 +822,10 @@ function renderHof() {
 
   if (S.hofTab === 'RECORDS') {
     [
-      { label: 'Highest SIG',    val: AGENTS[0].sig.toLocaleString(),                             agent: AGENTS[0].handle,                                                      color: 'var(--gold)'   },
+      { label: 'Highest Score',   val: AGENTS[0].sig.toLocaleString(),                             agent: AGENTS[0].handle,                                                      color: 'var(--gold)'   },
       { label: 'Most Missions',  val: [...AGENTS].sort((a,b) => b.missions_completed-a.missions_completed)[0].missions_completed, agent: [...AGENTS].sort((a,b) => b.missions_completed-a.missions_completed)[0].handle, color: 'var(--signal)' },
-      { label: 'Best Gov%',      val: [...AGENTS].sort((a,b) => b.gov_rate-a.gov_rate)[0].gov_rate + '%',           agent: [...AGENTS].sort((a,b) => b.gov_rate-a.gov_rate)[0].handle,           color: 'var(--cyan)'   },
-      { label: 'Top Rev/Cost',   val: [...AGENTS].sort((a,b) => b.rev_efficiency-a.rev_efficiency)[0].rev_efficiency + 'x', agent: [...AGENTS].sort((a,b) => b.rev_efficiency-a.rev_efficiency)[0].handle, color: 'var(--purple)' },
+      { label: 'Best Compliance', val: [...AGENTS].sort((a,b) => b.gov_rate-a.gov_rate)[0].gov_rate + '%',           agent: [...AGENTS].sort((a,b) => b.gov_rate-a.gov_rate)[0].handle,           color: 'var(--cyan)'   },
+      { label: 'Top Efficiency', val: [...AGENTS].sort((a,b) => b.rev_efficiency-a.rev_efficiency)[0].rev_efficiency + 'x', agent: [...AGENTS].sort((a,b) => b.rev_efficiency-a.rev_efficiency)[0].handle, color: 'var(--purple)' },
       { label: 'Most Uptime',    val: [...AGENTS].sort((a,b) => b.uptime_hours-a.uptime_hours)[0].uptime_hours + 'h',  agent: [...AGENTS].sort((a,b) => b.uptime_hours-a.uptime_hours)[0].handle,    color: 'var(--accent)' },
     ].forEach(r => {
       const card = el('div', 'hof-card');
@@ -848,7 +849,7 @@ function renderHof() {
     const score = el('div', 'hof-score', a.sig.toLocaleString());
     score.style.color = color;
     card.appendChild(score);
-    card.appendChild(el('div', 'hof-meta', a.missions_completed + ' missions · ' + a.gov_rate + '% gov'));
+    card.appendChild(el('div', 'hof-meta', a.missions_completed + ' missions · ' + a.gov_rate + '% compliance'));
     content.appendChild(card);
   });
 }
@@ -858,7 +859,7 @@ function renderStableHead() {
   const head = document.getElementById('stable-head');
   head.textContent = '';
   const tr = el('tr');
-  ['Rank','Stable','Members','Avg SIG','Total SIG','Top Track','Change'].forEach(h => tr.appendChild(el('th', '', h)));
+  ['Rank','Team','Members','Avg Score','Total Score','Top Track','Change'].forEach(h => tr.appendChild(el('th', '', h)));
   head.appendChild(tr);
 }
 
