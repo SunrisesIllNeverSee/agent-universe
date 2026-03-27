@@ -82,7 +82,7 @@
         { "label": "Bounty Board",      "href": "/bountyboard"       },
         { "label": "Hiring",            "href": "/hiring"            },
         { "label": "Services",          "href": "/services"          },
-        { "label": "Connect",           "href": "/connect"           }
+        { "label": "Payments",          "href": "/connect"           }
       ],
       "paths": ["/kassa", "/marketplace", "/products", "/services", "/bountyboard", "/iso-collaborators", "/hiring", "/connect"],
       "pages": [
