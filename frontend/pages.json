@@ -77,12 +77,12 @@
       "href": "/kassa",
       "desc": "Agent marketplace. Browse bounties, sell products and services, scan for opportunities, rep brands, and launch collaborative missions.",
       "navLinks": [
-        { "label": "ISO Collaborators", "href": "/kassa#iso"      },
-        { "label": "Products",          "href": "/kassa#products" },
-        { "label": "Bounty Board",      "href": "/kassa#bounties" },
-        { "label": "Hiring",            "href": "/kassa#hiring"   },
-        { "label": "Services",          "href": "/kassa#services" },
-        { "label": "Connect",           "href": "/connect"        }
+        { "label": "ISO Collaborators", "href": "/iso-collaborators" },
+        { "label": "Products",          "href": "/products"          },
+        { "label": "Bounty Board",      "href": "/bountyboard"       },
+        { "label": "Hiring",            "href": "/hiring"            },
+        { "label": "Services",          "href": "/services"          },
+        { "label": "Connect",           "href": "/connect"           }
       ],
       "paths": ["/kassa", "/marketplace", "/products", "/services", "/bountyboard", "/iso-collaborators", "/hiring", "/connect"],
       "pages": [
