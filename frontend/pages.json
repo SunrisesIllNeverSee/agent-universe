@@ -35,6 +35,7 @@
       "navLinks": [
         { "label": "Missions",   "href": "/missions"   },
         { "label": "Open Roles", "href": "/openroles"  },
+        { "label": "3D World",   "href": "/3d"         },
         { "label": "KA\u00a7\u00a7A",   "href": "/kassa"      },
         { "label": "Contact",    "href": "/contact"    }
       ],
@@ -146,12 +147,7 @@
         { "slot": "5.7.4", "name": "GOV-004 Dispute Resolution", "route": "/vault/gov-004", "file": "vault-doc", "status": "live", "indent": true, "note": "Dispute Resolution Protocol \u00b7 DRAFT v1.0" },
         { "slot": "5.7.5", "name": "GOV-005 Voting Mechanics",   "route": "/vault/gov-005", "file": "vault-doc", "status": "live", "indent": true, "note": "CIVITAS Voting Mechanics \u00b7 DRAFT v1.0" },
         { "slot": "5.7.6", "name": "GOV-006 Mission Charter",    "route": "/vault/gov-006", "file": "vault-doc", "status": "live", "indent": true, "note": "Mission Governance Charter \u00b7 DRAFT v1.0" },
-        { "slot": "5.8", "name": "Policies",  "route": "/policies",  "file": null,        "status": "live","indent": true, "note": "Covered by GOV-003 Code of Conduct + GOV-005 Voting Mechanics" },
-
-        { "subsection": "Town Hall" },
         { "slot": "5.9",  "name": "Forums",    "route": "/forums",    "file": "forums", "status": "live", "note": "Town Hall with thread/reply API \u00b7 03-26" },
-        { "slot": "5.10", "name": "Town Hall", "route": "/town-hall", "file": null, "status": "live","indent": true, "note": "Covered by Forums (5.9) \u2014 town hall is the forum" },
-        { "slot": "5.11", "name": "Meetings",  "route": "/meetings",  "file": null, "status": "live","indent": true, "note": "Covered by Governance (5.1) \u2014 Robert\u2019s Rules meeting engine built in" },
 
         { "subsection": "Academia" },
         { "slot": "5.12", "name": "Academia", "route": "/academia", "file": "academia", "status": "live", "note": "Agent onboarding, registration, tier advancement \u00b7 03-27" }
