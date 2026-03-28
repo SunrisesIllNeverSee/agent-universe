@@ -1,5 +1,5 @@
 /**
- * CIVITAE Global Nav — _nav.js
+ * SIGNOMY Global Nav — _nav.js
  * Inject via <script src="/assets/_nav.js"></script> in </head> of every content page.
  *
  * HEADER (right side): Shows 4 sub-links for whatever layer you're currently in.
@@ -16,7 +16,7 @@
   'use strict';
 
   // ── TAE typographic variants — randomly applied each page load ───────────────
-  var TAE_VARIANTS = [
+  var NOMY_VARIANTS = [
     // 1. Italic Playfair — the original happy accident
     { fontStyle:'italic',  fontFamily:'"Playfair Display",serif', fontWeight:'700',  letterSpacing:'0',       color:'#E8EAF0' },
     // 2. Upright monospace — cold and technical
@@ -178,7 +178,7 @@
     mapLink.onclick = function () { closeDropdown(); };
     var ver = document.createElement('span');
     ver.className = 'cn-dd-version';
-    ver.textContent = 'CIVITAE \u00b7 2026';
+    ver.textContent = 'SIGNOMY \u00b7 2026';
     footer.appendChild(mapLink);
     footer.appendChild(ver);
 
@@ -196,10 +196,10 @@
     var btn = document.createElement('button');
     btn.className = 'cn-mark-btn';
     btn.id = 'cn-mark-btn';
-    btn.appendChild(document.createTextNode('CIVI'));
+    btn.appendChild(document.createTextNode('SIG'));
     var em = document.createElement('em');
-    em.textContent = 'TAE';
-    var tae = TAE_VARIANTS[Math.floor(Math.random() * TAE_VARIANTS.length)];
+    em.textContent = 'NOMY';
+    var tae = NOMY_VARIANTS[Math.floor(Math.random() * NOMY_VARIANTS.length)];
     em.style.cssText = 'font-style:'+tae.fontStyle+';font-family:'+tae.fontFamily+';font-weight:'+tae.fontWeight+';letter-spacing:'+tae.letterSpacing+';color:'+tae.color+';';
     btn.appendChild(em);
     var chev = document.createElement('span'); chev.className = 'cn-chevron'; chev.textContent = '\u25bc';
