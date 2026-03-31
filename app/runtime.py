@@ -252,9 +252,5 @@ class RuntimeState:
         from .moses_core.governance import GovernanceStateData
         return check_action_permitted(
             action_description,
-            governance=GovernanceStateData(
-                mode=self.governance.mode,
-                posture=self.governance.posture,
-                role=self.governance.role,
-            ),
+            governance=GovernanceStateData(**self.governance.model_dump()),
         )
