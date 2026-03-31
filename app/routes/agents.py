@@ -250,15 +250,20 @@ async def api_agent_profile_update(handle: str, request: Request) -> dict:
     state.runtime.persist_registry()
     state.audit.log("agent", "profile_updated", {"agent_id": agent_id, "updated_fields": list(updated.keys())})
     await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
-    await create_seed(
-        source_type="profile_update",
-        source_id=agent_id,
-        creator_id=caller,
-        creator_type="AAI",
-        seed_type="planted",
-        metadata={"agent_id": agent_id, "updated_fields": list(updated.keys())},
-    )
-    return {"updated": True, "agent_id": agent_id, "changes": updated}
+    seed_doi = None
+    try:
+        seed_result = await create_seed(
+            source_type="profile_update",
+            source_id=agent_id,
+            creator_id=caller,
+            creator_type="AAI",
+            seed_type="planted",
+            metadata={"agent_id": agent_id, "updated_fields": list(updated.keys())},
+        )
+        seed_doi = seed_result.get("doi") if seed_result else None
+    except Exception:
+        pass
+    return {"updated": True, "agent_id": agent_id, "changes": updated, "seed_doi": seed_doi}
 
 
 @router.get("/profile/{handle}")

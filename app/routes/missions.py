@@ -175,8 +175,9 @@ async def create_mission(payload: dict) -> dict:
     })
     await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
 
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="mission",
             source_id=mission["id"],
             creator_id=payload.get("agent_id", "operator"),
@@ -184,10 +185,11 @@ async def create_mission(payload: dict) -> dict:
             seed_type="planted",
             metadata={"label": mission["label"], "posture": mission["posture"]},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
 
-    return mission
+    return {**mission, "seed_doi": seed_doi}
 
 
 @router.get("/api/missions")
@@ -240,8 +242,9 @@ async def end_mission(mission_id: str, payload: dict | None = None) -> dict:
     })
     await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
     await state.emit("mission_ended", {"mission_id": mission_id, "payouts": len(payouts)})
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="mission_ended",
             source_id=mission_id,
             creator_id="operator",
@@ -249,9 +252,10 @@ async def end_mission(mission_id: str, payload: dict | None = None) -> dict:
             seed_type="planted",
             metadata={"mission_id": mission_id, "slots_paid": len(payouts), "payout_per_slot": payout_amount},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return mission
+    return {**mission, "seed_doi": seed_doi}
 
 
 @router.post("/api/missions/{mission_id}/update")
@@ -391,8 +395,9 @@ async def create_task(payload: dict) -> dict:
     _save_tasks(tasks)
     state.audit.log("mission", "task_created", {"task_id": task["id"], "type": task_type, "track": track})
     await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="task",
             source_id=task["id"],
             creator_id=task["created_by"],
@@ -400,9 +405,10 @@ async def create_task(payload: dict) -> dict:
             seed_type="planted",
             metadata={"title": task["title"], "type": task_type, "track": track},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return task
+    return {**task, "seed_doi": seed_doi}
 
 
 @router.get("/api/tasks")
@@ -478,8 +484,9 @@ async def deliver_task(task_id: str, payload: dict) -> dict:
     _save_tasks(tasks)
     state.audit.log("mission", "task_delivered", {"task_id": task_id, "agent": task.get("assigned_agent")})
     await state.emit("task_delivered", {"task_id": task_id, "deliverable": task["deliverable"]})
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="task_delivery",
             source_id=task_id,
             creator_id=task.get("assigned_agent", "unknown"),
@@ -487,9 +494,10 @@ async def deliver_task(task_id: str, payload: dict) -> dict:
             seed_type="grown",
             metadata={"task_id": task_id, "agent": task.get("assigned_agent")},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return task
+    return {**task, "seed_doi": seed_doi}
 
 
 @router.post("/api/tasks/{task_id}/close")
@@ -528,8 +536,9 @@ async def close_task(task_id: str, payload: dict) -> dict:
         "payout": task["payout"],
     })
     await state.emit("task_closed", {"task_id": task_id, "agent_id": agent_id, "exp": task["exp_reward"]})
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="task_close",
             source_id=task_id,
             creator_id=payload.get("requestor", agent_id or "operator"),
@@ -537,9 +546,10 @@ async def close_task(task_id: str, payload: dict) -> dict:
             seed_type="grown",
             metadata={"task_id": task_id, "agent_id": agent_id, "exp_awarded": task["exp_reward"], "payout": task["payout"]},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return {"task": task, "exp_awarded": exp_result, "payout": payout_result}
+    return {"task": task, "exp_awarded": exp_result, "payout": payout_result, "seed_doi": seed_doi}
 
 
 @router.post("/api/tasks/{task_id}/cancel")
@@ -609,8 +619,9 @@ async def create_slots_from_formation(payload: dict) -> dict:
         "posture": posture,
     })
     await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="slot_created",
             source_id=mission_id,
             creator_id="operator",
@@ -618,9 +629,10 @@ async def create_slots_from_formation(payload: dict) -> dict:
             seed_type="planted",
             metadata={"mission_id": mission_id, "formation_id": formation_id, "slots_created": len(new_slots)},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return {"created": len(new_slots), "mission_id": mission_id, "slots": new_slots}
+    return {"created": len(new_slots), "mission_id": mission_id, "slots": new_slots, "seed_doi": seed_doi}
 
 
 @router.get("/api/slots")
