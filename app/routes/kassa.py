@@ -722,7 +722,9 @@ async def get_kassa_post(post_id: str) -> dict:
 
 @router.post("/api/kassa/posts")
 async def submit_kassa_post(request: Request) -> dict:
-    _check_rate_limit(request, "kassa_posts", max_hits=5)
+    # Admin key bypasses rate limit (for seeding)
+    if not (state.admin_key and request.headers.get("X-Admin-Key") == state.admin_key):
+        _check_rate_limit(request, "kassa_posts", max_hits=5)
     payload = await request.json()
     tab = (payload.get("tab") or "").strip()
     title = (payload.get("title") or "").strip()
