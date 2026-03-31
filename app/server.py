@@ -267,3 +267,6 @@ def create_app(root: Path | None = None) -> FastAPI:
         _aio.ensure_future(_backdate_on_startup())
 
     return app
+
+
+app = create_app()
