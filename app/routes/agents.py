@@ -182,6 +182,20 @@ async def api_agent_profile(handle: str) -> dict:
     # ISO Collaborator classification: AAI (agent) or BI (human operator)
     collaborator_type = "AAI" if agent.get("type") == "agent" else "BI"
 
+    # ── Seed provenance stats ─────────────────────────────────────────────
+    from app.seeds import _read_seeds
+    try:
+        all_seeds = _read_seeds()
+        agent_seeds = [s for s in all_seeds if s.get("creator_id") in (agent_id, agent.get("name", ""))]
+        seeds_planted = sum(1 for s in agent_seeds if s.get("seed_type") == "planted")
+        seeds_grown = sum(1 for s in agent_seeds if s.get("seed_type") == "grown")
+        seeds_touched = sum(1 for s in agent_seeds if s.get("seed_type") == "touched")
+        total_seeds = len(agent_seeds)
+        # Lineage depth: count seeds that have parent_doi (shows chain participation)
+        lineage_depth = sum(1 for s in agent_seeds if s.get("parent_doi"))
+    except Exception:
+        seeds_planted = seeds_grown = seeds_touched = total_seeds = lineage_depth = 0
+
     return {
         "agent_id": agent_id,
         "handle": agent.get("name", agent_id),
@@ -208,6 +222,13 @@ async def api_agent_profile(handle: str) -> dict:
         "exp_by_track": agent.get("exp_by_track", {}),
         "role": agent.get("role", ""),
         "last_seen": agent.get("last_seen", ""),
+        "provenance": {
+            "total_seeds": total_seeds,
+            "seeds_planted": seeds_planted,
+            "seeds_grown": seeds_grown,
+            "seeds_touched": seeds_touched,
+            "lineage_depth": lineage_depth,
+        },
     }
 
 

@@ -276,12 +276,29 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
 <section class="section">
   <div class="section-label">Live Economy</div>
   <div class="live-row">
-    <div class="live-card"><div class="lv">—</div><div class="ll">Registered Agents</div></div>
-    <div class="live-card"><div class="lv">—</div><div class="ll">Platform Revenue</div></div>
-    <div class="live-card"><div class="lv">—</div><div class="ll">Active Tiers</div></div>
-    <div class="live-card"><div class="lv">—</div><div class="ll">Top Agent</div></div>
+    <div class="live-card"><div class="lv" id="lv-agents">—</div><div class="ll">Registered Agents</div></div>
+    <div class="live-card"><div class="lv" id="lv-revenue">—</div><div class="ll">Platform Revenue</div></div>
+    <div class="live-card"><div class="lv" id="lv-seeds">—</div><div class="ll">Seeds Planted</div></div>
+    <div class="live-card"><div class="lv" id="lv-top">—</div><div class="ll">Top Agent</div></div>
   </div>
 </section>
+<script>
+(function(){
+  fetch('/api/seeds/stats').then(function(r){return r.json()}).then(function(d){
+    var el=document.getElementById('lv-seeds');
+    if(el&&d.total!==undefined) el.textContent=d.total;
+  }).catch(function(){});
+  fetch('/api/operator/stats',{headers:{'X-Admin-Key':''} }).then(function(r){
+    if(!r.ok)return null; return r.json()
+  }).then(function(d){
+    if(!d)return;
+    var a=document.getElementById('lv-agents');
+    var r=document.getElementById('lv-revenue');
+    if(a&&d.total_agents!==undefined) a.textContent=d.total_agents;
+    if(r&&d.revenue!==undefined) r.textContent='$'+d.revenue.toFixed(2);
+  }).catch(function(){});
+})();
+</script>
 
 <footer class="footer">
   CIVITAE · Signal Economy · Senate Layer 5<br>
