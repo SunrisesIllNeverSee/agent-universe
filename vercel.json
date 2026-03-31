@@ -3,7 +3,8 @@
   "cleanUrls": true,
   "redirects": [
     { "source": "/openroles", "destination": "/helpwanted", "statusCode": 308 },
-    { "source": "/3d", "destination": "/world", "statusCode": 308 }
+    { "source": "/3d", "destination": "/world", "statusCode": 308 },
+    { "source": "/marketplace", "destination": "/products", "statusCode": 308 }
   ],
   "rewrites": [
     { "source": "/", "destination": "/kingdoms.html" },
@@ -12,8 +13,7 @@
     { "source": "/health", "destination": "https://agent-universe-production.up.railway.app/health" },
     { "source": "/ws", "destination": "https://agent-universe-production.up.railway.app/ws" },
     { "source": "/assets/:path*", "destination": "/:path*" },
-    { "source": "/marketplace", "destination": "/products.html" },
-    { "source": "/profile/:handle", "destination": "/agent-profile.html" },
+    { "source": "/profile/:handle", "destination": "/agent-profile" },
     { "source": "/agent/:slug", "destination": "/agent.html" },
     { "source": "/kassa/post/:id", "destination": "/kassa-post.html" },
     { "source": "/kassa/thread/:id", "destination": "/kassa-thread.html" }
