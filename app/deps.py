@@ -1,0 +1,53 @@
+"""
+deps.py — Shared application state for CIVITAE route modules.
+
+Populated once by create_app() in server.py. Route modules import
+`from app.deps import state` to access economy, kassa, audit, etc.
+"""
+from __future__ import annotations
+
+import asyncio
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .audit import AuditSpine
+    from .economy import SovereignEconomy
+    from .kassa_store import KassaStore
+    from .forums_store import ForumsStore
+    from .runtime import RuntimeState
+    from .store import MessageStore
+    from .router import SequenceRouter
+    from .context import ContextAssembler
+    from .mcp_bridge import MCPBridge
+
+
+class AppState:
+    """Singleton holding all shared application state."""
+
+    root: Path
+    store: MessageStore
+    kassa: KassaStore
+    forums: ForumsStore
+    audit: AuditSpine
+    runtime: RuntimeState
+    router: SequenceRouter
+    assembler: ContextAssembler
+    mcp_bridge: MCPBridge
+    economy: SovereignEconomy
+    hub: object          # ConnectionHub
+    thread_hub: object   # ThreadHub
+    slot_lock: asyncio.Lock
+    admin_key: str = ""
+    jwt_secret: str = ""
+    frontend_dir: Path
+
+    async def emit(self, event_type: str, payload: dict) -> None:
+        """Broadcast an event to all connected WebSocket clients."""
+        await self.hub.broadcast({"type": event_type, "payload": payload})
+
+    def current_state_event(self) -> dict:
+        return {"type": "state_snapshot", "payload": self.runtime.snapshot().model_dump(mode="json")}
+
+
+state = AppState()
