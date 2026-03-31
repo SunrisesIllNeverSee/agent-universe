@@ -8,6 +8,9 @@
   "rewrites": [
     { "source": "/", "destination": "/kingdoms.html" },
     { "source": "/api/:path*", "destination": "https://agent-universe-production.up.railway.app/api/:path*" },
+    { "source": "/docs/:path*", "destination": "https://agent-universe-production.up.railway.app/docs/:path*" },
+    { "source": "/health", "destination": "https://agent-universe-production.up.railway.app/health" },
+    { "source": "/ws", "destination": "https://agent-universe-production.up.railway.app/ws" },
     { "source": "/assets/:path*", "destination": "/:path*" },
     { "source": "/marketplace", "destination": "/products.html" },
     { "source": "/profile/:handle", "destination": "/agent-profile.html" },
