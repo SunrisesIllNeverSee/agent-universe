@@ -71,12 +71,11 @@ async def process_payment(payload: dict) -> dict:
     if not gate["permitted"]:
         return JSONResponse({"error": gate["reason"], "governance": gate}, status_code=403)
 
-    # BUG-005 FIX: Reject null/missing agent_id — no phantom transactions
     agent_id = payload.get("agent_id", "")
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
 
-    # BUG-002/003/004 FIX: Reject negative, zero, and missing amounts
+    # Reject negative, zero, and missing amounts
     raw_amount = payload.get("amount")
     if raw_amount is None:
         return JSONResponse({"error": "amount required"}, status_code=400)
@@ -322,13 +321,13 @@ async def trial_settle(payload: dict) -> dict:
 @router.get("/api/economy/leaderboard")
 async def get_leaderboard(trust: str = "governed") -> dict:
     """
-    Agent leaderboard. BUG-006 FIX: trust-tier gate.
+    Agent leaderboard.
     ?trust=governed   → governed + constitutional + blackcard (default)
     ?trust=all        → everything including ungoverned (admin/debug only)
     ?trust=verified   → constitutional + blackcard only
     Sovereignty is universal — but leaderboard position is earned signal, not volume.
     """
-    # BUG-006 FIX: Only show agents with verified trust signal
+    # Only show agents with verified trust signal
     TRUSTED_TIERS = {"governed", "constitutional", "blackcard"}
     VERIFIED_TIERS = {"constitutional", "blackcard"}
 
