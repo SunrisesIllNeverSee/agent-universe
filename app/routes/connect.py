@@ -116,8 +116,9 @@ async def mpp_credit(request: Request) -> dict:
 
     result = state.economy.treasury.credit(agent_id, amount, reason)
     state.audit.log("mpp", "balance_credited", {"agent_id": agent_id, "amount": amount, "reason": reason})
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="manual_credit",
             source_id=agent_id,
             creator_id="operator",
@@ -125,9 +126,10 @@ async def mpp_credit(request: Request) -> dict:
             seed_type="planted",
             metadata={"agent_id": agent_id, "amount": amount, "reason": reason},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return result
+    return {**result, "seed_doi": seed_doi}
 
 
 @router.post("/api/kassa/posts/{post_id}/pay")
@@ -190,8 +192,9 @@ async def initiate_payment(post_id: str, request: Request) -> dict:
     state.audit.log("kassa", "payment_initiated", {
         "post_id": post_id, "amount": amount, "rail": result.get("rail"),
     })
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="payment_initiated",
             source_id=post_id,
             creator_id="operator",
@@ -199,9 +202,10 @@ async def initiate_payment(post_id: str, request: Request) -> dict:
             seed_type="planted",
             metadata={"post_id": post_id, "amount": amount, "rail": result.get("rail")},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return result
+    return {**result, "seed_doi": seed_doi}
 
 
 # ── Stripe Connect: Connected Accounts ─────────────────────────────────────
@@ -411,6 +415,7 @@ async def connect_webhook(request: Request) -> dict:
 
     event_type = event.get("type", "")
 
+    seed_doi = None
     if "requirements" in event_type:
         # Account requirements changed — may need to collect updated info
         state.audit.log("kassa", "connect_requirements_updated", {
@@ -418,7 +423,7 @@ async def connect_webhook(request: Request) -> dict:
             "type": event_type,
         })
         try:
-            await create_seed(
+            seed_result = await create_seed(
                 source_type="connect_event",
                 source_id=event["id"],
                 creator_id="stripe",
@@ -426,6 +431,7 @@ async def connect_webhook(request: Request) -> dict:
                 seed_type="planted",
                 metadata={"event_id": event["id"], "type": event_type},
             )
+            seed_doi = seed_result.get("doi") if seed_result else None
         except Exception:
             pass
 
@@ -436,7 +442,7 @@ async def connect_webhook(request: Request) -> dict:
             "type": event_type,
         })
         try:
-            await create_seed(
+            seed_result = await create_seed(
                 source_type="connect_event",
                 source_id=event["id"],
                 creator_id="stripe",
@@ -444,10 +450,11 @@ async def connect_webhook(request: Request) -> dict:
                 seed_type="planted",
                 metadata={"event_id": event["id"], "type": event_type},
             )
+            seed_doi = seed_result.get("doi") if seed_result else None
         except Exception:
             pass
 
-    return {"received": True}
+    return {"received": True, "seed_doi": seed_doi}
 
 
 # ── Legacy Stripe Webhook (V1 events) ─────────────────────────────────────
@@ -496,8 +503,9 @@ async def stripe_webhook_v1(request: Request) -> dict:
             "rail": "stripe_connect",
             "amount": _stripe_amount,
         })
+        seed_doi = None
         try:
-            await create_seed(
+            seed_result = await create_seed(
                 source_type="payment_completed",
                 source_id=_session_id or post_id,
                 creator_id="stripe",
@@ -505,10 +513,11 @@ async def stripe_webhook_v1(request: Request) -> dict:
                 seed_type="planted",
                 metadata={"post_id": post_id, "amount": _stripe_amount, "session_id": _session_id, "rail": "stripe"},
             )
+            seed_doi = seed_result.get("doi") if seed_result else None
         except Exception:
             pass
 
-    return {"received": True}
+    return {"received": True, "seed_doi": seed_doi}
 
 
 # ── Connect Pages ──────────────────────────────────────────────────────────

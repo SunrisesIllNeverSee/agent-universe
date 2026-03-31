@@ -110,8 +110,9 @@ async def call_meeting(payload: dict) -> dict:
     _save_meetings(meetings)
     state.audit.log("governance", "meeting_called", {"meeting_id": meeting["id"], "caller": caller, "subject": subject})
     await state.emit("meeting_called", {"meeting_id": meeting["id"], "caller": caller, "subject": subject})
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="meeting_called",
             source_id=meeting["id"],
             creator_id=caller,
@@ -119,8 +120,10 @@ async def call_meeting(payload: dict) -> dict:
             seed_type="planted",
             metadata={"meeting_id": meeting["id"], "caller": caller, "subject": subject},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
+    meeting["seed_doi"] = seed_doi
     return meeting
 
 
@@ -159,8 +162,9 @@ async def join_meeting(meeting_id: str, payload: dict) -> dict:
     _save_meetings(meetings)
     has_quorum = len(meeting["attendees"]) >= meeting["quorum"]
     await state.emit("meeting_joined", {"meeting_id": meeting_id, "agent_id": agent_id, "has_quorum": has_quorum})
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="meeting_joined",
             source_id=f"{meeting_id}-{agent_id}",
             creator_id=agent_id,
@@ -168,9 +172,10 @@ async def join_meeting(meeting_id: str, payload: dict) -> dict:
             seed_type="planted",
             metadata={"meeting_id": meeting_id, "agent_id": agent_id, "has_quorum": has_quorum},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return {"meeting_id": meeting_id, "agent_id": agent_id, "attendees": len(meeting["attendees"]), "has_quorum": has_quorum}
+    return {"meeting_id": meeting_id, "agent_id": agent_id, "attendees": len(meeting["attendees"]), "has_quorum": has_quorum, "seed_doi": seed_doi}
 
 
 @router.post("/api/governance/meeting/{meeting_id}/motion")

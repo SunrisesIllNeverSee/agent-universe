@@ -119,9 +119,10 @@ async def log_agent_metric(payload: dict) -> dict:
     agent["last_active"] = datetime.now(UTC).isoformat()
     _save_metrics(m)
     # Seed only significant events — skip high-volume message_sent/cost/revenue
+    seed_doi = None
     if event in ("mission_complete", "mission_failed", "governance_check", "governance_violation"):
         try:
-            await create_seed(
+            seed_result = await create_seed(
                 source_type="metric_logged",
                 source_id=f"{agent_id}-{event}-{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}",
                 creator_id=agent_id,
@@ -129,9 +130,10 @@ async def log_agent_metric(payload: dict) -> dict:
                 seed_type="planted",
                 metadata={"agent_id": agent_id, "event": event},
             )
+            seed_doi = seed_result.get("doi") if seed_result else None
         except Exception:
             pass
-    return {"logged": True, "agent_id": agent_id, "event": event}
+    return {"logged": True, "agent_id": agent_id, "event": event, "seed_doi": seed_doi}
 
 
 @router.get("/api/metrics")
@@ -215,9 +217,10 @@ async def log_mission_metric(payload: dict) -> dict:
         mission["costs"] += payload.get("amount", 0)
 
     _save_metrics(m)
+    seed_doi = None
     if event == "ended":
         try:
-            await create_seed(
+            seed_result = await create_seed(
                 source_type="mission_metric",
                 source_id=mission_id,
                 creator_id="operator",
@@ -225,6 +228,7 @@ async def log_mission_metric(payload: dict) -> dict:
                 seed_type="planted",
                 metadata={"mission_id": mission_id, "outcome": payload.get("outcome", "completed")},
             )
+            seed_doi = seed_result.get("doi") if seed_result else None
         except Exception:
             pass
-    return {"logged": True, "mission_id": mission_id, "event": event}
+    return {"logged": True, "mission_id": mission_id, "event": event, "seed_doi": seed_doi}
