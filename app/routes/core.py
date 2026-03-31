@@ -202,8 +202,9 @@ async def load_context(payload: VaultSelection) -> dict:
     loaded = runtime.load_context(payload.file)
     await state.emit("vault_updated", {"loaded_context": loaded})
     await state.emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="vault_loaded",
             source_id=payload.file,
             creator_id="operator",
@@ -211,9 +212,10 @@ async def load_context(payload: VaultSelection) -> dict:
             seed_type="planted",
             metadata={"file": payload.file},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return {"loaded_context": loaded}
+    return {"loaded_context": loaded, "seed_doi": seed_doi}
 
 
 @router.post("/api/vault/unload")
@@ -290,8 +292,9 @@ async def upload_vault_file(
 
     await state.emit("vault_updated", {"loaded_context": loaded})
     await state.emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="vault_upload",
             source_id=safe_name,
             creator_id="operator",
@@ -299,6 +302,7 @@ async def upload_vault_file(
             seed_type="planted",
             metadata={"file": safe_name, "category": category, "size": len(content)},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
     return {
@@ -306,6 +310,7 @@ async def upload_vault_file(
         "category": category,
         "size": len(content),
         "loaded_context": loaded,
+        "seed_doi": seed_doi,
     }
 
 

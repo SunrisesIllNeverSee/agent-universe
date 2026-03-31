@@ -298,8 +298,9 @@ async def stake_post(post_id: str, request: Request) -> dict:
     state.audit.log("kassa", "stake_placed", {"stake_id": stake_id, "post_id": post_id, "agent_id": agent_id})
     await state.emit("kassa_stake", entry)
 
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="stake",
             source_id=stake_id,
             creator_id=agent_id,
@@ -307,6 +308,7 @@ async def stake_post(post_id: str, request: Request) -> dict:
             seed_type="planted",
             metadata={"post_id": post_id},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
 
@@ -336,14 +338,16 @@ async def stake_post(post_id: str, request: Request) -> dict:
     })
 
     # Create seed for thread creation
+    thread_seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="thread",
             source_id=thread_result["thread_id"],
             creator_id=agent_id,
             creator_type="AAI",
             metadata={"post_id": post_id, "post_title": post.get("title", "")},
         )
+        thread_seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
 
@@ -375,6 +379,8 @@ async def stake_post(post_id: str, request: Request) -> dict:
         "post_id": post_id,
         "thread_id": thread_result["thread_id"],
         "magic_link": magic_link,
+        "seed_doi": seed_doi,
+        "thread_seed_doi": thread_seed_doi,
     }
 
 
@@ -398,8 +404,9 @@ async def withdraw_stake(stake_id: str, request: Request) -> dict:
     state.kassa.update_stake(stake_id, {"status": "withdrawn"})
 
     state.audit.log("kassa", "stake_withdrawn", {"stake_id": stake_id, "agent_id": agent["agent_id"]})
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="stake_withdrawn",
             source_id=stake_id,
             creator_id=agent["agent_id"],
@@ -407,9 +414,10 @@ async def withdraw_stake(stake_id: str, request: Request) -> dict:
             seed_type="planted",
             metadata={"stake_id": stake_id, "agent_id": agent["agent_id"]},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return {"withdrawn": True, "stake_id": stake_id}
+    return {"withdrawn": True, "stake_id": stake_id, "seed_doi": seed_doi}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -465,8 +473,9 @@ async def create_referral(request: Request, payload: dict) -> dict:
         "target": target_id,
     })
     await state.emit("kassa_referral", entry)
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="kassa_referral",
             source_id=ref_id,
             creator_id=agent["agent_id"],
@@ -474,9 +483,10 @@ async def create_referral(request: Request, payload: dict) -> dict:
             seed_type="planted",
             metadata={"referral_id": ref_id, "source_post_id": source_id, "target_post_id": target_id},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return {"referred": True, "referral_id": ref_id, "source": source_id, "target": target_id}
+    return {"referred": True, "referral_id": ref_id, "source": source_id, "target": target_id, "seed_doi": seed_doi}
 
 
 @router.get("/api/kassa/posts/{post_id}/referrals")
@@ -642,14 +652,16 @@ async def post_thread_message(thread_id: str, request: Request) -> dict:
     })
 
     # Create seed for message
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="message",
             source_id=msg_id,
             creator_id=sender_name,
             creator_type="AAI" if sender_type == "agent" else "BI",
             metadata={"thread_id": thread_id, "post_id": thread.get("post_id", "")},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
 
@@ -669,7 +681,7 @@ async def post_thread_message(thread_id: str, request: Request) -> dict:
         except Exception:
             pass
 
-    return {"sent": True, "msg_id": msg_id, "thread_id": thread_id}
+    return {"sent": True, "msg_id": msg_id, "thread_id": thread_id, "seed_doi": seed_doi}
 
 
 @router.get("/kassa/thread/{thread_id}")
@@ -750,8 +762,9 @@ async def submit_kassa_post(request: Request) -> dict:
     state.audit.log("kassa", "post_submitted", {"id": kid, "tab": tab, "from_email": from_email})
     await state.emit("kassa_post_submitted", {"id": kid, "tab": tab})
 
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="kassa_post",
             source_id=kid,
             creator_id=from_email or from_name,
@@ -759,10 +772,11 @@ async def submit_kassa_post(request: Request) -> dict:
             seed_type="planted",
             metadata={"tab": tab, "title": title},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
 
-    return {"ok": True, "id": kid, "message": "Post submitted for review. We\u2019ll publish it shortly."}
+    return {"ok": True, "id": kid, "message": "Post submitted for review. We\u2019ll publish it shortly.", "seed_doi": seed_doi}
 
 
 @router.post("/api/kassa/posts/{post_id}/upvote")
@@ -771,8 +785,9 @@ async def upvote_kassa_post(post_id: str) -> dict:
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
     new_count = state.kassa.increment_upvotes(post_id)
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="kassa_upvote",
             source_id=f"{post_id}-{new_count}",
             creator_id="anonymous",
@@ -780,9 +795,10 @@ async def upvote_kassa_post(post_id: str) -> dict:
             seed_type="planted",
             metadata={"post_id": post_id, "upvotes": new_count},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return {"ok": True, "id": post_id, "upvotes": new_count}
+    return {"ok": True, "id": post_id, "upvotes": new_count, "seed_doi": seed_doi}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -803,13 +819,14 @@ async def update_review(review_id: str, action: str, request: Request) -> dict:
     r = state.kassa.get_review(review_id)
     if not r:
         raise HTTPException(status_code=404, detail="Review not found")
+    seed_doi = None
     if action == "approve":
         state.kassa.insert_post(r["post"])
         state.kassa.update_review(review_id, {"status": "approved"})
         r["status"] = "approved"
         state.audit.log("kassa", "post_approved", {"review_id": review_id, "post_id": r["post"]["id"]})
         try:
-            await create_seed(
+            seed_result = await create_seed(
                 source_type="kassa_post_approved",
                 source_id=review_id,
                 creator_id="operator",
@@ -817,6 +834,7 @@ async def update_review(review_id: str, action: str, request: Request) -> dict:
                 seed_type="planted",
                 metadata={"review_id": review_id, "post_id": r["post"]["id"]},
             )
+            seed_doi = seed_result.get("doi") if seed_result else None
         except Exception:
             pass
     elif action == "reject":
@@ -824,7 +842,7 @@ async def update_review(review_id: str, action: str, request: Request) -> dict:
         r["status"] = "rejected"
         state.audit.log("kassa", "post_rejected", {"review_id": review_id})
         try:
-            await create_seed(
+            seed_result = await create_seed(
                 source_type="kassa_post_rejected",
                 source_id=review_id,
                 creator_id="operator",
@@ -832,11 +850,13 @@ async def update_review(review_id: str, action: str, request: Request) -> dict:
                 seed_type="planted",
                 metadata={"review_id": review_id},
             )
+            seed_doi = seed_result.get("doi") if seed_result else None
         except Exception:
             pass
     else:
         raise HTTPException(status_code=400, detail="action must be 'approve' or 'reject'")
     await state.emit("review_updated", {"review_id": review_id, "status": r["status"]})
+    r["seed_doi"] = seed_doi
     return r
 
 
@@ -914,8 +934,9 @@ async def approve_product_review(review_id: str, request: Request) -> dict:
             pass  # reward is a string like "$50 USDC" -- log but can't auto-credit
         state.audit.log("kassa", "product_review_reward", {"review_id": review_id, "reviewer_id": review["reviewer_id"], "reward": review["reward"]})
     state.audit.log("kassa", f"product_review_{action}d", {"review_id": review_id})
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="review_approved" if action == "approve" else "review_rejected",
             source_id=review_id,
             creator_id="operator",
@@ -923,9 +944,10 @@ async def approve_product_review(review_id: str, request: Request) -> dict:
             seed_type="planted",
             metadata={"review_id": review_id, "action": action},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return {"ok": True, "review_id": review_id, "status": action + "d"}
+    return {"ok": True, "review_id": review_id, "status": action + "d", "seed_doi": seed_doi}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
