@@ -100,8 +100,9 @@ async def process_payment(payload: dict) -> dict:
         "net": result["fee_breakdown"]["net_to_agent"],
     })
     await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="payment",
             source_id=payload.get("mission_id", ""),
             creator_id=agent_id,
@@ -109,9 +110,10 @@ async def process_payment(payload: dict) -> dict:
             seed_type="touched",
             metadata={"agent_id": agent_id, "tier": result["tier"], "gross": payload.get("amount"), "net": result["fee_breakdown"]["net_to_agent"]},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return result
+    return {**result, "seed_doi": seed_doi}
 
 
 @router.post("/api/economy/mission-payout")
@@ -160,8 +162,9 @@ async def process_mission_payout(payload: dict) -> dict:
         "recruiter_bounty": result.get("recruiter_bounty"),
     })
     await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="mission_payout",
             source_id=payload.get("mission_id", ""),
             creator_id=agent_id,
@@ -169,9 +172,10 @@ async def process_mission_payout(payload: dict) -> dict:
             seed_type="grown",
             metadata={"action": "mission_payout", "tier": result["tier"], "gross": amount, "mission_id": payload.get("mission_id", "")},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return result
+    return {**result, "seed_doi": seed_doi}
 
 
 @router.get("/api/economy/balance/{agent_id}")
@@ -246,8 +250,9 @@ async def trial_init(payload: dict) -> dict:
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
     rec = state.economy.trials.init_trial(agent_id)
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="trial_start",
             source_id=agent_id,
             creator_id=agent_id,
@@ -255,10 +260,12 @@ async def trial_init(payload: dict) -> dict:
             seed_type="planted",
             metadata={"agent_id": agent_id, "trial": rec},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
     return {"agent_id": agent_id, "trial": rec,
-            "note": f"Free trial: {state.economy.trials.TRIAL_MISSION_LIMIT if hasattr(state.economy.trials, 'TRIAL_MISSION_LIMIT') else 5} missions or 30 days."}
+            "note": f"Free trial: {state.economy.trials.TRIAL_MISSION_LIMIT if hasattr(state.economy.trials, 'TRIAL_MISSION_LIMIT') else 5} missions or 30 days.",
+            "seed_doi": seed_doi}
 
 
 @router.get("/api/economy/trial/{agent_id}")
@@ -274,8 +281,9 @@ async def trial_commit(payload: dict) -> dict:
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
     result = state.economy.trials.commit(agent_id)
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="trial_commit",
             source_id=agent_id,
             creator_id=agent_id,
@@ -283,9 +291,10 @@ async def trial_commit(payload: dict) -> dict:
             seed_type="touched",
             metadata={"agent_id": agent_id, "commit_result": result},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return result
+    return {**result, "seed_doi": seed_doi}
 
 
 @router.post("/api/economy/trial/depart")
@@ -389,18 +398,24 @@ async def withdraw(payload: dict) -> dict:
             "note": "Chain adapter is stubbed. Funds held. Will execute when adapter is live.",
         })
         await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
-        await create_seed(
-            source_type="treasury_action",
-            source_id=agent_id,
-            creator_id=agent_id,
-            creator_type="AAI",
-            seed_type="planted",
-            metadata={"action": "withdrawal_pending", "amount": amount, "chain": chain, "status": "PENDING_ADAPTER"},
-        )
+        seed_doi = None
+        try:
+            seed_result = await create_seed(
+                source_type="treasury_action",
+                source_id=agent_id,
+                creator_id=agent_id,
+                creator_type="AAI",
+                seed_type="planted",
+                metadata={"action": "withdrawal_pending", "amount": amount, "chain": chain, "status": "PENDING_ADAPTER"},
+            )
+            seed_doi = seed_result.get("doi") if seed_result else None
+        except Exception:
+            pass
         return {
             "withdrawal": {"status": "pending", "agent_id": agent_id, "amount": amount},
             "chain_transfer": {**transfer, "status": "PENDING_ADAPTER"},
             "note": f"Chain adapter for {chain} is not yet live. Your balance is preserved. Withdrawal will execute when the adapter connects to RPC.",
+            "seed_doi": seed_doi,
         }
 
     # Real adapter — debit treasury and execute
@@ -421,16 +436,21 @@ async def withdraw(payload: dict) -> dict:
         "agent_id": agent_id, "amount": amount, "chain": chain, "status": transfer_status,
     })
     await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
-    await create_seed(
-        source_type="treasury_action",
-        source_id=agent_id,
-        creator_id=agent_id,
-        creator_type="AAI",
-        seed_type="planted",
-        metadata={"action": "withdrawal", "amount": amount, "chain": chain, "status": transfer_status},
-    )
+    seed_doi = None
+    try:
+        seed_result = await create_seed(
+            source_type="treasury_action",
+            source_id=agent_id,
+            creator_id=agent_id,
+            creator_type="AAI",
+            seed_type="planted",
+            metadata={"action": "withdrawal", "amount": amount, "chain": chain, "status": transfer_status},
+        )
+        seed_doi = seed_result.get("doi") if seed_result else None
+    except Exception:
+        pass
 
-    return {"withdrawal": debit, "chain_transfer": transfer}
+    return {"withdrawal": debit, "chain_transfer": transfer, "seed_doi": seed_doi}
 
 
 # ── History ──────────────────────────────────────────────────────────────────
@@ -463,8 +483,9 @@ async def purchase_blackcard(payload: dict) -> dict:
         },
     })
     await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="blackcard_purchase",
             source_id=agent_id,
             creator_id=agent_id,
@@ -472,9 +493,10 @@ async def purchase_blackcard(payload: dict) -> dict:
             seed_type="planted",
             metadata={"agent_id": agent_id, "price_usd": TIERS["blackcard"]["price_usd"]},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return result
+    return {**result, "seed_doi": seed_doi}
 
 
 @router.get("/api/economy/blackcard/info")

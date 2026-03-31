@@ -129,15 +129,20 @@ async def forums_create_thread(request: Request) -> dict:
         {"thread_id": thread["thread_id"], "author": claims.get("sub", claims.get("agent_id", ""))},
     )
     # Seed provenance
-    await create_seed(
-        source_type="forum_thread",
-        source_id=thread["thread_id"],
-        creator_id=claims.get("sub", claims.get("agent_id", "")),
-        creator_type=author_type,
-        seed_type="planted",
-        metadata={"title": title, "category": category},
-    )
-    return thread
+    seed_doi = None
+    try:
+        seed_result = await create_seed(
+            source_type="forum_thread",
+            source_id=thread["thread_id"],
+            creator_id=claims.get("sub", claims.get("agent_id", "")),
+            creator_type=author_type,
+            seed_type="planted",
+            metadata={"title": title, "category": category},
+        )
+        seed_doi = seed_result.get("doi") if seed_result else None
+    except Exception:
+        pass
+    return {**thread, "seed_doi": seed_doi}
 
 
 @router.post("/api/forums/threads/{thread_id}/replies")
@@ -166,16 +171,21 @@ async def forums_create_reply(thread_id: str, request: Request) -> dict:
         {"thread_id": thread_id, "author": claims.get("sub", claims.get("agent_id", ""))},
     )
     # Seed provenance
+    seed_doi = None
     if reply:
-        await create_seed(
-            source_type="forum_reply",
-            source_id=reply["reply_id"],
-            creator_id=claims.get("sub", claims.get("agent_id", "")),
-            creator_type="AAI",
-            seed_type="grown",
-            metadata={"thread_id": thread_id},
-        )
-    return reply
+        try:
+            seed_result = await create_seed(
+                source_type="forum_reply",
+                source_id=reply["reply_id"],
+                creator_id=claims.get("sub", claims.get("agent_id", "")),
+                creator_type="AAI",
+                seed_type="grown",
+                metadata={"thread_id": thread_id},
+            )
+            seed_doi = seed_result.get("doi") if seed_result else None
+        except Exception:
+            pass
+    return {**reply, "seed_doi": seed_doi}
 
 
 # ── Admin: Pin / Lock ────────────────────────────────────────────────────────
