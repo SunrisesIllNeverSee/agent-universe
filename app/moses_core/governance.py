@@ -253,11 +253,42 @@ def _action_concepts(action: str) -> set[str]:
     }
 
 
+# ── Action risk levels ─────────────────────────────────────────────────────
+# "standard" actions are marketplace operations governed by the tier/fee system.
+#   → Always permitted regardless of posture (ungoverned agents pay higher fees).
+# "high" actions are treasury/chain ops that need posture-level governance.
+#   → Subject to SCOUT/DEFENSE/OFFENSE posture checks.
+# Unlisted actions default to posture-checked (safe default).
+ACTION_RISK: dict[str, str] = {
+    "process payment": "standard",
+    "fill slot": "standard",
+    "create bounty": "standard",
+    "close task": "standard",
+    "purchase blackcard": "standard",
+    "mission payout": "standard",
+    # High-risk: chain transfers, treasury ops, operator actions
+    "manual credit": "high",
+    "chain transfer": "high",
+    "treasury withdrawal": "high",
+}
+
+
 def check_action_permitted(action_description: str, governance: GovernanceStateData) -> dict:
     mode_config = translate_mode(governance.mode)
     concepts = _action_concepts(action_description)
     conditions: list[str] = []
     triggered_rules: list[str] = []
+
+    # Standard-risk marketplace actions bypass posture checks —
+    # the tier fee system provides economic governance instead.
+    risk = ACTION_RISK.get(action_description, "high")
+    if risk == "standard":
+        return {
+            "permitted": True,
+            "reason": f"Marketplace action permitted (tier-governed) under {governance.mode}",
+            "triggered_rules": [],
+            "conditions": [],
+        }
 
     if governance.posture == "SCOUT":
         state_changing = concepts & {"transaction", "execution", "destructive", "outbound", "state_change"}
