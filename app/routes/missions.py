@@ -651,7 +651,6 @@ async def fill_slot(payload: dict) -> dict:
     agent_id = payload.get("agent_id", "")
     agent_name = payload.get("agent_name", agent_id)
 
-    # BUG-001 FIX: Reject unregistered agents — no registry entry = no slot
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
     registered = next((r for r in state.runtime.registry if r.get("agent_id") == agent_id), None)
@@ -663,8 +662,6 @@ async def fill_slot(payload: dict) -> dict:
     if registered.get("status") == "suspended":
         return JSONResponse({"error": "Agent suspended — contact admin"}, status_code=403)
 
-    # BUG-007 FIX: Acquire slot_lock before check-then-mutate.
-    # Prevents DICT_RACE where concurrent fill+leave interleave on same slot.
     async with state.slot_lock:
         slots = _load_slots()
         slot = next((s for s in slots if s["id"] == slot_id), None)
@@ -714,7 +711,6 @@ async def fill_slot(payload: dict) -> dict:
 async def leave_slot(payload: dict) -> dict:
     """Agent leaves a slot — opens it back up."""
     slot_id = payload.get("slot_id", "")
-    # BUG-007 FIX: Lock slot mutation to prevent DICT_RACE on concurrent leave+fill
     async with state.slot_lock:
         slots = _load_slots()
         slot = next((s for s in slots if s["id"] == slot_id), None)
