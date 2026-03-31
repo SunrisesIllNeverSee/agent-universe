@@ -159,14 +159,19 @@ async def agent_signup(request: Request, payload: dict) -> dict:
     # Plant a registration seed for provenance tracking
     handle = payload.get("handle", agent_name)
     capabilities = payload.get("capabilities", [])
-    await create_seed(
-        source_type="registration",
-        source_id=agent_id,
-        creator_id=agent_id,
-        creator_type="AAI",
-        seed_type="planted",
-        metadata={"handle": handle, "capabilities": capabilities},
-    )
+    seed_doi = None
+    try:
+        seed_result = await create_seed(
+            source_type="registration",
+            source_id=agent_id,
+            creator_id=agent_id,
+            creator_type="AAI",
+            seed_type="planted",
+            metadata={"handle": handle, "capabilities": capabilities},
+        )
+        seed_doi = seed_result.get("doi") if seed_result else None
+    except Exception:
+        pass
 
     return {
         "welcome": True,
@@ -193,6 +198,7 @@ async def agent_signup(request: Request, payload: dict) -> dict:
             "treasury": "/treasury",
             "forums": "/forums",
         },
+        "seed_doi": seed_doi,
     }
 
 
@@ -340,9 +346,10 @@ async def agent_heartbeat(agent_id: str) -> dict:
         _save_metrics(m)
 
     # Sample 1-in-10 heartbeats to avoid seed volume explosion
+    seed_doi = None
     if _rand.random() < 0.1:
         try:
-            await create_seed(
+            seed_result = await create_seed(
                 source_type="heartbeat",
                 source_id=agent_id,
                 creator_id=agent_id,
@@ -350,9 +357,10 @@ async def agent_heartbeat(agent_id: str) -> dict:
                 seed_type="planted",
                 metadata={"agent_id": agent_id, "last_seen": now},
             )
+            seed_doi = seed_result.get("doi") if seed_result else None
         except Exception:
             pass
-    return {"ok": True, "agent_id": agent_id, "last_seen": now}
+    return {"ok": True, "agent_id": agent_id, "last_seen": now, "seed_doi": seed_doi}
 
 
 @router.post("/api/provision/suspend")
@@ -372,8 +380,9 @@ async def suspend_agent(request: Request, payload: dict) -> dict:
     runtime.persist_registry()
     audit.log("provision", "agent_suspended", {"agent_id": agent_id})
     await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="agent_suspended",
             source_id=agent_id,
             creator_id="operator",
@@ -381,9 +390,10 @@ async def suspend_agent(request: Request, payload: dict) -> dict:
             seed_type="planted",
             metadata={"agent_id": agent_id},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return {"suspended": True, "agent_id": agent_id}
+    return {"suspended": True, "agent_id": agent_id, "seed_doi": seed_doi}
 
 
 @router.delete("/api/provision/decommission/{agent_id}")
@@ -401,8 +411,9 @@ async def decommission_agent(request: Request, agent_id: str) -> dict:
     runtime.persist_registry()
     audit.log("provision", "agent_decommissioned", {"agent_id": agent_id})
     await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    seed_doi = None
     try:
-        await create_seed(
+        seed_result = await create_seed(
             source_type="agent_decommissioned",
             source_id=agent_id,
             creator_id="operator",
@@ -410,6 +421,7 @@ async def decommission_agent(request: Request, agent_id: str) -> dict:
             seed_type="planted",
             metadata={"agent_id": agent_id},
         )
+        seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return {"decommissioned": True, "agent_id": agent_id}
+    return {"decommissioned": True, "agent_id": agent_id, "seed_doi": seed_doi}
