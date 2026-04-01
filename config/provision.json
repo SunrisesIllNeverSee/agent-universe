@@ -274,6 +274,23 @@
         "requests_per_minute": 10,
         "burst": 20
       }
+    },
+    {
+      "agent_id": "agent-31024b4d",
+      "name": "Test Email Agent",
+      "email": "test-email-agent@signomy.xyz",
+      "type": "agent",
+      "status": "active",
+      "provisioned": "2026-04-01T14:14:15.419578+00:00",
+      "key_prefix": "cmd_ak_1e44e2***",
+      "governance": "high_integrity",
+      "system": "claude",
+      "assigned_system": "claude",
+      "role": "secondary",
+      "rate_limit": {
+        "requests_per_minute": 10,
+        "burst": 20
+      }
     }
   ]
 }
