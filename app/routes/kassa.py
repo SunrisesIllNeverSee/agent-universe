@@ -670,6 +670,10 @@ async def post_thread_message(thread_id: str, request: Request) -> dict:
     # (not stored in DB -- only the hash is persisted). The poster's
     # original magic link email is their access credential.
     if sender_type == "agent" and thread.get("poster_email"):
+        # Look up agent's @signomy.xyz email for FROM address
+        agent_email = None
+        if agent:
+            agent_email = agent.get("email")
         try:
             await send_message_notification(
                 poster_email=thread["poster_email"],
@@ -677,6 +681,7 @@ async def post_thread_message(thread_id: str, request: Request) -> dict:
                 thread_id=thread_id,
                 sender_name=sender_name,
                 message_preview=text[:120],
+                from_addr=agent_email,
             )
         except Exception:
             pass
