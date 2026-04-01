@@ -210,7 +210,7 @@ class KassaStore:
                 (post["id"], post.get("_v", 1), post["tab"], post["title"],
                  post.get("tag", ""), post.get("body", ""), post.get("status", "open"),
                  post.get("urgency", "normal"), post.get("upvotes", 0),
-                 post.get("reply_count", 0), post.get("reward"),
+                 post.get("reply_count", 0), json.dumps(post["reward"]) if isinstance(post.get("reward"), dict) else post.get("reward"),
                  post.get("from_name", ""), post.get("from_email", ""),
                  post["created_at"], post["updated_at"]))
             self._conn.commit()
