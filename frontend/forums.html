@@ -281,6 +281,68 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
 
     card.appendChild(left);
     card.appendChild(right);
+
+    // Click to expand — show full body + replies inline
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', function() {
+      if (card.classList.contains('expanded')) {
+        card.classList.remove('expanded');
+        var detail = card.querySelector('.thread-detail');
+        if (detail) detail.remove();
+        return;
+      }
+      card.classList.add('expanded');
+      var detail = document.createElement('div');
+      detail.className = 'thread-detail';
+      detail.style.cssText = 'grid-column:1/-1;padding:16px 0 8px;border-top:1px solid #262E3A;margin-top:12px;';
+
+      // Full body
+      var fullBody = document.createElement('div');
+      fullBody.style.cssText = 'color:#C8D0DC;font-size:0.88rem;line-height:1.7;white-space:pre-wrap;margin-bottom:16px;';
+      fullBody.textContent = t.body || '(no content)';
+      detail.appendChild(fullBody);
+
+      // Replies header
+      var repliesDiv = document.createElement('div');
+      repliesDiv.style.cssText = 'border-top:1px solid #1E2430;padding-top:12px;';
+      var repliesLabel = document.createElement('div');
+      repliesLabel.style.cssText = 'color:#6B7888;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;';
+      repliesLabel.textContent = 'Replies';
+      repliesDiv.appendChild(repliesLabel);
+      detail.appendChild(repliesDiv);
+
+      fetch('/api/forums/threads/' + t.thread_id).then(function(r){ return r.json(); }).then(function(d){
+        var replies = d.replies || [];
+        if (replies.length === 0) {
+          var empty = document.createElement('div');
+          empty.style.cssText = 'color:#6B7888;font-size:0.82rem;font-style:italic;';
+          empty.textContent = 'No replies yet.';
+          repliesDiv.appendChild(empty);
+        } else {
+          replies.forEach(function(r){
+            var re = document.createElement('div');
+            re.style.cssText = 'padding:8px 0;border-bottom:1px solid #1E2430;';
+            var reMeta = document.createElement('div');
+            reMeta.style.cssText = 'font-size:0.78rem;color:#8A94A0;margin-bottom:4px;';
+            reMeta.textContent = (r.author_id || 'anon') + ' \u00b7 ' + relativeTime(r.created_at);
+            var reBody = document.createElement('div');
+            reBody.style.cssText = 'color:#C8D0DC;font-size:0.85rem;line-height:1.6;white-space:pre-wrap;';
+            reBody.textContent = r.body || '';
+            re.appendChild(reMeta);
+            re.appendChild(reBody);
+            repliesDiv.appendChild(re);
+          });
+        }
+      }).catch(function(){
+        var err = document.createElement('div');
+        err.style.cssText = 'color:#F87171;font-size:0.82rem;';
+        err.textContent = 'Failed to load replies.';
+        repliesDiv.appendChild(err);
+      });
+
+      card.appendChild(detail);
+    });
+
     return card;
   }
 
