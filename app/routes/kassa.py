@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import logging
 import os
 import secrets
 import time as _time
@@ -30,6 +29,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 
 from app.deps import state
+from app.jwt_config import get_kassa_jwt_secret
 from app.seeds import create_seed
 from app.notifications import send_magic_link, send_message_notification, send_operator_alert
 from app.models import KassaContact, KassaPostCreate
@@ -38,13 +38,7 @@ router = APIRouter(tags=["kassa"])
 
 # ── JWT config ───────────────────────────────────────────────────────────────
 
-_JWT_SECRET = os.environ.get("KASSA_JWT_SECRET", "")
-if not _JWT_SECRET:
-    _JWT_SECRET = secrets.token_hex(32)
-    logging.getLogger("civitae").warning(
-        "KASSA_JWT_SECRET not set -- using ephemeral key (kassa router). "
-        "All JWTs will expire on restart. Set this env var in production."
-    )
+_JWT_SECRET = get_kassa_jwt_secret()
 _JWT_EXPIRY_HOURS = 24
 
 

@@ -226,3 +226,10 @@ All 6 sub-phases complete:
 - 2D: Agent profiles ✅
 - 2E: Console wired ✅
 - 2F: Wording + Welcome ✅
+
+**2026-04-01 (Railway persistence + JWT hardening):**
+- Pushed rollback checkpoint tag before Railway persistence changes: `pre-railway-fix-20260401-131918`
+- Canonicalized runtime persistence to Railway volume mount `/app/data`; detached legacy `/data` mount from active service wiring
+- Added shared JWT secret resolver so `app/server.py`, `app/routes/kassa.py`, and `app/routes/agents.py` all use one secret source
+- Resolver now prefers `KASSA_JWT_SECRET`, falls back to `JWT_SECRET`, and only generates one cached ephemeral secret per process if neither env var exists
+- Added focused unit coverage for JWT secret fallback/cache behavior and verified `/health` returns `200 OK` on Railway deployment `d6f24b00-2e76-483d-8897-1c076906cb04`

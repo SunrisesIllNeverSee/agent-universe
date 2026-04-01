@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-import secrets
 from pathlib import Path
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
@@ -25,6 +24,7 @@ from .runtime import RuntimeState
 from .store import MessageStore
 from .kassa_store import KassaStore
 from .forums_store import ForumsStore
+from .jwt_config import get_kassa_jwt_secret
 from .seeds import seed_router, backdate_gov_documents
 from .data_paths import ensure_data_dir, resolve_data_dir
 
@@ -111,14 +111,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     economy = SovereignEconomy(data_dir)
 
     # ── JWT secret ───────────────────────────────────────────────────
-    _JWT_SECRET = os.environ.get("KASSA_JWT_SECRET", "")
-    if not _JWT_SECRET:
-        import logging as _logging
-        _JWT_SECRET = secrets.token_hex(32)
-        _logging.getLogger("civitae").warning(
-            "KASSA_JWT_SECRET not set — using ephemeral key. All JWTs will "
-            "expire on restart. Set this env var in production."
-        )
+    _JWT_SECRET = get_kassa_jwt_secret()
 
     # ── Admin key ────────────────────────────────────────────────────
     _ADMIN_KEY = os.environ.get("CIVITAE_ADMIN_KEY", "")

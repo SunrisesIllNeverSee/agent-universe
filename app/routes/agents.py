@@ -6,9 +6,6 @@ Extracted from server.py create_app() monolith.
 from __future__ import annotations
 
 import json
-import logging
-import os
-import secrets
 
 import jwt as pyjwt
 
@@ -16,18 +13,13 @@ from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, JSONResponse
 
 from app.deps import state
+from app.jwt_config import get_kassa_jwt_secret
 from app.seeds import create_seed
 
 router = APIRouter(tags=["agents"])
 
 # ── JWT helpers (mirror server.py closure) ────────────────────────────────────
-_JWT_SECRET = os.environ.get("KASSA_JWT_SECRET", "")
-if not _JWT_SECRET:
-    _JWT_SECRET = secrets.token_hex(32)
-    logging.getLogger("civitae").warning(
-        "KASSA_JWT_SECRET not set — using ephemeral key (agents router). "
-        "All JWTs will expire on restart. Set this env var in production."
-    )
+_JWT_SECRET = get_kassa_jwt_secret()
 
 
 def _verify_jwt(token: str) -> dict | None:
