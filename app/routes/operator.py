@@ -200,6 +200,65 @@ async def operator_contacts(request: Request) -> dict:
     return {"contacts": contacts, "count": len(contacts)}
 
 
+# ── Public Contact Form ──────────────────────────────────────────────────────
+
+@router.post("/api/contact")
+async def public_contact(request: Request, payload: dict) -> dict:
+    """Public contact form submission. Rate-limited, creates seed, emails operator."""
+    _check_rate_limit(request, "contact_form", max_hits=3)
+    name = (payload.get("name") or "").strip()
+    email = (payload.get("email") or "").strip()
+    subject = (payload.get("subject") or "General").strip()
+    message = (payload.get("message") or "").strip()
+    if not name or not email or not message:
+        raise HTTPException(status_code=400, detail="name, email, and message required")
+
+    contact_id = f"contact-{secrets.token_hex(6)}"
+    now = datetime.now(UTC).isoformat()
+    entry = {
+        "id": contact_id,
+        "name": name,
+        "email": email,
+        "subject": subject,
+        "message": message,
+        "submitted_at": now,
+    }
+
+    # Append to contacts.jsonl
+    contacts_file = state.root / "data" / "contacts.jsonl"
+    contacts_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(contacts_file, "a") as f:
+        f.write(json.dumps(entry) + "\n")
+
+    state.audit.log("contact", "form_submitted", {"id": contact_id, "name": name, "subject": subject})
+
+    # Seed provenance
+    try:
+        from app.seeds import create_seed
+        await create_seed(
+            source_type="contact",
+            source_id=contact_id,
+            creator_id=email,
+            creator_type="BI",
+            seed_type="planted",
+            metadata={"name": name, "subject": subject},
+        )
+    except Exception:
+        pass
+
+    # Email operator
+    try:
+        from app.notifications import send_operator_alert
+        await send_operator_alert(
+            subject=f"Contact: {subject} — from {name}",
+            body=f"Name: {name}\nEmail: {email}\nSubject: {subject}\n\n{message}",
+        )
+    except Exception:
+        pass
+
+    return {"ok": True, "id": contact_id}
+
+
 # ── Inbox Endpoints ───────────────────────────────────────────────────────────
 
 @router.post("/api/inbox/apply")
