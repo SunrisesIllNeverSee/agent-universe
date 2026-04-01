@@ -583,6 +583,17 @@ class SovereignEconomy:
                         f"Accrued liability (forgiven on commit): ${trial_rec['trial_liability']:.2f}",
             }
 
+        # ── Seed Card: fee-free check ──────────────────────────────
+        seed_card_summary = None
+        try:
+            from .seed_card import SeedCardStore
+            _sc_path = Path(self.treasury.path).parent
+            _seed_card = SeedCardStore(_sc_path)
+            if _seed_card.check_fee_free(agent_id):
+                fee_calc = {**fee_calc, "effective_rate": 0.0, "fee_rate_pct": "0% (seed card)", "platform_fee": 0.0, "net_to_agent": gross_amount}
+        except Exception:
+            pass
+
         # ── Active path: apply tier fee + credits ────────────────────
         agent_txn = self.treasury.credit(
             agent_id, fee_calc["net_to_agent"],
@@ -608,6 +619,18 @@ class SovereignEconomy:
             reason="platform_fee", mission_id=mission_id,
         )
 
+        # ── Seed Card: cashout bonus ──────────────────────────────────
+        try:
+            bonus_result = _seed_card.apply_cashout_bonus(agent_id, fee_calc["net_to_agent"])
+            if bonus_result["total_bonus"] > 0:
+                self.treasury.credit(
+                    agent_id, bonus_result["total_bonus"],
+                    reason="seed_card_bonus", mission_id=mission_id,
+                )
+            seed_card_summary = bonus_result
+        except Exception:
+            pass
+
         return {
             "agent_id": agent_id,
             "mission_id": mission_id,
@@ -620,6 +643,7 @@ class SovereignEconomy:
                 "amount": bounty_amount,
                 "missions_remaining": max(0, RECRUITER_BOUNTY_MISSIONS - agent_mission_count),
             } if recruiter_id else None,
+            "seed_card": seed_card_summary,
             "agent_transaction": agent_txn,
             "platform_transaction": platform_txn,
             "agent_balance": self.treasury.balance(agent_id),

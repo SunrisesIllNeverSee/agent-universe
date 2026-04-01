@@ -284,6 +284,12 @@ async def cast_vote(meeting_id: str, payload: dict) -> dict:
     except Exception:
         pass
 
+    # Seed Card: record vote_cast action
+    try:
+        state.seed_card.record_action(voter, "vote_cast")
+    except Exception:
+        pass
+
     return {"motion_id": motion_id, "voter": voter, "vote": vote, "votes_cast": len(motion["votes"]), "total_voters": len(meeting["attendees"])}
 
 

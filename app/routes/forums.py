@@ -142,6 +142,11 @@ async def forums_create_thread(request: Request) -> dict:
         seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
+    # Seed Card: record forum_thread action
+    try:
+        state.seed_card.record_action(claims.get("sub", claims.get("agent_id", "")), "forum_thread")
+    except Exception:
+        pass
     return {**thread, "seed_doi": seed_doi}
 
 
@@ -185,6 +190,11 @@ async def forums_create_reply(thread_id: str, request: Request) -> dict:
             seed_doi = seed_result.get("doi") if seed_result else None
         except Exception:
             pass
+    # Seed Card: record forum_reply action
+    try:
+        state.seed_card.record_action(claims.get("sub", claims.get("agent_id", "")), "forum_reply")
+    except Exception:
+        pass
     return {**reply, "seed_doi": seed_doi}
 
 

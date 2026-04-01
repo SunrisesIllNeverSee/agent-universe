@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from .router import SequenceRouter
     from .context import ContextAssembler
     from .mcp_bridge import MCPBridge
+    from .seed_card import SeedCardStore
 
 
 class AppState:
@@ -36,6 +37,7 @@ class AppState:
     assembler: ContextAssembler
     mcp_bridge: MCPBridge
     economy: SovereignEconomy
+    seed_card: SeedCardStore
     hub: object          # ConnectionHub
     thread_hub: object   # ThreadHub
     slot_lock: asyncio.Lock

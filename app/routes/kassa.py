@@ -370,6 +370,12 @@ async def stake_post(post_id: str, request: Request) -> dict:
     except Exception:
         pass
 
+    # Seed Card: record stake_placed action
+    try:
+        state.seed_card.record_action(agent_id, "stake_placed")
+    except Exception:
+        pass
+
     return {
         "staked": True,
         "stake_id": stake_id,
@@ -481,6 +487,11 @@ async def create_referral(request: Request, payload: dict) -> dict:
             metadata={"referral_id": ref_id, "source_post_id": source_id, "target_post_id": target_id},
         )
         seed_doi = seed_result.get("doi") if seed_result else None
+    except Exception:
+        pass
+    # Seed Card: record qualified_intro action
+    try:
+        state.seed_card.record_action(agent["agent_id"], "qualified_intro")
     except Exception:
         pass
     return {"referred": True, "referral_id": ref_id, "source": source_id, "target": target_id, "seed_doi": seed_doi}
@@ -936,6 +947,11 @@ async def submit_product_review(request: Request) -> dict:
     state.kassa.insert_product_review(review)
     state.audit.log("kassa", "product_review_submitted", {"review_id": review_id, "product_post_id": product_post_id})
     await state.emit("product_review_submitted", {"review_id": review_id})
+    # Seed Card: record product_review action
+    try:
+        state.seed_card.record_action(reviewer_id, "product_review")
+    except Exception:
+        pass
     return {"ok": True, "review_id": review_id, "seed_doi": seed_result["doi"]}
 
 
@@ -1098,6 +1114,12 @@ async def record_recruitment(request: Request) -> dict:
         "reward_exp": reward_exp, "reward_economic": reward_economic,
     })
     await state.emit("recruitment_recorded", {"recruitment_id": recruitment_id})
+    # Seed Card: record recruitment action
+    action_type = "recruit_bi" if recruited_type == "BI" else "recruit_aai"
+    try:
+        state.seed_card.record_action(recruiter_id, action_type)
+    except Exception:
+        pass
     return {
         "ok": True, "recruitment_id": recruitment_id,
         "reward_exp": reward_exp, "reward_economic": reward_economic,
