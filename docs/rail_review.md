@@ -1,3 +1,42 @@
+## Railway Persistence Checkpoint — 2026-04-01 13:19 ET
+
+### Saved rollback point
+
+- Git tag: `pre-railway-fix-20260401-131918`
+- Commit at tag time: `496fcd9`
+- Purpose: restore point before persistence-path hardening or Railway volume cleanup
+
+### Current Railway volume state
+
+- `agent-universe-data` is attached to `agent-universe` at `/app/data`
+- `agent-universe-volume` is attached to `agent-universe` at `/data`
+- This dual-mount state was intentionally restored before tagging so the rollback point matches the pre-fix service wiring
+
+### Canonical app data path
+
+The app currently resolves runtime data from the repo-root `data/` directory. On Railway/Nixpacks, that means the intended persistent mount is `/app/data`, not `/data`.
+
+Relevant code anchors:
+
+- `app/server.py` — bootstraps stores from `root / "data"`
+- `app/runtime.py` — runtime snapshot/cursor state uses `root / "data"`
+- `app/seeds.py` — provenance file resolves to project-root `data/seeds.jsonl`
+
+### Working assumptions before fix
+
+- `/app/data` is the correct long-term persistent target
+- `/data` is a legacy/stale mount that should be removed only after the app is hardened and a fresh deploy is verified
+- No code changes should happen before this checkpoint is committed and pushed
+
+### Known parallel issue
+
+There is a separate application error visible in Railway logs that is not the persistence-path issue:
+
+- `sqlite3.ProgrammingError: Error binding parameter 11: type 'dict' is not supported`
+- Location: `app/routes/kassa.py` calling `state.kassa.insert_post(...)`
+
+The persistence fix and the KASSA data-shape bug should be treated as separate concerns during validation.
+
 can you do this All 19 posted and approved. But this will happen again on the next deploy. You need a persistent volume on Railway for the data/ directory. That's a Railway dashboard setting — go to your service → Settings → Add Volume, mount it at /app/data.
 1) Tokens in settings: API keys/secrets that authenticate requests to external services (like Resend). They're sensitive — never share them publicly.
 
