@@ -24,9 +24,10 @@ from typing import Optional
 from collections import defaultdict
 from fastapi import APIRouter, Query
 
+from app.data_paths import project_root, resolve_data_dir
 from app.seeds import _read_seeds
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_PROJECT_ROOT = project_root()
 
 
 # ── OTel Span Model ──────────────────────────────────────────────────────────
@@ -188,7 +189,7 @@ def export_hf_dataset(
     Always anonymizes creator_ids for public release.
     """
     if output_path is None:
-        output_path = os.path.join(_PROJECT_ROOT, "data", "civitae-agent-traces.jsonl")
+        output_path = str(resolve_data_dir(_PROJECT_ROOT) / "civitae-agent-traces.jsonl")
 
     seeds = _read_seeds()
 

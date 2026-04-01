@@ -21,11 +21,12 @@ from typing import Optional
 from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel
 
+from app.data_paths import project_root, resolve_data_dir
+
 # ── Config ────────────────────────────────────────────────────────────────────
 
-# Data lives in project root /data/, not app/data/
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SEEDS_FILE = os.path.join(_PROJECT_ROOT, "data", "seeds.jsonl")
+_PROJECT_ROOT = project_root()
+SEEDS_FILE = str(resolve_data_dir(_PROJECT_ROOT) / "seeds.jsonl")
 SCHEMA_VERSION = 1
 
 # Ensure data dir exists

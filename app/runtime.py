@@ -28,6 +28,7 @@ class RuntimeState:
         self,
         *,
         root: Path,
+        data_dir: Path,
         store: MessageStore,
         audit: AuditSpine,
     ) -> None:
@@ -35,7 +36,7 @@ class RuntimeState:
         self.store = store
         self.audit = audit
         self.config_dir = root / "config"
-        self.data_dir = root / "data"
+        self.data_dir = data_dir
         self.state_path = self.data_dir / "runtime_state.json"
         self.cursors_path = self.data_dir / "mcp_cursors.json"
         self.data_dir.mkdir(parents=True, exist_ok=True)

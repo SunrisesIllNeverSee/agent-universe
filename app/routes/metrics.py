@@ -43,7 +43,7 @@ _metrics_path: Path | None = None
 def _get_metrics_path() -> Path:
     global _metrics_path
     if _metrics_path is None:
-        _metrics_path = state.root / "data" / "metrics.json"
+        _metrics_path = state.data_path("metrics.json")
     return _metrics_path
 
 

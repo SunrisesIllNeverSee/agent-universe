@@ -35,7 +35,7 @@ def _atomic_write(path: Path, data: str) -> None:
 
 
 def _load_metrics() -> dict:
-    metrics_path = state.root / "data" / "metrics.json"
+    metrics_path = state.data_path("metrics.json")
     if metrics_path.exists():
         return json.loads(metrics_path.read_text())
     return {"agents": {}, "missions": {}, "financial": {"revenue": 0, "costs": 0, "transactions": []}}

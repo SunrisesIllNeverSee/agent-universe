@@ -7,6 +7,7 @@ All endpoint logic lives in app/routes/*.py — this file is infrastructure only
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import secrets
 from pathlib import Path
@@ -25,6 +26,7 @@ from .store import MessageStore
 from .kassa_store import KassaStore
 from .forums_store import ForumsStore
 from .seeds import seed_router, backdate_gov_documents
+from .data_paths import ensure_data_dir, resolve_data_dir
 
 
 # ── WebSocket connection managers ──────────────────────────────────────────
@@ -87,13 +89,16 @@ class ThreadHub:
 
 def create_app(root: Path | None = None) -> FastAPI:
     root = root or Path(__file__).resolve().parents[1]
+    data_dir = ensure_data_dir(resolve_data_dir(root))
+    logger = logging.getLogger("civitae")
+    logger.info("CIVITAE boot root=%s data_dir=%s", root, data_dir)
 
     # ── Shared services ──────────────────────────────────────────────
-    store = MessageStore(root / "data" / "messages.jsonl")
-    kassa = KassaStore(root / "data" / "kassa.db")
-    forums = ForumsStore(root / "data" / "forums.db")
-    audit = AuditSpine(root / "data" / "audit.jsonl")
-    runtime = RuntimeState(root=root, store=store, audit=audit)
+    store = MessageStore(data_dir / "messages.jsonl")
+    kassa = KassaStore(data_dir / "kassa.db")
+    forums = ForumsStore(data_dir / "forums.db")
+    audit = AuditSpine(data_dir / "audit.jsonl")
+    runtime = RuntimeState(root=root, data_dir=data_dir, store=store, audit=audit)
     router = SequenceRouter()
     assembler = ContextAssembler(router)
     mcp_bridge = MCPBridge(runtime, assembler)
@@ -103,7 +108,7 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     # ── Economy ──────────────────────────────────────────────────────
     from .economy import SovereignEconomy
-    economy = SovereignEconomy(str(root / "data"))
+    economy = SovereignEconomy(data_dir)
 
     # ── JWT secret ───────────────────────────────────────────────────
     _JWT_SECRET = os.environ.get("KASSA_JWT_SECRET", "")
@@ -123,6 +128,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     # ── Populate shared state for route modules ──────────────────────
     from .deps import state
     state.root = root
+    state.data_dir = data_dir
     state.store = store
     state.kassa = kassa
     state.forums = forums
