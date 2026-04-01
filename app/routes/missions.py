@@ -21,7 +21,6 @@ from fastapi.responses import JSONResponse
 
 from app.deps import state
 from app.seeds import create_seed
-from app.seed_card import SeedCardStore
 
 router = APIRouter(tags=["missions"])
 

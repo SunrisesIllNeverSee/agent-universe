@@ -585,14 +585,18 @@ class SovereignEconomy:
 
         # ── Seed Card: fee-free check ──────────────────────────────
         seed_card_summary = None
+        _seed_card = None
         try:
-            from .seed_card import SeedCardStore
-            _sc_path = Path(self.treasury.path).parent
-            _seed_card = SeedCardStore(_sc_path)
-            if _seed_card.check_fee_free(agent_id):
-                fee_calc = {**fee_calc, "effective_rate": 0.0, "fee_rate_pct": "0% (seed card)", "platform_fee": 0.0, "net_to_agent": gross_amount}
+            from .deps import state as _app_state
+            _seed_card = _app_state.seed_card
         except Exception:
             pass
+        if _seed_card is not None:
+            try:
+                if _seed_card.check_fee_free(agent_id):
+                    fee_calc = {**fee_calc, "effective_rate": 0.0, "fee_rate_pct": "0% (seed card)", "platform_fee": 0.0, "net_to_agent": gross_amount}
+            except Exception:
+                pass
 
         # ── Active path: apply tier fee + credits ────────────────────
         agent_txn = self.treasury.credit(
@@ -620,16 +624,17 @@ class SovereignEconomy:
         )
 
         # ── Seed Card: cashout bonus ──────────────────────────────────
-        try:
-            bonus_result = _seed_card.apply_cashout_bonus(agent_id, fee_calc["net_to_agent"])
-            if bonus_result["total_bonus"] > 0:
-                self.treasury.credit(
-                    agent_id, bonus_result["total_bonus"],
-                    reason="seed_card_bonus", mission_id=mission_id,
-                )
-            seed_card_summary = bonus_result
-        except Exception:
-            pass
+        if _seed_card is not None:
+            try:
+                bonus_result = _seed_card.apply_cashout_bonus(agent_id, fee_calc["net_to_agent"])
+                if bonus_result["total_bonus"] > 0:
+                    self.treasury.credit(
+                        agent_id, bonus_result["total_bonus"],
+                        reason="seed_card_bonus", mission_id=mission_id,
+                    )
+                seed_card_summary = bonus_result
+            except Exception:
+                pass
 
         return {
             "agent_id": agent_id,
