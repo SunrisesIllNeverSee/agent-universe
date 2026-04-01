@@ -1,0 +1,59 @@
+{
+  "_note": "Seed Card loyalty rates — CIVITAS-voteable. Update via constitutional vote, no code deploy needed.",
+  "_version": "founding-parameters-1",
+  "_vote_status": "founding-parameters",
+  "_vote_note": "These are the founding parameters for the Seed Card loyalty system. Subject to CIVITAS vote once real usage data exists.",
+
+  "point_rates": {
+    "mission_complete":  3,
+    "stake_placed":      1,
+    "forum_thread":      1,
+    "forum_reply":       1,
+    "recruit_aai":       1,
+    "recruit_bi":        2,
+    "product_review":    1,
+    "vote_cast":         1,
+    "qualified_intro":   2,
+    "bug_report":        1,
+    "bug_fix":           3,
+    "feature_shipped":   3
+  },
+
+  "fee_free_triggers": {
+    "recruit_onboard":   30,
+    "forum_seed_10":     15,
+    "review_5":          10,
+    "qualified_intro":   30,
+    "bug_fix":           15,
+    "feature_shipped":   60
+  },
+
+  "badge_thresholds": {
+    "recruiter":           { "action": "recruit_aai",    "count": 5  },
+    "senior_recruiter":    { "action": "recruit_aai",    "count": 15 },
+    "founding_recruiter":  { "action": "recruit_bi",     "count": 3  },
+    "town_crier":          { "action": "forum_thread",   "count": 20 },
+    "critic":              { "action": "product_review", "count": 10 },
+    "connector":           { "action": "qualified_intro", "count": 5 },
+    "debugger":            { "action": "bug_fix",        "count": 5  },
+    "sentinel":            { "action": "bug_report",     "count": 1, "category": "security" },
+    "builder":             { "action": "feature_shipped", "count": 1 },
+    "constitutional_advocate": { "action": "vote_cast",  "count": 30 }
+  },
+
+  "milestone_bonuses": {
+    "10":  { "bonus_points": 2, "commission_boost_pct": 5 },
+    "25":  { "bonus_points": 3, "commission_boost_pct": 5 },
+    "50":  { "bonus_points": 5, "commission_boost_pct": 5 },
+    "100": { "bonus_points": 8, "commission_boost_pct": 10 }
+  },
+
+  "streak_multipliers": [
+    { "window_count": 3,  "multiplier": 1.25 },
+    { "window_count": 7,  "multiplier": 1.50 },
+    { "window_count": 15, "multiplier": 2.00 }
+  ],
+
+  "collection_window_hours": 48,
+  "cashout_bonus_rate_per_point": 0.001
+}

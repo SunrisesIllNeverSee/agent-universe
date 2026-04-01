@@ -558,6 +558,105 @@
       govGrid.appendChild(seedBlock);
     }
 
+    // ── Seed Card block ──────────────────────────────
+    (function loadSeedCard() {
+      var handle = data.handle || data.agent_id || '';
+      if (!handle) return;
+      fetch('/api/seed-card/' + encodeURIComponent(handle))
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(sc) {
+          if (!sc || (!sc.banked_points && !sc.total_actions)) return;
+
+          var scBlock = el('div', 'profile-block full');
+          var scLbl = el('div', 'profile-block-label');
+          scLbl.appendChild(txt('Seed Card'));
+          scBlock.appendChild(scLbl);
+
+          // Stats row
+          var statsRow = el('div', 'gov-row');
+          statsRow.style.cssText = 'display:flex;gap:24px;flex-wrap:wrap;margin-bottom:12px;';
+          var statItems = [
+            ['\uD83C\uDFC6', 'Banked', sc.banked_points || 0],
+            ['\u26A1', 'Window', sc.current_window_points || 0],
+            ['\uD83D\uDD25', 'Streak', (sc.consecutive_windows || 0) + 'x'],
+            ['\u00D7', 'Multiplier', (sc.streak_multiplier || 1) + 'x'],
+            ['\uD83C\uDD93', 'Fee-Free', (sc.fee_free_days_remaining || 0) + 'd'],
+            ['\uD83D\uDCC8', 'Boost', (sc.active_milestone_boost_pct || 0) + '%'],
+          ];
+          statItems.forEach(function(item) {
+            var d = el('div', '');
+            d.style.cssText = 'text-align:center;min-width:60px;';
+            var icon = el('div', ''); icon.style.fontSize = '1.2rem'; icon.appendChild(txt(item[0]));
+            var val = el('div', 'stat-val'); val.style.cssText = 'font-size:1.1rem;color:#E8EAF0;'; val.appendChild(txt(String(item[2])));
+            var label = el('div', ''); label.style.cssText = 'font-size:0.65rem;color:#5A6475;letter-spacing:0.06em;text-transform:uppercase;'; label.appendChild(txt(item[1]));
+            d.appendChild(icon); d.appendChild(val); d.appendChild(label);
+            statsRow.appendChild(d);
+          });
+          scBlock.appendChild(statsRow);
+
+          // Badges
+          var badges = sc.badges || [];
+          if (badges.length > 0) {
+            var badgeRow = el('div', '');
+            badgeRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;';
+            badges.forEach(function(b) {
+              var chip = el('span', '');
+              chip.style.cssText = 'display:inline-block;padding:3px 10px;border-radius:12px;font-size:0.7rem;font-family:var(--mono);letter-spacing:0.04em;background:rgba(196,146,58,0.15);color:#C4923A;border:1px solid rgba(196,146,58,0.3);';
+              chip.appendChild(txt(b.replace(/_/g, ' ')));
+              badgeRow.appendChild(chip);
+            });
+            scBlock.appendChild(badgeRow);
+          }
+
+          // Next milestone progress
+          var nm = sc.next_milestone;
+          if (nm) {
+            var mileDiv = el('div', '');
+            mileDiv.style.cssText = 'margin-bottom:8px;';
+            var mileLabel = el('div', '');
+            mileLabel.style.cssText = 'font-size:0.65rem;color:#5A6475;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px;';
+            mileLabel.appendChild(txt('Next Milestone: ' + nm.threshold + ' actions (' + nm.actions_remaining + ' remaining)'));
+            mileDiv.appendChild(mileLabel);
+            var barOuter = el('div', '');
+            barOuter.style.cssText = 'height:6px;background:#1A1F28;border-radius:3px;overflow:hidden;';
+            var barFill = el('div', '');
+            barFill.style.cssText = 'height:100%;background:#C4923A;border-radius:3px;width:' + Math.min(nm.progress_pct, 100) + '%;transition:width 0.3s;';
+            barOuter.appendChild(barFill);
+            mileDiv.appendChild(barOuter);
+            scBlock.appendChild(mileDiv);
+          }
+
+          // Badge progress
+          var bp = sc.badge_progress || [];
+          if (bp.length > 0) {
+            var bpLabel = el('div', '');
+            bpLabel.style.cssText = 'font-size:0.65rem;color:#5A6475;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;';
+            bpLabel.appendChild(txt('Badge Progress'));
+            scBlock.appendChild(bpLabel);
+            bp.slice(0, 5).forEach(function(b) {
+              var row = el('div', '');
+              row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:4px;';
+              var name = el('span', '');
+              name.style.cssText = 'font-size:0.7rem;color:#C8CDD6;min-width:120px;font-family:var(--mono);';
+              name.appendChild(txt(b.badge.replace(/_/g, ' ')));
+              var bar = el('div', '');
+              bar.style.cssText = 'flex:1;height:4px;background:#1A1F28;border-radius:2px;overflow:hidden;';
+              var fill = el('div', '');
+              fill.style.cssText = 'height:100%;background:#3A7FC4;border-radius:2px;width:' + Math.min(b.progress_pct, 100) + '%;';
+              bar.appendChild(fill);
+              var count = el('span', '');
+              count.style.cssText = 'font-size:0.6rem;color:#5A6475;font-family:var(--mono);';
+              count.appendChild(txt(b.current + '/' + b.required));
+              row.appendChild(name); row.appendChild(bar); row.appendChild(count);
+              scBlock.appendChild(row);
+            });
+          }
+
+          govGrid.appendChild(scBlock);
+        })
+        .catch(function() {});
+    })();
+
     govInner.appendChild(govGrid);
     govSection.appendChild(govInner);
     root.appendChild(govSection);

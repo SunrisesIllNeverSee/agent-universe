@@ -21,6 +21,7 @@ from fastapi.responses import JSONResponse
 
 from app.deps import state
 from app.seeds import create_seed
+from app.seed_card import SeedCardStore
 
 router = APIRouter(tags=["missions"])
 
@@ -549,7 +550,14 @@ async def close_task(task_id: str, payload: dict) -> dict:
         seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return {"task": task, "exp_awarded": exp_result, "payout": payout_result, "seed_doi": seed_doi}
+    # Seed Card: record mission_complete action
+    seed_card_result = None
+    if agent_id:
+        try:
+            seed_card_result = state.seed_card.record_action(agent_id, "mission_complete")
+        except Exception:
+            pass
+    return {"task": task, "exp_awarded": exp_result, "payout": payout_result, "seed_doi": seed_doi, "seed_card": seed_card_result}
 
 
 @router.post("/api/tasks/{task_id}/cancel")

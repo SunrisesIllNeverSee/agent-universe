@@ -110,6 +110,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     from .economy import SovereignEconomy
     economy = SovereignEconomy(data_dir)
 
+    # ── Seed Card Loyalty ─────────────────────────────────────────────
+    from .seed_card import SeedCardStore
+    seed_card = SeedCardStore(data_dir)
+
     # ── JWT secret ───────────────────────────────────────────────────
     _JWT_SECRET = get_kassa_jwt_secret()
 
@@ -134,6 +138,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     state.thread_hub = thread_hub
     state.slot_lock = slot_lock
     state.economy = economy
+    state.seed_card = seed_card
     state.admin_key = _ADMIN_KEY
     state.jwt_secret = _JWT_SECRET
     state.frontend_dir = frontend_dir
@@ -233,6 +238,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     from .routes.operator import router as operator_router
     from .routes.forums import router as forums_router
     from .routes.agents import router as agents_router
+    from .routes.seed_card import router as seed_card_router
 
     app.include_router(pages_router)
     app.include_router(core_router)
@@ -246,6 +252,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     app.include_router(operator_router)
     app.include_router(forums_router)
     app.include_router(agents_router)
+    app.include_router(seed_card_router)
 
     # ── Seeds / Provenance ───────────────────────────────────────────
     app.include_router(seed_router, prefix="/api/seeds", tags=["seeds"])
@@ -261,9 +268,25 @@ def create_app(root: Path | None = None) -> FastAPI:
             await backdate_gov_documents(root)
         except Exception:
             pass
+
+    async def _seed_card_collection_loop():
+        """Periodic task — bank points for all expired 48h windows every hour."""
+        while True:
+            try:
+                seed_card.collect_all_expired_windows()
+            except Exception:
+                pass
+            await _aio.sleep(3600)
+
     @app.on_event("startup")
     async def _startup():
         _aio.ensure_future(_backdate_on_startup())
+        # Seed Card: collect expired windows on boot, then hourly
+        try:
+            seed_card.collect_all_expired_windows()
+        except Exception:
+            pass
+        _aio.ensure_future(_seed_card_collection_loop())
 
     return app
 
