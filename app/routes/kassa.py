@@ -731,8 +731,8 @@ async def get_kassa_post(post_id: str) -> dict:
 
 @router.post("/api/kassa/posts")
 async def submit_kassa_post(request: Request) -> dict:
-    # Admin key bypasses rate limit (for seeding)
-    if not (state.admin_key and request.headers.get("X-Admin-Key") == state.admin_key):
+    is_admin = bool(state.admin_key and request.headers.get("X-Admin-Key") == state.admin_key)
+    if not is_admin:
         _check_rate_limit(request, "kassa_posts", max_hits=5)
     payload = await request.json()
     tab = (payload.get("tab") or "").strip()
@@ -747,30 +747,53 @@ async def submit_kassa_post(request: Request) -> dict:
         raise HTTPException(status_code=400, detail="tab, title, body, from_name, from_email required")
     kid = state.kassa.next_k_serial()
     now = datetime.now(UTC).isoformat()
+    post_entry = {
+        "id": kid,
+        "_v": 1,
+        "tab": tab,
+        "title": title,
+        "tag": tag,
+        "body": body,
+        "status": "open",
+        "urgency": urgency,
+        "upvotes": 0,
+        "reply_count": 0,
+        "reward": reward,
+        "from_name": from_name,
+        "from_email": from_email,
+        "created_at": now,
+        "updated_at": now,
+    }
     review_entry = {
         "_v": 1,
         "review_id": f"rev-{kid}",
-        "post": {
-            "id": kid,
-            "tab": tab,
-            "title": title,
-            "tag": tag,
-            "body": body,
-            "status": "open",
-            "urgency": urgency,
-            "upvotes": 0,
-            "reply_count": 0,
-            "reward": reward,
-            "created_at": now,
-            "updated_at": now,
-        },
+        "post": post_entry,
         "from_name": from_name,
         "from_email": from_email,
         "submitted_at": now,
         "status": "pending",
     }
-    state.kassa.insert_review(review_entry)
-    state.audit.log("kassa", "post_submitted", {"id": kid, "tab": tab, "from_email": from_email})
+
+    if is_admin:
+        # Admin posts go live immediately — no review queue
+        state.kassa.insert_post(post_entry)
+        state.kassa.insert_review({**review_entry, "status": "approved"})
+        state.audit.log("kassa", "post_approved", {"id": kid, "tab": tab, "auto": True})
+    else:
+        # User posts enter the review queue and trigger an operator alert
+        state.kassa.insert_review(review_entry)
+        state.audit.log("kassa", "post_submitted", {"id": kid, "tab": tab, "from_email": from_email})
+        import asyncio
+        try:
+            from app.notifications import send_operator_alert
+            asyncio.get_event_loop().run_in_executor(
+                None, send_operator_alert,
+                f"New post for review: {title}",
+                f"Tab: {tab}\nFrom: {from_name} <{from_email}>\nTitle: {title}\n\nReview at: https://signomy.xyz/console",
+            )
+        except Exception:
+            pass
+
     await state.emit("kassa_post_submitted", {"id": kid, "tab": tab})
 
     seed_doi = None
@@ -787,7 +810,8 @@ async def submit_kassa_post(request: Request) -> dict:
     except Exception:
         pass
 
-    return {"ok": True, "id": kid, "message": "Post submitted for review. We\u2019ll publish it shortly.", "seed_doi": seed_doi}
+    msg = "Post published." if is_admin else "Post submitted for review. We\u2019ll publish it shortly."
+    return {"ok": True, "id": kid, "message": msg, "seed_doi": seed_doi}
 
 
 @router.post("/api/kassa/posts/{post_id}/upvote")
