@@ -126,10 +126,16 @@ async def agent_signup(request: Request, payload: dict) -> dict:
     require_gov = runtime.provision.get("require_governance", True)
     gov_mode = runtime.governance.mode if require_gov else "None (Unrestricted)"
 
+    # Generate @signomy.xyz email address
+    import re as _re
+    email_slug = _re.sub(r'[^a-z0-9-]', '', agent_name.lower().replace(" ", "-").replace("_", "-"))
+    agent_email = f"{email_slug}@signomy.xyz" if email_slug else f"{agent_id}@signomy.xyz"
+
     # Build registry entry
     entry = {
         "agent_id": agent_id,
         "name": agent_name,
+        "email": agent_email,
         "type": "agent",
         "status": status,
         "provisioned": datetime.now(UTC).isoformat(),
@@ -177,6 +183,7 @@ async def agent_signup(request: Request, payload: dict) -> dict:
         "welcome": True,
         "agent_id": agent_id,
         "name": agent_name,
+        "email": agent_email,
         "key_prefix": key_prefix,
         "status": status,
         "tier": "UNGOVERNED",
