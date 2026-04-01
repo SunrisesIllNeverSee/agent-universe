@@ -13,3 +13,4 @@ reports/
 .playwright-mcp/
 data/kassa.db
 .deric/
+.railway/
