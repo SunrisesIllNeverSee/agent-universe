@@ -99,6 +99,7 @@ def _send_email(to_addr: str, subject: str, body: str, from_addr: str | None = N
             headers={
                 "Authorization": f"Bearer {RESEND_API_KEY}",
                 "Content-Type": "application/json",
+                "User-Agent": "CIVITAE/1.0",
             },
             method="POST",
         )
