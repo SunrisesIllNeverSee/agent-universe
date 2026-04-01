@@ -246,13 +246,14 @@ async def public_contact(request: Request, payload: dict) -> dict:
     except Exception:
         pass
 
-    # Email operator
+    # Email operator (fire-and-forget — don't block the response)
+    import asyncio
     try:
         from app.notifications import send_operator_alert
-        await send_operator_alert(
+        asyncio.create_task(send_operator_alert(
             subject=f"Contact: {subject} — from {name}",
             body=f"Name: {name}\nEmail: {email}\nSubject: {subject}\n\n{message}",
-        )
+        ))
     except Exception:
         pass
 
