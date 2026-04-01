@@ -16,6 +16,7 @@ Extracted from server.py create_app() monolith.  Covers:
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 import os
@@ -354,7 +355,8 @@ async def stake_post(post_id: str, request: Request) -> dict:
     # Send magic link email to poster
     if poster_email:
         try:
-            await send_magic_link(
+            await asyncio.to_thread(
+                send_magic_link,
                 poster_name=poster_name,
                 poster_email=poster_email,
                 thread_id=thread_result["thread_id"],
@@ -366,7 +368,8 @@ async def stake_post(post_id: str, request: Request) -> dict:
 
     # Notify operator
     try:
-        await send_operator_alert(
+        await asyncio.to_thread(
+            send_operator_alert,
             subject=f"New stake on '{post.get('title', post_id)}'",
             body=f"Agent {agent.get('name', agent_id)} staked on post {post_id}. Thread {thread_result['thread_id']} created.",
         )
@@ -675,7 +678,8 @@ async def post_thread_message(thread_id: str, request: Request) -> dict:
         if agent:
             agent_email = agent.get("email")
         try:
-            await send_message_notification(
+            await asyncio.to_thread(
+                send_message_notification,
                 poster_email=thread["poster_email"],
                 poster_name=thread.get("poster_name", ""),
                 thread_id=thread_id,
