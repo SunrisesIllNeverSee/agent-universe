@@ -35,19 +35,19 @@ def _atomic_write(path: Path, data: str) -> None:
 
 
 def _load_meetings() -> list[dict]:
-    meetings_path = state.root / "data" / "meetings.json"
+    meetings_path = state.data_path("meetings.json")
     if meetings_path.exists():
         return json.loads(meetings_path.read_text())
     return []
 
 
 def _save_meetings(ms: list[dict]) -> None:
-    meetings_path = state.root / "data" / "meetings.json"
+    meetings_path = state.data_path("meetings.json")
     _atomic_write(meetings_path, json.dumps(ms, indent=2))
 
 
 def _load_metrics() -> dict:
-    metrics_path = state.root / "data" / "metrics.json"
+    metrics_path = state.data_path("metrics.json")
     if metrics_path.exists():
         return json.loads(metrics_path.read_text())
     return {"agents": {}, "missions": {}, "financial": {"revenue": 0, "costs": 0, "transactions": []}}
@@ -59,7 +59,7 @@ def _load_metrics() -> dict:
 @router.get("/api/governance/sessions")
 async def governance_sessions() -> dict:
     """Return available governance sim results for the /governance dashboard."""
-    data_dir = state.root / "data"
+    data_dir = state.data_dir
     sessions = []
     for path in sorted(_glob.glob(str(data_dir / "committee_*.json")), reverse=True):
         try:
@@ -365,7 +365,7 @@ async def flame_review(agent_id: str) -> dict:
     votes_cast = 0
     motions_proposed = 0
     try:
-        meetings_file = state.root / "data" / "meetings.json"
+        meetings_file = state.data_path("meetings.json")
         meetings_data = json.loads(meetings_file.read_text()) if meetings_file.exists() else []
         agent_name = agent.get("name", "")
         for meeting in meetings_data:

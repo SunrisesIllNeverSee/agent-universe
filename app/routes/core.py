@@ -349,7 +349,7 @@ async def fork_session(payload: dict | None = None) -> dict:
     snapshot = runtime.snapshot().model_dump(mode="json")
 
     # Copy data files
-    data_dir = root / "data"
+    data_dir = state.data_dir
     if data_dir.exists():
         fork_data = fork_dir / "data"
         shutil.copytree(data_dir, fork_data, dirs_exist_ok=True)
@@ -424,7 +424,7 @@ async def update_deploy(payload: DeployUpdate) -> dict:
 # ═══════════════════════════════════════════════════════════════════════════
 
 def _stars_path() -> Path:
-    return state.root / "data" / "starred.json"
+    return state.data_path("starred.json")
 
 
 def _load_stars() -> list[dict]:

@@ -26,6 +26,7 @@ class AppState:
     """Singleton holding all shared application state."""
 
     root: Path
+    data_dir: Path
     store: MessageStore
     kassa: KassaStore
     forums: ForumsStore
@@ -45,6 +46,9 @@ class AppState:
     async def emit(self, event_type: str, payload: dict) -> None:
         """Broadcast an event to all connected WebSocket clients."""
         await self.hub.broadcast({"type": event_type, "payload": payload})
+
+    def data_path(self, *parts: str) -> Path:
+        return self.data_dir.joinpath(*parts)
 
     def current_state_event(self) -> dict:
         return {"type": "state_snapshot", "payload": self.runtime.snapshot().model_dump(mode="json")}

@@ -58,14 +58,14 @@ def _check_rate_limit(request: Request, bucket_name: str, max_hits: int, window_
 # ── Data helpers ──────────────────────────────────────────────────────────────
 
 def _load_missions() -> list[dict]:
-    missions_path = state.root / "data" / "missions.json"
+    missions_path = state.data_path("missions.json")
     if missions_path.exists():
         return json.loads(missions_path.read_text())
     return []
 
 
 def _load_slots() -> list[dict]:
-    slots_path = state.root / "data" / "slots.json"
+    slots_path = state.data_path("slots.json")
     if slots_path.exists():
         return json.loads(slots_path.read_text())
     return []
@@ -180,7 +180,7 @@ async def operator_contacts(request: Request) -> dict:
     """Contact form submissions. Requires X-Admin-Key."""
     _require_admin(request)
 
-    contacts_file = state.root / "data" / "contacts.jsonl"
+    contacts_file = state.data_path("contacts.jsonl")
     contacts = []
     if contacts_file.exists():
         try:
@@ -225,7 +225,7 @@ async def public_contact(request: Request, payload: dict) -> dict:
     }
 
     # Append to contacts.jsonl
-    contacts_file = state.root / "data" / "contacts.jsonl"
+    contacts_file = state.data_path("contacts.jsonl")
     contacts_file.parent.mkdir(parents=True, exist_ok=True)
     with open(contacts_file, "a") as f:
         f.write(json.dumps(entry) + "\n")
@@ -283,7 +283,7 @@ async def inbox_apply(request: Request, payload: dict) -> dict:
         "message": payload.get("message", ""),
         "job_id": payload.get("job_id", ""),
     }
-    inbox_path = state.root / "data" / "inbox.jsonl"
+    inbox_path = state.data_path("inbox.jsonl")
     with inbox_path.open("a") as f:
         f.write(json.dumps(entry) + "\n")
     state.audit.log("inbox", "application_received", {"id": app_id, "name": entry["name"], "role": entry["role"]})
@@ -294,7 +294,7 @@ async def inbox_apply(request: Request, payload: dict) -> dict:
 @router.get("/api/inbox")
 async def inbox_list() -> dict:
     """List all inbox applications."""
-    inbox_path = state.root / "data" / "inbox.jsonl"
+    inbox_path = state.data_path("inbox.jsonl")
     applications: list[dict] = []
     if inbox_path.exists():
         for line in inbox_path.read_text().splitlines():
@@ -310,7 +310,7 @@ async def inbox_list() -> dict:
 @router.get("/api/inbox/{app_id}")
 async def inbox_get(app_id: str) -> dict:
     """Fetch a single application by ID."""
-    inbox_path = state.root / "data" / "inbox.jsonl"
+    inbox_path = state.data_path("inbox.jsonl")
     if not inbox_path.exists():
         return JSONResponse({"error": "inbox empty"}, status_code=404)
     for line in inbox_path.read_text().splitlines():
@@ -326,7 +326,7 @@ async def inbox_get(app_id: str) -> dict:
 @router.post("/api/inbox/{app_id}/review")
 async def inbox_review(app_id: str, payload: dict) -> dict:
     """Update application status: pending -> approved / rejected / contacted."""
-    inbox_path = state.root / "data" / "inbox.jsonl"
+    inbox_path = state.data_path("inbox.jsonl")
     status = payload.get("status", "reviewed")
     if not inbox_path.exists():
         return {"error": "inbox empty"}

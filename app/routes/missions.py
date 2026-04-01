@@ -47,19 +47,19 @@ def _atomic_write(path: Path, data: str) -> None:
 
 
 def _missions_path() -> Path:
-    return state.root / "data" / "missions.json"
+    return state.data_path("missions.json")
 
 
 def _campaigns_path() -> Path:
-    return state.root / "data" / "campaigns.json"
+    return state.data_path("campaigns.json")
 
 
 def _tasks_path() -> Path:
-    return state.root / "data" / "tasks.json"
+    return state.data_path("tasks.json")
 
 
 def _slots_path() -> Path:
-    return state.root / "data" / "slots.json"
+    return state.data_path("slots.json")
 
 
 def _load_missions() -> list[dict]:
