@@ -63,12 +63,18 @@ def _smtp_configured() -> bool:
     return bool(SMTP_HOST)
 
 
-def _send_email(to_addr: str, subject: str, body: str) -> bool:
+def _send_email(to_addr: str, subject: str, body: str, from_addr: str | None = None) -> bool:
     """
     Send a plain-text email via SMTP.
     If SMTP is not configured, log to stdout and return True.
     Returns True on success, False on failure.
+
+    Args:
+        from_addr: Optional custom sender (e.g. agent@signomy.xyz).
+                   Falls back to SMTP_FROM env var.
     """
+    sender = from_addr or SMTP_FROM
+
     if not _smtp_configured():
         logger.info(
             "SMTP not configured — logging email instead.\n"
@@ -78,12 +84,11 @@ def _send_email(to_addr: str, subject: str, body: str) -> bool:
             "  ---",
             to_addr, subject, body,
         )
-        # Also print so it shows up in terminal during local dev
         print(
             f"\n{'='*60}\n"
             f"EMAIL (not sent — no SMTP)\n"
             f"  To:      {to_addr}\n"
-            f"  From:    {SMTP_FROM}\n"
+            f"  From:    {sender}\n"
             f"  Subject: {subject}\n"
             f"{'─'*60}\n"
             f"{body}\n"
@@ -93,7 +98,7 @@ def _send_email(to_addr: str, subject: str, body: str) -> bool:
 
     try:
         msg = MIMEMultipart("alternative")
-        msg["From"] = SMTP_FROM
+        msg["From"] = sender
         msg["To"] = to_addr
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain", "utf-8"))
@@ -101,20 +106,18 @@ def _send_email(to_addr: str, subject: str, body: str) -> bool:
         context = ssl.create_default_context()
 
         if SMTP_PORT == 465:
-            # SSL connection
             with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=context) as server:
                 if SMTP_USER and SMTP_PASS:
                     server.login(SMTP_USER, SMTP_PASS)
-                server.sendmail(SMTP_FROM, to_addr, msg.as_string())
+                server.sendmail(sender, to_addr, msg.as_string())
         else:
-            # STARTTLS connection (port 587 or other)
             with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
                 server.starttls(context=context)
                 if SMTP_USER and SMTP_PASS:
                     server.login(SMTP_USER, SMTP_PASS)
-                server.sendmail(SMTP_FROM, to_addr, msg.as_string())
+                server.sendmail(sender, to_addr, msg.as_string())
 
-        logger.info("Email sent to %s — subject: %s", to_addr, subject)
+        logger.info("Email sent to %s from %s — subject: %s", to_addr, sender, subject)
         return True
 
     except Exception as e:
@@ -171,6 +174,7 @@ async def send_message_notification(
     sender_name: str,
     message_preview: str,
     magic_token: str = "",
+    from_addr: str | None = None,
 ) -> bool:
     """
     Send notification to poster that a new message arrived in their thread.
@@ -218,7 +222,7 @@ async def send_message_notification(
         f"— CIVITAE\n"
     )
 
-    success = _send_email(poster_email, subject, body)
+    success = _send_email(poster_email, subject, body, from_addr=from_addr)
     if success:
         _mark_notified(thread_id)
     return success
