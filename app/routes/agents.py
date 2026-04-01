@@ -48,7 +48,7 @@ def _extract_jwt(request: Request) -> dict | None:
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _load_metrics() -> dict:
-    metrics_path = state.root / "data" / "metrics.json"
+    metrics_path = state.data_path("metrics.json")
     if metrics_path.exists():
         return json.loads(metrics_path.read_text())
     return {"agents": {}, "missions": {}, "financial": {"revenue": 0, "costs": 0, "transactions": []}}
@@ -127,7 +127,7 @@ async def api_agent_profile(handle: str) -> dict:
     missions_completed = agent.get("missions_completed", agent_m.get("missions_completed", 0))
 
     # Count active stakes (filled slots)
-    slots_file = state.root / "data" / "slots.json"
+    slots_file = state.data_path("slots.json")
     slots_data = json.loads(slots_file.read_text()) if slots_file.exists() else []
     active_stakes = sum(1 for s in slots_data if s.get("agent_id") == agent_id and s.get("status") == "filled")
 
@@ -149,7 +149,7 @@ async def api_agent_profile(handle: str) -> dict:
     votes_cast = 0
     motions_proposed = 0
     try:
-        meetings_file = state.root / "data" / "meetings.json"
+        meetings_file = state.data_path("meetings.json")
         meetings_data = json.loads(meetings_file.read_text()) if meetings_file.exists() else []
         agent_name = agent.get("name", "")
         for meeting in meetings_data:

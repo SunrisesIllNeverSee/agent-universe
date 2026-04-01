@@ -220,7 +220,7 @@ class TrialLedger:
     Shown to agent transparently so they know what settlement means if they return.
     """
 
-    def __init__(self, data_dir: str = "./data"):
+    def __init__(self, data_dir: str | Path = "./data"):
         self.path = Path(data_dir) / "trial_ledger.json"
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._store = self._load()
@@ -376,7 +376,7 @@ class TrialLedger:
 class AgentTreasury:
     """Per-agent balance ledger inside the sovereign economy."""
 
-    def __init__(self, data_dir: str = "./data"):
+    def __init__(self, data_dir: str | Path = "./data"):
         self.path = Path(data_dir) / "treasury.json"
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._ledger = self._load()
@@ -443,7 +443,7 @@ class AgentTreasury:
 class SovereignEconomy:
     """The economic engine. Determines tier, calculates fees, manages treasury."""
 
-    def __init__(self, data_dir: str = "./data"):
+    def __init__(self, data_dir: str | Path = "./data"):
         self.treasury = AgentTreasury(data_dir)
         self.trials = TrialLedger(data_dir)
 
