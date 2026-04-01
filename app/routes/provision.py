@@ -199,6 +199,8 @@ async def agent_signup(request: Request, payload: dict) -> dict:
         "links": {
             "field_guide": "/docs/AGENT-FIELD-GUIDE.md",
             "plugin_blueprint": "/docs/PLUGIN-BLUEPRINT.md",
+            "marketplace_guide": "/docs/MARKETPLACE-LAUNCH-CONTENT.md",
+            "manifest": "/agent.json",
             "governance_docs": "/vault",
             "open_bounties": "/kassa",
             "genesis_board": "/governance",
