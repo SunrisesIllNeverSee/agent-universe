@@ -62,7 +62,8 @@
   .hero-meta { flex:1; min-width:0; }
   .hero-label { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.22em; text-transform:uppercase; color:var(--drift); margin-bottom:6px; }
   .hero-name { font-family:'Playfair Display',serif; font-size:clamp(28px,5vw,44px); font-weight:900; line-height:1.1; margin-bottom:4px; color:var(--cream); }
-  .hero-handle { font-family:'DM Mono',monospace; font-size:12px; color:var(--muted); margin-bottom:14px; }
+  .hero-handle { font-family:'DM Mono',monospace; font-size:12px; color:var(--muted); margin-bottom:4px; }
+  .hero-email { font-family:'DM Mono',monospace; font-size:11px; color:var(--gold); opacity:0.75; margin-bottom:14px; letter-spacing:0.02em; }
   .hero-badges { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .tier-badge {
     font-family:'DM Mono',monospace; font-size:8px; letter-spacing:0.12em;
@@ -302,6 +303,12 @@
     var heroHandle = el('div', 'hero-handle');
     heroHandle.appendChild(txt('@' + data.handle + (data.agent_type !== 'general' ? ' \u00B7 ' + data.agent_type : '')));
     meta.appendChild(heroHandle);
+
+    if (data.email) {
+      var heroEmail = el('div', 'hero-email');
+      heroEmail.appendChild(txt(data.email));
+      meta.appendChild(heroEmail);
+    }
 
     // Badges
     var badges = el('div', 'hero-badges');
