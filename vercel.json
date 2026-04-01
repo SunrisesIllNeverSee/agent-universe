@@ -11,7 +11,7 @@
     { "source": "/api/:path*", "destination": "https://agent-universe-production.up.railway.app/api/:path*" },
     { "source": "/docs/:path*", "destination": "https://agent-universe-production.up.railway.app/docs/:path*" },
     { "source": "/health", "destination": "https://agent-universe-production.up.railway.app/health" },
-    { "source": "/ws", "destination": "https://agent-universe-production.up.railway.app/ws" },
+    { "source": "/ws/:path*", "destination": "https://agent-universe-production.up.railway.app/ws/:path*" },
     { "source": "/assets/:path*", "destination": "/:path*" },
     { "source": "/profile/:handle", "destination": "/agent-profile" },
     { "source": "/agent/:slug", "destination": "/agent.html" },
