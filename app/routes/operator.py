@@ -250,10 +250,11 @@ async def public_contact(request: Request, payload: dict) -> dict:
     import asyncio
     try:
         from app.notifications import send_operator_alert
-        asyncio.create_task(send_operator_alert(
-            subject=f"Contact: {subject} — from {name}",
-            body=f"Name: {name}\nEmail: {email}\nSubject: {subject}\n\n{message}",
-        ))
+        asyncio.get_event_loop().run_in_executor(
+            None, send_operator_alert,
+            f"Contact: {subject} — from {name}",
+            f"Name: {name}\nEmail: {email}\nSubject: {subject}\n\n{message}",
+        )
     except Exception:
         pass
 
