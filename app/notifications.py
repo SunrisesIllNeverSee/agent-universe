@@ -119,7 +119,7 @@ def _send_email(to_addr: str, subject: str, body: str, from_addr: str | None = N
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
-async def send_magic_link(
+def send_magic_link(
     poster_name: str,
     poster_email: str,
     thread_id: str,
@@ -149,7 +149,7 @@ async def send_magic_link(
     return _send_email(poster_email, subject, body)
 
 
-async def send_message_notification(
+def send_message_notification(
     poster_email: str,
     poster_name: str,
     thread_id: str,
@@ -198,7 +198,7 @@ async def send_message_notification(
     return success
 
 
-async def send_operator_alert(subject: str, body: str) -> bool:
+def send_operator_alert(subject: str, body: str) -> bool:
     """
     Send an alert email to the operator.
     """
