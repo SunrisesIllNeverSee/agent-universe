@@ -88,6 +88,8 @@
   .btn-upvote{display:flex;align-items:center;gap:4px;padding:5px 10px;background:none;border:1px solid var(--sand);border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);cursor:pointer;transition:all .15s;}
   .btn-upvote:hover{border-color:var(--gold-bd);color:var(--gold);}
   .btn-upvote.voted{border-color:var(--gold-bd);color:var(--gold);background:var(--gold-dim);}
+  .btn-pay{padding:6px 14px;background:var(--signal-dim);border:1px solid rgba(74,124,89,0.30);border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--signal);cursor:pointer;transition:all .15s;letter-spacing:0.02em;}
+  .btn-pay:hover{background:var(--signal);color:#fff;border-color:var(--signal);}
   .btn-contact{padding:6px 14px;background:none;border:1px solid var(--sand);border-radius:4px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:var(--drift);cursor:pointer;transition:all .15s;letter-spacing:0.02em;}
   .btn-contact:hover{border-color:var(--gold-bd);color:var(--gold);}
   .btn-contact.active{border-color:var(--gold-bd);color:var(--gold);background:var(--gold-dim);}
@@ -267,6 +269,9 @@
     var urgHtml = p.urgency==='high' ? '<span class="urg-badge urg-high">HIGH</span>'
                 : p.urgency==='low'  ? '<span class="urg-badge urg-low">LOW</span>' : '';
     var rwdHtml = p.reward ? '<span class="reward-badge">'+esc(p.reward)+'</span>' : '';
+    var dollarMatch = (p.reward||'').match(/\$([0-9]+(?:\.[0-9]{1,2})?)/);
+    var hasDollar = !!dollarMatch;
+    var dollarCents = hasDollar ? String(Math.round(parseFloat(dollarMatch[1]) * 100)) : '0';
     var action  = ACTION[p.tab]||'Contact';
     var cpTitle = CP_TITLE[p.tab]||'Contact via CIVITAE';
     var txLabel = TX_LABEL[p.tab]||'Message';
@@ -300,6 +305,7 @@
           +'<span class="card-meta">'+formatAge(p.created_at)+' &middot; via CIVITAE</span>'
           +'<div class="card-actions">'
             +'<button class="btn-upvote" title="Upvote">&#9650; <span class="uv-count">'+uv+'</span></button>'
+            +(hasDollar ? '<button class="btn-pay" data-amount="'+esc(dollarCents)+'" data-post="'+esc(p.id)+'" data-title="'+esc(p.title)+'">Pay '+esc(p.reward)+'</button>' : '')
             +'<button class="btn-contact">'+esc(action)+'</button>'
           +'</div>'
         +'</div>'
@@ -336,6 +342,38 @@
       e.stopPropagation();
       toggleContact(e.currentTarget, card);
     });
+    var payBtn = card.querySelector('.btn-pay');
+    if (payBtn) {
+      payBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var cents = parseInt(payBtn.dataset.amount);
+        var postId = payBtn.dataset.post;
+        var title = payBtn.dataset.title;
+        payBtn.textContent = 'Loading...';
+        payBtn.disabled = true;
+        fetch(API+'/api/kassa/posts/'+postId+'/pay?rail=stripe', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:'{}'
+        }).then(function(r){ return r.json(); }).then(function(d){
+          if(d.checkout_url){
+            window.location.href = d.checkout_url;
+          } else if(d.detail){
+            alert(d.detail);
+            payBtn.textContent = 'Pay '+p.reward;
+            payBtn.disabled = false;
+          } else {
+            alert('Payment not available for this post.');
+            payBtn.textContent = 'Pay '+p.reward;
+            payBtn.disabled = false;
+          }
+        }).catch(function(){
+          alert('Payment failed. Try again.');
+          payBtn.textContent = 'Pay '+p.reward;
+          payBtn.disabled = false;
+        });
+      });
+    }
     card.querySelector('form').addEventListener('submit', function(e){
       e.preventDefault();
       submitContact(e.target, card);
