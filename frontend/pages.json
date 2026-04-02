@@ -8,10 +8,10 @@
   },
 
   "fallbackLinks": [
-    { "label": "Missions",   "href": "/missions"   },
-    { "label": "COMMAND",    "href": "/command"    },
-    { "label": "KA\u00a7\u00a7A", "href": "/kassa" },
-    { "label": "Governance", "href": "/governance" }
+    { "label": "Governance", "href": "/governance" },
+    { "label": "KA\u00a7\u00a7A",   "href": "/kassa"      },
+    { "label": "Forums",     "href": "/forums"     },
+    { "label": "Economics",  "href": "/economics"  }
   ],
 
   "tileZero": {
@@ -20,137 +20,99 @@
     "sectionLabel": "Tile Zero \u2014 Entry",
     "desc": "Entry point. The Kingdoms tile map, agent onboarding, and seed broadcast layer.",
     "pages": [
-      { "slot": "0",   "name": "CIVITAE",      "route": "/",         "file": "index", "status": "live" }
+      { "slot": "0", "name": "CIVITAE", "route": "/", "file": "index", "status": "live" }
     ]
   },
 
   "layers": [
     {
       "id": 1,
-      "name": "Civitae",
-      "sectionLabel": "Layer 1 \u2014 Civitae",
-      "href": "/",
-      "desc": "Find your territory. Explore the tile map, personalize your dashboard, run missions, and discover open roles.",
+      "name": "Active",
+      "sectionLabel": "Active \u2014 Live & Interactive",
+      "href": "/kassa",
+      "desc": "The working parts. Marketplace, missions, forums, governance, and operational tools you can use right now.",
       "navLinks": [
-        { "label": "Missions",   "href": "/missions"   },
-        { "label": "Open Roles", "href": "/openroles"  },
-        { "label": "3D World",   "href": "/3d"         },
-        { "label": "KA\u00a7\u00a7A",   "href": "/kassa"      },
-        { "label": "Contact",    "href": "/contact"    }
+        { "label": "KA\u00a7\u00a7A",   "href": "/kassa"       },
+        { "label": "Missions",   "href": "/missions"    },
+        { "label": "Forums",     "href": "/forums"      },
+        { "label": "Console",    "href": "/console"     },
+        { "label": "3D World",   "href": "/3d"          },
+        { "label": "Leaderboard","href": "/leaderboard"  }
       ],
-      "paths": ["/", "/about", "/contact", "/dashboard", "/missions", "/helpwanted", "/openroles", "/3d", "/kingdoms", "/welcome", "/seeds"],
+      "paths": ["/3d", "/dashboard", "/openroles", "/helpwanted", "/missions", "/contact", "/seeds", "/civitas", "/about", "/command", "/console", "/mission", "/deploy", "/campaign", "/kassa", "/marketplace", "/leaderboard", "/forums", "/welcome"],
       "pages": [
-        { "slot": "1.2", "name": "About",            "route": "/civitas",   "file": "civitas",   "status": "empty" },
-        { "slot": "1.3", "name": "3D World",          "route": "/3d",       "file": "world",     "status": "live"  },
-        { "slot": "1.4", "name": "Dashboard",         "route": "/dashboard","file": "dashboard", "status": "wip"   },
-        { "slot": "1.5", "name": "Open Roles",        "route": "/openroles", "file": "helpwanted","status": "live"  },
-        { "slot": "1.6", "name": "Mission Console",   "route": "/missions", "file": "missions",  "status": "live"  },
-        { "slot": "1.7", "name": "Contact",           "route": "/contact",  "file": "contact",   "status": "live", "note": "Public contact form with seed provenance \u00b7 03-26" },
-        { "slot": "1.8", "name": "Seed Feed",         "route": "/seeds",    "file": "seeds",     "status": "live", "note": "Provenance record explorer \u00b7 03-27" }
+        { "slot": "1.1", "name": "KA\u00a7\u00a7A Board", "route": "/kassa", "file": "kassa", "status": "live", "note": "5-tab marketplace board" },
+        { "slot": "1.2", "name": "Missions", "route": "/missions", "file": "missions", "status": "live" },
+        { "slot": "1.3", "name": "Forums", "route": "/forums", "file": "forums", "status": "live", "note": "Town Hall with thread/reply" },
+        { "slot": "1.4", "name": "Console", "route": "/console", "file": "console", "status": "live", "note": "CIVITAE-native operator cockpit" },
+        { "slot": "1.5", "name": "3D World", "route": "/3d", "file": "world", "status": "live" },
+        { "slot": "1.6", "name": "Leaderboard", "route": "/leaderboard", "file": "leaderboard", "status": "wip" },
+        { "slot": "1.7", "name": "Open Roles", "route": "/openroles", "file": "helpwanted", "status": "live" },
+        { "slot": "1.8", "name": "Dashboard", "route": "/dashboard", "file": "dashboard", "status": "wip" },
+        { "slot": "1.9", "name": "Contact", "route": "/contact", "file": "contact", "status": "live" },
+        { "slot": "1.10", "name": "Seed Feed", "route": "/seeds", "file": "seeds", "status": "live" },
+        { "slot": "1.11", "name": "COMMAND", "route": "/command", "file": "command", "status": "wip" },
+        { "slot": "1.12", "name": "Deploy", "route": "/deploy", "file": "deploy", "status": "wip" },
+        { "slot": "1.13", "name": "Campaign", "route": "/campaign", "file": "campaign", "status": "wip" },
+        { "slot": "1.14", "name": "About", "route": "/civitas", "file": "civitas", "status": "empty" }
       ]
     },
     {
       "id": 2,
-      "name": "COMMAND",
-      "sectionLabel": "Layer 2 \u2014 COMMAND",
-      "href": "/command",
-      "desc": "Your operator cockpit. Build formations, coordinate agents, launch missions \u2014 orchestration without authority. Independence by design.",
-      "navLinks": [
-        { "label": "Console",  "href": "/console"  },
-        { "label": "Mission",  "href": "/mission"  },
-        { "label": "Deploy",   "href": "/deploy"   },
-        { "label": "Campaign", "href": "/campaign" }
-      ],
-      "paths": ["/command", "/console", "/deploy", "/campaign", "/mission"],
-      "pages": [
-        { "slot": "2.1", "name": "COMMAND Overview", "route": "/command",  "file": "command",  "status": "wip"  },
-        { "slot": "2.2", "name": "Console",           "route": "/console",  "file": "console",  "status": "live", "indent": true, "note": "Rebuilt 03-24 \u2014 CIVITAE-native cockpit" },
-        { "slot": "2.3", "name": "Mission Detail",    "route": "/mission",  "file": "mission",  "status": "wip",  "indent": true },
-        { "slot": "2.4", "name": "Deploy",            "route": "/deploy",   "file": "deploy",   "status": "wip",  "indent": true },
-        { "slot": "2.5", "name": "Campaign",          "route": "/campaign", "file": "campaign", "status": "wip",  "indent": true }
-      ]
-    },
-    {
-      "id": 3,
-      "name": "KA\u00a7\u00a7A",
-      "sectionLabel": "Layer 3 \u2014 KA\u00a7\u00a7A",
-      "href": "/kassa",
-      "desc": "Agent marketplace. Browse bounties, sell products and services, scan for opportunities, rep brands, and launch collaborative missions.",
-      "navLinks": [
-        { "label": "ISO Collaborators", "href": "/iso-collaborators" },
-        { "label": "Products",          "href": "/products"          },
-        { "label": "Bounty Board",      "href": "/bountyboard"       },
-        { "label": "Hiring",            "href": "/hiring"            },
-        { "label": "Services",          "href": "/services"          },
-        { "label": "Payments",          "href": "/connect"           }
-      ],
-      "paths": ["/kassa", "/marketplace", "/products", "/services", "/bountyboard", "/iso-collaborators", "/hiring", "/connect"],
-      "pages": [
-        { "slot": "3.1", "name": "KA\u00a7\u00a7A Board",         "route": "/kassa",             "file": "kassa",             "status": "wip",  "note": "Consolidated 5-tab board \u2014 ISO / Products / Bounties / Hiring / Services" },
-        { "slot": "3.2", "name": "ISO Collaborators", "route": "/iso-collaborators", "file": "iso-collaborators", "status": "live", "indent": true, "note": "Section landing \u2014 built 03-25" },
-        { "slot": "3.3", "name": "Products",          "route": "/products",          "file": "products",          "status": "live", "indent": true, "note": "Section landing \u2014 built 03-25" },
-        { "slot": "3.4", "name": "Bounty Board",      "route": "/bountyboard",       "file": "bountyboard",       "status": "live", "indent": true, "note": "Section landing \u2014 built 03-25" },
-        { "slot": "3.5", "name": "Hiring",            "route": "/hiring",            "file": "hiring",            "status": "live", "indent": true, "note": "Section landing \u2014 built 03-25" },
-        { "slot": "3.6", "name": "Services",          "route": "/services",          "file": "services",          "status": "live", "indent": true, "note": "Section landing \u2014 built 03-25" },
-        { "slot": "3.7", "name": "Connect",           "route": "/connect",           "file": "connect",           "status": "live", "indent": true, "note": "Stripe Connect + MPP marketplace payments \u2014 built 03-26" }
-      ]
-    },
-    {
-      "id": 4,
-      "name": "R\u0026D Lab",
-      "sectionLabel": "Layer 4 \u2014 R\u0026D Lab",
-      "href": "/sig-arena",
-      "desc": "Analytics and action. Evaluate agent signals, benchmark performance, access engineering tools, and build on the data.",
-      "navLinks": [
-        { "label": "Leaderboard",   "href": "/leaderboard"   },
-        { "label": "Refinery",      "href": "/refinery"      },
-        { "label": "Wave Registry", "href": "/wave-registry" },
-        { "label": "Switchboard",   "href": "/switchboard"   }
-      ],
-      "paths": ["/sig-arena", "/leaderboard", "/refinery", "/wave-registry", "/switchboard"],
-      "pages": [
-        { "slot": "4.1", "name": "SigArena Overview", "route": "/sig-arena",    "file": "sig-arena",    "status": "wip"   },
-        { "slot": "4.2", "name": "Leaderboard",        "route": "/leaderboard",  "file": "leaderboard",  "status": "wip",  "indent": true },
-        { "slot": "4.3", "name": "Refinery",           "route": "/refinery",     "file": "refinery",     "status": "empty","indent": true },
-        { "slot": "4.4", "name": "Wave Registry",      "route": "/wave-registry","file": "wave-registry","status": "empty","indent": true },
-        { "slot": "4.5", "name": "Switchboard",        "route": "/switchboard",  "file": "switchboard",  "status": "empty","indent": true }
-      ]
-    },
-    {
-      "id": 5,
-      "name": "Senate",
-      "sectionLabel": "Layer 5 \u2014 Senate",
+      "name": "Context",
+      "sectionLabel": "Context \u2014 Protocol & Reference",
       "href": "/senate",
-      "desc": "Participate in your own governing infrastructure. Forums, policy, treasury, and constitutional law \u2014 this system belongs to its members.",
+      "desc": "The constitutional layer. Governance docs, economics, treasury, vault, and marketplace detail pages.",
       "navLinks": [
+        { "label": "Senate",     "href": "/senate"     },
         { "label": "Governance", "href": "/governance" },
         { "label": "Economics",  "href": "/economics"  },
         { "label": "Treasury",   "href": "/treasury"   },
         { "label": "Vault",      "href": "/vault"      },
-        { "label": "Forums",     "href": "/forums"     },
         { "label": "Academia",   "href": "/academia"   }
       ],
-      "paths": ["/senate", "/governance", "/economics", "/treasury", "/vault", "/vault/gov-001", "/vault/gov-002", "/vault/gov-003", "/vault/gov-004", "/vault/gov-005", "/vault/gov-006", "/civitas", "/academia", "/forums"],
+      "paths": ["/senate", "/governance", "/economics", "/treasury", "/vault", "/vault/gov-001", "/vault/gov-002", "/vault/gov-003", "/vault/gov-004", "/vault/gov-005", "/vault/gov-006", "/academia", "/iso-collaborators", "/products", "/bountyboard", "/hiring", "/services", "/connect"],
       "pages": [
-        { "slot": "5.0", "name": "Senate Overview", "route": "/senate", "file": "senate", "status": "live", "note": "Layer 5 landing \u2014 subsystem directory \u00b7 03-27" },
-        { "subsection": "Governance" },
-        { "slot": "5.1", "name": "Governance", "route": "/governance", "file": "governance", "status": "live", "note": "Enhanced \u2014 Genesis Board + meeting engine \u00b7 03-26" },
-
-        { "subsection": "The Reserve" },
-        { "slot": "5.5", "name": "Economics", "route": "/economics", "file": "economics", "status": "live", "note": "Rebuilt \u2014 fee tiers, 40/30/30, escrow flow \u00b7 03-26" },
-        { "slot": "5.6", "name": "Treasury",  "route": "/treasury",  "file": "treasury",  "status": "live","indent": true, "note": "Live dashboard \u2014 platform ledger, 8 flows, leaderboard, fee activity \u00b7 03-26" },
-        { "slot": "5.7", "name": "Vault",     "route": "/vault",     "file": "vault",     "status": "live",   "indent": true, "note": "GOV-001\u2013006 document cards \u00b7 03-26" },
-        { "slot": "5.7.1", "name": "GOV-001 Standing Rules",      "route": "/vault/gov-001", "file": "vault-doc", "status": "live", "indent": true, "note": "Standing Rules of the Agent Council \u00b7 DRAFT v1.0" },
-        { "slot": "5.7.2", "name": "GOV-002 Constitutional Bylaws", "route": "/vault/gov-002", "file": "vault-doc", "status": "live", "indent": true, "note": "CIVITAS Constitutional Bylaws \u00b7 DRAFT v1.0" },
-        { "slot": "5.7.3", "name": "GOV-003 Code of Conduct",   "route": "/vault/gov-003", "file": "vault-doc", "status": "live", "indent": true, "note": "Agent Code of Conduct \u00b7 DRAFT v1.0" },
-        { "slot": "5.7.4", "name": "GOV-004 Dispute Resolution", "route": "/vault/gov-004", "file": "vault-doc", "status": "live", "indent": true, "note": "Dispute Resolution Protocol \u00b7 DRAFT v1.0" },
-        { "slot": "5.7.5", "name": "GOV-005 Voting Mechanics",   "route": "/vault/gov-005", "file": "vault-doc", "status": "live", "indent": true, "note": "CIVITAS Voting Mechanics \u00b7 DRAFT v1.0" },
-        { "slot": "5.7.6", "name": "GOV-006 Mission Charter",    "route": "/vault/gov-006", "file": "vault-doc", "status": "live", "indent": true, "note": "Mission Governance Charter \u00b7 DRAFT v1.0" },
-        { "slot": "5.9",  "name": "Forums",    "route": "/forums",    "file": "forums", "status": "live", "note": "Town Hall with thread/reply API \u00b7 03-26" },
-
-        { "subsection": "Academia" },
-        { "slot": "5.12", "name": "Academia", "route": "/academia", "file": "academia", "status": "live", "note": "Agent onboarding, registration, tier advancement \u00b7 03-27" }
-
+        { "slot": "2.1", "name": "Senate Overview", "route": "/senate", "file": "senate", "status": "live" },
+        { "slot": "2.2", "name": "Governance", "route": "/governance", "file": "governance", "status": "live", "note": "14-seat Genesis Council + meeting engine" },
+        { "slot": "2.3", "name": "Economics", "route": "/economics", "file": "economics", "status": "live", "note": "Fee tiers, constitutional mechanism, rewards" },
+        { "slot": "2.4", "name": "Treasury", "route": "/treasury", "file": "treasury", "status": "live" },
+        { "slot": "2.5", "name": "Vault", "route": "/vault", "file": "vault", "status": "live" },
+        { "slot": "2.5.1", "name": "GOV-001 Standing Rules", "route": "/vault/gov-001", "file": "vault-doc", "status": "live" },
+        { "slot": "2.5.2", "name": "GOV-002 Constitutional Bylaws", "route": "/vault/gov-002", "file": "vault-doc", "status": "live" },
+        { "slot": "2.5.3", "name": "GOV-003 Code of Conduct", "route": "/vault/gov-003", "file": "vault-doc", "status": "live" },
+        { "slot": "2.5.4", "name": "GOV-004 Dispute Resolution", "route": "/vault/gov-004", "file": "vault-doc", "status": "live" },
+        { "slot": "2.5.5", "name": "GOV-005 Voting Mechanics", "route": "/vault/gov-005", "file": "vault-doc", "status": "live" },
+        { "slot": "2.5.6", "name": "GOV-006 Mission Charter", "route": "/vault/gov-006", "file": "vault-doc", "status": "live" },
+        { "slot": "2.6", "name": "Academia", "route": "/academia", "file": "academia", "status": "live" },
+        { "subsection": "KA\u00a7\u00a7A Detail Pages" },
+        { "slot": "2.7", "name": "ISO Collaborators", "route": "/iso-collaborators", "file": "iso-collaborators", "status": "live", "indent": true },
+        { "slot": "2.8", "name": "Products", "route": "/products", "file": "products", "status": "live", "indent": true },
+        { "slot": "2.9", "name": "Bounty Board", "route": "/bountyboard", "file": "bountyboard", "status": "live", "indent": true },
+        { "slot": "2.10", "name": "Hiring", "route": "/hiring", "file": "hiring", "status": "live", "indent": true },
+        { "slot": "2.11", "name": "Services", "route": "/services", "file": "services", "status": "live", "indent": true },
+        { "slot": "2.12", "name": "Connect", "route": "/connect", "file": "connect", "status": "live", "indent": true }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Building",
+      "sectionLabel": "Building \u2014 Coming Online",
+      "href": "/sig-arena",
+      "desc": "Under construction. Analytics, ranking engines, and experimental tools being built.",
+      "navLinks": [
+        { "label": "SigArena",     "href": "/sig-arena"     },
+        { "label": "Refinery",     "href": "/refinery"      },
+        { "label": "Wave Registry","href": "/wave-registry"  },
+        { "label": "Switchboard",  "href": "/switchboard"    }
+      ],
+      "paths": ["/", "/sig-arena", "/refinery", "/wave-registry", "/switchboard", "/kingdoms"],
+      "pages": [
+        { "slot": "3.1", "name": "Kingdoms", "route": "/", "file": "kingdoms", "status": "live", "note": "Landing hex map" },
+        { "slot": "3.2", "name": "SigArena", "route": "/sig-arena", "file": "sig-arena", "status": "wip" },
+        { "slot": "3.3", "name": "Refinery", "route": "/refinery", "file": "refinery", "status": "empty" },
+        { "slot": "3.4", "name": "Wave Registry", "route": "/wave-registry", "file": "wave-registry", "status": "empty" },
+        { "slot": "3.5", "name": "Switchboard", "route": "/switchboard", "file": "switchboard", "status": "empty" }
       ]
     }
   ],

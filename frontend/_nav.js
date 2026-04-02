@@ -30,7 +30,7 @@
   ];
 
   // ── Tab label overrides (shorter names for the top bar tabs) ─────────────────
-  var TAB_LABELS = { 1:'Civitae', 2:'Command', 3:'KA\u00a7\u00a7A', 4:'Lab', 5:'Senate' };
+  var TAB_LABELS = { 1:'Active', 2:'Context', 3:'Building' };
 
   // ── Skip fixed-viewport pages (they have their own topbar) ────────────────────
   var SKIP = ['/kingdoms', '/console', '/deploy', '/campaign'];
