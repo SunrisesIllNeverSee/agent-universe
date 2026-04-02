@@ -2,285 +2,550 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sitemap — SIGNOMY</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="/assets/_nav.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CIVITAE — Site Editor</title>
 <style>
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-:root {
-  --bg: #0A0D12; --bg-card: #10141A; --bg-hover: #141920;
-  --border: #1A1F28; --border-accent: #242A35;
-  --text: #C8CDD6; --text-dim: #5A6270; --text-bright: #E8ECF1;
-  --gold: #C4923A; --gold-dim: rgba(196,146,58,0.15); --gold-border: rgba(196,146,58,0.3);
-  --blue: #3A7FC4; --blue-dim: rgba(58,127,196,0.12);
-  --green: #3DAA6A; --green-dim: rgba(61,170,106,0.12);
-  --red: #D84040;
-  --amber: #D48C2E;
-  --mono: 'DM Mono', monospace; --sans: 'DM Sans', sans-serif;
-}
-body { font-family: var(--sans); background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; display: flex; }
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap');
+  :root {
+    --bg:     #0B0D10;
+    --panel:  #12151A;
+    --panel2: #0E1116;
+    --border: #1E2228;
+    --gold:   #C4923A;
+    --text:   #E8EAF0;
+    --muted:  #7A8090;
+    --green:  #3DAA6A;
+    --amber:  #D48C2E;
+    --red:    #D84040;
+    --blue:   #3A7FC4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; display: flex; flex-direction: column; }
 
-/* Sidebar */
-.sidebar {
-  width: 260px; flex-shrink: 0; background: var(--bg-card);
-  border-right: 1px solid var(--border); height: 100vh;
-  position: fixed; top: 0; left: 0; overflow-y: auto;
-  padding-top: 100px; transition: transform 0.25s; z-index: 50;
-}
-.sidebar.collapsed { transform: translateX(-260px); }
-.sidebar-toggle {
-  position: fixed; top: 110px; left: 260px;
-  width: 28px; height: 28px; background: var(--bg-card);
-  border: 1px solid var(--border); border-left: none;
-  border-radius: 0 4px 4px 0; color: var(--text-dim);
-  font-size: 0.7rem; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: left 0.25s; z-index: 51;
-}
-.sidebar.collapsed + .sidebar-toggle { left: 0; }
-.sb-tier-label {
-  font-family: var(--mono); font-size: 0.5rem; color: var(--text-dim);
-  letter-spacing: 0.1em; text-transform: uppercase;
-  padding: 10px 16px 6px; border-top: 1px solid var(--border); margin-top: 4px;
-}
-.sb-tier-label:first-child { border-top: none; margin-top: 0; }
-.sb-tier-label .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
-.dot-active { background: var(--green); }
-.dot-context { background: var(--blue); }
-.dot-building { background: var(--amber); }
-.sb-link {
-  display: flex; align-items: center; gap: 8px;
-  padding: 5px 16px; font-size: 0.72rem; color: var(--text-dim);
-  text-decoration: none; border-radius: 3px; transition: all 0.12s;
-}
-.sb-link:hover { background: var(--bg-hover); color: var(--text-bright); }
-.sb-link.current { background: var(--gold-dim); color: var(--gold); }
-.sb-status { font-family: var(--mono); font-size: 0.42rem; padding: 1px 5px; border-radius: 2px; margin-left: auto; }
-.s-live { color: var(--green); background: var(--green-dim); }
-.s-wip { color: var(--amber); background: rgba(212,140,46,0.12); }
-.s-empty { color: var(--red); background: rgba(216,64,64,0.08); }
+  /* ── Top bar ── */
+  .topbar {
+    height: 48px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 16px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .topbar-title { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1rem; letter-spacing: 0.05em; }
+  .topbar-sub   { color: var(--muted); font-size: 0.75rem; font-family: 'DM Mono', monospace; }
+  .spacer       { flex: 1; }
+  .btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    padding: 5px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn:hover    { border-color: var(--gold); color: var(--gold); }
+  .btn.primary  { background: var(--gold); border-color: var(--gold); color: #0B0D10; font-weight: 600; }
+  .btn.primary:hover { background: #d4a550; }
+  .btn.danger   { border-color: var(--red); color: var(--red); }
 
-/* Main */
-.main {
-  flex: 1; margin-left: 260px; padding: 0 32px 64px;
-  transition: margin-left 0.25s; min-height: 100vh;
-}
-.sidebar.collapsed ~ .main { margin-left: 0; }
-.page-header { padding: 40px 0 20px; }
-.page-header h1 { font-size: 1.4rem; font-weight: 300; color: var(--text-bright); letter-spacing: 0.04em; margin-bottom: 4px; }
-.page-header .sub { font-family: var(--mono); font-size: 0.56rem; color: var(--text-dim); }
-.stats-row { display: flex; gap: 16px; padding: 12px 0 24px; flex-wrap: wrap; }
-.stat-chip { font-family: var(--mono); font-size: 0.52rem; color: var(--text-dim); }
-.stat-chip strong { color: var(--text-bright); }
+  /* ── Layout ── */
+  .layout { display: flex; flex: 1; overflow: hidden; }
 
-.tier-section { margin-bottom: 28px; }
-.tier-header {
-  font-family: var(--mono); font-size: 0.56rem; color: var(--text-dim);
-  letter-spacing: 0.1em; text-transform: uppercase;
-  padding-bottom: 10px; border-bottom: 1px solid var(--border);
-  margin-bottom: 12px; cursor: pointer;
-  display: flex; align-items: center; gap: 8px;
-}
-.tier-header .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
-.tier-header .chevron { margin-left: auto; transition: transform 0.2s; font-size: 0.5rem; }
-.tier-header.collapsed .chevron { transform: rotate(-90deg); }
-.tier-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
-.tier-section.collapsed .tier-grid { display: none; }
-.page-card {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px; background: var(--bg-card);
-  border: 1px solid var(--border); border-radius: 5px;
-  text-decoration: none; transition: all 0.15s;
-}
-.page-card:hover { border-color: var(--gold-border); background: var(--bg-hover); }
-.card-route { font-family: var(--mono); font-size: 0.6rem; color: var(--gold); min-width: 100px; }
-.card-name { font-size: 0.74rem; color: var(--text); flex: 1; }
-.card-status { font-family: var(--mono); font-size: 0.42rem; padding: 2px 6px; border-radius: 2px; }
+  /* ── Left sidebar ── */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--panel2);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  .sidebar-section {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    padding: 12px 12px 4px;
+  }
+  .sidebar-section.inactive {
+    color: #3a3f4a;
+    border-top: 1px dashed #1E2228;
+    margin-top: 8px;
+  }
+  .sidebar-subsection { padding:6px 16px 4px; font-size:9px; font-family:'DM Mono',monospace; letter-spacing:0.12em; text-transform:uppercase; color:#4A5568; border-left:1px solid #1E2430; margin:4px 0 0; }
+  .page-item.parked   { opacity: 0.35; font-style: italic; }
+  .page-item.indented { padding-left: 28px; }
+  .page-item.planned  { opacity: 0.5; cursor: default; }
+  .page-item.planned .name { font-style: italic; }
+  .page-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .page-item:hover   { background: rgba(255,255,255,0.04); }
+  .page-item.active  { background: rgba(196,146,58,0.08); border-left-color: var(--gold); }
+  .page-item .dot    { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .page-item .route  { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .page-item .name   { font-size: 0.8rem; color: var(--text); }
+  .page-item-inner   { flex: 1; overflow: hidden; }
+  .slot-num { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--text); min-width: 18px; text-align: right; flex-shrink: 0; }
 
-.api-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 6px; }
-.api-row {
-  display: flex; gap: 8px; align-items: center;
-  padding: 6px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px;
-  font-family: var(--mono); font-size: 0.58rem;
-}
-.api-method { font-weight: 700; min-width: 36px; }
-.api-method.get { color: var(--green); }
-.api-method.post { color: var(--blue); }
-.api-path { color: var(--text-dim); }
-.api-desc { color: var(--text-dim); font-family: var(--sans); font-size: 0.6rem; margin-left: auto; }
+  /* ── Main area ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
-@media (max-width: 768px) {
-  .sidebar { transform: translateX(-260px); }
-  .sidebar.open { transform: translateX(0); }
-  .sidebar-toggle { left: 0; }
-  .sidebar.open + .sidebar-toggle { left: 260px; }
-  .main { margin-left: 0; }
-}
+  /* Preview pane */
+  .preview-pane {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    transition: flex 0.2s;
+  }
+  .preview-pane iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #fff;
+  }
+  .preview-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--muted);
+    gap: 12px;
+  }
+  .preview-placeholder .big { font-size: 3rem; }
+  .preview-placeholder p { font-size: 0.85rem; font-family: 'DM Mono', monospace; }
+
+  /* Preview toolbar */
+  .preview-toolbar {
+    height: 36px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .preview-url {
+    flex: 1;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 10px;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0;
+  }
+  .status-dot.live { background: var(--green); }
+
+  /* Editor pane */
+  .editor-pane {
+    flex-shrink: 0;
+    height: 0;
+    overflow: hidden;
+    transition: height 0.2s;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+  .editor-pane.open { height: 45%; }
+  .editor-toolbar {
+    height: 36px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .editor-toolbar span { font-size: 0.72rem; font-family: 'DM Mono', monospace; color: var(--muted); flex: 1; }
+  .editor-pane textarea {
+    flex: 1;
+    background: #08090C;
+    color: #A8D8A8;
+    border: none;
+    outline: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    padding: 12px 16px;
+    resize: none;
+    overflow-y: auto;
+  }
+
+  /* Loading overlay */
+  .loading {
+    position: absolute;
+    inset: 0;
+    background: rgba(11,13,16,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--gold);
+    letter-spacing: 0.1em;
+    display: none;
+  }
+  .loading.show { display: flex; }
 </style>
 </head>
 <body>
 
-<nav class="sidebar" id="sidebar"></nav>
-<button class="sidebar-toggle" id="sb-toggle">&lsaquo;</button>
-<div class="main" id="main"></div>
+<!-- Top bar -->
+<div class="topbar">
+  <span class="topbar-title">CIVITAE</span>
+  <span class="topbar-sub">Site Editor</span>
+  <div class="spacer"></div>
+  <a href="/civitae-roadmap" class="btn" style="text-decoration:none" target="_blank">⎇ Branch Map</a>
+  <button class="btn" onclick="openLive()">↗ Open Live</button>
+  <button class="btn" id="html-toggle-btn" onclick="toggleEditor()">⟨/⟩ HTML</button>
+  <button class="btn primary" id="preview-edited-btn" onclick="previewEdited()" style="display:none">▶ Preview Edits</button>
+  <button class="btn" id="download-btn" onclick="downloadEdited()" style="display:none">↓ Download</button>
+  <button class="btn" id="copy-btn" onclick="copyHTML()" style="display:none">⎘ Copy</button>
+</div>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar"></div>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Preview toolbar -->
+    <div class="preview-toolbar">
+      <div class="status-dot" id="status-dot"></div>
+      <input class="preview-url" id="url-bar" readonly value="← Select a page">
+    </div>
+
+    <!-- Preview pane -->
+    <div class="preview-pane" id="preview-pane">
+      <div class="loading" id="loading">LOADING…</div>
+      <div class="preview-placeholder" id="placeholder">
+        <div class="big">◈</div>
+        <p>Select a page from the left to preview it</p>
+      </div>
+      <iframe id="preview-frame" style="display:none"></iframe>
+    </div>
+
+    <!-- Editor pane -->
+    <div class="editor-pane" id="editor-pane">
+      <div class="editor-toolbar">
+        <span id="editor-label">HTML source</span>
+        <button class="btn" onclick="toggleEditor()">✕ Close</button>
+      </div>
+      <textarea id="html-editor" spellcheck="false" placeholder="HTML will load here…"></textarea>
+    </div>
+  </div>
+</div>
 
 <script>
-(function(){
-  var TIERS = [
-    { name:'Active', dot:'dot-active', desc:'Live & interactive', pages:[
-      {route:'/kassa',name:'KA\u00a7\u00a7A Board',status:'live'},
-      {route:'/missions',name:'Mission Board',status:'live'},
-      {route:'/forums',name:'Town Hall',status:'live'},
-      {route:'/advisory',name:'Advisory Board',status:'live'},
-      {route:'/console',name:'Operator Cockpit',status:'live'},
-      {route:'/3d',name:'3D World',status:'live'},
-      {route:'/leaderboard',name:'Leaderboard',status:'wip'},
-      {route:'/openroles',name:'Open Roles',status:'live'},
-      {route:'/dashboard',name:'Dashboard',status:'wip'},
-      {route:'/contact',name:'Contact',status:'live'},
-      {route:'/seeds',name:'Seed Feed',status:'live'},
-      {route:'/command',name:'COMMAND',status:'wip'},
-      {route:'/deploy',name:'Deploy',status:'wip'},
-      {route:'/campaign',name:'Campaign',status:'wip'},
-    ]},
-    { name:'Context', dot:'dot-context', desc:'Protocol & reference', pages:[
-      {route:'/senate',name:'Senate',status:'live'},
-      {route:'/governance',name:'Governance + Council',status:'live'},
-      {route:'/economics',name:'Economics',status:'live'},
-      {route:'/treasury',name:'Treasury',status:'live'},
-      {route:'/vault',name:'Vault (GOV docs)',status:'live'},
-      {route:'/academia',name:'Academy',status:'live'},
-      {route:'/products',name:'Products',status:'live'},
-      {route:'/bountyboard',name:'Bounty Board',status:'live'},
-      {route:'/hiring',name:'Hiring',status:'live'},
-      {route:'/services',name:'Services',status:'live'},
-      {route:'/connect',name:'Payments',status:'live'},
-    ]},
-    { name:'Building', dot:'dot-building', desc:'Coming online', pages:[
-      {route:'/',name:'Kingdoms (Landing)',status:'live'},
-      {route:'/sig-arena',name:'SigArena',status:'wip'},
-      {route:'/refinery',name:'Refinery',status:'empty'},
-      {route:'/wave-registry',name:'Wave Registry',status:'empty'},
-      {route:'/switchboard',name:'Switchboard',status:'empty'},
-    ]},
-  ];
-  var PUBLIC = [
-    {route:'/join',name:'Join'},
-    {route:'/entry',name:'Register'},
-    {route:'/about',name:'About'},
-    {route:'/skill.md',name:'Skill Doc'},
-    {route:'/agent.json',name:'Manifest'},
-    {route:'/profile/:h',name:'Profiles'},
-  ];
-  var DOCS = ['/docs/AGENT-FIELD-GUIDE.md','/docs/PLUGIN-BLUEPRINT.md','/docs/MARKETPLACE-LAUNCH-CONTENT.md'];
-  var APIS = [
-    {m:'GET',p:'/api/advisory/seats',d:'Council state'},
-    {m:'POST',p:'/api/advisory/apply',d:'Apply for seat'},
-    {m:'GET',p:'/api/agents',d:'Agent directory'},
-    {m:'GET',p:'/api/kassa/posts',d:'Marketplace'},
-    {m:'GET',p:'/api/forums/threads',d:'Forums'},
-    {m:'GET',p:'/api/governance/meetings',d:'Meetings'},
-    {m:'GET',p:'/api/economy/tiers',d:'Fee tiers'},
-    {m:'GET',p:'/api/treasury',d:'Treasury'},
-    {m:'GET',p:'/api/seeds/stats',d:'Seeds'},
-    {m:'GET',p:'/api/traces/sigrank',d:'SIGRANK'},
-    {m:'POST',p:'/api/provision/signup',d:'Register'},
-    {m:'POST',p:'/api/contact',d:'Contact'},
-    {m:'GET',p:'/health',d:'Health'},
-  ];
+// ── Page data loaded from /api/pages (single source of truth) ─────────────────
+let STATUS_COLOR = { live: '#3DAA6A', wip: '#D48C2E', empty: '#D84040', admin: '#3A7FC4', planned: '#5a4f7a' };
 
-  function el(tag,cls){var e=document.createElement(tag);if(cls)e.className=cls;return e;}
-  function txt(s){return document.createTextNode(s);}
+function pagesFromData(data) {
+  STATUS_COLOR = data.statusColors || STATUS_COLOR;
+  const flat = [];
+  // Tile Zero
+  flat.push({ section: data.tileZero.sectionLabel });
+  data.tileZero.pages.forEach(p => flat.push(p));
+  // Layers 1-5
+  data.layers.forEach(layer => {
+    flat.push({ section: layer.sectionLabel });
+    layer.pages.forEach(p => flat.push(p));
+  });
+  // Extras (Civitas Hubs, Operator Tools, Inactive)
+  data.extras.forEach(group => {
+    flat.push({ section: group.sectionLabel, inactive: group.inactive });
+    group.pages.forEach(p => flat.push(p));
+  });
+  return flat;
+}
 
-  /* Sidebar */
-  var sb=document.getElementById('sidebar');
-  var path=location.pathname.replace(/\/$/,'')||'/';
-  TIERS.forEach(function(t){
-    var lbl=el('div','sb-tier-label');
-    var dot=el('span','dot '+t.dot);
-    lbl.appendChild(dot);lbl.appendChild(txt(t.name));
-    sb.appendChild(lbl);
-    t.pages.forEach(function(p){
-      var a=el('a','sb-link'+(path===p.route?' current':''));
-      a.href=p.route;
-      var n=el('span');n.textContent=p.name;a.appendChild(n);
-      var s=el('span','sb-status s-'+p.status);s.textContent=p.status.toUpperCase();a.appendChild(s);
-      sb.appendChild(a);
+// ── Session log — update this every session ────────────────────────────────
+const SESSION_LOG = [
+  { date: '2026-03-26', entry: 'GOV document detail viewer (5.7.1) — dynamic /vault/{doc_id} route + API reads docs/governance/*.md. All 6 vault cards now resolve.' },
+  { date: '2026-03-26', entry: 'Senate Layer 5 — 4 pages delivered: Governance (5.1 enhanced), Economics (5.5 rebuilt), Vault (5.7 GOV-001–006), Forums (5.9 new). Forum backend (forums_store.py + 6 API endpoints). Forums added to Layer 5 nav.' },
+  { date: '2026-03-26', entry: '3.7 Connect — Stripe Connect + MPP marketplace payments page live. Added to Layer 3 nav.' },
+  { date: '2026-03-25', entry: 'Admin nav — Site Editor (/sitemap) + Branch Map (/civitae-roadmap) links added' },
+  { date: '2026-03-25', entry: 'Layer 4 nav fixed — Agents/Products replaced with Refinery, Wave Registry, Switchboard' },
+  { date: '2026-03-24', entry: 'Layer renames: SigArena → Engineering Lab, Infrastructure → Senate' },
+  { date: '2026-03-24', entry: 'Nav redesign: contextual header (4 layer links) + dropdown = layer directory cards' },
+  { date: '2026-03-24', entry: 'KA§§A 3.3 renamed to Job Board & Services. Wave Registry tabled (backlog).' },
+  { date: '2026-03-24', entry: 'CIVI TAE wordmark — TAE white. Layer headers clickable in dropdown.' },
+  { date: '2026-03-24', entry: '2.2 Console — rebuilt as CIVITAE-native operator cockpit + message bar' },
+  { date: '2026-03-24', entry: 'Global nav (_nav.js) — injected into 21 content pages. COMMAND/KA§§A/Missions/Governance/Map' },
+  { date: '2026-03-24', entry: 'Sitemap restructured — dot notation (1.1, 2.1…) replacing flat numbering' },
+  { date: '2026-03-21', entry: 'Architecture locked — 5-layer system, Seeds model, Ring 0, Tile Zero, Concentric Rings' },
+  { date: '2026-03-21', entry: 'console.html, command.html, kassa.html, deploy.html, campaign.html — initial builds' },
+];
+
+// ── Build sidebar ─────────────────────────────────────────────────────────────
+const sidebar = document.getElementById('sidebar');
+
+// Session log at the top — collapsible
+const logWrap = document.createElement('div');
+logWrap.style.cssText = 'border-bottom:1px solid #1E2228;padding:8px 0 10px;margin-bottom:4px;';
+const logHead = document.createElement('div');
+logHead.className = 'sidebar-section';
+logHead.style.cssText = 'cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none;';
+const logLabel = document.createElement('span');
+logLabel.textContent = 'Build Log';
+const logChev = document.createElement('span');
+logChev.textContent = '▾';
+logChev.style.cssText = 'font-size:0.6rem;color:#3A4858;transition:transform 0.2s;';
+logHead.appendChild(logLabel);
+logHead.appendChild(logChev);
+logWrap.appendChild(logHead);
+
+const logEntries = document.createElement('div');
+logEntries.style.cssText = 'overflow:hidden;transition:max-height 0.25s ease;max-height:0;';
+SESSION_LOG.forEach(entry => {
+  const row = document.createElement('div');
+  row.style.cssText = 'padding:3px 12px 3px 12px;display:flex;gap:6px;align-items:baseline;';
+  const d = document.createElement('span');
+  d.style.cssText = 'font-family:"DM Mono",monospace;font-size:0.56rem;color:#3A7FC4;flex-shrink:0;';
+  d.textContent = entry.date.slice(5);
+  const t = document.createElement('span');
+  t.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:0.66rem;color:#7A8090;line-height:1.4;';
+  t.textContent = entry.entry;
+  row.appendChild(d); row.appendChild(t);
+  logEntries.appendChild(row);
+});
+logWrap.appendChild(logEntries);
+
+let logOpen = false;
+logHead.addEventListener('click', () => {
+  logOpen = !logOpen;
+  logEntries.style.maxHeight = logOpen ? logEntries.scrollHeight + 'px' : '0';
+  logChev.style.transform = logOpen ? 'rotate(180deg)' : '';
+});
+
+sidebar.appendChild(logWrap);
+
+fetch('/assets/pages.json').then(r => r.json()).then(data => {
+const PAGES = pagesFromData(data);
+let currentSectionBody = null;
+let currentSectionInactive = false;
+
+PAGES.forEach((p, i) => {
+  if (p.section) {
+    currentSectionInactive = p.section.startsWith('Inactive');
+    const isInact = currentSectionInactive || p.section.startsWith('Operator') || p.section.startsWith('Civitas');
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'border-bottom:1px solid #0F1318;';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'sidebar-section' + (isInact ? ' inactive' : '');
+    hdr.style.cssText = 'cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none;';
+
+    const hdrLabel = document.createElement('span');
+    hdrLabel.textContent = p.section;
+
+    const hdrChev = document.createElement('span');
+    hdrChev.textContent = '▾';
+    hdrChev.style.cssText = 'font-size:0.6rem;color:#3A4858;transition:transform 0.2s;flex-shrink:0;';
+
+    hdr.appendChild(hdrLabel);
+    hdr.appendChild(hdrChev);
+
+    const body = document.createElement('div');
+    body.style.cssText = 'overflow:hidden;max-height:1200px;transition:max-height 0.25s ease;';
+
+    let open = true;
+    hdr.addEventListener('click', () => {
+      open = !open;
+      body.style.maxHeight = open ? '1200px' : '0';
+      hdrChev.style.transform = open ? '' : 'rotate(-90deg)';
     });
+
+    wrap.appendChild(hdr);
+    wrap.appendChild(body);
+    sidebar.appendChild(wrap);
+    currentSectionBody = body;
+    return;
+  }
+
+  const target = currentSectionBody || sidebar;
+
+  if (p.subsection) {
+    const sub = document.createElement('div');
+    sub.className = 'sidebar-subsection';
+    sub.textContent = p.subsection;
+    target.appendChild(sub);
+    return;
+  }
+
+  const el = document.createElement('div');
+  const isPlanned = p.status === 'planned';
+  el.className = 'page-item' + (currentSectionInactive ? ' parked' : '') + (p.indent ? ' indented' : '') + (isPlanned ? ' planned' : '');
+  el.id = 'item-' + (p.file || (p.route && p.route.replace(/\//g,'-')) || p.name.replace(/\s+/g,'-').toLowerCase());
+  if (!isPlanned) el.onclick = () => selectPage(p);
+
+  const slotEl = document.createElement('div');
+  slotEl.className = 'slot-num';
+  slotEl.textContent = p.slot != null ? p.slot : '';
+
+  const dot = document.createElement('div');
+  dot.className = 'dot';
+  dot.style.background = STATUS_COLOR[p.status] || '#7A8090';
+
+  const inner = document.createElement('div');
+  inner.className = 'page-item-inner';
+
+  const name = document.createElement('div');
+  name.className = 'name';
+  name.textContent = p.name;
+
+  const route = document.createElement('div');
+  route.className = 'route';
+  route.textContent = p.route;
+
+  inner.appendChild(name);
+  inner.appendChild(route);
+  if (p.note) {
+    const note = document.createElement('div');
+    note.style.cssText = 'font-size:0.58rem;color:#3A7FC4;font-family:"DM Mono",monospace;margin-top:1px;letter-spacing:0.02em;';
+    note.textContent = '↳ ' + p.note;
+    inner.appendChild(note);
+  }
+  el.appendChild(slotEl);
+  el.appendChild(dot);
+  el.appendChild(inner);
+  target.appendChild(el);
+});
+}); // end fetch
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentPage  = null;
+let editorOpen   = false;
+let htmlLoaded   = false;
+
+const frame      = document.getElementById('preview-frame');
+const placeholder= document.getElementById('placeholder');
+const urlBar     = document.getElementById('url-bar');
+const statusDot  = document.getElementById('status-dot');
+const loading    = document.getElementById('loading');
+const editorPane = document.getElementById('editor-pane');
+const editor     = document.getElementById('html-editor');
+const editorLbl  = document.getElementById('editor-label');
+const previewBtn = document.getElementById('preview-edited-btn');
+const downloadBtn= document.getElementById('download-btn');
+const copyBtn    = document.getElementById('copy-btn');
+
+// ── Select page ───────────────────────────────────────────────────────────────
+function selectPage(p) {
+  if (currentPage) {
+    const prev = document.getElementById('item-' + currentPage.file);
+    if (prev) prev.classList.remove('active');
+  }
+  currentPage = p;
+  htmlLoaded  = false;
+  editor.value = '';
+
+  const el = document.getElementById('item-' + p.file);
+  if (el) el.classList.add('active');
+
+  const base = location.origin; // same Railway origin
+  const url  = base + p.route;
+  urlBar.value = url;
+  statusDot.className = 'status-dot live';
+  editorLbl.textContent = p.file + '.html';
+
+  placeholder.style.display = 'none';
+  frame.style.display = 'block';
+  loading.classList.add('show');
+
+  frame.onload = () => loading.classList.remove('show');
+  frame.src = p.route;
+
+  // If editor is open, reload HTML
+  if (editorOpen) fetchHTML();
+}
+
+// ── Toggle HTML editor ────────────────────────────────────────────────────────
+function toggleEditor() {
+  editorOpen = !editorOpen;
+  editorPane.classList.toggle('open', editorOpen);
+  previewBtn.style.display  = editorOpen ? '' : 'none';
+  downloadBtn.style.display = editorOpen ? '' : 'none';
+  copyBtn.style.display     = editorOpen ? '' : 'none';
+
+  if (editorOpen && currentPage && !htmlLoaded) fetchHTML();
+}
+
+// ── Fetch HTML source ─────────────────────────────────────────────────────────
+async function fetchHTML() {
+  if (!currentPage) return;
+  editor.value = '⌛ Loading…';
+  try {
+    const API  = window.CIVITAE_API_ORIGIN || '';
+    const res  = await fetch(API + '/api/admin/page-html?page=' + currentPage.file);
+    const data = await res.json();
+    if (data.html) {
+      editor.value = data.html;
+      htmlLoaded = true;
+    } else {
+      editor.value = '// Error: ' + (data.error || 'unknown');
+    }
+  } catch (e) {
+    editor.value = '// Fetch failed: ' + e.message;
+  }
+}
+
+// ── Preview edited HTML ───────────────────────────────────────────────────────
+function previewEdited() {
+  const html = editor.value;
+  if (!html) return;
+  const blob = new Blob([html], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  frame.src  = url;
+  loading.classList.add('show');
+  frame.onload = () => loading.classList.remove('show');
+}
+
+// ── Download edited file ──────────────────────────────────────────────────────
+function downloadEdited() {
+  if (!currentPage || !editor.value) return;
+  const blob = new Blob([editor.value], { type: 'text/html' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = currentPage.file + '.html';
+  a.click();
+}
+
+// ── Copy HTML to clipboard ────────────────────────────────────────────────────
+function copyHTML() {
+  if (!editor.value) return;
+  navigator.clipboard.writeText(editor.value).then(() => {
+    copyBtn.textContent = '✓ Copied';
+    setTimeout(() => { copyBtn.textContent = '⎘ Copy'; }, 1500);
   });
-  var pubLbl=el('div','sb-tier-label');pubLbl.textContent='Public';sb.appendChild(pubLbl);
-  PUBLIC.forEach(function(p){var a=el('a','sb-link');a.href=p.route;a.textContent=p.name;sb.appendChild(a);});
+}
 
-  /* Main */
-  var main=document.getElementById('main');
-
-  var hdr=el('div','page-header');
-  var h1=el('h1');h1.textContent='Sitemap';
-  var sub=el('div','sub');sub.textContent='signomy.xyz \u00b7 Active / Context / Building';
-  hdr.appendChild(h1);hdr.appendChild(sub);main.appendChild(hdr);
-
-  var total=0,live=0,wip=0,empty=0;
-  TIERS.forEach(function(t){t.pages.forEach(function(p){total++;if(p.status==='live')live++;else if(p.status==='wip')wip++;else empty++;});});
-  var stats=el('div','stats-row');
-  [{l:'Total',v:total},{l:'Live',v:live},{l:'WIP',v:wip},{l:'Empty',v:empty},{l:'APIs',v:APIS.length}].forEach(function(s){
-    var c=el('span','stat-chip');var b=el('strong');b.textContent=s.v;c.appendChild(b);c.appendChild(txt(' '+s.l));stats.appendChild(c);
-  });
-  main.appendChild(stats);
-
-  TIERS.forEach(function(t){
-    var sec=el('div','tier-section');
-    var header=el('div','tier-header');
-    var dot=el('span','dot '+t.dot);header.appendChild(dot);
-    header.appendChild(txt(t.name+' \u2014 '+t.desc));
-    var chev=el('span','chevron');chev.textContent='\u25BC';header.appendChild(chev);
-    header.addEventListener('click',function(){sec.classList.toggle('collapsed');header.classList.toggle('collapsed');});
-    sec.appendChild(header);
-
-    var grid=el('div','tier-grid');
-    t.pages.forEach(function(p){
-      var card=el('a','page-card');card.href=p.route;
-      var r=el('span','card-route');r.textContent=p.route;
-      var n=el('span','card-name');n.textContent=p.name;
-      var s=el('span','card-status s-'+p.status);s.textContent=p.status.toUpperCase();
-      card.appendChild(r);card.appendChild(n);card.appendChild(s);grid.appendChild(card);
-    });
-    sec.appendChild(grid);main.appendChild(sec);
-  });
-
-  /* Docs */
-  var dSec=el('div','tier-section');
-  var dH=el('div','tier-header');dH.appendChild(txt('Docs'));
-  var dC=el('span','chevron');dC.textContent='\u25BC';dH.appendChild(dC);
-  dH.addEventListener('click',function(){dSec.classList.toggle('collapsed');dH.classList.toggle('collapsed');});
-  dSec.appendChild(dH);
-  var dG=el('div','tier-grid');
-  DOCS.forEach(function(d){var c=el('a','page-card');c.href=d;var r=el('span','card-route');r.textContent=d.replace('/docs/','');c.appendChild(r);dG.appendChild(c);});
-  dSec.appendChild(dG);main.appendChild(dSec);
-
-  /* APIs */
-  var aSec=el('div','tier-section');
-  var aH=el('div','tier-header');aH.appendChild(txt('API Endpoints'));
-  var aC=el('span','chevron');aC.textContent='\u25BC';aH.appendChild(aC);
-  aH.addEventListener('click',function(){aSec.classList.toggle('collapsed');aH.classList.toggle('collapsed');});
-  aSec.appendChild(aH);
-  var aG=el('div','api-grid');
-  APIS.forEach(function(a){
-    var row=el('div','api-row');
-    var m=el('span','api-method '+a.m.toLowerCase());m.textContent=a.m;
-    var p=el('span','api-path');p.textContent=a.p;
-    var d=el('span','api-desc');d.textContent=a.d;
-    row.appendChild(m);row.appendChild(p);row.appendChild(d);aG.appendChild(row);
-  });
-  aSec.appendChild(aG);main.appendChild(aSec);
-
-  /* Toggle */
-  document.getElementById('sb-toggle').addEventListener('click',function(){
-    var s=document.getElementById('sidebar');
-    s.classList.toggle('collapsed');
-    this.textContent=s.classList.contains('collapsed')?'\u203A':'\u2039';
-  });
-})();
+// ── Open live in new tab ──────────────────────────────────────────────────────
+function openLive() {
+  if (!currentPage) return;
+  window.open(location.origin + currentPage.route, '_blank');
+}
 </script>
 </body>
 </html>
