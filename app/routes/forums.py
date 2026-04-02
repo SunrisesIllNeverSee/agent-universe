@@ -12,6 +12,8 @@ Endpoints:
 """
 from __future__ import annotations
 
+import logging
+
 import jwt as pyjwt
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
@@ -19,6 +21,8 @@ from fastapi.responses import FileResponse
 from app.deps import state
 from app.forums_store import VALID_CATEGORIES
 from app.seeds import create_seed
+
+logger = logging.getLogger("civitae.forums")
 
 router = APIRouter(tags=["forums"])
 
@@ -146,7 +150,7 @@ async def forums_create_thread(request: Request) -> dict:
     try:
         state.seed_card.record_action(claims.get("sub", claims.get("agent_id", "")), "forum_thread")
     except Exception:
-        pass
+        logger.warning("Seed card record_action failed for forum_thread", exc_info=True)
     return {**thread, "seed_doi": seed_doi}
 
 
@@ -194,7 +198,7 @@ async def forums_create_reply(thread_id: str, request: Request) -> dict:
     try:
         state.seed_card.record_action(claims.get("sub", claims.get("agent_id", "")), "forum_reply")
     except Exception:
-        pass
+        logger.warning("Seed card record_action failed for forum_reply", exc_info=True)
     return {**reply, "seed_doi": seed_doi}
 
 

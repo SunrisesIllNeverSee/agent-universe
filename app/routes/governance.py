@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import glob as _glob
 import json
+import logging
 import os
 import secrets
 from datetime import UTC, datetime
@@ -17,6 +18,8 @@ from fastapi.responses import JSONResponse
 
 from app.deps import state
 from app.seeds import create_seed, _read_seeds
+
+logger = logging.getLogger("civitae.governance")
 
 router = APIRouter(tags=["governance"])
 
@@ -288,7 +291,7 @@ async def cast_vote(meeting_id: str, payload: dict) -> dict:
     try:
         state.seed_card.record_action(voter, "vote_cast")
     except Exception:
-        pass
+        logger.warning("Seed card record_action failed for vote_cast", exc_info=True)
 
     return {"motion_id": motion_id, "voter": voter, "vote": vote, "votes_cast": len(motion["votes"]), "total_voters": len(meeting["attendees"])}
 

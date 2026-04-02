@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 import os
 import secrets
 import time as _time
@@ -33,6 +34,8 @@ from app.jwt_config import get_kassa_jwt_secret
 from app.seeds import create_seed
 from app.notifications import send_magic_link, send_message_notification, send_operator_alert
 from app.models import KassaContact, KassaPostCreate
+
+logger = logging.getLogger("civitae.kassa")
 
 router = APIRouter(tags=["kassa"])
 
