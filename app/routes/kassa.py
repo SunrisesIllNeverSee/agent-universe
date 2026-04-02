@@ -809,7 +809,8 @@ async def submit_kassa_post(request: Request) -> dict:
 
 
 @router.post("/api/kassa/posts/{post_id}/upvote")
-async def upvote_kassa_post(post_id: str) -> dict:
+async def upvote_kassa_post(post_id: str, request: Request) -> dict:
+    _check_rate_limit(request, "kassa_upvote", max_hits=30, window_s=3600)
     post = state.kassa.get_post(post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
