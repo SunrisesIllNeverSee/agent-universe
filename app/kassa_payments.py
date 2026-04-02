@@ -874,7 +874,7 @@ def create_payment(
             product_name=description,
             price_cents=price_cents,
             connected_account_id=connected_account_id,
-            success_url=success_url or f"{_base}/connect/success?post={post_id}",
+            success_url=success_url or f"{_base}/connect/success?session_id={{CHECKOUT_SESSION_ID}}&post={post_id}",
             cancel_url=cancel_url or f"{_base}/kassa?payment=cancelled&post={post_id}",
             app_fee_percent=app_fee_percent,
             metadata={"post_id": post_id, **(metadata or {})},
