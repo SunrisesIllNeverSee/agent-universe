@@ -16,7 +16,8 @@
     { "source": "/profile/:handle", "destination": "/agent-profile" },
     { "source": "/agent/:slug", "destination": "/agent" },
     { "source": "/kassa/post/:id", "destination": "/kassa-post" },
-    { "source": "/kassa/thread/:id", "destination": "/kassa-thread" }
+    { "source": "/kassa/thread/:id", "destination": "/kassa-thread" },
+    { "source": "/connect/success", "destination": "/connect-success" }
   ],
   "headers": [
     {
