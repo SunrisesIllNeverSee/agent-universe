@@ -205,6 +205,9 @@ async def initiate_payment(post_id: str, request: Request) -> dict:
         seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
+    # Frontend expects checkout_url — alias from Stripe's url field
+    if result.get("url") and "checkout_url" not in result:
+        result["checkout_url"] = result["url"]
     return {**result, "seed_doi": seed_doi}
 
 
