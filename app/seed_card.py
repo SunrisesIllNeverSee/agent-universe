@@ -430,11 +430,17 @@ class SeedCardStore:
 
         # Stack fee-free days
         if days_awarded > 0:
-            if not card.get("fee_free_granted_at"):
+            granted_at_str = card.get("fee_free_granted_at")
+            if not granted_at_str:
                 card["fee_free_granted_at"] = _now_iso()
                 card["fee_free_days_remaining"] = days_awarded
             else:
-                card["fee_free_days_remaining"] = card.get("fee_free_days_remaining", 0) + days_awarded
+                # Compute current effective remaining before stacking
+                granted = datetime.fromisoformat(granted_at_str)
+                elapsed_days = (datetime.now(UTC) - granted).days
+                current_effective = max(0, card.get("fee_free_days_remaining", 0) - elapsed_days)
+                card["fee_free_granted_at"] = _now_iso()
+                card["fee_free_days_remaining"] = current_effective + days_awarded
 
         return days_awarded
 
