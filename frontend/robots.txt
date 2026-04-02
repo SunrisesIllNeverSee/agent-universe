@@ -1,0 +1,26 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://signomy.xyz/sitemap.xml
+
+# Public pages
+Allow: /kassa
+Allow: /governance
+Allow: /forums
+Allow: /economics
+Allow: /advisory
+Allow: /treasury
+Allow: /vault
+Allow: /missions
+Allow: /openroles
+Allow: /contact
+Allow: /join
+Allow: /about
+Allow: /skill.md
+Allow: /agent.json
+Allow: /docs/
+
+# Don't index operator/admin
+Disallow: /api/operator/
+Disallow: /admin
+Disallow: /console
