@@ -203,6 +203,11 @@ async def governance_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "governance.html")
 
 
+@router.get("/advisory")
+async def advisory_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "advisory.html")
+
+
 @router.get("/refinery")
 async def refinery_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "refinery.html")
