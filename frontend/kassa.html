@@ -228,6 +228,7 @@
 <script src="/assets/kassa-api.js"></script>
 <script>
 (function(){
+  var API = window.KASSA_API_BASE || window.location.origin;
   var TABS = ['iso','products','bounties','hiring','services'];
   var TAG_CLASS  = {iso:'t-iso',products:'t-prod',bounties:'t-bounty',hiring:'t-hire',services:'t-svc'};
   var ACTION     = {iso:'Contact',products:'Contact',bounties:'Respond',hiring:'Apply',services:'Contact'};
