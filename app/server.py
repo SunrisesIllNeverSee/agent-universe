@@ -211,6 +211,25 @@ def create_app(root: Path | None = None) -> FastAPI:
 
         return await call_next(request)
 
+    # ── Security headers ────────────────────────────────────────────
+    @app.middleware("http")
+    async def security_headers(request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://js.stripe.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src https://fonts.gstatic.com; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' https://api.stripe.com wss:; "
+            "frame-src https://js.stripe.com https://checkout.stripe.com;"
+        )
+        return response
+
     # ── Static file mounts ───────────────────────────────────────────
     if (frontend_dir / "config").is_dir():
         app.mount("/config", StaticFiles(directory=frontend_dir / "config"), name="config")
