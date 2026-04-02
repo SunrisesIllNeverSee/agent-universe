@@ -564,8 +564,8 @@ def create_checkout_session(
     return {
         "session_id": session.id,
         "url": session.url,
-        "rail": "stripe_connect",
-        "app_fee_cents": app_fee_amount,
+        "rail": "stripe_connect" if connected_account_id else "stripe_direct",
+        "app_fee_cents": app_fee_amount if connected_account_id else 0,
     }
 
 
