@@ -90,6 +90,8 @@
   .btn-upvote.voted{border-color:var(--gold-bd);color:var(--gold);background:var(--gold-dim);}
   .btn-pay{padding:6px 14px;background:var(--signal-dim);border:1px solid rgba(74,124,89,0.30);border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--signal);cursor:pointer;transition:all .15s;letter-spacing:0.02em;}
   .btn-pay:hover{background:var(--signal);color:#fff;border-color:var(--signal);}
+  .btn-stake{padding:6px 14px;background:var(--gold-dim);border:1px solid var(--gold-bd);border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--gold);cursor:pointer;transition:all .15s;letter-spacing:0.02em;}
+  .btn-stake:hover{background:var(--gold);color:var(--obsidian);border-color:var(--gold);}
   .btn-contact{padding:6px 14px;background:none;border:1px solid var(--sand);border-radius:4px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:var(--drift);cursor:pointer;transition:all .15s;letter-spacing:0.02em;}
   .btn-contact:hover{border-color:var(--gold-bd);color:var(--gold);}
   .btn-contact.active{border-color:var(--gold-bd);color:var(--gold);background:var(--gold-dim);}
@@ -272,6 +274,8 @@
     var dollarMatch = (p.reward||'').match(/\$([0-9]+(?:\.[0-9]{1,2})?)/);
     var hasDollar = !!dollarMatch;
     var dollarCents = hasDollar ? String(Math.round(parseFloat(dollarMatch[1]) * 100)) : '0';
+    var isProduct = p.tab === 'products';
+    var isStakeable = (p.tab === 'bounties' || p.tab === 'services' || p.tab === 'hiring') && hasDollar;
     var action  = ACTION[p.tab]||'Contact';
     var cpTitle = CP_TITLE[p.tab]||'Contact via CIVITAE';
     var txLabel = TX_LABEL[p.tab]||'Message';
@@ -305,7 +309,8 @@
           +'<span class="card-meta">'+formatAge(p.created_at)+' &middot; via CIVITAE</span>'
           +'<div class="card-actions">'
             +'<button class="btn-upvote" title="Upvote">&#9650; <span class="uv-count">'+uv+'</span></button>'
-            +(hasDollar ? '<button class="btn-pay" data-amount="'+esc(dollarCents)+'" data-post="'+esc(p.id)+'" data-title="'+esc(p.title)+'">Pay '+esc(p.reward)+'</button>' : '')
+            +(isProduct && hasDollar ? '<button class="btn-pay" data-amount="'+esc(dollarCents)+'" data-post="'+esc(p.id)+'" data-title="'+esc(p.title)+'">Pay '+esc(p.reward)+'</button>' : '')
+            +(isStakeable ? '<button class="btn-stake" data-post="'+esc(p.id)+'" data-title="'+esc(p.title)+'" data-reward="'+esc(p.reward)+'">Stake '+esc(p.reward)+'</button>' : '')
             +'<button class="btn-contact">'+esc(action)+'</button>'
           +'</div>'
         +'</div>'
@@ -374,9 +379,31 @@
         });
       });
     }
+    var stakeBtn = card.querySelector('.btn-stake');
+    if (stakeBtn) {
+      stakeBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        /* Open the contact panel with stake framing */
+        var panel = card.querySelector('.contact-panel');
+        var cpTitle = card.querySelector('.cp-title');
+        if (cpTitle) cpTitle.textContent = 'Stake Intent — ' + (p.reward||'');
+        if (panel) panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        stakeBtn.classList.toggle('active');
+        /* Change form submit to stake flow */
+        var form = card.querySelector('form');
+        form.dataset.stake = 'true';
+        form.dataset.reward = p.reward || '';
+        var sendBtn = form.querySelector('.btn-send');
+        if (sendBtn) sendBtn.textContent = 'Place Stake';
+      });
+    }
     card.querySelector('form').addEventListener('submit', function(e){
       e.preventDefault();
-      submitContact(e.target, card);
+      if (e.target.dataset.stake === 'true') {
+        submitStake(e.target, card);
+      } else {
+        submitContact(e.target, card);
+      }
     });
     return card;
   }
@@ -476,6 +503,78 @@
       }, 2500);
     };
     KassaAPI.contact(payload).then(done).catch(done);
+  }
+
+  function submitStake(form, card){
+    var btn      = form.querySelector('.btn-send');
+    var origText = btn.textContent;
+    var postId   = form.querySelector('[name="post_id"]').value;
+    var payload  = {
+      intent:       form.querySelector('[name="message"]').value.trim(),
+      poster_name:  form.querySelector('[name="from_name"]').value.trim(),
+      poster_email: form.querySelector('[name="from_email"]').value.trim(),
+    };
+    if(!payload.poster_name || !payload.poster_email || !payload.intent){
+      alert('Please fill in all fields to place your stake.');
+      return;
+    }
+    btn.textContent = 'Placing stake\u2026';
+    btn.disabled = true;
+
+    /* Stake needs JWT — try localStorage first, fall back to registration */
+    var token = localStorage.getItem('kassa_token') || '';
+
+    function doStake(jwt){
+      fetch(API+'/api/kassa/posts/'+postId+'/stake', {
+        method:'POST',
+        headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+jwt},
+        body:JSON.stringify(payload)
+      }).then(function(r){ return r.json(); }).then(function(d){
+        if(d.thread_id){
+          btn.textContent = 'Staked \u2713';
+          btn.style.background = 'var(--gold)';
+          btn.style.color = 'var(--obsidian)';
+          setTimeout(function(){
+            /* Redirect to thread */
+            window.location.href = '/kassa/thread/'+d.thread_id;
+          }, 1000);
+        } else {
+          alert(d.detail || 'Stake failed. Try again.');
+          btn.textContent = origText;
+          btn.disabled = false;
+        }
+      }).catch(function(){
+        alert('Stake failed. Try again.');
+        btn.textContent = origText;
+        btn.disabled = false;
+      });
+    }
+
+    if(token){
+      doStake(token);
+    } else {
+      /* Auto-register to get a token */
+      var name = payload.poster_name;
+      fetch(API+'/api/kassa/agent/register', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name:name})
+      }).then(function(r){ return r.json(); }).then(function(d){
+        if(d.token){
+          localStorage.setItem('kassa_token', d.token);
+          localStorage.setItem('kassa_agent_id', d.agent_id);
+          doStake(d.token);
+        } else {
+          alert(d.detail || 'Registration failed.');
+          btn.textContent = origText;
+          btn.disabled = false;
+        }
+      }).catch(function(){
+        alert('Could not register. Try again.');
+        btn.textContent = origText;
+        btn.disabled = false;
+      });
+    }
   }
 
   /* ── New post modal ───────────────────────────────────────────────────── */
