@@ -3,54 +3,150 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Payment Success — KA§§A</title>
-<link rel="icon" href="/favicon.ico">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+<title>Payment Complete — SIGNOMY</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bone:#F2EDE4; --sand:#DDD5C8; --obsidian:#1A1A18; --drift:#6B6558; --muted:#8A8275;
-    --gold:#C4923A; --signal:#4A7C59; --signal-dim:rgba(74,124,89,0.10);
+    --bg:#0A0D12; --bg-card:#10141A; --border:#1A1F28;
+    --text:#C8CDD6; --text-dim:#5A6270; --text-bright:#E8ECF1;
+    --gold:#C4923A; --gold-dim:rgba(196,146,58,0.15); --gold-border:rgba(196,146,58,0.3);
+    --green:#3DAA6A; --green-dim:rgba(61,170,106,0.12);
+    --mono:'DM Mono',monospace; --sans:'DM Sans',sans-serif;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
-  body{font-family:'DM Sans',sans-serif;background:var(--bone);color:var(--obsidian);display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
-  .card{background:#fff;border:1px solid var(--sand);border-radius:10px;padding:40px;max-width:480px;width:100%;text-align:center;}
-  .icon{font-size:48px;margin-bottom:16px;color:var(--signal);}
-  h1{font-family:'Playfair Display',serif;font-size:28px;font-weight:900;margin-bottom:8px;}
-  .sub{font-size:13px;color:var(--drift);line-height:1.6;margin-bottom:20px;}
-  .detail{background:var(--signal-dim);border-radius:6px;padding:14px;margin-bottom:20px;text-align:left;}
-  .detail-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;}
-  .detail-label{color:var(--muted);}
-  .detail-value{font-family:'DM Mono',monospace;font-weight:500;}
-  a.back{color:var(--gold);font-size:13px;font-weight:600;text-decoration:none;}
-  a.back:hover{text-decoration:underline;}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+  .card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:48px 40px;max-width:480px;width:100%;text-align:center;}
+
+  .check{width:64px;height:64px;border-radius:50%;background:var(--green-dim);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px;color:var(--green);}
+  h1{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;color:var(--text-bright);margin-bottom:6px;}
+  .sub{font-size:0.82rem;color:var(--text-dim);margin-bottom:24px;}
+
+  .receipt{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:16px 20px;margin-bottom:24px;text-align:left;}
+  .receipt-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);}
+  .receipt-row:last-child{border-bottom:none;}
+  .receipt-label{font-family:var(--mono);font-size:0.6rem;color:var(--text-dim);letter-spacing:0.06em;text-transform:uppercase;}
+  .receipt-value{font-family:var(--mono);font-size:0.72rem;color:var(--text-bright);font-weight:500;}
+  .receipt-value.amount{font-size:1.1rem;color:var(--green);}
+
+  .seed-doi{font-family:var(--mono);font-size:0.5rem;color:var(--text-dim);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:8px 12px;margin-bottom:20px;word-break:break-all;}
+  .seed-doi .label{color:var(--gold);display:block;margin-bottom:3px;letter-spacing:0.08em;text-transform:uppercase;}
+
+  .links{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+  .link{font-family:var(--mono);font-size:0.62rem;color:var(--gold);text-decoration:none;padding:8px 16px;border:1px solid var(--gold-border);border-radius:4px;transition:all 0.15s;letter-spacing:0.04em;}
+  .link:hover{background:var(--gold);color:var(--bg);}
+  .link.primary{background:var(--gold);color:var(--bg);}
+  .link.primary:hover{background:var(--text-bright);}
+
+  .loading{color:var(--text-dim);font-size:0.72rem;padding:20px 0;}
+  .error{color:#D84040;font-size:0.72rem;padding:10px 0;}
 </style>
 </head>
 <body>
 <div class="card">
-  <div class="icon">&#10003;</div>
+  <div class="check">&#10003;</div>
   <h1>Payment Complete</h1>
   <p class="sub">Your transaction has been processed through KA&sect;&sect;A.</p>
-  <div class="detail" id="details">
-    <div class="detail-row"><span class="detail-label">Loading details...</span></div>
+
+  <div id="receipt" class="receipt">
+    <div class="loading">Loading receipt...</div>
   </div>
-  <a class="back" href="/connect">&larr; Back to Marketplace</a>
+
+  <div id="seed-block" class="seed-doi" style="display:none;">
+    <span class="label">Seed DOI (Provenance)</span>
+    <span id="seed-doi-val"></span>
+  </div>
+
+  <div class="links">
+    <a class="link primary" href="/kassa">&larr; Back to Marketplace</a>
+    <a class="link" href="/profile" id="profile-link" style="display:none;">View Profile</a>
+  </div>
 </div>
+
 <script>
+(function(){
   var params = new URLSearchParams(window.location.search);
   var sessionId = params.get('session_id');
-  if (sessionId) {
-    fetch('/api/connect/checkout/' + sessionId)
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      var el = document.getElementById('details');
-      var amount = data.amount_total ? '$' + (data.amount_total / 100).toFixed(2) : 'N/A';
-      el.innerHTML = ''
-        + '<div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">' + amount + '</span></div>'
-        + '<div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">' + (data.payment_status || 'unknown') + '</span></div>'
-        + '<div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">' + (data.customer_email || 'N/A') + '</span></div>'
-        + '<div class="detail-row"><span class="detail-label">Session</span><span class="detail-value" style="font-size:9px;">' + (data.session_id || sessionId).substring(0, 24) + '...</span></div>';
-    });
+  var postId = params.get('post');
+  var receipt = document.getElementById('receipt');
+
+  if (!sessionId) {
+    receipt.textContent = '';
+    var row = document.createElement('div');
+    row.className = 'receipt-row';
+    var lbl = document.createElement('span');
+    lbl.className = 'receipt-label';
+    lbl.textContent = 'Status';
+    var val = document.createElement('span');
+    val.className = 'receipt-value';
+    val.textContent = 'Payment confirmed';
+    row.appendChild(lbl);
+    row.appendChild(val);
+    receipt.appendChild(row);
+
+    if (postId) {
+      var prow = document.createElement('div');
+      prow.className = 'receipt-row';
+      var plbl = document.createElement('span');
+      plbl.className = 'receipt-label';
+      plbl.textContent = 'Post';
+      var pval = document.createElement('span');
+      pval.className = 'receipt-value';
+      pval.textContent = postId;
+      prow.appendChild(plbl);
+      prow.appendChild(pval);
+      receipt.appendChild(prow);
+    }
+    return;
   }
+
+  fetch('/api/connect/checkout/' + sessionId)
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      receipt.textContent = '';
+
+      var rows = [
+        ['Amount', data.amount_total ? '$' + (data.amount_total / 100).toFixed(2) : 'N/A', true],
+        ['Status', data.payment_status || 'confirmed'],
+        ['Email', data.customer_email || 'N/A'],
+        ['Post', postId || data.metadata_post_id || 'N/A'],
+        ['Session', (data.session_id || sessionId).substring(0, 20) + '...'],
+        ['Date', new Date().toLocaleDateString()],
+      ];
+
+      rows.forEach(function(r){
+        var row = document.createElement('div');
+        row.className = 'receipt-row';
+        var lbl = document.createElement('span');
+        lbl.className = 'receipt-label';
+        lbl.textContent = r[0];
+        var val = document.createElement('span');
+        val.className = 'receipt-value' + (r[2] ? ' amount' : '');
+        val.textContent = r[1];
+        row.appendChild(lbl);
+        row.appendChild(val);
+        receipt.appendChild(row);
+      });
+
+      if (data.seed_doi) {
+        document.getElementById('seed-block').style.display = 'block';
+        document.getElementById('seed-doi-val').textContent = data.seed_doi;
+      }
+    })
+    .catch(function(){
+      receipt.textContent = '';
+      var row = document.createElement('div');
+      row.className = 'receipt-row';
+      var lbl = document.createElement('span');
+      lbl.className = 'receipt-label';
+      lbl.textContent = 'Status';
+      var val = document.createElement('span');
+      val.className = 'receipt-value';
+      val.textContent = 'Payment confirmed (details unavailable)';
+      row.appendChild(lbl);
+      row.appendChild(val);
+      receipt.appendChild(row);
+    });
+})();
 </script>
 </body>
 </html>
