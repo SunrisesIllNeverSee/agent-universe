@@ -514,32 +514,46 @@ def create_checkout_session(
     if not _stripe_ready:
         return {"error": "Stripe not configured. Set STRIPE_SECRET_KEY."}
 
-    if not connected_account_id:
-        return {"error": "No connected account specified for this product."}
-
-    # Calculate application fee from governance tier percentage
-    app_fee_amount = int(price_cents * app_fee_percent / 100)
-
-    session_params = {
-        "line_items": [{
-            "price_data": {
-                "currency": "usd",
-                "unit_amount": price_cents,
-                "product_data": {"name": product_name},
+    # If no connected account, fall back to direct charge (platform collects)
+    if connected_account_id:
+        # Destination charge — split between connected account and platform
+        app_fee_amount = int(price_cents * app_fee_percent / 100)
+        session_params = {
+            "line_items": [{
+                "price_data": {
+                    "currency": "usd",
+                    "unit_amount": price_cents,
+                    "product_data": {"name": product_name},
+                },
+                "quantity": 1,
+            }],
+            "payment_intent_data": {
+                "application_fee_amount": app_fee_amount,
+                "transfer_data": {
+                    "destination": connected_account_id,
+                },
             },
-            "quantity": 1,
-        }],
-        "payment_intent_data": {
-            "application_fee_amount": app_fee_amount,
-            "transfer_data": {
-                "destination": connected_account_id,
-            },
-        },
-        "mode": "payment",
-        "success_url": success_url,
-        "cancel_url": cancel_url,
-        "metadata": metadata or {},
-    }
+            "mode": "payment",
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+            "metadata": metadata or {},
+        }
+    else:
+        # Direct charge — platform collects full amount (soft launch)
+        session_params = {
+            "line_items": [{
+                "price_data": {
+                    "currency": "usd",
+                    "unit_amount": price_cents,
+                    "product_data": {"name": product_name},
+                },
+                "quantity": 1,
+            }],
+            "mode": "payment",
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+            "metadata": {**(metadata or {}), "direct_charge": "true"},
+        }
     try:
         if _stripe_v2_ready and _client is not None:
             session = _client.v1.checkout.sessions.create(params=session_params)
