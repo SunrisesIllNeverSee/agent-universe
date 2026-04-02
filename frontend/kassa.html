@@ -458,7 +458,9 @@
     if(!loaded[id]){ loaded[id]=true; loadTab(id); }
   }
   btns.forEach(function(b){ b.addEventListener('click',function(){ switchTab(b.dataset.tab); }); });
-  switchTab(location.hash.slice(1)||'iso');
+  /* Honor ?tab= query param (from advisory/governance links) or fall back to hash */
+  var urlTab = new URLSearchParams(location.search).get('tab');
+  switchTab(urlTab || location.hash.slice(1) || 'iso');
 
   /* ── Card interactions ────────────────────────────────────────────────── */
   function toggleContact(btn, card){

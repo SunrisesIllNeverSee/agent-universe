@@ -71,7 +71,7 @@
         { "label": "Vault",      "href": "/vault"      },
         { "label": "Academia",   "href": "/academia"   }
       ],
-      "paths": ["/senate", "/governance", "/economics", "/treasury", "/vault", "/vault/gov-001", "/vault/gov-002", "/vault/gov-003", "/vault/gov-004", "/vault/gov-005", "/vault/gov-006", "/academia", "/iso-collaborators", "/products", "/bountyboard", "/hiring", "/services", "/connect"],
+      "paths": ["/senate", "/governance", "/economics", "/treasury", "/vault", "/vault/gov-001", "/vault/gov-002", "/vault/gov-003", "/vault/gov-004", "/vault/gov-005", "/vault/gov-006", "/academia", "/advisory", "/iso-collaborators", "/products", "/bountyboard", "/hiring", "/services", "/connect"],
       "pages": [
         { "slot": "2.1", "name": "Senate Overview", "route": "/senate", "file": "senate", "status": "live" },
         { "slot": "2.2", "name": "Governance", "route": "/governance", "file": "governance", "status": "live", "note": "14-seat Genesis Council + meeting engine" },
