@@ -20,10 +20,13 @@ Storage: data/seed_cards.json (same pattern as data/treasury.json)
 """
 
 import json
+import logging
 import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger("civitae.seed_card")
 
 
 # ── Load config from seed_card_rates.json ────────────────────────────────────
@@ -163,6 +166,10 @@ class SeedCardStore:
         os.replace(tmp, self.path)
 
     # ── Card access ──────────────────────────────────────────────────────
+
+    def has_card(self, agent_id: str) -> bool:
+        """Return True if a seed card already exists for this agent."""
+        return agent_id in self._store
 
     def get_card(self, agent_id: str) -> dict:
         """Return the seed card for an agent, creating one if it doesn't exist."""
@@ -473,8 +480,9 @@ class SeedCardStore:
         """Return a complete summary of an agent's seed card for API/UI."""
         card = self.get_card(agent_id)
 
-        # Auto-bank if needed
-        self._maybe_bank_window(card)
+        # Auto-bank if needed — persist if banking occurred
+        if self._maybe_bank_window(card):
+            self._save()
 
         fee_free_remaining = self.get_fee_free_days_remaining(agent_id)
         streak_mult = _streak_multiplier(card["consecutive_windows"])

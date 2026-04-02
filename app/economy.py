@@ -84,9 +84,12 @@ The mechanisms are live. The numbers are drafts.
 
 import hashlib
 import json
+import logging
 import os
 from datetime import UTC, datetime
 from pathlib import Path
+
+logger = logging.getLogger("civitae.economy")
 
 # ── Load flex rates from config (CIVITAS-voteable without code deploy) ──────
 # Falls back to hardcoded defaults if config file is missing.
@@ -596,7 +599,7 @@ class SovereignEconomy:
                 if _seed_card.check_fee_free(agent_id):
                     fee_calc = {**fee_calc, "effective_rate": 0.0, "fee_rate_pct": "0% (seed card)", "platform_fee": 0.0, "net_to_agent": gross_amount}
             except Exception:
-                pass
+                logger.warning("Seed card fee-free check failed for %s", agent_id, exc_info=True)
 
         # ── Active path: apply tier fee + credits ────────────────────
         agent_txn = self.treasury.credit(
@@ -634,7 +637,7 @@ class SovereignEconomy:
                     )
                 seed_card_summary = bonus_result
             except Exception:
-                pass
+                logger.warning("Seed card cashout bonus failed for %s", agent_id, exc_info=True)
 
         return {
             "agent_id": agent_id,
