@@ -170,16 +170,19 @@ async def initiate_payment(post_id: str, request: Request) -> dict:
     success_url = params.get("success_url", "")
     cancel_url = params.get("cancel_url", "")
 
-    result = kassa_payments.create_payment(
-        post_id=post_id,
-        amount_usd=amount,
-        description=f"KA§§A: {post.get('title', post_id)}",
-        rail=rail,
-        agent_request=is_agent,
-        success_url=success_url,
-        cancel_url=cancel_url,
-        metadata={"tab": post.get("tab", ""), "post_id": post_id},
-    )
+    try:
+        result = kassa_payments.create_payment(
+            post_id=post_id,
+            amount_usd=amount,
+            description=f"KA§§A: {post.get('title', post_id)}",
+            rail=rail,
+            agent_request=is_agent,
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={"tab": post.get("tab", ""), "post_id": post_id},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Payment error: {e}")
 
     if result.get("status") == 402:
         # MPP challenge — return as HTTP 402
