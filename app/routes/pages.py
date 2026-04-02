@@ -144,9 +144,9 @@ async def dashboard_page() -> FileResponse:
 # async def admin_page() -> FileResponse:
 #     return FileResponse(state.frontend_dir / "admin.html")
 
-# @router.get("/sitemap")
-# async def sitemap_page() -> FileResponse:
-#     return FileResponse(state.frontend_dir / "sitemap.html")
+@router.get("/sitemap")
+async def sitemap_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "sitemap.html")
 
 
 # ── Page-related API endpoints ───────────────────────────────────────────────
