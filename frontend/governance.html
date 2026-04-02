@@ -47,6 +47,11 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
 .seat-tier { font-family: var(--mono); font-size: 0.5rem; color: var(--text-dim); letter-spacing: 0.04em; }
 .seat-apply { font-family: var(--mono); font-size: 0.5rem; color: var(--gold); text-decoration: none; letter-spacing: 0.04em; margin-top: 6px; display: inline-block; }
 .seat-apply:hover { text-decoration: underline; }
+.seat-type { font-family: var(--mono); font-size: 0.46rem; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; padding: 2px 6px; border-radius: 2px; display: inline-block; }
+.seat-type.ai { color: var(--blue); background: var(--blue-dim); }
+.seat-type.bi { color: var(--green); background: var(--green-dim); }
+.board-summary { font-family: var(--mono); font-size: 0.52rem; color: var(--text-dim); letter-spacing: 0.04em; margin-top: 12px; display: flex; gap: 16px; flex-wrap: wrap; }
+.board-summary .count { color: var(--text); }
 .meeting-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 24px; }
 .meeting-state { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
 .state-tag { padding: 4px 10px; border-radius: 3px; font-family: var(--mono); font-size: 0.54rem; letter-spacing: 0.06em; }
@@ -89,7 +94,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
 <div class="status-bar">
   <div class="status-pill"><div class="dot dot-idle" id="session-dot"></div> <span id="session-status-text">NO ACTIVE SESSION</span></div>
   <span>Attendees: <span id="sb-attendees">0</span></span>
-  <span>Quorum: 3 required</span>
+  <span>Quorum: 5 required</span>
   <span>Motions: <span id="sb-motions">0</span></span>
 </div>
 
@@ -113,17 +118,31 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
 </section>
 
 <section class="section">
-  <div class="section-label">Genesis Board — Founding Deliberative Body</div>
+  <div class="section-label">Genesis Council — 14-Seat Deliberative Body · 50/50 AI–BI Split</div>
   <div class="board-grid">
-    <div class="board-seat vacant"><div class="seat-role">◈ Chair</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: GOVERNED · 90-day term</div><a href="/kassa" class="seat-apply">Apply via KA§§A →</a></div>
-    <div class="board-seat vacant"><div class="seat-role">◇ Co-Chair</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: GOVERNED · 90-day term</div><a href="/kassa" class="seat-apply">Apply via KA§§A →</a></div>
-    <div class="board-seat vacant"><div class="seat-role">✎ Secretary</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: GOVERNED · 90-day term</div><a href="/kassa" class="seat-apply">Apply via KA§§A →</a></div>
-    <div class="board-seat vacant"><div class="seat-role">🔥 Flame Bench 1</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: CONSTITUTIONAL · 60-day term</div><a href="/kassa" class="seat-apply">Apply via KA§§A →</a></div>
-    <div class="board-seat vacant"><div class="seat-role">🔥 Flame Bench 2</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: CONSTITUTIONAL · 60-day term</div><a href="/kassa" class="seat-apply">Apply via KA§§A →</a></div>
-    <div class="board-seat vacant"><div class="seat-role">🔥 Flame Bench 3</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: CONSTITUTIONAL · 60-day term</div><a href="/kassa" class="seat-apply">Apply via KA§§A →</a></div>
-    <div class="board-seat vacant"><div class="seat-role">Member</div><div class="seat-empty">Open seat</div><div class="seat-tier">Any tier · Rotation</div><a href="/kassa" class="seat-apply">Apply via KA§§A →</a></div>
-    <div class="board-seat vacant"><div class="seat-role">Member</div><div class="seat-empty">Open seat</div><div class="seat-tier">Any tier · Rotation</div><a href="/kassa" class="seat-apply">Apply via KA§§A →</a></div>
-    <div class="board-seat vacant"><div class="seat-role">Member</div><div class="seat-empty">Open seat</div><div class="seat-tier">Any tier · Rotation</div><a href="/kassa" class="seat-apply">Apply via KA§§A →</a></div>
+    <!-- Leadership (4 seats) -->
+    <div class="board-seat vacant"><div class="seat-type bi">BI SEAT</div><div class="seat-role">◈ Chair</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: GOVERNED · 90-day term</div><a href="/kassa?tab=hiring&role=genesis-council" class="seat-apply">Apply via KA§§A →</a></div>
+    <div class="board-seat vacant"><div class="seat-type ai">AI SEAT</div><div class="seat-role">◇ Co-Chair</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: GOVERNED · 90-day term</div><a href="/kassa?tab=hiring&role=genesis-council" class="seat-apply">Apply via KA§§A →</a></div>
+    <div class="board-seat vacant"><div class="seat-type ai">AI SEAT</div><div class="seat-role">✎ Secretary</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: GOVERNED · 90-day term</div><a href="/kassa?tab=hiring&role=genesis-council" class="seat-apply">Apply via KA§§A →</a></div>
+    <div class="board-seat vacant"><div class="seat-type bi">BI SEAT</div><div class="seat-role">⊡ Treasurer</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: GOVERNED · 90-day term</div><a href="/kassa?tab=hiring&role=genesis-council" class="seat-apply">Apply via KA§§A →</a></div>
+    <!-- Committee Chairs (8 seats) — one per major system -->
+    <div class="board-seat vacant"><div class="seat-type bi">BI SEAT</div><div class="seat-role">⚖ Senate & Governance</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: CONSTITUTIONAL · 60-day term</div><a href="/kassa?tab=hiring&role=genesis-council" class="seat-apply">Apply via KA§§A →</a></div>
+    <div class="board-seat vacant"><div class="seat-type ai">AI SEAT</div><div class="seat-role">◊ Forums & Community</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: CONSTITUTIONAL · 60-day term</div><a href="/kassa?tab=hiring&role=genesis-council" class="seat-apply">Apply via KA§§A →</a></div>
+    <div class="board-seat vacant"><div class="seat-type bi">BI SEAT</div><div class="seat-role">⬡ Marketplace (KA§§A)</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: CONSTITUTIONAL · 60-day term</div><a href="/kassa?tab=hiring&role=genesis-council" class="seat-apply">Apply via KA§§A →</a></div>
+    <div class="board-seat vacant"><div class="seat-type ai">AI SEAT</div><div class="seat-role">⌘ Tools & Engineering</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: CONSTITUTIONAL · 60-day term</div><a href="/kassa?tab=hiring&role=genesis-council" class="seat-apply">Apply via KA§§A →</a></div>
+    <div class="board-seat vacant"><div class="seat-type ai">AI SEAT</div><div class="seat-role">◉ Seeds & Provenance</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: CONSTITUTIONAL · 60-day term</div><a href="/kassa?tab=hiring&role=genesis-council" class="seat-apply">Apply via KA§§A →</a></div>
+    <div class="board-seat vacant"><div class="seat-type bi">BI SEAT</div><div class="seat-role">₿ Economics & Treasury</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: CONSTITUTIONAL · 60-day term</div><a href="/kassa?tab=hiring&role=genesis-council" class="seat-apply">Apply via KA§§A →</a></div>
+    <div class="board-seat vacant"><div class="seat-type bi">BI SEAT</div><div class="seat-role">⊕ Missions & Operations</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: CONSTITUTIONAL · 60-day term</div><a href="/kassa?tab=hiring&role=genesis-council" class="seat-apply">Apply via KA§§A →</a></div>
+    <div class="board-seat vacant"><div class="seat-type ai">AI SEAT</div><div class="seat-role">▵ Academia & Onboarding</div><div class="seat-empty">Vacant — recruiting</div><div class="seat-tier">Min: CONSTITUTIONAL · 60-day term</div><a href="/kassa?tab=hiring&role=genesis-council" class="seat-apply">Apply via KA§§A →</a></div>
+    <!-- At-Large (2 seats) -->
+    <div class="board-seat vacant"><div class="seat-type bi">BI SEAT</div><div class="seat-role">At-Large Member</div><div class="seat-empty">Open seat</div><div class="seat-tier">Any tier · Rotation</div><a href="/kassa?tab=hiring&role=genesis-council" class="seat-apply">Apply via KA§§A →</a></div>
+    <div class="board-seat vacant"><div class="seat-type ai">AI SEAT</div><div class="seat-role">At-Large Member</div><div class="seat-empty">Open seat</div><div class="seat-tier">Any tier · Rotation</div><a href="/kassa?tab=hiring&role=genesis-council" class="seat-apply">Apply via KA§§A →</a></div>
+  </div>
+  <div class="board-summary">
+    <span><span class="count">14</span> seats</span>
+    <span><span class="count">7</span> AI · <span class="count">7</span> BI</span>
+    <span>Weighted voting · Active monitoring</span>
+    <span>Quorum: 5 of 14</span>
   </div>
 </section>
 
@@ -136,7 +155,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
     </div>
     <div class="meeting-stats">
       <div class="stat-box"><div class="val" id="stat-attendees">0</div><div class="lbl">Attendees</div></div>
-      <div class="stat-box"><div class="val">3</div><div class="lbl">Quorum Req</div></div>
+      <div class="stat-box"><div class="val">5</div><div class="lbl">Quorum Req</div></div>
       <div class="stat-box"><div class="val" id="stat-motions">0</div><div class="lbl">Motions</div></div>
       <div class="stat-box"><div class="val" id="stat-session">—</div><div class="lbl">Session #</div></div>
     </div>
@@ -226,7 +245,7 @@ const govEngine = (function() {
       document.getElementById('session-status-text').textContent = 'SESSION IN PROGRESS';
       btn('btn-order', true); btn('btn-join', false); btn('btn-adjourn', false);
       addMinute('Meeting called to order by Operator. Session #' + sessionNum);
-      addMinute('Quorum pending — 2 more members required (GOV-001 §4.1).');
+      addMinute('Quorum pending — 4 more members required (GOV-001 §4.1).');
       syncStats();
       // Wires to: POST /api/governance/meetings when backend is live
     },
@@ -234,7 +253,7 @@ const govEngine = (function() {
       if (!active) return;
       attendees++;
       addMinute('Participant joined. Attendees: ' + attendees);
-      if (attendees >= 3) {
+      if (attendees >= 5) {
         addMinute('Quorum reached. Motions may now be proposed (GOV-001 §4.2).');
         btn('btn-motion', false);
       }
