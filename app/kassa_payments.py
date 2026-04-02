@@ -868,13 +868,14 @@ def create_payment(
     if rail == "stripe":
         if not stripe_ready():
             return {"error": "Stripe not configured", "rail": "stripe_connect"}
+        _base = os.environ.get("CIVITAE_BASE_URL", "https://signomy.xyz")
         price_cents = int(amount_usd * 100)
         return create_checkout_session(
             product_name=description,
             price_cents=price_cents,
             connected_account_id=connected_account_id,
-            success_url=success_url or f"/?payment=success&post={post_id}",
-            cancel_url=cancel_url or f"/?payment=cancelled&post={post_id}",
+            success_url=success_url or f"{_base}/connect/success?post={post_id}",
+            cancel_url=cancel_url or f"{_base}/kassa?payment=cancelled&post={post_id}",
             app_fee_percent=app_fee_percent,
             metadata={"post_id": post_id, **(metadata or {})},
         )
