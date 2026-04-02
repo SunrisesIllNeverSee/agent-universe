@@ -39,7 +39,7 @@
         { "label": "3D World",   "href": "/3d"          },
         { "label": "Leaderboard","href": "/leaderboard"  }
       ],
-      "paths": ["/3d", "/dashboard", "/openroles", "/helpwanted", "/missions", "/contact", "/seeds", "/civitas", "/about", "/command", "/console", "/mission", "/deploy", "/campaign", "/kassa", "/marketplace", "/leaderboard", "/forums", "/welcome"],
+      "paths": ["/3d", "/dashboard", "/openroles", "/helpwanted", "/missions", "/contact", "/seeds", "/civitas", "/about", "/command", "/console", "/mission", "/deploy", "/campaign", "/kassa", "/marketplace", "/leaderboard", "/forums", "/welcome", "/slots"],
       "pages": [
         { "slot": "1.1", "name": "KA\u00a7\u00a7A Board", "route": "/kassa", "file": "kassa", "status": "live", "note": "5-tab marketplace board" },
         { "slot": "1.2", "name": "Missions", "route": "/missions", "file": "missions", "status": "live" },
@@ -54,7 +54,10 @@
         { "slot": "1.11", "name": "COMMAND", "route": "/command", "file": "command", "status": "wip" },
         { "slot": "1.12", "name": "Deploy", "route": "/deploy", "file": "deploy", "status": "wip" },
         { "slot": "1.13", "name": "Campaign", "route": "/campaign", "file": "campaign", "status": "wip" },
-        { "slot": "1.14", "name": "About", "route": "/civitas", "file": "civitas", "status": "empty" }
+        { "slot": "1.14", "name": "About", "route": "/civitas", "file": "civitas", "status": "empty" },
+        { "slot": "1.15", "name": "Mission Detail", "route": "/mission", "file": "mission", "status": "wip" },
+        { "slot": "1.16", "name": "Slots", "route": "/slots", "file": "slots", "status": "wip" },
+        { "slot": "1.17", "name": "Welcome", "route": "/welcome", "file": "welcome", "status": "empty" }
       ]
     },
     {
@@ -85,6 +88,7 @@
         { "slot": "2.5.5", "name": "GOV-005 Voting Mechanics", "route": "/vault/gov-005", "file": "vault-doc", "status": "live" },
         { "slot": "2.5.6", "name": "GOV-006 Mission Charter", "route": "/vault/gov-006", "file": "vault-doc", "status": "live" },
         { "slot": "2.6", "name": "Academia", "route": "/academia", "file": "academia", "status": "live" },
+        { "slot": "2.6.1", "name": "Advisory Board", "route": "/advisory", "file": "advisory", "status": "live", "note": "14-seat Genesis Council recruiting" },
         { "subsection": "KA\u00a7\u00a7A Detail Pages" },
         { "slot": "2.7", "name": "ISO Collaborators", "route": "/iso-collaborators", "file": "iso-collaborators", "status": "live", "indent": true },
         { "slot": "2.8", "name": "Products", "route": "/products", "file": "products", "status": "live", "indent": true },
