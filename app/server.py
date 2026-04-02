@@ -179,6 +179,8 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/connect/",
         "/api/forums/threads",
         "/api/contact",
+        "/api/advisory/apply",
+        "/api/advisory/messages/",
     )
 
     # Operator GET paths also require admin key (fail-closed)
@@ -246,6 +248,9 @@ def create_app(root: Path | None = None) -> FastAPI:
     app.include_router(operator_router)
     app.include_router(forums_router)
     app.include_router(agents_router)
+
+    from app.routes.advisory import router as advisory_router
+    app.include_router(advisory_router)
 
     # ── Seeds / Provenance ───────────────────────────────────────────
     app.include_router(seed_router, prefix="/api/seeds", tags=["seeds"])

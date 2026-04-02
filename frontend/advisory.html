@@ -413,25 +413,18 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
 
     result.className = 'apply-result';
     result.textContent = 'Submitting...';
+    localStorage.setItem('advisory_name', name);
 
-    var payload = {
-      name: name,
-      email: email,
-      subject: 'Advisory Board Application: ' + seatId,
-      message: '[Seat: ' + seatId + '] [Type: ' + type + ']\n\n' + msg
-    };
-
-    fetch(API + '/api/contact', {
+    fetch(API + '/api/advisory/apply', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload)
+      body: JSON.stringify({seat_id: seatId, name: name, email: email, type: type, message: msg})
     }).then(function(r){ return r.json(); }).then(function(d){
-      if (d.ok || d.id) {
+      if (d.ok) {
         result.className = 'apply-result ok';
-        result.textContent = 'Application received. We\u2019ll be in touch at ' + email + '.';
+        result.textContent = 'Application received. Seed DOI: ' + (d.seed_doi || 'pending') + '. We\u2019ll be in touch.';
         seatState[seatId].status = 'pending';
-        /* Save to localStorage */
-        saveState();
+        seatState[seatId].applicant = {name: name, type: type};
         render();
       } else {
         result.className = 'apply-result err';
@@ -450,41 +443,54 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
     if (!text) return;
 
     var name = localStorage.getItem('advisory_name') || 'Anonymous';
-    var msg = {from: name, text: text, time: new Date().toLocaleTimeString()};
-    seatState[seatId].messages.push(msg);
     input.value = '';
-    saveState();
 
-    var container = document.getElementById('thread-msgs-' + seatId);
-    /* Clear "no messages" placeholder */
-    var empty = container.querySelector('.thread-empty');
-    if (empty) empty.remove();
-    container.appendChild(makeMsgEl(msg));
-  }
-
-  /* ── Persistence ───────────────────────────────────────────────────────── */
-  function saveState(){
-    try { localStorage.setItem('advisory_state', JSON.stringify(seatState)); } catch(e){}
-  }
-  function loadState(){
-    try {
-      var saved = localStorage.getItem('advisory_state');
-      if (saved) {
-        var parsed = JSON.parse(saved);
-        SEATS.forEach(function(s){
-          if (parsed[s.id]) {
-            seatState[s.id] = parsed[s.id];
-          }
-        });
+    fetch(API + '/api/advisory/messages/' + seatId, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name: name, text: text})
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if (d.ok) {
+        /* Reload messages for this seat */
+        loadSeatMessages(seatId);
       }
-    } catch(e){}
+    }).catch(function(){});
+  }
 
-    /* Also remember applicant name */
-    var nameField = document.querySelector('[id^="apply-name-"]');
-    if (nameField) {
-      var savedName = localStorage.getItem('advisory_name');
-      if (savedName) nameField.value = savedName;
-    }
+  function loadSeatMessages(seatId){
+    fetch(API + '/api/advisory/messages/' + seatId).then(function(r){ return r.json(); }).then(function(d){
+      var msgs = d.messages || [];
+      seatState[seatId].messages = msgs;
+      var container = document.getElementById('thread-msgs-' + seatId);
+      if (!container) return;
+      container.textContent = '';
+      if (msgs.length === 0) {
+        var empty = document.createElement('div');
+        empty.className = 'thread-empty';
+        empty.textContent = 'No messages yet. Start the conversation.';
+        container.appendChild(empty);
+      } else {
+        msgs.forEach(function(m){ container.appendChild(makeMsgEl(m)); });
+      }
+    }).catch(function(){});
+  }
+
+  /* ── Load state from API ───────────────────────────────────────────────── */
+  function loadState(){
+    fetch(API + '/api/advisory/seats').then(function(r){ return r.json(); }).then(function(d){
+      var seats = d.seats || {};
+      SEATS.forEach(function(s){
+        if (seats[s.id]) {
+          seatState[s.id].status = seats[s.id].status || 'vacant';
+          if (seats[s.id].occupant) seatState[s.id].occupant = seats[s.id].occupant;
+          if (seats[s.id].applicant) seatState[s.id].applicant = seats[s.id].applicant;
+        }
+      });
+      render();
+    }).catch(function(){
+      /* API unreachable — render with defaults */
+      render();
+    });
   }
 
   /* Track name for messages */
@@ -496,7 +502,6 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
 
   /* ── Init ──────────────────────────────────────────────────────────────── */
   loadState();
-  render();
 })();
 </script>
 </body>
