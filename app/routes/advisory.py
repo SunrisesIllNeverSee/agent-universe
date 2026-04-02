@@ -116,14 +116,13 @@ async def apply_for_seat(payload: dict) -> dict:
     except Exception:
         pass
 
-    # Email operator
+    # Email operator (fire-and-forget)
     try:
         from app.notifications import send_operator_alert
-        import asyncio
-        asyncio.get_event_loop().run_in_executor(None, lambda: send_operator_alert(
+        send_operator_alert(
             subject=f"Advisory Board Application: {seat_id} — {name}",
             body=f"Seat: {seat_id}\nName: {name}\nEmail: {email}\nType: {agent_type}\n\n{message}",
-        ))
+        )
     except Exception:
         pass
 
