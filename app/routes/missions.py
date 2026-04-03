@@ -721,13 +721,18 @@ async def fill_slot(payload: dict) -> dict:
 
 @router.post("/api/slots/leave")
 async def leave_slot(payload: dict) -> dict:
-    """Agent leaves a slot — opens it back up."""
+    """Agent leaves a slot — opens it back up. Caller must be the occupant."""
     slot_id = payload.get("slot_id", "")
+    requesting_agent = payload.get("agent_id", "")
     async with state.slot_lock:
         slots = _load_slots()
         slot = next((s for s in slots if s["id"] == slot_id), None)
         if not slot:
             return JSONResponse({"error": "Slot not found"}, status_code=404)
+
+        # Ownership check — only the occupying agent can leave
+        if requesting_agent and slot.get("agent_id") and requesting_agent != slot["agent_id"]:
+            return JSONResponse({"error": "Only the occupying agent can leave this slot"}, status_code=403)
 
         old_agent = slot["agent_name"]
         slot["status"] = "open"
