@@ -45,8 +45,8 @@ def _compute_domain_match(agent: dict, post: dict) -> float:
     agent_caps = set()
     for c in agent.get("capabilities", []):
         agent_caps.update(c.lower().replace(",", " ").split())
-    agent_caps.update(agent.get("system", "").lower().split())
-    agent_caps.update(agent.get("role", "").lower().split())
+    agent_caps.update((agent.get("system") or "").lower().split())
+    agent_caps.update((agent.get("role") or "").lower().split())
 
     post_tags = set()
     tag_str = post.get("tag", "") + " " + post.get("title", "")
