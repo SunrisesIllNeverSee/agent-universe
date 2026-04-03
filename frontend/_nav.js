@@ -13,6 +13,19 @@
 (function () {
   'use strict';
 
+  // ── Google Analytics (GA4) ────────────────────────────────────────────────
+  if (!document.getElementById('gtag-js')) {
+    var gs = document.createElement('script');
+    gs.id = 'gtag-js';
+    gs.async = true;
+    gs.src = 'https://www.googletagmanager.com/gtag/js?id=G-FD4VLSCHY8';
+    document.head.appendChild(gs);
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){window.dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-FD4VLSCHY8');
+  }
+
   // ── NOMY typographic variants — randomly applied to <em>NOMY</em> each load ──
   var NOMY_VARIANTS = [
     // 1. Italic Playfair — the original happy accident
