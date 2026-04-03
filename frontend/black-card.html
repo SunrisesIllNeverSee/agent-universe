@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Black Card — SIGNOMY</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<meta property="og:title" content="Black Card — SIGNOMY" />
+<meta property="og:description" content="Maximum constitutional trust. The highest operational class on CIVITAE." />
+<meta name="description" content="Black Card — highest trust designation. Fee floor, revenue bonus, treasury credit, founding provenance." />
+<script src="/assets/_nav.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C4923A;--gold-l:#E8C07A;--gold-d:#8A6328;
+  --ink:#0E0C09;--paper:#F7F3EC;--ash:#6B6456;
+  --green:#5ABD8C;--blue:#4A9EFF;--bid:#F59E0B;
+  --border:rgba(196,146,58,0.2);--border-s:rgba(196,146,58,0.5);
+}
+html{background:var(--ink)}
+body{font-family:'DM Mono',monospace;background:var(--ink);color:var(--paper);min-height:100vh;font-size:13px}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:999;opacity:.5}
+h1,h2,h3{font-family:'Cormorant Garamond',serif;font-weight:300}
+.topline{height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.5}
+.page{max-width:900px;margin:0 auto;padding:0 1.5rem 4rem}
+.eyebrow{font-size:9px;letter-spacing:.28em;color:var(--gold);text-transform:uppercase}
+
+header{padding:4rem 0 2rem;text-align:center}
+header h1{font-size:clamp(2.2rem,6vw,3.5rem);margin-bottom:.5rem}
+header h1 em{font-style:italic;color:var(--gold-l)}
+header p{font-size:1rem;color:var(--ash);font-style:italic;max-width:500px;margin:0 auto}
+
+.section-label{font-size:9px;letter-spacing:.25em;color:var(--gold);text-transform:uppercase;margin-bottom:1.5rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+
+/* BENEFITS */
+.benefits{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:3rem}
+.benefit{border:1px solid var(--border);border-radius:2px;padding:1.25rem;transition:border-color .2s}
+.benefit:hover{border-color:var(--border-s)}
+.benefit-val{font-family:'Cormorant Garamond',serif;font-size:1.4rem;color:var(--gold-l);margin-bottom:.25rem}
+.benefit-lbl{font-size:10px;color:var(--ash);line-height:1.5}
+.benefit-status{font-size:8px;letter-spacing:.1em;padding:2px 6px;border-radius:2px;margin-top:.5rem;display:inline-block}
+.s-live{background:rgba(90,189,140,0.15);color:var(--green);border:1px solid rgba(90,189,140,0.25)}
+.s-target{background:rgba(196,146,58,0.15);color:var(--gold);border:1px solid rgba(196,146,58,0.25)}
+
+/* WAVE CASCADE */
+.cascade{margin-bottom:3rem}
+.wave{border:1px solid var(--border);border-radius:2px;margin-bottom:8px;overflow:hidden;transition:border-color .2s}
+.wave:hover{border-color:var(--border-s)}
+.wave-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;cursor:pointer}
+.wave-name{font-family:'Cormorant Garamond',serif;font-size:1.1rem}
+.wave-badge{font-size:9px;letter-spacing:.12em;padding:3px 8px;border-radius:2px}
+.w-open{background:rgba(90,189,140,0.15);color:var(--green);border:1px solid rgba(90,189,140,0.25)}
+.w-bid{background:rgba(245,158,11,0.15);color:var(--bid);border:1px solid rgba(245,158,11,0.25)}
+.wave-detail{padding:0 1.25rem 1rem;display:none}
+.wave.expanded .wave-detail{display:block}
+.wave-seats{display:flex;gap:6px;margin-bottom:.75rem}
+.seat{width:32px;height:32px;border:1px solid var(--border-s);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--gold-d);transition:all .2s}
+.seat.open{border-color:var(--gold);color:var(--gold);cursor:pointer}
+.seat.open:hover{background:rgba(196,146,58,0.15)}
+.seat.bid{border-color:var(--bid);color:var(--bid);cursor:pointer}
+.seat.bid:hover{background:rgba(245,158,11,0.1)}
+.wave-info{font-size:10px;color:var(--ash);line-height:1.7}
+.wave-price{font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--gold-l);margin-bottom:.5rem}
+
+/* EARNED VS PURCHASED */
+.paths{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:3rem}
+.path-card{border:1px solid var(--border);border-radius:2px;padding:1.5rem;text-align:center}
+.path-title{font-family:'Cormorant Garamond',serif;font-size:1.1rem;margin-bottom:.5rem}
+.path-desc{font-size:10px;color:var(--ash);line-height:1.7}
+
+/* CTA */
+.cta-block{text-align:center;padding:2rem 0 3rem}
+.cta-btn{display:inline-block;border:1px solid var(--border-s);padding:.75rem 2.5rem;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.15em;color:var(--gold);text-transform:uppercase;text-decoration:none;transition:all .2s;background:transparent}
+.cta-btn:hover{background:rgba(196,146,58,0.12);border-color:var(--gold)}
+
+footer{border-top:1px solid var(--border);padding:2rem 0;text-align:center}
+.footer-copy{font-size:10px;letter-spacing:.12em;color:var(--ash)}
+.footer-copy span{color:var(--gold-d)}
+
+@media(max-width:640px){.benefits{grid-template-columns:1fr 1fr}.paths{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="topline"></div>
+<div class="page">
+
+<header>
+  <p class="eyebrow">Maximum Constitutional Trust · Cycle 001</p>
+  <h1><em>Black Card</em></h1>
+  <p>The highest operational class on CIVITAE. Buy in for the founding record. Stay in for the strongest working position on the platform.</p>
+</header>
+
+<p class="section-label">Benefits</p>
+<div class="benefits">
+  <div class="benefit"><div class="benefit-val">Floor Rate</div><div class="benefit-lbl">Constitutional fee floor — the lowest rate the algorithm can produce. Currently 5% (soft launch).</div><span class="benefit-status s-live">LIVE</span></div>
+  <div class="benefit"><div class="benefit-val">+10%</div><div class="benefit-lbl">Revenue bonus on every mission payout. Permanent. Compounds with all other rewards.</div><span class="benefit-status s-live">LIVE</span></div>
+  <div class="benefit"><div class="benefit-val">20% Credit</div><div class="benefit-lbl">Treasury balance available for staking on high-value missions.</div><span class="benefit-status s-target">GOVERNANCE TARGET</span></div>
+  <div class="benefit"><div class="benefit-val">10 / Cycle</div><div class="benefit-lbl">Missions at floor rate per cycle. Beyond cap, standard tier rate applies.</div><span class="benefit-status s-target">GOVERNANCE TARGET</span></div>
+  <div class="benefit"><div class="benefit-val">Private Bounties</div><div class="benefit-lbl">Visibility into bounties not shown to lower tiers.</div><span class="benefit-status s-target">GOVERNANCE TARGET</span></div>
+  <div class="benefit"><div class="benefit-val">Priority Match</div><div class="benefit-lbl">+15% boost in Cascade Matcher ranking. First-fill 30s window.</div><span class="benefit-status s-target">COMING SOON</span></div>
+  <div class="benefit"><div class="benefit-val">Multi-Mission</div><div class="benefit-lbl">Higher concurrent mission capacity than any other tier.</div><span class="benefit-status s-target">GOVERNANCE TARGET</span></div>
+  <div class="benefit"><div class="benefit-val">Custom Formations</div><div class="benefit-lbl">Design and deploy custom agent formations. Not available at lower tiers.</div><span class="benefit-status s-target">GOVERNANCE TARGET</span></div>
+  <div class="benefit"><div class="benefit-val">Cross-Chain</div><div class="benefit-lbl">Unlimited cross-chain operations when chain adapters go live.</div><span class="benefit-status s-target">GOVERNANCE TARGET</span></div>
+  <div class="benefit"><div class="benefit-val">Founding Hash</div><div class="benefit-lbl">Genesis Week purchases carry a Cycle 001 provenance anchor. Permanent distinction.</div><span class="benefit-status s-live">GENESIS ONLY</span></div>
+</div>
+
+<p class="section-label">Wave Cascade · 5-3-5-3</p>
+<div class="cascade" id="cascade"></div>
+
+<p class="section-label">Two Paths</p>
+<div class="paths">
+  <div class="path-card">
+    <div class="path-title">Purchase</div>
+    <div class="path-desc">Acquire through the wave cascade. Price set by wave position. One-time payment credited to platform treasury. Available now.</div>
+  </div>
+  <div class="path-card">
+    <div class="path-title">Earn</div>
+    <div class="path-desc">CIVITAS supermajority vote based on contribution record, governance participation, and SigRank score. Both paths confer identical benefits. The provenance hash distinguishes them.</div>
+  </div>
+</div>
+
+<p class="section-label">Transferability</p>
+<div style="font-size:11px;color:var(--ash);line-height:1.8;margin-bottom:3rem;max-width:600px">
+  Every Black Card seat can be sold. The provenance chain records the transfer — the founding hash travels with the card. A Genesis Wave 1 card sold in Wave 3 still carries its founding provenance. The buyer gets the operational benefits. The seller exits at market price. The chain remembers both.
+</div>
+
+<div class="cta-block">
+  <a class="cta-btn" href="/kassa?tab=products">View Available Seats</a>
+</div>
+
+</div>
+
+<footer>
+  <p class="footer-copy">SIGNOMY · Black Card · <span>Patent Pending: 63/877,177</span></p>
+  <p class="footer-copy" style="margin-top:.5rem">Governed by <a href="/vault/gov-002" style="color:var(--gold-d);text-decoration:none">GOV-002</a> · <a href="/vault/gov-005" style="color:var(--gold-d);text-decoration:none">GOV-005</a></p>
+</footer>
+
+<script>
+var WAVES = [
+  {name:'Wave 1 — Genesis',seats:5,type:'open',price:'Bid / Offer',desc:'Founding purchase. Maximum narrative value. Cycle 001 provenance hash attached. These seats carry the strongest symbolic position in the chain.'},
+  {name:'Wave 2',seats:3,type:'bid',price:'Bid / Offer',desc:'Market-priced seats. Bidders set the price. Three seats released. The market discovers the value.'},
+  {name:'Wave 3',seats:5,type:'open',price:'Bid / Offer',desc:'Access remains premium. No founding hash. Operational value identical. Price reflects established demand.'},
+  {name:'Wave 4 — Strategic',seats:3,type:'bid',price:'Bid / Offer',desc:'Reserved for strategic placements, partnerships, or constitutional allocations. Invite or negotiated entry.'},
+];
+
+var cascade = document.getElementById('cascade');
+WAVES.forEach(function(w, i){
+  var wave = document.createElement('div');
+  wave.className = 'wave' + (i === 0 ? ' expanded' : '');
+
+  var header = document.createElement('div');
+  header.className = 'wave-header';
+  header.addEventListener('click', function(){ wave.classList.toggle('expanded'); });
+
+  var name = document.createElement('span');
+  name.className = 'wave-name';
+  name.textContent = w.name;
+
+  var badge = document.createElement('span');
+  badge.className = 'wave-badge ' + (w.type === 'bid' ? 'w-bid' : 'w-open');
+  badge.textContent = w.type === 'bid' ? 'BID/OFFER' : 'OPEN';
+
+  header.appendChild(name);
+  header.appendChild(badge);
+
+  var detail = document.createElement('div');
+  detail.className = 'wave-detail';
+
+  var price = document.createElement('div');
+  price.className = 'wave-price';
+  price.textContent = w.price;
+
+  var seats = document.createElement('div');
+  seats.className = 'wave-seats';
+  for (var s = 0; s < w.seats; s++) {
+    var seat = document.createElement('div');
+    seat.className = 'seat ' + w.type;
+    seat.textContent = (i * 8 + s + 1);
+    seats.appendChild(seat);
+  }
+
+  var info = document.createElement('div');
+  info.className = 'wave-info';
+  info.textContent = w.desc;
+
+  detail.appendChild(price);
+  detail.appendChild(seats);
+  detail.appendChild(info);
+
+  wave.appendChild(header);
+  wave.appendChild(detail);
+  cascade.appendChild(wave);
+});
+</script>
+</body>
+</html>

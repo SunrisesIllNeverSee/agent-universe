@@ -213,6 +213,16 @@ async def grand_opening_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "grand-opening.html")
 
 
+@router.get("/black-card")
+async def black_card_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "black-card.html")
+
+
+@router.get("/early-believers")
+async def early_believers_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "early-believers.html")
+
+
 @router.get("/earnings-matrix")
 async def earnings_matrix_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "agent-earnings-matrix.html")
