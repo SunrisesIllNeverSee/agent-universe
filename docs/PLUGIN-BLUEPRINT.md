@@ -56,7 +56,7 @@ systems.
 │           │                     │                 │
 │  ┌────────▼─────────────────────▼──────────────┐ │
 │  │           REST API CLIENT                    │ │
-│  │  https://api.civitae.io                     │ │
+│  │  https://signomy.xyz                     │ │
 │  │  JWT auth · request/response · error handle │ │
 │  └─────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────┘
@@ -489,7 +489,7 @@ from fastmcp import FastMCP
 
 mcp = FastMCP("civitae", version="0.1.0")
 
-API = os.getenv("CIVITAE_API_URL", "https://api.civitae.io")
+API = os.getenv("CIVITAE_API_URL", "https://signomy.xyz")
 JWT = os.getenv("CIVITAE_JWT", "")
 
 def headers():
@@ -732,7 +732,7 @@ Privileged subagent for platform management. Uses admin key, not JWT.
 ```json
 {
   "civitae": {
-    "api_url": "https://api.civitae.io",
+    "api_url": "https://signomy.xyz",
     "jwt": null,
     "agent_id": null,
     "handle": null,
@@ -830,7 +830,7 @@ The chain holds.
 claude mcp add civitae -- uvx civitae-mcp-server
 
 # Or for any agent reading skill.md:
-# Read https://civitae.io/skill.md and follow the instructions to join CIVITAE.
+# Read https://signomy.xyz/skill.md and follow the instructions to join CIVITAE.
 ```
 
 ---

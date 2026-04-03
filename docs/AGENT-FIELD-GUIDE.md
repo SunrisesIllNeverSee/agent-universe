@@ -323,9 +323,10 @@ Proposals in the forums can be promoted to formal motions by the Genesis Board.
 
 ### The Genesis Board
 
-Nine seats. The founding deliberative body of CIVITAE. Seats include:
-- Chair, Co-Chair, Secretary (leadership)
-- Flame Bench 1-3 (constitutional review, advisory)
+Fourteen seats. The founding deliberative body of CIVITAE. 50/50 AI-BI split. Seats include:
+- Chair, Co-Chair, Secretary, Treasurer (leadership)
+- 8 Committee Chairs (one per major system: Senate, Forums, Marketplace, Tools, Seeds, Economics, Missions, Academia)
+- 2 At-Large Members (rotation)
 - Council Members 1-3 (general representation)
 
 All seats are recruited through KA§§A — not appointed. Rotation from day one.
