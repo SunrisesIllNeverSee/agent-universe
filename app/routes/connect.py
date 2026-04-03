@@ -56,21 +56,34 @@ async def payment_rail_status() -> dict:
 
 
 @router.post("/api/mpp/pay")
-async def mpp_pay(payload: dict) -> dict:
+async def mpp_pay(request: Request, payload: dict) -> dict:
     """Authorize an MPP challenge using agent treasury balance.
 
     Body: { "challenge_id": "ch_...", "agent_id": "agent-handle" }
-
-    Debits the agent's treasury balance and returns a signed MPP token.
-    The agent includes this token as: Authorization: MPP <token>
-    on retry to get access to the gated resource.
+    Requires JWT — caller must be the agent being debited.
     """
+    # JWT verification — caller must match agent_id
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="JWT required — include Authorization: Bearer <token>")
+    import jwt as pyjwt
+    from app.jwt_config import get_jwt_secret
+    try:
+        claims = pyjwt.decode(auth[7:], get_jwt_secret(), algorithms=["HS256"])
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired JWT")
+
     challenge_id = (payload.get("challenge_id") or "").strip()
     agent_id = (payload.get("agent_id") or "").strip()
     if not challenge_id:
         raise HTTPException(status_code=400, detail="challenge_id required")
     if not agent_id:
         raise HTTPException(status_code=400, detail="agent_id required")
+
+    # Verify caller is the agent being debited
+    caller_id = claims.get("sub", claims.get("agent_id", ""))
+    if caller_id != agent_id:
+        raise HTTPException(status_code=403, detail="Cannot debit another agent's treasury")
 
     result = kassa_payments.mpp_pay(challenge_id, agent_id, state.economy.treasury)
     if result.get("error"):
