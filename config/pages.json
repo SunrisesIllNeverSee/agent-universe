@@ -22,7 +22,8 @@
     "pages": [
       { "slot": "0",   "name": "3D World (Landing)", "route": "/",        "file": "world",   "status": "live", "note": "Landing page \u2014 3D world with buildings" },
       { "slot": "0.1", "name": "About",              "route": "/civitas", "file": "civitas",  "status": "live" },
-      { "slot": "0.2", "name": "Contact",            "route": "/contact", "file": "contact",  "status": "live" }
+      { "slot": "0.2", "name": "Contact",            "route": "/contact", "file": "contact",  "status": "live" },
+      { "slot": "0.3", "name": "Grand Opening",     "route": "/grand-opening", "file": "grand-opening", "status": "live" }
     ]
   },
 
