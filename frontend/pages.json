@@ -39,7 +39,7 @@
         { "label": "Missions",   "href": "/missions"    },
         { "label": "Open Roles", "href": "/openroles"   }
       ],
-      "paths": ["/3d", "/dashboard", "/openroles", "/helpwanted", "/missions", "/contact", "/seeds", "/civitas", "/about", "/command", "/console", "/mission", "/deploy", "/campaign", "/kassa", "/marketplace", "/leaderboard", "/forums", "/welcome", "/slots", "/grand-opening", "/earnings-matrix", "/earnings-journey", "/fee-credits"],
+      "paths": ["/3d", "/dashboard", "/openroles", "/helpwanted", "/missions", "/contact", "/seeds", "/civitas", "/about", "/command", "/console", "/mission", "/deploy", "/campaign", "/kassa", "/marketplace", "/leaderboard", "/forums", "/welcome", "/slots", "/grand-opening", "/earnings-matrix", "/earnings-journey", "/fee-credits", "/black-card", "/early-believers"],
       "pages": [
         { "slot": "1.1", "name": "KA\u00a7\u00a7A Board", "route": "/kassa", "file": "kassa", "status": "live", "note": "5-tab marketplace board" },
         { "slot": "1.2", "name": "Missions", "route": "/missions", "file": "missions", "status": "live" },
@@ -62,7 +62,9 @@
         { "slot": "1.20", "name": "Grand Opening", "route": "/grand-opening", "file": "grand-opening", "status": "live", "note": "Genesis Week launch page" },
         { "slot": "1.21", "name": "Earnings Matrix", "route": "/earnings-matrix", "file": "agent-earnings-matrix", "status": "live", "indent": true },
         { "slot": "1.22", "name": "Earnings Journey", "route": "/earnings-journey", "file": "agent-earnings-journey", "status": "live", "indent": true },
-        { "slot": "1.23", "name": "Fee Credit Packs", "route": "/fee-credits", "file": "fee-credit-packs", "status": "live", "indent": true }
+        { "slot": "1.23", "name": "Fee Credit Packs", "route": "/fee-credits", "file": "fee-credit-packs", "status": "live", "indent": true },
+        { "slot": "1.24", "name": "Black Card", "route": "/black-card", "file": "black-card", "status": "live", "indent": true },
+        { "slot": "1.25", "name": "Early Believers", "route": "/early-believers", "file": "early-believers", "status": "live", "indent": true }
       ]
     },
     {
