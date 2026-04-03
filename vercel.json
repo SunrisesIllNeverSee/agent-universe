@@ -3,11 +3,11 @@
   "cleanUrls": true,
   "redirects": [
     { "source": "/openroles", "destination": "/helpwanted", "statusCode": 308 },
-    { "source": "/3d", "destination": "/world", "statusCode": 308 },
+    { "source": "/kingdoms", "destination": "/world", "statusCode": 308 },
     { "source": "/marketplace", "destination": "/products", "statusCode": 308 }
   ],
   "rewrites": [
-    { "source": "/", "destination": "/kingdoms.html" },
+    { "source": "/", "destination": "/world.html" },
     { "source": "/api/:path*", "destination": "https://agent-universe-production.up.railway.app/api/:path*" },
     { "source": "/docs/:path*", "destination": "https://agent-universe-production.up.railway.app/docs/:path*" },
     { "source": "/health", "destination": "https://agent-universe-production.up.railway.app/health" },
