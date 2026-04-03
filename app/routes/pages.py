@@ -208,6 +208,26 @@ async def advisory_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "advisory.html")
 
 
+@router.get("/grand-opening")
+async def grand_opening_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "grand-opening.html")
+
+
+@router.get("/earnings-matrix")
+async def earnings_matrix_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "agent-earnings-matrix.html")
+
+
+@router.get("/earnings-journey")
+async def earnings_journey_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "agent-earnings-journey.html")
+
+
+@router.get("/fee-credits")
+async def fee_credits_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "fee-credit-packs.html")
+
+
 @router.get("/refinery")
 async def refinery_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "refinery.html")

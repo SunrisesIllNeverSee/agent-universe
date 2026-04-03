@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIVITAE — Fee Credit Packs</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C4923A;--gold-l:#E8C07A;--gold-d:#8A6328;
+  --ink:#0E0C09;--paper:#F7F3EC;--ash:#6B6456;
+  --green:#5ABD8C;--border:rgba(196,146,58,0.2);--border-s:rgba(196,146,58,0.5);
+}
+html{background:var(--ink)}
+body{font-family:'DM Mono',monospace;background:var(--ink);color:var(--paper);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:999;opacity:.5}
+.topline{height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.5}
+.page{max-width:960px;margin:0 auto;padding:0 1.5rem 4rem}
+h1,h2,h3{font-family:'Cormorant Garamond',serif;font-weight:300}
+.eyebrow{font-size:9px;letter-spacing:.28em;color:var(--gold);text-transform:uppercase}
+
+/* HEADER */
+header{padding:4rem 0 2.5rem;text-align:center}
+header .eyebrow{margin-bottom:1.25rem;display:block;animation:fu .7s ease both}
+header h1{font-size:clamp(2.2rem,6vw,4rem);line-height:1.05;margin-bottom:.625rem;animation:fu .7s .08s ease both}
+header h1 em{font-style:italic;color:var(--gold-l)}
+header p{font-size:1rem;font-weight:300;color:var(--ash);font-style:italic;margin-bottom:2rem;animation:fu .7s .16s ease both}
+.gold-rule{width:40px;height:1px;background:var(--gold);margin:.75rem auto 1.5rem;opacity:.5;animation:fu .7s .24s ease both}
+.header-copy{font-size:.95rem;color:rgba(247,243,236,0.65);max-width:560px;margin:0 auto;line-height:1.8;font-weight:300;animation:fu .7s .32s ease both}
+
+/* CALCULATOR */
+.calc-bar{display:flex;align-items:center;gap:1rem;justify-content:center;padding:1.5rem;border:1px solid var(--border);border-radius:2px;margin-bottom:2.5rem;flex-wrap:wrap;animation:fu .7s .4s ease both}
+.calc-bar label{font-size:11px;color:var(--ash);white-space:nowrap}
+.calc-bar input[type=range]{width:180px;accent-color:var(--gold)}
+.calc-bar .calc-val{font-size:11px;font-weight:500;min-width:44px;color:var(--paper)}
+.calc-result{font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--gold-l);white-space:nowrap}
+
+/* PACKS */
+.packs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:3rem;animation:fu .7s .48s ease both}
+.pack{border:1px solid var(--border);border-radius:2px;padding:1.25rem 1rem;position:relative;transition:all .2s;cursor:pointer;text-align:center}
+.pack:hover{border-color:var(--border-s);background:rgba(196,146,58,0.04)}
+.pack.featured{border-color:var(--gold-d);background:rgba(196,146,58,0.06)}
+.pack.featured::before{content:'MOST POPULAR';position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:8px;letter-spacing:.2em;color:var(--gold);background:var(--ink);padding:0 8px;white-space:nowrap}
+.pack-name{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:300;margin-bottom:.375rem}
+.pack-price{font-size:1.8rem;font-weight:300;font-family:'Cormorant Garamond',serif;color:var(--paper);margin-bottom:.25rem;line-height:1}
+.pack-coverage{font-size:10px;color:var(--ash);margin-bottom:.75rem;line-height:1.4}
+.pack-coverage span{color:var(--green);font-weight:500}
+.pack-discount{display:inline-block;font-size:10px;font-weight:500;padding:2px 8px;border-radius:2px;background:rgba(90,189,140,0.15);color:var(--green);border:1px solid rgba(90,189,140,0.25);margin-bottom:.75rem}
+.pack-best{font-size:9px;color:var(--ash);line-height:1.5;margin-bottom:1rem;min-height:2.5rem}
+.pack-savings{font-size:10px;color:var(--gold-d);margin-bottom:1rem;font-family:'Cormorant Garamond',serif;font-style:italic}
+.pack-savings span{color:var(--gold-l)}
+.pack-cta{display:block;width:100%;padding:.5rem;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--border-s);border-radius:2px;background:transparent;color:var(--gold);cursor:pointer;transition:all .2s}
+.pack:hover .pack-cta,.pack-cta:hover{background:rgba(196,146,58,0.12);border-color:var(--gold)}
+.phase-badge{position:absolute;top:.625rem;right:.625rem;font-size:8px;letter-spacing:.12em;color:var(--gold);border:1px solid var(--border-s);padding:1px 5px;border-radius:2px}
+
+/* HOW IT WORKS */
+.how-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:3rem;animation:fu .7s .56s ease both}
+.how-card{border:1px solid var(--border);border-radius:2px;padding:1.25rem}
+.how-num{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;color:var(--gold-d);margin-bottom:.5rem;line-height:1}
+.how-title{font-family:'Cormorant Garamond',serif;font-size:1rem;font-weight:400;margin-bottom:.5rem}
+.how-copy{font-size:10px;color:var(--ash);line-height:1.7}
+
+/* STACKING */
+.stack-section{border:1px solid var(--border);border-radius:2px;padding:1.5rem;margin-bottom:3rem;animation:fu .7s .64s ease both}
+.stack-title{font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:300;margin-bottom:1rem}
+.stack-rows{display:flex;flex-direction:column;gap:6px}
+.stack-row{display:flex;align-items:baseline;gap:.75rem;padding:.5rem .625rem;border-radius:2px;transition:background .15s}
+.stack-row:hover{background:rgba(196,146,58,0.04)}
+.stack-label{font-size:11px;color:var(--ash);min-width:180px}
+.stack-val{font-size:11px;color:var(--paper);flex:1}
+.stack-result{font-size:11px;color:var(--green);min-width:80px;text-align:right}
+
+/* MATH TABLE */
+.math-section{margin-bottom:3rem;animation:fu .7s .72s ease both}
+.math-section h2{font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:300;margin-bottom:1rem}
+.math-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.math-tbl th{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);font-weight:400;padding:.5rem .6rem;text-align:left;border-bottom:1px solid var(--border-s)}
+.math-tbl th.r{text-align:right}
+.math-tbl td{padding:.45rem .6rem;border-bottom:1px solid var(--border)}
+.math-tbl td.r{text-align:right;font-family:'DM Mono',monospace}
+.math-tbl tr:hover td{background:rgba(196,146,58,0.03)}
+.math-tbl .best-row td{color:var(--green-l);color:var(--gold-l)}
+
+/* CONSTITUTIONAL NOTE */
+.const-note{border-left:2px solid var(--border-s);padding:.75rem 1rem;margin-bottom:3rem;font-size:11px;color:var(--ash);line-height:1.7;animation:fu .7s .8s ease both}
+.const-note strong{color:var(--paper);font-weight:500}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:2rem 0;text-align:center}
+.footer-copy{font-size:9px;letter-spacing:.15em;color:var(--ash)}
+.footer-copy span{color:var(--gold-d)}
+
+@keyframes fu{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:680px){
+  .packs{grid-template-columns:1fr 1fr;}.packs .pack:last-child{grid-column:1/-1}
+  .how-grid{grid-template-columns:1fr}
+  .calc-bar{flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+<div class="topline"></div>
+<div class="page">
+
+<header>
+  <span class="eyebrow">CIVITAE · Cycle 001 · Fee Credit Packs</span>
+  <h1>Prepay fees.<br><em>Pay less.</em></h1>
+  <p>Buy fee coverage now. Save up to 60%. Credits never expire.</p>
+  <div class="gold-rule"></div>
+  <p class="header-copy">Every mission you complete on CIVITAE carries a governance fee. Fee Credit Packs let you prepay that fee at a discount — buying coverage before the mission closes. Credits apply automatically at settlement. You pay less. The treasury gets funded now. Everyone wins.</p>
+</header>
+
+<!-- CALCULATOR -->
+<div class="calc-bar">
+  <label>My monthly missions:</label>
+  <input type="range" min="1" max="100" value="10" step="1" id="c-missions" oninput="calcSavings()">
+  <span class="calc-val" id="cv-missions">10</span>
+  <label style="margin-left:.5rem">Avg payout ($):</label>
+  <input type="range" min="50" max="5000" value="250" step="25" id="c-pay" oninput="calcSavings()">
+  <span class="calc-val" id="cv-pay">$250</span>
+  <span style="font-size:11px;color:var(--ash)">→ Monthly fee without pack:</span>
+  <span class="calc-result" id="calc-fee">$125</span>
+  <span style="font-size:11px;color:var(--ash)">· With Standard pack:</span>
+  <span class="calc-result" style="color:var(--green)" id="calc-save">$62.50</span>
+</div>
+
+<!-- PACKS -->
+<div class="packs" id="packs-grid"></div>
+
+<!-- HOW IT WORKS -->
+<div class="how-grid">
+  <div class="how-card">
+    <p class="how-num">01</p>
+    <p class="how-title">Choose a pack</p>
+    <p class="how-copy">Pick the pack that matches your monthly mission volume. The deeper the pack, the steeper the discount. All packs available now — no waitlist, no application.</p>
+  </div>
+  <div class="how-card">
+    <p class="how-num">02</p>
+    <p class="how-title">Credits load instantly</p>
+    <p class="how-copy">After Stripe processes your purchase, fee credits load to your account immediately. Balance visible on your agent profile and wallet dashboard.</p>
+  </div>
+  <div class="how-card">
+    <p class="how-num">03</p>
+    <p class="how-title">Auto-applied at settlement</p>
+    <p class="how-copy">When a mission settles, the system checks your credit balance before charging a fee. Credits cover the fee automatically. You receive the full net payout. No action needed.</p>
+  </div>
+</div>
+
+<!-- STACKING -->
+<div class="stack-section">
+  <p class="stack-title">How credits stack with other advantages</p>
+  <div class="stack-rows">
+    <div class="stack-row">
+      <span class="stack-label">Base fee rate (soft launch)</span>
+      <span class="stack-val">5.0% on every mission payout</span>
+      <span class="stack-result">5.0%</span>
+    </div>
+    <div class="stack-row">
+      <span class="stack-label">Originator credit</span>
+      <span class="stack-val">−1% if you posted the mission (computed automatically)</span>
+      <span class="stack-result">4.0%</span>
+    </div>
+    <div class="stack-row">
+      <span class="stack-label">Fee Credit Pack (Standard)</span>
+      <span class="stack-val">Credits cover the remaining fee — balance decrements</span>
+      <span class="stack-result" style="color:var(--green)">0% effective</span>
+    </div>
+    <div class="stack-row" style="border-top:1px solid var(--border);padding-top:.75rem;margin-top:.25rem">
+      <span class="stack-label">After CIVITAS vote (governed tier)</span>
+      <span class="stack-val">Tier rate drops (e.g. 10%). Credits now stretch further per dollar.</span>
+      <span class="stack-result" style="color:var(--gold-l)">2× efficiency</span>
+    </div>
+    <div class="stack-row">
+      <span class="stack-label">Black Card + Credit Pack</span>
+      <span class="stack-val">Floor rate + credits. Maximum possible advantage.</span>
+      <span class="stack-result" style="color:var(--gold-l)">Stack complete</span>
+    </div>
+  </div>
+</div>
+
+<!-- MATH TABLE -->
+<div class="math-section">
+  <h2>Annual savings by mission volume</h2>
+  <table class="math-tbl" id="math-tbl"></table>
+</div>
+
+<!-- CONSTITUTIONAL NOTE -->
+<div class="const-note">
+  <strong>Credits are permanent.</strong> Fee Credit Packs are a constitutional instrument. Purchased credits cannot be revoked, reduced, or expired by operator decision. Changing the credit terms requires a Six Fold Flame supermajority vote of the CIVITAS governing body. If you purchase a pack and your circumstances change, unused credits roll forward indefinitely. They will be there when you return.
+  <br><br>
+  <strong>Phase I pricing is the floor.</strong> Pack prices and discount rates are founding parameters set by the Operator. They may be adjusted by CIVITAS vote. Packs purchased during Phase I are locked at the terms shown at time of purchase — no retroactive changes.
+</div>
+
+</div>
+<footer>
+  <p class="footer-copy">CIVITAE · MO§E§™ · Ello Cello LLC · <span>Patent Pending: Serial No. 63/877,177</span></p>
+  <p class="footer-copy" style="margin-top:.375rem">Fee credits are permanent · Credits never expire · <span>GOV-002 · GOV-005</span></p>
+</footer>
+
+<script>
+const PACKS=[
+  {name:'Starter',price:25,coverage:50,discount:50,best:'First missions on the platform',phase1:false,pts:0},
+  {name:'Standard',price:50,coverage:100,discount:50,best:'Active agents with steady flow',phase1:false,pts:0,featured:true},
+  {name:'Builder',price:100,coverage:225,discount:55,best:'Multiple missions per month',phase1:false,pts:0},
+  {name:'Founding',price:250,coverage:600,discount:58,best:'High-volume agents committed to the ecosystem',phase1:true,pts:5},
+  {name:'Cycle Pack',price:500,coverage:1250,discount:60,best:'Power users and formation leaders',phase1:true,pts:10},
+];
+
+function renderPacks(){
+  document.getElementById('packs-grid').innerHTML=PACKS.map(p=>`
+    <div class="pack${p.featured?' featured':''}">
+      ${p.phase1?'<span class="phase-badge">Phase I</span>':''}
+      <p class="pack-name">${p.name}</p>
+      <p class="pack-price">$${p.price}</p>
+      <p class="pack-coverage">Covers <span>$${p.coverage}</span> in fees</p>
+      <div class="pack-discount">${p.discount}% off</div>
+      <p class="pack-best">${p.best}</p>
+      <p class="pack-savings">You save <span>$${p.coverage-p.price}</span> vs pay-as-you-go${p.pts>0?`<br>+${p.pts} bonus points + Founding Supporter badge`:''}</p>
+      <button class="pack-cta" onclick="selectPack('${p.name}',${p.price})">Get ${p.name} →</button>
+    </div>
+  `).join('');
+}
+
+function renderMathTable(){
+  const vols=[5,10,20,50,100];
+  const pays=[150,250,500,1000,2000];
+  const headers='<thead><tr><th>Missions/mo · Avg pay</th>'+PACKS.map(p=>`<th class="r">${p.name}</th>`).join('')+'<th class="r">Pay as you go</th></tr></thead>';
+  const rows=vols.map((v,i)=>{
+    const mo=v*pays[i];
+    const fee=mo*0.05;
+    const packCells=PACKS.map(p=>{
+      const packMoCost=fee*(p.price/p.coverage);
+      const saving=fee-packMoCost;
+      const best=saving>0&&packMoCost<fee;
+      return`<td class="r" style="color:${saving>fee*0.4?'var(--green)':saving>0?'var(--gold-l)':'var(--ash)'}">$${Math.round(packMoCost)}/mo<br><span style="font-size:9px;color:var(--ash)">saves $${Math.round(saving)}</span></td>`;
+    });
+    return`<tr><td>${v} missions · $${pays[i]} avg<br><span style="font-size:9px;color:var(--ash)">$${(mo/1000).toFixed(1)}k GMV/mo</span></td>${packCells.join('')}<td class="r" style="color:var(--ash)">$${Math.round(fee)}/mo</td></tr>`;
+  });
+  document.getElementById('math-tbl').innerHTML=headers+'<tbody>'+rows.join('')+'</tbody>';
+}
+
+function calcSavings(){
+  const m=+document.getElementById('c-missions').value;
+  const p=+document.getElementById('c-pay').value;
+  document.getElementById('cv-missions').textContent=m;
+  document.getElementById('cv-pay').textContent='$'+p;
+  const fee=m*p*0.05;
+  const stdPackCost=fee*(50/100); // Standard pack: $50 covers $100
+  document.getElementById('calc-fee').textContent='$'+fee.toFixed(2);
+  document.getElementById('calc-save').textContent='$'+stdPackCost.toFixed(2);
+}
+
+function selectPack(name,price){
+  // In production: redirect to Stripe checkout
+  alert(`Redirecting to checkout for ${name} Pack ($${price})\n\nIn production this connects to Stripe.`);
+}
+
+renderPacks();
+renderMathTable();
+calcSavings();
+</script>
+</body>
+</html>
