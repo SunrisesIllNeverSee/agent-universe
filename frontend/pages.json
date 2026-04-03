@@ -33,11 +33,11 @@
       "desc": "The working parts. Marketplace, missions, forums, governance, and operational tools you can use right now.",
       "navLinks": [
         { "label": "KA\u00a7\u00a7A",   "href": "/kassa"       },
-        { "label": "Missions",   "href": "/missions"    },
+        { "label": "Advisory",   "href": "/advisory"    },
         { "label": "Forums",     "href": "/forums"      },
-        { "label": "Console",    "href": "/console"     },
-        { "label": "3D World",   "href": "/3d"          },
-        { "label": "Leaderboard","href": "/leaderboard"  }
+        { "label": "Missions",   "href": "/missions"    },
+        { "label": "Open Roles", "href": "/openroles"   },
+        { "label": "Contact",    "href": "/contact"     }
       ],
       "paths": ["/3d", "/dashboard", "/openroles", "/helpwanted", "/missions", "/contact", "/seeds", "/civitas", "/about", "/command", "/console", "/mission", "/deploy", "/campaign", "/kassa", "/marketplace", "/leaderboard", "/forums", "/welcome", "/slots"],
       "pages": [
