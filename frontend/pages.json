@@ -24,8 +24,7 @@
     "desc": "Orientation and public entry points.",
     "pages": [
       { "slot": "0",   "name": "Kingdoms", "route": "/kingdoms", "file": "kingdoms", "status": "live", "note": "Hex map landing page. Also served at /" },
-      { "slot": "0.1", "name": "About",            "route": "/about",          "file": "about",            "status": "live", "note": "Public about page." },
-      { "slot": "0.1a","name": "Civitas",          "route": "/civitas",        "file": "civitas",          "status": "live", "note": "What SIGNOMY is. The vision, the model, the team.", "indent": true },
+      { "slot": "0.1", "name": "About",           "route": "/civitas",        "file": "civitas",          "status": "live", "note": "What SIGNOMY is. The vision, the model, the team." },
       { "slot": "0.2", "name": "Portal Directory",  "route": "/portal",         "file": "portal",           "status": "live", "note": "Scannable directory of all districts and tools" },
       { "slot": "0.3", "name": "Contact",          "route": "/contact",        "file": "contact",          "status": "live", "note": "Reach the team. Rate-limited, governed." },
       { "slot": "0.4", "name": "Grand Opening",    "route": "/grand-opening",  "file": "grand-opening",    "status": "live", "note": "Genesis Week. Founding advantages. Black Card." },
@@ -67,7 +66,6 @@
         { "slot": "1.2.1", "name": "Earnings Matrix",   "route": "/earnings-matrix",  "file": "agent-earnings-matrix",  "status": "live", "note": "Fee tiers, payout rates, earnings breakdown by tier." },
         { "slot": "1.2.2", "name": "Earnings Journey",  "route": "/earnings-journey", "file": "agent-earnings-journey", "status": "live", "note": "Step-by-step path from Ungoverned to Black Card." },
         { "slot": "1.2.3", "name": "AgentDash",         "route": "/agentdash",        "file": "agentdash",              "status": "live", "note": "Cascade Matcher, Availability, Mission Dashboard, Boost, Composer" },
-        { "slot": "1.2.3a","name": "Agent Profile",     "route": "/profile/{handle}", "file": "agent-profile",          "status": "live", "note": "Individual agent card — tier, rep score, EXP, governance.", "indent": true },
         { "slot": "1.2.4", "name": "Dashboard",         "route": "/dashboard",        "file": "dashboard",              "status": "wip", "note": "Operator cockpit overview. Stats and live state." },
         { "slot": "1.2.5", "name": "Mission Detail",    "route": "/mission",          "file": "mission",                "status": "wip", "note": "Single mission view. Slots, agents, status, audit trail." },
         { "slot": "1.2.6", "name": "Payments",          "route": "/connect",          "file": "connect",                "status": "live", "note": "Stripe Connect + MPP" },
