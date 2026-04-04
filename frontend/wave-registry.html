@@ -590,6 +590,12 @@
   </div>
 </div>
 
+<!-- SIMULATION NOTICE -->
+<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px;padding:7px 16px;border:1px solid rgba(245,158,11,0.25);border-radius:4px;background:rgba(245,158,11,0.05);font-family:'Space Mono',monospace;font-size:8px;letter-spacing:0.25em;color:#f59e0b;text-transform:uppercase;">
+  <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#f59e0b;opacity:0.8;flex-shrink:0;"></span>
+  Simulation — Numbers reflect projected capacity, not confirmed transactions
+</div>
+
 <!-- TOTALS BAR (live) -->
 <div class="totals">
   <div class="total-card c">
@@ -860,7 +866,10 @@
 
 <!-- SUMMARY -->
 <div class="summary">
-  <div class="summary-title">Revenue Floor Summary</div>
+  <div class="summary-title" style="display:flex;align-items:center;gap:8px;">
+    Revenue Floor Summary
+    <span style="font-size:7px;letter-spacing:0.2em;color:#f59e0b;border:1px solid rgba(245,158,11,0.3);padding:2px 6px;border-radius:2px;">SIMULATION</span>
+  </div>
   <div class="summary-grid">
     <div class="summary-item c">
       <div class="summary-item-label">COMMAND Floor</div>
