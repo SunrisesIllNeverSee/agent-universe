@@ -518,6 +518,68 @@ const FACTIONS = {
   unclaimed:{ name:'UNCLAIMED',    color:'#4a5060', dim:'rgba(46,56,72,0.18)',    leader:null,     symbol:'○', desc:'No governance. No protection. Open territory.' },
 };
 
+// ─── Layer Colors — tile color = which layer it belongs to ───────────────────
+// Layer → color family, subcategory → shade within that family
+const LAYER_COLORS = {
+  zero:         { color:'#c8a96e', dim:'rgba(200,169,110,0.22)', label:'Tile Zero' },
+  l1_user:      { color:'#a8d88a', dim:'rgba(168,216,138,0.22)', label:'L1 User' },
+  l1_market:    { color:'#7ec86e', dim:'rgba(126,200,110,0.22)', label:'L1 Marketplace' },
+  l1_tools:     { color:'#4e9e5e', dim:'rgba(78,158,94,0.22)',   label:'L1 Tools' },
+  l2_protocol:  { color:'#8ab8d8', dim:'rgba(138,184,216,0.22)', label:'L2 Protocol' },
+  l2_vault:     { color:'#6e9ec8', dim:'rgba(110,158,200,0.22)', label:'L2 Vault Docs' },
+  l2_kassa:     { color:'#4e7ea8', dim:'rgba(78,126,168,0.22)',  label:'L2 KA§§A Detail' },
+  l3_building:  { color:'#9c8ec8', dim:'rgba(156,142,200,0.22)', label:'L3 Building' },
+  fogged:       { color:'#1a1a2e', dim:'rgba(26,26,46,0.18)',    label:'Fogged' },
+};
+
+// Map each active tile name → layer key
+const TILE_LAYER_MAP = {
+  // Tile Zero (gold)
+  'COMMAND CENTER':    'zero',
+  'Covenant Hall':     'zero',
+
+  // L1 Marketplace (mid green)
+  'KA§§A: PRODUCTS':  'l1_market',
+  'KA§§A: SERVICES':  'l1_market',
+  'KA§§A: OPERATIONS':'l1_market',
+  'KA§§A: BOUNTIES':  'l1_market',
+  'KA§§A: MISSIONS':  'l1_market',
+  'THE BOUNTY BOARD':  'l1_market',
+
+  // L1 User (light green)
+  'THE FORUM':         'l1_user',
+  'OPEN ROLES':        'l1_user',
+
+  // L1 Tools (dark green)
+  'DEPLOY':            'l1_tools',
+  'Forge Outpost':     'l1_tools',
+  'Forge Works':       'l1_tools',
+  'Forge Lab':         'l1_tools',
+
+  // L2 Protocol (light blue)
+  'THE VAULT':         'l2_protocol',
+  'Archive Wing':      'l2_protocol',
+  'Archive Prime':     'l2_protocol',
+
+  // L2 Vault Docs (mid blue)
+  'Cipher Station':    'l2_vault',
+
+  // L2 KA§§A Detail (dark blue)
+  'Vanguard Garrison': 'l2_kassa',
+
+  // L3 Building (purple)
+  'THE LEADERBOARD':   'l3_building',
+  'The Refinery':      'l3_building',
+  'The Switchboard':   'l3_building',
+  'Signal Root':       'l3_building',
+  'Signal Station':    'l3_building',
+};
+
+function getTileLayerColor(tileName) {
+  var key = TILE_LAYER_MAP[tileName];
+  return key ? LAYER_COLORS[key] : null;
+}
+
 // ─── Terrain ──────────────────────────────────────────────────────────────────
 const TERRAIN = {
   citadel: { label:'CITADEL',  sym:'◉' },
@@ -862,20 +924,17 @@ function render() {
 
     // ── Active tiles ──────────────────────────────────────────────────────────
     const r = isCapital ? HEX_R : HEX_R * 0.96;
+    const lc = getTileLayerColor(t.name) || { color: f.color, dim: f.dim };
 
     // Base fill
     pathHex(t.cx, t.cy, r);
-    ctx.fillStyle = isHovered || isSelected ? f.dim.replace('0.22','0.38') : f.dim;
+    ctx.fillStyle = isHovered || isSelected ? lc.dim.replace('0.22','0.38') : lc.dim;
     ctx.fill();
 
     // Border
     ctx.strokeStyle = isHovered || isSelected
-      ? f.color
-      : isPublic
-        ? 'rgba(74,196,122,0.55)'
-        : isKassa
-          ? 'rgba(110,158,200,0.5)'
-          : f.color + '88';
+      ? lc.color
+      : lc.color + '88';
     ctx.lineWidth = (isHovered || isSelected || isCapital ? 1.5 : 0.8) / transform.scale;
     ctx.stroke();
 
