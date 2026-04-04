@@ -3,7 +3,6 @@
   "cleanUrls": true,
   "redirects": [
     { "source": "/openroles", "destination": "/helpwanted", "statusCode": 308 },
-    { "source": "/kingdoms", "destination": "/world", "statusCode": 308 },
     { "source": "/marketplace", "destination": "/products", "statusCode": 308 }
   ],
   "rewrites": [
