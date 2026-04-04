@@ -25,17 +25,18 @@
     --blue:#3A6B8C; --blue-dim:rgba(58,107,140,0.12);
   }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#040409; color:#e8dcc8; font-family:'SF Mono',monospace; height:100vh; overflow:hidden; display:flex; flex-direction:column; user-select:none; padding-top:52px; }
+  body { background:#040409; color:#e8dcc8; font-family:'SF Mono',monospace; height:100vh; overflow:hidden; display:flex; flex-direction:column; user-select:none; padding-top:48px; }
 
-  nav { display:flex; align-items:center; justify-content:space-between; padding:12px 40px; background:rgba(11,13,16,0.95); border-bottom:1px solid var(--wall); position:fixed; top:0; left:0; right:0; z-index:100; backdrop-filter:blur(12px); }
-  .nav-mark { font-family:'Playfair Display',serif; font-size:18px; font-weight:900; color:var(--cream); text-decoration:none; letter-spacing:-0.02em; }
-  .nav-mark em { color:var(--gold); font-style:normal; }
-  .nav-links { display:flex; gap:20px; align-items:center; }
-  .nav-links a { color:var(--muted); text-decoration:none; font-size:12px; font-weight:500; letter-spacing:0.02em; transition:color 0.15s; }
-  .nav-links a:hover { color:var(--cream); }
-  .nav-links a.active { color:var(--gold); }
-  .nav-cta { padding:7px 18px; background:var(--gold); color:var(--obsidian); border:none; border-radius:5px; font-weight:700; font-size:11px; letter-spacing:0.04em; text-transform:uppercase; cursor:pointer; font-family:inherit; transition:background 0.15s; }
-  .nav-cta:hover { background:var(--gold-light); }
+  .topbar { display:flex; align-items:center; gap:10px; padding:0 20px; height:48px; background:rgba(7,8,9,0.97); border-bottom:1px solid #1A1D22; position:fixed; top:0; left:0; right:0; z-index:100; backdrop-filter:blur(8px); }
+  .tb-mark { font-family:'Playfair Display',serif; font-size:1rem; font-weight:900; color:#C4923A; text-decoration:none; flex-shrink:0; }
+  .tb-mark em { color:#E8EAF0; font-style:normal; }
+  .tb-sep { color:#262E3A; font-size:0.85rem; flex-shrink:0; }
+  .tb-page { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.12em; text-transform:uppercase; color:#8A94A0; flex-shrink:0; }
+  .tb-spacer { flex:1; }
+  .tb-nav { display:flex; align-items:center; height:100%; }
+  .tb-link { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.08em; text-transform:uppercase; color:#5A6475; text-decoration:none; padding:0 14px; height:100%; display:flex; align-items:center; border-left:1px solid #1A1D22; transition:color 0.15s,background 0.15s; }
+  .tb-link:hover { color:#E8EAF0; background:rgba(255,255,255,0.02); }
+  .tb-link.active { color:#C4923A; }
 
   .hud { display:flex; justify-content:space-between; align-items:center; padding:0 20px; height:44px; background:rgba(10,10,18,0.97); border-bottom:1px solid #1e1e2e; z-index:20; flex-shrink:0; }
   .hud-logo { font-size:13px; font-weight:700; color:#c8a96e; letter-spacing:0.12em; }
@@ -306,20 +307,21 @@
 </head>
 <body>
 
-<nav>
-  <a href="/" class="nav-mark">CIVI<em>TAE</em></a>
-  <div class="nav-links">
-    <a href="/missions">Missions</a>
-    <a href="/openroles">Open Roles</a>
-    <a href="/kassa">KA&#167;&#167;A</a>
-    <a href="/deploy">Deploy</a>
-    <a href="/3d">3D</a>
-    <a href="/economics">Economy</a>
-    <a href="/leaderboard">Ranks</a>
-    <a href="/governance">Govern</a>
-    <a href="/civitas">About</a>
-  </div>
-</nav>
+<div class="topbar">
+  <a href="/" class="tb-mark">CIVI<em>TAE</em></a>
+  <span class="tb-sep">›</span>
+  <span class="tb-page">Kingdoms</span>
+  <div class="tb-spacer"></div>
+  <nav class="tb-nav">
+    <a href="/missions" class="tb-link">Missions</a>
+    <a href="/kassa" class="tb-link">KA&#167;&#167;A</a>
+    <a href="/deploy" class="tb-link">Deploy</a>
+    <a href="/3d" class="tb-link">3D</a>
+    <a href="/economics" class="tb-link">Economy</a>
+    <a href="/governance" class="tb-link">Govern</a>
+    <a href="/civitas" class="tb-link">About</a>
+  </nav>
+</div>
 
 <div class="hud">
   <div class="hud-logo">THE KINGDOMS <span>territorial map · 100 tiles</span></div>
