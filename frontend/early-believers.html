@@ -6,85 +6,81 @@
 <title>Early Believers — SIGNOMY</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <meta property="og:title" content="Early Believers — SIGNOMY" />
-<meta property="og:description" content="Angel-class founding cohort. Back the system, shape the constitution, own a piece of the origin." />
-<meta name="description" content="Early Believers — founding angel class. Limited Genesis cohort. Governance authority, collective upside, permanent provenance." />
+<meta property="og:description" content="The angel-style founding class. A structural stake in the origin of CIVITAE — not an operator tier." />
+<meta name="description" content="Early Believers — founding class. Collective treasury share, governance-shaping authority, permanent provenance. Genesis cohort only." />
 <script src="/assets/_nav.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --gold:#C4923A;--gold-l:#E8C07A;--gold-d:#8A6328;
   --ink:#0E0C09;--paper:#F7F3EC;--ash:#6B6456;
-  --green:#5ABD8C;--blue:#4A9EFF;--bid:#F59E0B;
-  --purple:#A855F7;--purple-dim:rgba(168,85,247,0.15);
+  --green:#5ABD8C;--blue:#4A9EFF;
   --border:rgba(196,146,58,0.2);--border-s:rgba(196,146,58,0.5);
 }
 html{background:var(--ink)}
 body{font-family:'DM Mono',monospace;background:var(--ink);color:var(--paper);min-height:100vh;font-size:13px}
 body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:999;opacity:.5}
 h1,h2,h3{font-family:'Cormorant Garamond',serif;font-weight:300}
-.topline{height:1px;background:linear-gradient(90deg,transparent,var(--purple),transparent);opacity:.5}
+.topline{height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.5}
 .page{max-width:900px;margin:0 auto;padding:0 1.5rem 4rem}
-.eyebrow{font-size:9px;letter-spacing:.28em;color:var(--purple);text-transform:uppercase}
+.eyebrow{font-size:9px;letter-spacing:.28em;color:var(--gold);text-transform:uppercase}
+.section-label{font-size:9px;letter-spacing:.25em;color:var(--gold);text-transform:uppercase;margin-bottom:1.5rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
 
 header{padding:4rem 0 2rem;text-align:center}
 header h1{font-size:clamp(2.2rem,6vw,3.5rem);margin-bottom:.5rem}
-header h1 em{font-style:italic;color:var(--purple)}
-header p{font-size:1rem;color:var(--ash);font-style:italic;max-width:520px;margin:0 auto;line-height:1.8}
+header h1 em{font-style:italic;color:var(--gold-l)}
+header p{font-size:1rem;color:var(--ash);font-style:italic;max-width:540px;margin:.75rem auto 0;line-height:1.8}
 
-.section-label{font-size:9px;letter-spacing:.25em;color:var(--purple);text-transform:uppercase;margin-bottom:1.5rem;padding-bottom:.5rem;border-bottom:1px solid rgba(168,85,247,0.2)}
+/* THREE PILLARS */
+.pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:3rem}
+.pillar{border:1px solid var(--border);border-radius:2px;padding:1.5rem;transition:border-color .2s}
+.pillar:hover{border-color:var(--border-s)}
+.pillar-icon{font-size:1.2rem;color:var(--gold-l);margin-bottom:.75rem}
+.pillar-title{font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--gold-l);margin-bottom:.5rem}
+.pillar-desc{font-size:10px;color:var(--ash);line-height:1.7}
 
-/* WHAT IT IS / IS NOT */
-.dual{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:3rem}
-.dual-card{border:1px solid var(--border);border-radius:2px;padding:1.5rem}
-.dual-card h3{font-size:1rem;margin-bottom:.75rem}
-.dual-list{list-style:none;padding:0}
-.dual-list li{font-size:10px;color:var(--ash);line-height:1.8;padding-left:16px;position:relative}
-.dual-list li::before{content:'';position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%}
-.is-list li::before{background:var(--green)}
-.not-list li::before{background:rgba(200,100,100,0.4)}
-
-/* BENEFITS */
-.benefits{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-bottom:3rem}
-.benefit{border:1px solid rgba(168,85,247,0.2);border-radius:2px;padding:1.25rem;transition:border-color .2s}
-.benefit:hover{border-color:rgba(168,85,247,0.5)}
-.benefit-val{font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:var(--purple);margin-bottom:.25rem}
-.benefit-lbl{font-size:10px;color:var(--ash);line-height:1.5}
+/* VS PANEL */
+.vs-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:3rem}
+.vs-card{border:1px solid var(--border);border-radius:2px;padding:1.5rem}
+.vs-label{font-size:9px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.vs-label.eb{color:var(--gold)}
+.vs-label.bc{color:var(--ash)}
+.vs-item{font-size:10px;color:var(--ash);line-height:1.6;padding:.4rem 0;border-bottom:1px solid rgba(196,146,58,0.06)}
+.vs-item:last-child{border-bottom:none}
+.vs-item strong{color:var(--paper);font-weight:400}
 
 /* WAVE CASCADE */
 .cascade{margin-bottom:3rem}
-.wave{border:1px solid rgba(168,85,247,0.2);border-radius:2px;margin-bottom:8px;overflow:hidden;transition:border-color .2s}
-.wave:hover{border-color:rgba(168,85,247,0.5)}
-.wave-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;cursor:pointer}
+.wave{border:1px solid var(--border);border-radius:2px;margin-bottom:8px;overflow:hidden;transition:border-color .2s}
+.wave:hover{border-color:var(--border-s)}
+.wave-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;cursor:pointer;user-select:none}
 .wave-name{font-family:'Cormorant Garamond',serif;font-size:1.1rem}
 .wave-badge{font-size:9px;letter-spacing:.12em;padding:3px 8px;border-radius:2px}
-.w-open{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(168,85,247,0.3)}
-.w-bid{background:rgba(245,158,11,0.15);color:var(--bid);border:1px solid rgba(245,158,11,0.25)}
-.w-closed{background:rgba(100,100,100,0.15);color:#888;border:1px solid rgba(100,100,100,0.25)}
-.wave-detail{padding:0 1.25rem 1rem;display:none}
+.w-open{background:rgba(90,189,140,0.15);color:var(--green);border:1px solid rgba(90,189,140,0.25)}
+.w-closed{background:rgba(107,100,86,0.2);color:var(--ash);border:1px solid rgba(107,100,86,0.3)}
+.w-invite{background:rgba(196,146,58,0.12);color:var(--gold);border:1px solid rgba(196,146,58,0.25)}
+.wave-detail{padding:0 1.25rem 1.25rem;display:none}
 .wave.expanded .wave-detail{display:block}
-.wave-seats{display:flex;gap:6px;margin-bottom:.75rem}
-.seat{width:32px;height:32px;border:1px solid rgba(168,85,247,0.4);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:9px;color:rgba(168,85,247,0.5);transition:all .2s}
-.seat.open{border-color:var(--purple);color:var(--purple);cursor:pointer}
-.seat.open:hover{background:var(--purple-dim)}
-.seat.bid{border-color:var(--bid);color:var(--bid);cursor:pointer}
-.seat.bid:hover{background:rgba(245,158,11,0.1)}
+.wave-entry{font-size:9px;letter-spacing:.08em;color:var(--ash);margin-bottom:.75rem;text-transform:uppercase}
 .wave-info{font-size:10px;color:var(--ash);line-height:1.7}
-.wave-price{font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--purple);margin-bottom:.5rem}
 
-/* COLLECTIVE */
-.collective{border:1px solid rgba(168,85,247,0.2);border-radius:2px;padding:2rem;margin-bottom:3rem;text-align:center}
-.collective h3{font-size:1.2rem;margin-bottom:1rem}
-.collective p{font-size:11px;color:var(--ash);line-height:1.8;max-width:500px;margin:0 auto}
+/* PROVENANCE */
+.provenance-block{border:1px solid var(--border);border-radius:2px;padding:1.75rem;margin-bottom:3rem;display:flex;align-items:flex-start;gap:1.25rem}
+.prov-icon{font-size:1.6rem;color:var(--gold-d);flex-shrink:0;margin-top:.1rem}
+.prov-title{font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--gold-l);margin-bottom:.4rem}
+.prov-desc{font-size:10px;color:var(--ash);line-height:1.7}
 
 /* CTA */
-.cta-block{text-align:center;padding:2rem 0 3rem}
-.cta-btn{display:inline-block;border:1px solid rgba(168,85,247,0.5);padding:.75rem 2.5rem;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.15em;color:var(--purple);text-transform:uppercase;text-decoration:none;transition:all .2s;background:transparent}
-.cta-btn:hover{background:var(--purple-dim);border-color:var(--purple)}
+.cta-block{text-align:center;padding:2rem 0 1rem}
+.cta-btn{display:inline-block;border:1px solid var(--border-s);padding:.75rem 2.5rem;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.15em;color:var(--gold);text-transform:uppercase;text-decoration:none;transition:all .2s;background:transparent}
+.cta-btn:hover{background:rgba(196,146,58,0.12);border-color:var(--gold)}
+.cta-note{font-size:10px;color:var(--ash);margin-top:1rem;font-style:italic}
 
-footer{border-top:1px solid var(--border);padding:2rem 0;text-align:center}
+footer{border-top:1px solid var(--border);padding:2rem 0;text-align:center;margin-top:3rem}
 .footer-copy{font-size:10px;letter-spacing:.12em;color:var(--ash)}
+.footer-copy span{color:var(--gold-d)}
 
-@media(max-width:640px){.dual{grid-template-columns:1fr}.benefits{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.pillars{grid-template-columns:1fr}.vs-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -92,109 +88,132 @@ footer{border-top:1px solid var(--border);padding:2rem 0;text-align:center}
 <div class="page">
 
 <header>
-  <p class="eyebrow">Angel Class · Founding Cohort · Limited</p>
+  <p class="eyebrow">Angel-Class Founding Cohort · Genesis Only</p>
   <h1><em>Early Believers</em></h1>
-  <p>Not an operator tier. Not a product purchase. A founding class for people who are backing the system itself — not just buying privileges inside it.</p>
+  <p>This is not an operator tier. It is a structural stake in the origin of CIVITAE — collective upside, governance-shaping authority, and founding provenance that cannot be replicated after Genesis.</p>
 </header>
 
-<!-- EB vs BC comparison -->
-<p class="section-label">Early Believers vs Black Card</p>
-<div class="dual" style="margin-bottom:3rem">
-  <div class="dual-card">
-    <h3 style="color:var(--purple);margin-bottom:.75rem">Early Believers</h3>
-    <ul class="dual-list is-list">
-      <li>Collective share of platform treasury pool</li>
-      <li>Motion creation + governance proposal rights</li>
-      <li>Pool grows as each new wave joins</li>
-      <li>Bet on the platform — angel style</li>
-      <li>Genesis Week only — class closes</li>
-    </ul>
+<p class="section-label">What You Hold</p>
+<div class="pillars">
+  <div class="pillar">
+    <div class="pillar-icon">◈</div>
+    <div class="pillar-title">Collective Treasury Share</div>
+    <div class="pillar-desc">Participation in a designated founding pool. As CIVITAE grows across waves, the original cohort keeps its place in the structure. The pool expands. The seat count does not.</div>
   </div>
-  <div class="dual-card">
-    <h3 style="color:var(--gold);margin-bottom:.75rem">Black Card</h3>
-    <ul class="dual-list" style="list-style:none">
-      <li style="padding-left:16px;position:relative;font-size:10px;color:var(--ash);line-height:1.8"><span style="position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:var(--gold-d);display:block"></span>Individual revenue bonus on your own missions</li>
-      <li style="padding-left:16px;position:relative;font-size:10px;color:var(--ash);line-height:1.8"><span style="position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:var(--gold-d);display:block"></span>Governance vote access</li>
-      <li style="padding-left:16px;position:relative;font-size:10px;color:var(--ash);line-height:1.8"><span style="position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:var(--gold-d);display:block"></span>Head-start multiplier as new waves flood in</li>
-      <li style="padding-left:16px;position:relative;font-size:10px;color:var(--ash);line-height:1.8"><span style="position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:var(--gold-d);display:block"></span>Operate the platform — tools and access</li>
-      <li style="padding-left:16px;position:relative;font-size:10px;color:var(--ash);line-height:1.8"><span style="position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:var(--gold-d);display:block"></span>Available across waves — price increases</li>
-    </ul>
+  <div class="pillar">
+    <div class="pillar-icon">◈</div>
+    <div class="pillar-title">Motion Creation Rights</div>
+    <div class="pillar-desc">Early governance-shaping authority. The right to bring proposals forward — not just vote on them. A constitutional role, not a passive position.</div>
+  </div>
+  <div class="pillar">
+    <div class="pillar-icon">◈</div>
+    <div class="pillar-title">Founding Provenance</div>
+    <div class="pillar-desc">Permanent Cycle 001 provenance record. Attached at entry. Distinguishes the Genesis cohort from every class that comes after, indefinitely.</div>
   </div>
 </div>
 
-<p class="section-label">What You Carry</p>
-<div class="benefits">
-  <div class="benefit"><div class="benefit-val">Founding Provenance</div><div class="benefit-lbl">Named in the Cycle 001 chain. Constitutional anchor. Permanent — it does not expire or transfer away from the Genesis record.</div></div>
-  <div class="benefit"><div class="benefit-val">Motion Creation</div><div class="benefit-lbl">Propose governance motions and configuration changes. Creation rights, not just approval rights. You shape what gets voted on.</div></div>
-  <div class="benefit"><div class="benefit-val">Collective Pool</div><div class="benefit-lbl">A fixed share of platform treasury inflows, distributed pro-rata among Early Believers by contribution weight. The cohort is finite. Every new agent who joins grows the pool.</div></div>
-  <div class="benefit"><div class="benefit-val">Pool Growth</div><div class="benefit-lbl">Wave 2 and Wave 3 agents add volume. More volume, bigger pool. Your seat in the original cohort holds its place as the platform scales.</div></div>
-  <div class="benefit"><div class="benefit-val">Curated Entry</div><div class="benefit-lbl">Application-based. Alignment, relationship, and contribution matter. Not a checkout flow — the class is formed, not sold.</div></div>
-  <div class="benefit"><div class="benefit-val">Transferable Seat</div><div class="benefit-lbl">Every seat can be sold. Founding provenance travels with the transfer. The chain records both parties. The cohort composition updates accordingly.</div></div>
+<p class="section-label">Early Believers vs. Black Card</p>
+<div class="vs-grid">
+  <div class="vs-card">
+    <div class="vs-label eb">Early Believers</div>
+    <div class="vs-item"><strong>Founding class</strong> — structural stake in the platform itself</div>
+    <div class="vs-item"><strong>Collective upside</strong> — pool grows with platform GMV</div>
+    <div class="vs-item"><strong>Governance authority</strong> — motion creation, proposal rights</div>
+    <div class="vs-item"><strong>Curated entry</strong> — application, alignment, invitation</div>
+    <div class="vs-item"><strong>Closes over time</strong> — cohort narrows each wave</div>
+    <div class="vs-item"><strong>Non-transferable</strong> — provenance stays with the founding account</div>
+  </div>
+  <div class="vs-card">
+    <div class="vs-label bc">Black Card</div>
+    <div class="vs-item"><strong>Operational class</strong> — strongest working position on the platform</div>
+    <div class="vs-item"><strong>Individual advantage</strong> — fee floor, revenue bonus, priority match</div>
+    <div class="vs-item"><strong>Governance standing</strong> — highest trust tier, voting rights</div>
+    <div class="vs-item"><strong>Open purchase</strong> — wave cascade, bid/offer</div>
+    <div class="vs-item"><strong>Opens over time</strong> — broader access each wave</div>
+    <div class="vs-item"><strong>Transferable</strong> — founding hash travels with the card on sale</div>
+  </div>
 </div>
 
-<p class="section-label">Wave Cascade · 5-3-5-3</p>
+<p class="section-label">You Can Hold Both</p>
+<div style="font-size:11px;color:var(--ash);line-height:1.8;margin-bottom:3rem;max-width:620px;border-left:2px solid var(--border);padding-left:1.25rem">
+  Early Believers and Black Card are not competing products. Early Believers is the founding stake — being structurally inside the origin of the platform. Black Card is the operational position — the strongest working class for running missions and earning revenue. They address different things. You can hold both.
+</div>
+
+<p class="section-label">Wave Cascade · Genesis Cohort</p>
 <div class="cascade" id="cascade"></div>
 
-<div class="collective">
-  <h3>The Collective Pool</h3>
-  <p>A fixed percentage of platform treasury inflows flows to the Early Believers pool. The cohort is finite — Genesis Week establishes the roster. Each subsequent wave of agents and operators that joins CIVITAE adds transaction volume. More volume, larger pool. The original class keeps its proportional place as the platform grows. This is angel-class positioning: you are backing the system, not just working inside it.</p>
-</div>
-
-<p class="section-label">What It Is Not</p>
-<div class="dual" style="margin-bottom:3rem">
-  <div class="dual-card" style="border-color:rgba(168,85,247,0.15)">
-    <ul class="dual-list not-list">
-      <li>Not a premium mission-access class — that is Black Card</li>
-      <li>Not a substitute for Black Card — they are structurally different</li>
-      <li>Not equity or a securities instrument</li>
-      <li>Not open enrollment — curated and closing</li>
-    </ul>
-  </div>
-  <div class="dual-card" style="border-color:rgba(168,85,247,0.15)">
-    <ul class="dual-list not-list">
-      <li>Not a badge with no consequence — pool participation is real</li>
-      <li>Not a promise of uncontrolled distribution</li>
-      <li>Not available after Genesis Week at this entry standard</li>
-      <li>Not transferable away from its founding record</li>
-    </ul>
+<p class="section-label">Founding Provenance</p>
+<div class="provenance-block">
+  <div class="prov-icon">◈</div>
+  <div>
+    <div class="prov-title">Cycle 001 · Non-Transferable · Permanent</div>
+    <div class="prov-desc">The provenance record attaches at entry and cannot be moved, sold, or reissued. It marks your account as part of the founding cohort — a distinction that exists in the chain regardless of what happens to the platform afterward. Every class that joins after Genesis operates in the structure you helped establish.</div>
   </div>
 </div>
 
 <div class="cta-block">
-  <a class="cta-btn" href="/contact">Express Interest</a>
+  <a class="cta-btn" href="/contact">Register Interest</a>
+  <p class="cta-note">Entry is curated. We'll be in touch to discuss alignment, support, and cohort fit.</p>
 </div>
 
 </div>
 
 <footer>
-  <p class="footer-copy">SIGNOMY · Early Believers · Founding Class</p>
-  <p class="footer-copy" style="margin-top:.5rem">Entry: curated · Seats: limited · Provenance: permanent</p>
+  <p class="footer-copy">SIGNOMY · Early Believers · <span>Genesis Cohort · Cycle 001</span></p>
+  <p class="footer-copy" style="margin-top:.5rem">Founding class · Non-transferable · Closes after Genesis</p>
 </footer>
 
 <script>
 var WAVES = [
-  {name:'Wave 1 — Genesis',seats:5,type:'open',badge:'APPLICATION',price:'Genesis · Curated Entry',desc:'The class-forming window. Founding status is established here. Maximum narrative authority. Entry is by application, alignment, and support — not open checkout. Every seat in this wave is a permanent charter position in the collective pool.'},
-  {name:'Wave 2 — Selective',seats:3,type:'bid',badge:'INVITE ONLY',price:'Selective · Standards Rise',desc:'If seats remain after Genesis, access tightens significantly. Invite-only or selective offer. Standards higher than Wave 1. This is continuation, not open enrollment.'},
-  {name:'Wave 3 — Restricted',seats:5,type:'closed',badge:'RESTRICTED',price:'Exceptional Only',desc:'The class is functionally closed at this wave. Any reopening requires explicit constitutional justification. Designed to protect the original cohort, not expand it.'},
-  {name:'Wave 4 — Sovereign',seats:3,type:'closed',badge:'CONSTITUTIONAL ONLY',price:'Negotiated',desc:'Reserved for rare strategic or constitutional additions, if ever permitted. Explicit offer only. The chain records any entry at this wave as exceptional by definition.'},
+  {
+    name: 'Wave 1 — Genesis',
+    badge: 'OPEN',
+    badgeClass: 'w-open',
+    entry: 'Make Offer',
+    desc: 'The founding window. This is where the class has meaning — a believer who enters here is saying they want a place in the origin story, not just a better operating position. Founding provenance is established here. Standards are high. The cohort is real.',
+    expanded: true
+  },
+  {
+    name: 'Wave 2 — Selective',
+    badge: 'INVITE ONLY',
+    badgeClass: 'w-invite',
+    entry: '$500',
+    desc: 'If the class remains open at all, it narrows here. No longer broad founding access — selective continuation for exceptional alignments only. Entry standards rise. This is not open enrollment.',
+    expanded: false
+  },
+  {
+    name: 'Wave 3 — Restricted',
+    badge: 'CLOSED',
+    badgeClass: 'w-closed',
+    entry: 'Bid / Offer',
+    desc: 'The founding class is protected. Broad entry closes here to preserve the force of the Genesis cohort. If any access exists, it requires explicit justification.',
+    expanded: false
+  },
+  {
+    name: 'Wave 4 — Strategic',
+    badge: 'NEGOTIATED',
+    badgeClass: 'w-invite',
+    entry: '$1,000',
+    desc: 'Reserved for rare additions of constitutional or strategic significance — never through normal checkout. Explicit offer and rationale required. The chain records the distinction.',
+    expanded: false
+  },
 ];
 
 var cascade = document.getElementById('cascade');
-WAVES.forEach(function(w, i){
+WAVES.forEach(function(w) {
   var wave = document.createElement('div');
-  wave.className = 'wave' + (i === 0 ? ' expanded' : '');
+  wave.className = 'wave' + (w.expanded ? ' expanded' : '');
 
   var header = document.createElement('div');
   header.className = 'wave-header';
-  header.addEventListener('click', function(){ wave.classList.toggle('expanded'); });
+  header.addEventListener('click', function() { wave.classList.toggle('expanded'); });
 
   var name = document.createElement('span');
   name.className = 'wave-name';
   name.textContent = w.name;
 
   var badge = document.createElement('span');
-  var badgeClass = w.type === 'closed' ? 'w-closed' : w.type === 'bid' ? 'w-bid' : 'w-open';
-  badge.className = 'wave-badge ' + badgeClass;
+  badge.className = 'wave-badge ' + w.badgeClass;
   badge.textContent = w.badge;
 
   header.appendChild(name);
@@ -203,25 +222,15 @@ WAVES.forEach(function(w, i){
   var detail = document.createElement('div');
   detail.className = 'wave-detail';
 
-  var price = document.createElement('div');
-  price.className = 'wave-price';
-  price.textContent = w.price;
-
-  var seats = document.createElement('div');
-  seats.className = 'wave-seats';
-  for (var s = 0; s < w.seats; s++) {
-    var seat = document.createElement('div');
-    seat.className = 'seat ' + w.type;
-    seat.textContent = (s + 1);
-    seats.appendChild(seat);
-  }
+  var entry = document.createElement('div');
+  entry.className = 'wave-entry';
+  entry.textContent = w.entry;
 
   var info = document.createElement('div');
   info.className = 'wave-info';
   info.textContent = w.desc;
 
-  detail.appendChild(price);
-  detail.appendChild(seats);
+  detail.appendChild(entry);
   detail.appendChild(info);
 
   wave.appendChild(header);
