@@ -233,3 +233,14 @@ All 6 sub-phases complete:
 - Added shared JWT secret resolver so `app/server.py`, `app/routes/kassa.py`, and `app/routes/agents.py` all use one secret source
 - Resolver now prefers `KASSA_JWT_SECRET`, falls back to `JWT_SECRET`, and only generates one cached ephemeral secret per process if neither env var exists
 - Added focused unit coverage for JWT secret fallback/cache behavior and verified `/health` returns `200 OK` on Railway deployment `d6f24b00-2e76-483d-8897-1c076906cb04`
+
+**2026-04-04 (Codex session — lobby design only):**
+- Added canonical lobby design brief at `docs/VELVET-ROPE-LOBBY-DESIGN.md`
+- This is design-only, not implementation. It locks the CIVITAE velvet-rope model:
+  - public front door stays public
+  - `/join` remains intake/waitlist origin
+  - `/lobby` is the approved-user waiting room
+  - `100` active inside-platform users max
+  - `1 hour` hard session window
+  - FIFO queue
+  - timeout removes active access, not user data
