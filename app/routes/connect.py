@@ -507,21 +507,46 @@ async def stripe_webhook_v1(request: Request) -> dict:
         metadata = getattr(data, "metadata", None)
         if metadata is None and isinstance(data, dict):
             metadata = data.get("metadata", {})
-        post_id = ""
-        if isinstance(metadata, dict):
-            post_id = metadata.get("post_id", "")
+        if not isinstance(metadata, dict):
+            metadata = {}
+        post_id = metadata.get("post_id", "")
         _stripe_amount = ((getattr(data, "amount_total", 0) if not isinstance(data, dict) else data.get("amount_total", 0)) or 0) / 100
         _session_id = getattr(data, "id", None) if not isinstance(data, dict) else data.get("id")
-        state.audit.log("kassa", "stripe_payment_completed", {
-            "post_id": post_id,
-            "amount": _stripe_amount,
-            "session_id": _session_id,
-        })
-        await state.emit("kassa_payment", {
-            "post_id": post_id,
-            "rail": "stripe_connect",
-            "amount": _stripe_amount,
-        })
+
+        # Fee credit pack purchase — credit the agent's fee credit balance
+        if metadata.get("type") == "fee_credit_pack":
+            pack_name = metadata.get("pack_name", "Unknown")
+            agent_id = metadata.get("agent_id", "")
+            # Coverage amount = what the pack covers (from frontend PACKS data)
+            # We store price_cents in metadata; coverage is derived from pack config server-side
+            # For now credit coverage = 2× price (Standard pack logic) — exact amounts TBD
+            PACK_COVERAGE = {"Starter": 50, "Standard": 100, "Builder": 225, "Founding": 600, "Cycle Pack": 1250}
+            coverage = PACK_COVERAGE.get(pack_name, _stripe_amount * 2)
+            if agent_id:
+                state.economy.fee_credits.credit(
+                    agent_id=agent_id,
+                    amount=coverage,
+                    pack_name=pack_name,
+                    stripe_session_id=_session_id or "",
+                )
+            state.audit.log("economy", "fee_credit_pack_purchased", {
+                "agent_id": agent_id,
+                "pack_name": pack_name,
+                "paid_usd": _stripe_amount,
+                "credits_added": coverage,
+                "session_id": _session_id,
+            })
+        else:
+            state.audit.log("kassa", "stripe_payment_completed", {
+                "post_id": post_id,
+                "amount": _stripe_amount,
+                "session_id": _session_id,
+            })
+            await state.emit("kassa_payment", {
+                "post_id": post_id,
+                "rail": "stripe_connect",
+                "amount": _stripe_amount,
+            })
         seed_doi = None
         try:
             seed_result = await create_seed(
@@ -562,6 +587,8 @@ async def fee_credits_checkout(payload: dict, request: Request) -> dict:
     host = request.headers.get("x-forwarded-host") or request.headers.get("host", "signomy.xyz")
     base = f"{proto}://{host}"
 
+    agent_id = (payload.get("agent_id") or "").strip()
+
     try:
         import stripe
         session = stripe.checkout.Session.create(
@@ -580,17 +607,30 @@ async def fee_credits_checkout(payload: dict, request: Request) -> dict:
             mode="payment",
             success_url=f"{base}/fee-credits?success=1&pack={pack_name}",
             cancel_url=f"{base}/fee-credits?cancelled=1",
-            metadata={"type": "fee_credit_pack", "pack_name": pack_name, "price_cents": str(price_cents)},
+            metadata={
+                "type": "fee_credit_pack",
+                "pack_name": pack_name,
+                "price_cents": str(price_cents),
+                "agent_id": agent_id,
+            },
         )
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Stripe error: {e}")
 
-    state.audit.log("economy", "fee_credit_checkout_created", {
+    state.audit.log("economy", "fee_credit_checkout_initiated", {
         "pack_name": pack_name,
         "price_cents": price_cents,
         "session_id": session.id,
     })
     return {"checkout_url": session.url, "session_id": session.id}
+
+
+@router.get("/api/fee-credits/balance/{agent_id}")
+async def fee_credits_balance(agent_id: str) -> dict:
+    """Return an agent's current fee credit balance and recent transactions."""
+    balance = state.economy.fee_credits.balance(agent_id)
+    history = state.economy.fee_credits.history(agent_id, limit=10)
+    return {"agent_id": agent_id, "balance": balance, "currency": "usd_coverage", "recent": history}
 
 
 # ── Connect Pages ──────────────────────────────────────────────────────────
