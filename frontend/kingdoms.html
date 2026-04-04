@@ -81,6 +81,56 @@
   .sidebar-footer { padding:16px; margin-top:auto; }
   .sidebar-hint { font-size:8px; color:#2e2e3e; line-height:1.6; letter-spacing:0.04em; }
 
+  /* ── Layer Directory ─────────────────────────── */
+  .layer-block { border-bottom:1px solid #12121e; }
+  .layer-header {
+    display:flex; align-items:center; gap:8px;
+    padding:10px 16px 8px;
+    cursor:pointer; user-select:none;
+  }
+  .layer-header:hover { background:rgba(255,255,255,0.015); }
+  .layer-accent { width:2px; height:16px; border-radius:1px; flex-shrink:0; }
+  .layer-title { font-size:8px; letter-spacing:0.2em; text-transform:uppercase; font-weight:600; flex:1; }
+  .layer-count { font-size:8px; color:#3a4050; font-family:'DM Mono',monospace; }
+  .layer-toggle { font-size:8px; color:#2e3848; transition:transform 0.15s; }
+  .layer-toggle.open { transform:rotate(180deg); }
+
+  .layer-body { display:none; }
+  .layer-body.open { display:block; }
+
+  .sub-label {
+    font-size:7px; letter-spacing:0.22em; text-transform:uppercase;
+    color:#2e3040; padding:6px 16px 3px 24px;
+    border-top:1px solid rgba(255,255,255,0.025);
+    margin-top:2px;
+  }
+  .sub-label:first-child { border-top:none; margin-top:0; }
+
+  .dir-row {
+    display:flex; align-items:center; gap:7px;
+    padding:4px 16px 4px 24px;
+    cursor:pointer; text-decoration:none;
+    transition:background 0.1s;
+  }
+  .dir-row.indent { padding-left:32px; }
+  .dir-row:hover { background:rgba(255,255,255,0.025); }
+  .dir-dot {
+    width:5px; height:5px; border-radius:50%; flex-shrink:0;
+    margin-top:1px;
+  }
+  .dir-name {
+    font-size:9px; color:#8a94a0; letter-spacing:0.03em;
+    flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    font-family:'DM Sans',sans-serif;
+  }
+  .dir-row:hover .dir-name { color:#c8d0dc; }
+  .dir-route {
+    font-size:7px; color:#2e3848; font-family:'DM Mono',monospace;
+    letter-spacing:0.04em; flex-shrink:0;
+    transition:color 0.1s;
+  }
+  .dir-row:hover .dir-route { color:#4a5878; }
+
   /* ── 3D Tile Viewport ───────────────────────────────── */
   .t3d-overlay {
     position:fixed; inset:0; z-index:100;
@@ -342,21 +392,14 @@
   </div>
   <div class="sidebar">
     <div class="sidebar-section">
-      <div class="sidebar-title">Faction Standings</div>
-      <div id="faction-list"></div>
-    </div>
-    <div class="sidebar-section">
-      <div class="sidebar-title">Terrain Key</div>
-      <div id="terrain-legend"></div>
+      <div class="sidebar-title">SIGNOMY — Districts</div>
+      <div id="layer-directory"></div>
     </div>
     <div class="sidebar-footer">
       <div class="sidebar-hint">
-        76 tiles remain fogged. They unfog<br>
-        as the city grows — GDP, traffic,<br>
-        agent activity. Unfogged tiles open<br>
-        to merchants, hackathons, corporates<br>
-        to acquire or rent. KA§§A boards<br>
-        require a 30-cycle lock-in to operate.
+        Each tile is a live district.<br>
+        Governance sits at the center.<br>
+        Layers radiate outward.
       </div>
     </div>
   </div>
@@ -1545,76 +1588,131 @@ document.getElementById('btn-reset-view').addEventListener('click', () => { cent
 t3dOverlay.addEventListener('click', e => { if (e.target === t3dOverlay) hideTile3D(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') hideTile3D(); });
 
-// ─── Sidebar ──────────────────────────────────────────────────────────────────
+// ─── Sidebar — Layer Directory ────────────────────────────────────────────────
+// Status dot colors matching pages.json statusColors
+const STATUS_COLORS = {
+  live:    '#3DAA6A',
+  wip:     '#D48C2E',
+  empty:   '#D84040',
+  admin:   '#3A7FC4',
+  planned: '#5a4f7a',
+};
+
+// Layer accent colors keyed to pages.json layer ids
+const LAYER_ACCENTS = {
+  0:  '#c8a96e', // Tile Zero — gold
+  1:  '#7ec86e', // Active — green
+  2:  '#6e9ec8', // Context — blue
+  3:  '#9c8ec8', // Building — violet
+};
+
 function buildSidebar() {
-  const counts = {};
-  territories.forEach(t => { counts[t.faction] = (counts[t.faction] || 0) + 1; });
-  const total = territories.length;
+  const dir = document.getElementById('layer-directory');
 
-  const factionList = document.getElementById('faction-list');
-  const order = Object.keys(FACTIONS).filter(k => k !== 'unclaimed')
-    .sort((a, b) => (counts[b] || 0) - (counts[a] || 0));
-  order.push('unclaimed');
+  fetch('/api/pages')
+    .then(r => r.json())
+    .then(data => {
+      // ── Tile Zero block ────────────────────────────────────────────────────
+      renderLayerBlock(dir, {
+        id: 0,
+        label: data.tileZero.sectionLabel || 'Tile Zero',
+        pages: data.tileZero.pages,
+        open: true,
+      });
 
-  order.forEach(key => {
-    const f     = FACTIONS[key];
-    const count = counts[key] || 0;
-    const pct   = (count / total * 100).toFixed(0);
-
-    const row = document.createElement('div');
-    row.className = 'faction-row';
-
-    const swatch = document.createElement('div');
-    swatch.className        = 'faction-swatch';
-    swatch.style.background = f.color;
-
-    const info = document.createElement('div');
-    info.className = 'faction-info';
-
-    const nameEl = document.createElement('div');
-    nameEl.className   = 'faction-name';
-    nameEl.textContent = f.name;
-
-    const leaderEl = document.createElement('div');
-    leaderEl.className   = 'faction-leader';
-    leaderEl.textContent = f.leader ? 'led by ' + f.leader : 'no governance';
-
-    const barTrack = document.createElement('div');
-    barTrack.className = 'faction-bar-track';
-    const barFill = document.createElement('div');
-    barFill.className        = 'faction-bar-fill';
-    barFill.style.width      = pct + '%';
-    barFill.style.background = f.color;
-    barTrack.appendChild(barFill);
-    info.append(nameEl, leaderEl, barTrack);
-
-    const countEl = document.createElement('div');
-    countEl.className   = 'faction-count';
-    countEl.style.color = f.color;
-    countEl.textContent = String(count);
-
-    row.append(swatch, info, countEl);
-    row.addEventListener('click', () => {
-      const ft = territories.find(t => t.faction === key && ACTIVE_NAMES.has(t.name));
-      if (ft) { selected = ft; showPanel(ft); }
+      // ── Layer blocks ────────────────────────────────────────────────────────
+      (data.layers || []).forEach((layer, idx) => {
+        renderLayerBlock(dir, {
+          id: layer.id,
+          label: layer.sectionLabel || layer.name,
+          pages: layer.pages,
+          open: idx === 0, // first layer open by default
+        });
+      });
+    })
+    .catch(() => {
+      // Fallback: static from TILE_LAYER_MAP keys
+      const fallback = document.createElement('div');
+      fallback.className = 'sub-label';
+      fallback.textContent = 'Directory unavailable';
+      dir.appendChild(fallback);
     });
-    factionList.appendChild(row);
+}
+
+function renderLayerBlock(container, { id, label, pages, open }) {
+  const accent = LAYER_ACCENTS[id] || '#4a5060';
+  const livePagesOnly = (pages || []).filter(p => p.route && p.status);
+  if (!livePagesOnly.length) return;
+
+  const block = document.createElement('div');
+  block.className = 'layer-block';
+
+  // Header (collapsible)
+  const hdr = document.createElement('div');
+  hdr.className = 'layer-header';
+
+  const accentBar = document.createElement('div');
+  accentBar.className = 'layer-accent';
+  accentBar.style.background = accent;
+
+  const titleEl = document.createElement('div');
+  titleEl.className = 'layer-title';
+  titleEl.style.color = accent;
+  titleEl.textContent = label;
+
+  const countEl = document.createElement('div');
+  countEl.className = 'layer-count';
+  countEl.textContent = livePagesOnly.length;
+
+  const toggle = document.createElement('div');
+  toggle.className = 'layer-toggle' + (open ? ' open' : '');
+  toggle.textContent = '▾';
+
+  hdr.append(accentBar, titleEl, countEl, toggle);
+
+  // Body
+  const body = document.createElement('div');
+  body.className = 'layer-body' + (open ? ' open' : '');
+
+  // Group by subsection
+  let currentSub = null;
+  livePagesOnly.forEach(p => {
+    if (p.subsection) {
+      const sub = document.createElement('div');
+      sub.className = 'sub-label';
+      sub.textContent = p.subsection;
+      body.appendChild(sub);
+      currentSub = p.subsection;
+      return;
+    }
+
+    const link = document.createElement('a');
+    link.className = 'dir-row' + (p.indent ? ' indent' : '');
+    link.href = p.route;
+
+    const dot = document.createElement('div');
+    dot.className = 'dir-dot';
+    dot.style.background = STATUS_COLORS[p.status] || '#4a5060';
+
+    const name = document.createElement('div');
+    name.className = 'dir-name';
+    name.textContent = p.name;
+
+    const route = document.createElement('div');
+    route.className = 'dir-route';
+    route.textContent = p.route;
+
+    link.append(dot, name, route);
+    body.appendChild(link);
   });
 
-  // Terrain legend
-  const legendEl = document.getElementById('terrain-legend');
-  Object.entries(TERRAIN).forEach(([, t]) => {
-    const row = document.createElement('div');
-    row.className = 'legend-row';
-    const sym = document.createElement('div');
-    sym.className   = 'legend-sym';
-    sym.textContent = t.sym;
-    const lbl = document.createElement('div');
-    lbl.className   = 'legend-label';
-    lbl.textContent = t.label;
-    row.append(sym, lbl);
-    legendEl.appendChild(row);
+  hdr.addEventListener('click', () => {
+    const isOpen = body.classList.toggle('open');
+    toggle.classList.toggle('open', isOpen);
   });
+
+  block.append(hdr, body);
+  container.appendChild(block);
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────

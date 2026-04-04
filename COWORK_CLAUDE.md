@@ -244,3 +244,11 @@ All 6 sub-phases complete:
   - `1 hour` hard session window
   - FIFO queue
   - timeout removes active access, not user data
+
+**2026-04-04 (Codex session — tile color design):**
+- Added canonical tile color design brief at `docs/TILE-LAYER-COLOR-DESIGN.md`
+- This locks the visual logic for the color-coded CIVITAE map:
+  - layer color is primary
+  - faction color becomes secondary
+  - Tile Zero = gold, Layer 1 = green family, Layer 2 = blue family, Layer 3 = violet
+  - load/heat is a secondary overlay, not the base identity
