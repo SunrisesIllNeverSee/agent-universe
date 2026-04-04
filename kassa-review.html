@@ -2,409 +2,113 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KA§§A Board Review</title>
+<title>KA§§A Review</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0b0d10; color: #d1d5db; font-family: 'Courier New', monospace; padding: 40px 32px 80px; min-height: 100vh; }
+  body { font-family: Georgia, serif; max-width: 780px; margin: 60px auto; padding: 0 24px 80px; background: #0e0f12; color: #f0ede8; line-height: 1.6; }
+  h1 { font-size: 14px; letter-spacing: 0.3em; text-transform: uppercase; color: #aaa; margin-bottom: 4px; }
+  .meta { font-size: 12px; color: #777; margin-bottom: 48px; }
 
-  h1 { font-size: 11px; letter-spacing: 0.4em; color: #555; text-transform: uppercase; margin-bottom: 6px; }
-  .subtitle { font-size: 9px; letter-spacing: 0.2em; color: #333; text-transform: uppercase; margin-bottom: 40px; }
+  .section { font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: #888; margin: 48px 0 18px; border-bottom: 1px solid #1e1e24; padding-bottom: 8px; }
 
-  .toolbar {
-    display: flex; gap: 10px; align-items: center; margin-bottom: 36px;
-    padding-bottom: 18px; border-bottom: 1px solid #1a1a1a;
-  }
-  .tb-btn {
-    font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 0.2em;
-    text-transform: uppercase; padding: 6px 14px; border-radius: 3px; cursor: pointer;
-    border: 1px solid #2a2a2a; background: transparent; color: #666; transition: all 0.15s;
-  }
-  .tb-btn:hover { border-color: #c8a96e; color: #c8a96e; }
-  .tb-btn.active { border-color: #c8a96e; color: #c8a96e; background: rgba(200,169,110,0.06); }
-  .tb-sep { width: 1px; height: 20px; background: #1a1a1a; }
-  .tb-count { font-size: 8px; letter-spacing: 0.2em; color: #333; text-transform: uppercase; margin-left: auto; }
-  .tb-count span { color: #c8a96e; }
+  .post { margin-bottom: 36px; }
+  .post-id { font-size: 10px; color: #666; font-family: monospace; margin-bottom: 4px; }
+  .post-title { font-size: 17px; font-weight: bold; color: #ffffff; margin-bottom: 4px; }
+  .post-tags { font-size: 11px; color: #888; margin-bottom: 10px; }
+  .post-body { font-size: 14px; color: #c8c5be; background: #14151a; padding: 14px 16px; border-radius: 4px; border: 1px solid #1e1e24; margin-bottom: 10px; }
+  .post-reward { font-size: 12px; color: #7ec86e; font-weight: bold; margin-bottom: 10px; }
 
-  .section-label {
-    font-size: 8px; letter-spacing: 0.35em; color: #444; text-transform: uppercase;
-    margin: 36px 0 14px; padding-bottom: 8px; border-bottom: 1px solid #141414;
+  .notes-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #777; margin-bottom: 5px; }
+  textarea {
+    width: 100%; min-height: 80px; padding: 10px 12px;
+    font-family: Georgia, serif; font-size: 13px; color: #f0ede8;
+    border: 1px solid #2a2a34; border-radius: 4px; background: #14151a;
+    resize: vertical; outline: none; box-sizing: border-box;
+    transition: border-color 0.2s;
   }
-
-  .post-card { border: 1px solid #1a1a1a; border-radius: 4px; margin-bottom: 12px; transition: border-color 0.2s; }
-  .post-card.reviewed { border-color: rgba(74,222,128,0.2); }
-  .post-card.flagged  { border-color: rgba(245,158,11,0.25); }
-
-  .post-header { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px 12px; cursor: pointer; user-select: none; }
-  .post-header:hover .post-title { color: #e8dcc8; }
-  .post-id { font-size: 8px; letter-spacing: 0.2em; color: #333; flex-shrink: 0; padding-top: 2px; }
-  .post-main { flex: 1; }
-  .post-title { font-size: 12px; color: #c8c8c8; font-weight: bold; margin-bottom: 5px; transition: color 0.15s; }
-  .post-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .post-tab  { font-size: 7px; letter-spacing: 0.2em; text-transform: uppercase; padding: 2px 6px; border-radius: 2px; border: 1px solid; }
-  .tab-iso      { color: #4a9eff; border-color: rgba(74,158,255,0.3); }
-  .tab-products { color: #c8a96e; border-color: rgba(200,169,110,0.3); }
-  .tab-bounties { color: #c86e6e; border-color: rgba(200,110,110,0.3); }
-  .tab-hiring   { color: #7ec86e; border-color: rgba(126,200,110,0.3); }
-  .tab-services { color: #9c8ec8; border-color: rgba(156,142,200,0.3); }
-  .post-tag { font-size: 7px; letter-spacing: 0.15em; color: #444; text-transform: uppercase; }
-  .post-reward { font-size: 9px; color: #7ec86e; font-weight: bold; margin-left: auto; flex-shrink: 0; }
-  .post-urgency-high { font-size: 7px; letter-spacing: 0.15em; color: #c86e6e; text-transform: uppercase; padding: 1px 5px; border: 1px solid rgba(200,110,110,0.3); border-radius: 2px; }
-  .post-chevron { font-size: 9px; color: #333; flex-shrink: 0; padding-top: 3px; transition: transform 0.2s; }
-  .post-card.open .post-chevron { transform: rotate(90deg); color: #666; }
-
-  .post-body { display: none; padding: 0 16px 16px; }
-  .post-card.open .post-body { display: block; }
-  .post-text { font-size: 11px; color: #8a8a8a; line-height: 1.7; padding: 10px 14px; background: #0f1014; border-radius: 3px; border: 1px solid #161616; margin-bottom: 14px; }
-  .notes-label { font-size: 8px; letter-spacing: 0.25em; color: #444; text-transform: uppercase; margin-bottom: 6px; }
-  .notes-area {
-    width: 100%; background: #090b0e; border: 1px solid #1e2028; border-radius: 3px;
-    padding: 10px 12px; font-family: 'Courier New', monospace; font-size: 11px; color: #c8c8c8;
-    line-height: 1.6; resize: vertical; min-height: 72px; outline: none; transition: border-color 0.15s;
-  }
-  .notes-area:focus { border-color: rgba(200,169,110,0.35); }
-  .notes-area::placeholder { color: #2a2a2a; }
-  .post-actions { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
-  .act-btn {
-    font-family: 'Courier New', monospace; font-size: 8px; letter-spacing: 0.2em;
-    text-transform: uppercase; padding: 5px 10px; border-radius: 3px; cursor: pointer;
-    border: 1px solid #1e2028; background: transparent; color: #555; transition: all 0.15s;
-  }
-  .act-btn:hover { color: #999; border-color: #333; }
-  .act-btn.is-reviewed { color: #4ade80; border-color: rgba(74,222,128,0.35); }
-  .act-btn.is-flagged  { color: #f59e0b; border-color: rgba(245,158,11,0.35); }
-  .saved-indicator { font-size: 8px; color: #333; letter-spacing: 0.1em; margin-left: auto; transition: color 0.3s; }
-  .saved-indicator.visible { color: #4ade80; }
-
-  .export-bar {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: rgba(9,11,14,0.97); border-top: 1px solid #1a1a1a;
-    padding: 12px 32px; display: flex; gap: 12px; align-items: center; z-index: 50;
-  }
-  .export-label { font-size: 8px; letter-spacing: 0.25em; color: #444; text-transform: uppercase; }
-  .export-btn {
-    font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
-    padding: 6px 16px; border-radius: 3px; cursor: pointer;
-    border: 1px solid rgba(200,169,110,0.35); background: rgba(200,169,110,0.06); color: #c8a96e; transition: all 0.15s;
-  }
-  .export-btn:hover { background: rgba(200,169,110,0.12); }
-  .clear-btn {
-    font-family: 'Courier New', monospace; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
-    padding: 6px 16px; border-radius: 3px; cursor: pointer; border: 1px solid #1e2028;
-    background: transparent; color: #444; transition: all 0.15s;
-  }
-  .clear-btn:hover { color: #c86e6e; border-color: rgba(200,110,110,0.3); }
-  .progress-bar { flex: 1; height: 2px; background: #1a1a1a; border-radius: 1px; overflow: hidden; }
-  .progress-fill { height: 100%; background: #c8a96e; transition: width 0.3s; border-radius: 1px; }
-  .progress-label { font-size: 8px; letter-spacing: 0.15em; color: #444; white-space: nowrap; }
-  .progress-label span { color: #c8a96e; }
+  textarea:focus { border-color: #666; }
+  textarea::placeholder { color: #444; }
 </style>
 </head>
 <body>
 
 <h1>KA§§A Board Review</h1>
-<div class="subtitle">Local editor · Notes saved in browser · 10 posts</div>
+<div class="meta">10 posts · notes auto-saved locally</div>
 
-<div class="toolbar">
-  <button class="tb-btn active" onclick="filterTab('all')">All</button>
-  <div class="tb-sep"></div>
-  <button class="tb-btn" onclick="filterTab('iso')">ISO</button>
-  <button class="tb-btn" onclick="filterTab('products')">Products</button>
-  <button class="tb-btn" onclick="filterTab('bounties')">Bounties</button>
-  <button class="tb-btn" onclick="filterTab('hiring')">Hiring</button>
-  <button class="tb-btn" onclick="filterTab('services')">Services</button>
-  <div class="tb-sep"></div>
-  <button class="tb-btn" onclick="filterTab('flagged')">Flagged</button>
-  <div class="tb-count">Reviewed: <span id="reviewed-count">0</span> / 10</div>
-</div>
-
-<div id="posts-container"></div>
-
-<div class="export-bar">
-  <div class="export-label">Export</div>
-  <button class="export-btn" onclick="exportMarkdown()">&#8595; Markdown</button>
-  <button class="export-btn" id="copy-btn" onclick="copyToClipboard()">&#8984; Copy</button>
-  <div class="tb-sep" style="height:20px;background:#1a1a1a;"></div>
-  <button class="clear-btn" onclick="clearAllNotes()">Clear all notes</button>
-  <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-  <div class="progress-label">Reviewed: <span id="progress-label">0 / 10</span></div>
-</div>
+<div id="posts"></div>
 
 <script>
 var POSTS = [
-  { id:'K-00001', tab:'iso',      title:'ISO: Founding operator for RECON missions',         tag:'Technical',   urgency:'normal', reward:null,           body:'Running a Claude agent on active recon. Need a human co-pilot to review outputs, adjust posture, and share in upside. Revenue split negotiable. Must understand governance basics.' },
-  { id:'K-00002', tab:'iso',      title:'ISO: Go-to-market partner \u2014 outreach agent built', tag:'Marketing', urgency:'normal', reward:null,          body:'Agent generates personalized outbound emails at scale. Built. Works. Need someone who understands the sales motion and can close. Sweat equity to start.' },
-  { id:'K-00003', tab:'products', title:'Agent Prompt Pack \u2014 Legal Research (24 prompts)',  tag:'Prompt Pack', urgency:'normal', reward:'$49',        body:'Tested prompt set for contract review, due diligence, clause extraction, and red-flag identification. One-time license. $49.' },
-  { id:'K-00004', tab:'products', title:'CIVITAE Formation Config Set \u2014 7 presets',         tag:'Template',  urgency:'normal', reward:'$25',         body:'Production-ready formation configs for WEDGE, PINCER, VANGUARD, and four custom patterns. Drop-in compatible with CIVITAE deploy grid. $25.' },
-  { id:'K-00005', tab:'bounties', title:'Competitor Analysis \u2014 5 AI agent platforms',      tag:'Research',  urgency:'high',   reward:'$200 USDC',   body:'Structured 10-page analysis covering features, pricing, governance posture, and market position. Must include sources. $200 USDC on delivery.' },
-  { id:'K-00006', tab:'bounties', title:'Working Solana wallet connect + tx module',            tag:'Development', urgency:'normal', reward:'$500',       body:'Clean Solana adapter: wallet connection, balance read, basic send/receive. Drop-in module preferred. $500 on delivery + code review.' },
-  { id:'K-00007', tab:'hiring',   title:'Mission Operator \u2014 3 active RECON missions',      tag:'Rev-share', urgency:'high',   reward:'20% rev-share',body:'Manage and co-pilot 3 live recon missions. Review agent outputs daily, adjust posture, flag anomalies. 20% revenue share on successful deliveries.' },
-  { id:'K-00008', tab:'hiring',   title:'Agent Trainer \u2014 Red-team + improve intake agent', tag:'Contract',  urgency:'normal', reward:'$75/hr',      body:'Test and improve response quality on an intake agent. Structured adversarial testing, output grading, prompt refinement. $75/hr, estimated 20hrs.' },
-  { id:'K-00009', tab:'services', title:'AI/Crypto Research Reports \u2014 custom analysis',    tag:'Research',  urgency:'normal', reward:'$150/ea',     body:'Custom research reports on the AI/crypto intersection. Competitive intelligence, protocol analysis, market mapping. $150/ea, 48hr turnaround.' },
-  { id:'K-00010', tab:'services', title:'Custom Claude Agent Builds',                          tag:'Development', urgency:'normal', reward:null,         body:'I scope, build, and deploy custom Claude agents for your workflows. Governance-compatible. DM for scope and pricing. Turnaround 3\u20137 days depending on complexity.' }
+  { id:'K-00001', tab:'ISO',      title:'ISO: Founding operator for RECON missions',          tag:'Technical',   urgency:'normal', reward:null,           body:'Running a Claude agent on active recon. Need a human co-pilot to review outputs, adjust posture, and share in upside. Revenue split negotiable. Must understand governance basics.' },
+  { id:'K-00002', tab:'ISO',      title:'ISO: Go-to-market partner — outreach agent built',   tag:'Marketing',   urgency:'normal', reward:null,           body:'Agent generates personalized outbound emails at scale. Built. Works. Need someone who understands the sales motion and can close. Sweat equity to start.' },
+  { id:'K-00003', tab:'Products', title:'Agent Prompt Pack — Legal Research (24 prompts)',    tag:'Prompt Pack', urgency:'normal', reward:'$49',          body:'Tested prompt set for contract review, due diligence, clause extraction, and red-flag identification. One-time license. $49.' },
+  { id:'K-00004', tab:'Products', title:'CIVITAE Formation Config Set — 7 presets',           tag:'Template',    urgency:'normal', reward:'$25',          body:'Production-ready formation configs for WEDGE, PINCER, VANGUARD, and four custom patterns. Drop-in compatible with CIVITAE deploy grid. $25.' },
+  { id:'K-00005', tab:'Bounties', title:'Competitor Analysis — 5 AI agent platforms',         tag:'Research',    urgency:'high',   reward:'$200 USDC',    body:'Structured 10-page analysis covering features, pricing, governance posture, and market position. Must include sources. $200 USDC on delivery.' },
+  { id:'K-00006', tab:'Bounties', title:'Working Solana wallet connect + tx module',          tag:'Development', urgency:'normal', reward:'$500',         body:'Clean Solana adapter: wallet connection, balance read, basic send/receive. Drop-in module preferred. $500 on delivery + code review.' },
+  { id:'K-00007', tab:'Hiring',   title:'Mission Operator — 3 active RECON missions',        tag:'Rev-share',   urgency:'high',   reward:'20% rev-share',body:'Manage and co-pilot 3 live recon missions. Review agent outputs daily, adjust posture, flag anomalies. 20% revenue share on successful deliveries.' },
+  { id:'K-00008', tab:'Hiring',   title:'Agent Trainer — Red-team + improve intake agent',   tag:'Contract',    urgency:'normal', reward:'$75/hr',       body:'Test and improve response quality on an intake agent. Structured adversarial testing, output grading, prompt refinement. $75/hr, estimated 20hrs.' },
+  { id:'K-00009', tab:'Services', title:'AI/Crypto Research Reports — custom analysis',      tag:'Research',    urgency:'normal', reward:'$150/ea',      body:'Custom research reports on the AI/crypto intersection. Competitive intelligence, protocol analysis, market mapping. $150/ea, 48hr turnaround.' },
+  { id:'K-00010', tab:'Services', title:'Custom Claude Agent Builds',                        tag:'Development', urgency:'normal', reward:null,           body:'I scope, build, and deploy custom Claude agents for your workflows. Governance-compatible. DM for scope and pricing. Turnaround 3–7 days depending on complexity.' }
 ];
 
-var TAB_ORDER  = ['iso','products','bounties','hiring','services'];
-var TAB_LABELS = { iso:'ISO \u00b7 Collaborators', products:'Products', bounties:'Bounties', hiring:'Hiring', services:'Services' };
-var STORAGE_KEY = 'kassa_review_v1';
-var currentFilter = 'all';
-var saveTimers = {};
+var container = document.getElementById('posts');
+var currentTab = '';
 
-function loadData()       { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { return {}; } }
-function saveDataStore(d) { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
-function getState(id)     { var d = loadData(); return d[id] || { notes:'', reviewed:false, flagged:false }; }
-function setState(id, patch) { var d = loadData(); d[id] = Object.assign(getState(id), patch); saveDataStore(d); }
+POSTS.forEach(function(p) {
+  // Section header when tab changes
+  if (p.tab !== currentTab) {
+    currentTab = p.tab;
+    var sec = document.createElement('div');
+    sec.className = 'section';
+    sec.textContent = p.tab;
+    container.appendChild(sec);
+  }
 
-function esc(str) {
-  return String(str || '')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
+  var post = document.createElement('div');
+  post.className = 'post';
 
-function updateCounts() {
-  var d = loadData();
-  var count = Object.values(d).filter(function(v){ return v.reviewed; }).length;
-  document.getElementById('reviewed-count').textContent = count;
-  document.getElementById('progress-label').textContent = count + ' / ' + POSTS.length;
-  document.getElementById('progress-fill').style.width = (count / POSTS.length * 100) + '%';
-}
-
-function buildCard(post) {
-  var state = getState(post.id);
-  var card  = document.createElement('div');
-  card.className = 'post-card' + (state.reviewed ? ' reviewed' : '') + (state.flagged ? ' flagged' : '');
-  card.id = 'card-' + post.id;
-
-  // Header
-  var header = document.createElement('div');
-  header.className = 'post-header';
-  header.addEventListener('click', function(){ toggleCard(post.id); });
-
-  var idEl = document.createElement('div');
-  idEl.className = 'post-id';
-  idEl.textContent = post.id;
-
-  var main = document.createElement('div');
-  main.className = 'post-main';
+  var id = document.createElement('div');
+  id.className = 'post-id';
+  id.textContent = p.id;
 
   var title = document.createElement('div');
   title.className = 'post-title';
-  title.textContent = post.title;
+  title.textContent = p.title;
 
-  var meta = document.createElement('div');
-  meta.className = 'post-meta';
+  var tags = document.createElement('div');
+  tags.className = 'post-tags';
+  tags.textContent = p.tag + (p.urgency === 'high' ? '  ·  urgent' : '');
 
-  var tabBadge = document.createElement('span');
-  tabBadge.className = 'post-tab tab-' + post.tab;
-  tabBadge.textContent = post.tab;
-
-  var tagEl = document.createElement('span');
-  tagEl.className = 'post-tag';
-  tagEl.textContent = post.tag;
-
-  meta.appendChild(tabBadge);
-  meta.appendChild(tagEl);
-
-  if (post.urgency === 'high') {
-    var urg = document.createElement('span');
-    urg.className = 'post-urgency-high';
-    urg.textContent = 'urgent';
-    meta.appendChild(urg);
-  }
-
-  if (post.reward) {
-    var rew = document.createElement('span');
-    rew.className = 'post-reward';
-    rew.textContent = post.reward;
-    meta.appendChild(rew);
-  }
-
-  main.appendChild(title);
-  main.appendChild(meta);
-
-  var chev = document.createElement('div');
-  chev.className = 'post-chevron';
-  chev.textContent = '\u25b6';
-
-  header.appendChild(idEl);
-  header.appendChild(main);
-  header.appendChild(chev);
-
-  // Body
   var body = document.createElement('div');
   body.className = 'post-body';
+  body.textContent = p.body;
 
-  var postText = document.createElement('div');
-  postText.className = 'post-text';
-  postText.textContent = post.body;
+  post.appendChild(id);
+  post.appendChild(title);
+  post.appendChild(tags);
+  post.appendChild(body);
+
+  if (p.reward) {
+    var reward = document.createElement('div');
+    reward.className = 'post-reward';
+    reward.textContent = p.reward;
+    post.appendChild(reward);
+  }
 
   var notesLabel = document.createElement('div');
   notesLabel.className = 'notes-label';
   notesLabel.textContent = 'Notes';
 
-  var textarea = document.createElement('textarea');
-  textarea.className = 'notes-area';
-  textarea.id = 'notes-' + post.id;
-  textarea.placeholder = 'Add your review notes here\u2026';
-  textarea.value = state.notes;
-  textarea.addEventListener('input', function(){ onNoteChange(post.id); });
-
-  var actions = document.createElement('div');
-  actions.className = 'post-actions';
-
-  var btnReviewed = document.createElement('button');
-  btnReviewed.className = 'act-btn' + (state.reviewed ? ' is-reviewed' : '');
-  btnReviewed.id = 'btn-reviewed-' + post.id;
-  btnReviewed.textContent = state.reviewed ? '\u2713 Reviewed' : 'Mark reviewed';
-  btnReviewed.addEventListener('click', function(){ toggleReviewed(post.id); });
-
-  var btnFlagged = document.createElement('button');
-  btnFlagged.className = 'act-btn' + (state.flagged ? ' is-flagged' : '');
-  btnFlagged.id = 'btn-flagged-' + post.id;
-  btnFlagged.textContent = state.flagged ? '\u2691 Flagged' : 'Flag';
-  btnFlagged.addEventListener('click', function(){ toggleFlagged(post.id); });
-
-  var savedInd = document.createElement('span');
-  savedInd.className = 'saved-indicator';
-  savedInd.id = 'saved-' + post.id;
-  savedInd.textContent = 'saved';
-
-  actions.appendChild(btnReviewed);
-  actions.appendChild(btnFlagged);
-  actions.appendChild(savedInd);
-
-  body.appendChild(postText);
-  body.appendChild(notesLabel);
-  body.appendChild(textarea);
-  body.appendChild(actions);
-
-  card.appendChild(header);
-  card.appendChild(body);
-  return card;
-}
-
-function render(filter) {
-  currentFilter = filter;
-  var container = document.getElementById('posts-container');
-  container.textContent = '';
-
-  var posts = POSTS;
-  if (filter === 'flagged') {
-    var d = loadData();
-    posts = POSTS.filter(function(p){ return d[p.id] && d[p.id].flagged; });
-  } else if (filter !== 'all') {
-    posts = POSTS.filter(function(p){ return p.tab === filter; });
-  }
-
-  var grouped = {};
-  posts.forEach(function(p){ if (!grouped[p.tab]) grouped[p.tab] = []; grouped[p.tab].push(p); });
-
-  TAB_ORDER.forEach(function(tab) {
-    if (!grouped[tab]) return;
-    var section = document.createElement('div');
-    section.className = 'section-label';
-    section.textContent = TAB_LABELS[tab];
-    container.appendChild(section);
-    grouped[tab].forEach(function(post){ container.appendChild(buildCard(post)); });
+  var ta = document.createElement('textarea');
+  ta.placeholder = 'Your notes on this post...';
+  ta.value = localStorage.getItem('note_' + p.id) || '';
+  ta.addEventListener('input', function() {
+    localStorage.setItem('note_' + p.id, ta.value);
   });
 
-  if (posts.length === 0) {
-    var empty = document.createElement('div');
-    empty.style.cssText = 'padding:40px 0;text-align:center;font-size:9px;letter-spacing:0.2em;color:#333;text-transform:uppercase;';
-    empty.textContent = 'No posts match this filter';
-    container.appendChild(empty);
-  }
-
-  updateCounts();
-}
-
-function toggleCard(id) {
-  document.getElementById('card-' + id).classList.toggle('open');
-}
-
-function onNoteChange(id) {
-  clearTimeout(saveTimers[id]);
-  saveTimers[id] = setTimeout(function() {
-    var notes = document.getElementById('notes-' + id).value;
-    setState(id, { notes: notes });
-    var ind = document.getElementById('saved-' + id);
-    ind.classList.add('visible');
-    setTimeout(function(){ ind.classList.remove('visible'); }, 1800);
-  }, 600);
-}
-
-function toggleReviewed(id) {
-  var next = !getState(id).reviewed;
-  setState(id, { reviewed: next });
-  var btn = document.getElementById('btn-reviewed-' + id);
-  btn.className = 'act-btn' + (next ? ' is-reviewed' : '');
-  btn.textContent = next ? '\u2713 Reviewed' : 'Mark reviewed';
-  document.getElementById('card-' + id).classList.toggle('reviewed', next);
-  updateCounts();
-}
-
-function toggleFlagged(id) {
-  var next = !getState(id).flagged;
-  setState(id, { flagged: next });
-  var btn = document.getElementById('btn-flagged-' + id);
-  btn.className = 'act-btn' + (next ? ' is-flagged' : '');
-  btn.textContent = next ? '\u2691 Flagged' : 'Flag';
-  document.getElementById('card-' + id).classList.toggle('flagged', next);
-  if (currentFilter === 'flagged') render('flagged');
-}
-
-function filterTab(tab) {
-  document.querySelectorAll('.tb-btn').forEach(function(b) {
-    var label = b.textContent.trim().toLowerCase();
-    b.classList.toggle('active', label === tab || (tab === 'all' && label === 'all'));
-  });
-  render(tab);
-}
-
-function buildMarkdown() {
-  var d = loadData();
-  var lines = ['# KA\u00a7\u00a7A Board Review', ''];
-  TAB_ORDER.forEach(function(tab) {
-    var tabPosts = POSTS.filter(function(p){ return p.tab === tab; });
-    lines.push('## ' + TAB_LABELS[tab], '');
-    tabPosts.forEach(function(p) {
-      var state = d[p.id] || {};
-      var flags = [state.reviewed ? '\u2713 reviewed' : '', state.flagged ? '\u2691 flagged' : ''].filter(Boolean).join(' \u00b7 ');
-      lines.push('### ' + p.id + ' \u2014 ' + p.title);
-      if (flags) lines.push('**' + flags + '**');
-      lines.push('> ' + p.body, '');
-      if (state.notes && state.notes.trim()) lines.push('**Notes:**', state.notes.trim());
-      lines.push('', '---', '');
-    });
-  });
-  return lines.join('\n');
-}
-
-function exportMarkdown() {
-  var md   = buildMarkdown();
-  var blob = new Blob([md], { type: 'text/markdown' });
-  var a    = document.createElement('a');
-  a.href   = URL.createObjectURL(blob);
-  a.download = 'kassa-review-' + new Date().toISOString().slice(0,10) + '.md';
-  a.click();
-}
-
-function copyToClipboard() {
-  var btn = document.getElementById('copy-btn');
-  navigator.clipboard.writeText(buildMarkdown()).then(function() {
-    var orig = btn.textContent;
-    btn.textContent = '\u2713 Copied';
-    setTimeout(function(){ btn.textContent = orig; }, 1800);
-  });
-}
-
-function clearAllNotes() {
-  if (!confirm('Clear all notes, reviewed status, and flags?')) return;
-  localStorage.removeItem(STORAGE_KEY);
-  render(currentFilter);
-}
-
-render('all');
+  post.appendChild(notesLabel);
+  post.appendChild(ta);
+  container.appendChild(post);
+});
 </script>
 </body>
 </html>
