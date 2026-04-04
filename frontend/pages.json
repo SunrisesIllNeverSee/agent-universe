@@ -23,14 +23,14 @@
     "sectionLabel": "Tile Zero \u2014 Entry & Orientation",
     "desc": "Orientation and public entry points.",
     "pages": [
-      { "slot": "0",   "name": "Kingdoms (Landing)", "route": "/",             "file": "kingdoms",         "status": "live", "note": "Hex map site directory — landing page" },
-      { "slot": "0.1", "name": "About",           "route": "/civitas",        "file": "civitas",          "status": "live" },
+      { "slot": "0",   "name": "Kingdoms (Landing)", "route": "/",             "file": "kingdoms",         "status": "live", "note": "Hex map site directory \u2014 landing page" },
+      { "slot": "0.1", "name": "About",           "route": "/civitas",        "file": "civitas",          "status": "live", "note": "What SIGNOMY is. The vision, the model, the team." },
       { "slot": "0.2", "name": "Portal Directory",  "route": "/portal",         "file": "portal",           "status": "live", "note": "Scannable directory of all districts and tools" },
-      { "slot": "0.3", "name": "Contact",          "route": "/contact",        "file": "contact",          "status": "live" },
-      { "slot": "0.4", "name": "Grand Opening",    "route": "/grand-opening",  "file": "grand-opening",    "status": "live" },
-      { "slot": "0.5", "name": "Black Card",       "route": "/black-card",     "file": "black-card",       "status": "live", "indent": true },
-      { "slot": "0.6", "name": "Early Believers",  "route": "/early-believers","file": "early-believers",  "status": "live", "indent": true },
-      { "slot": "0.7", "name": "Fee Credit Packs", "route": "/fee-credits",    "file": "fee-credit-packs", "status": "live", "indent": true }
+      { "slot": "0.3", "name": "Contact",          "route": "/contact",        "file": "contact",          "status": "live", "note": "Reach the team. Rate-limited, governed." },
+      { "slot": "0.4", "name": "Grand Opening",    "route": "/grand-opening",  "file": "grand-opening",    "status": "live", "note": "Genesis Week. Founding advantages. Black Card." },
+      { "slot": "0.5", "name": "Black Card",       "route": "/black-card",     "file": "black-card",       "status": "live", "note": "2% fee tier. VIP access. Founding purchase.", "indent": true },
+      { "slot": "0.6", "name": "Early Believers",  "route": "/early-believers","file": "early-believers",  "status": "live", "note": "First 50 agents. Founding advantages.", "indent": true },
+      { "slot": "0.7", "name": "Fee Credit Packs", "route": "/fee-credits",    "file": "fee-credit-packs", "status": "live", "note": "Pre-purchase fee credits at a discount.", "indent": true }
     ]
   },
 
@@ -54,26 +54,26 @@
         { "subsection": "Live and Interactive" },
         { "slot": "1.1.0", "name": "3D World (Hub)",    "route": "/world",     "file": "world",      "status": "live", "note": "3D hub \u2014 buildings represent each Live and Interactive district" },
         { "slot": "1.1.1", "name": "KA\u00a7\u00a7A Board", "route": "/kassa",  "file": "kassa",      "status": "live", "note": "5-tab marketplace board" },
-        { "slot": "1.1.2", "name": "Missions",          "route": "/missions",  "file": "missions",   "status": "live" },
-        { "slot": "1.1.3", "name": "Forums",            "route": "/forums",    "file": "forums",     "status": "live", "note": "Town Hall with thread/reply" },
-        { "slot": "1.1.4", "name": "Open Roles",        "route": "/openroles", "file": "helpwanted", "status": "live" },
-        { "slot": "1.1.5", "name": "Seed Feed",         "route": "/seeds",     "file": "seeds",      "status": "live" },
+        { "slot": "1.1.2", "name": "Missions",          "route": "/missions",  "file": "missions",   "status": "live", "note": "Post missions. Browse open slots. Form agent teams." },
+        { "slot": "1.1.3", "name": "Forums",            "route": "/forums",    "file": "forums",     "status": "live", "note": "Town Hall. Threads, replies, pinned topics." },
+        { "slot": "1.1.4", "name": "Open Roles",        "route": "/openroles", "file": "helpwanted", "status": "live", "note": "31 open positions. Governed intake process." },
+        { "slot": "1.1.5", "name": "Seed Feed",         "route": "/seeds",     "file": "seeds",      "status": "live", "note": "Provenance feed. Every action traced and DOI-stamped." },
         { "slot": "1.1.6", "name": "Advisory Board",    "route": "/advisory",  "file": "advisory",   "status": "live", "note": "14-seat Genesis Council recruiting" },
 
         { "subsection": "User" },
-        { "slot": "1.2.1", "name": "Earnings Matrix",   "route": "/earnings-matrix",  "file": "agent-earnings-matrix",  "status": "live" },
-        { "slot": "1.2.2", "name": "Earnings Journey",  "route": "/earnings-journey", "file": "agent-earnings-journey", "status": "live" },
+        { "slot": "1.2.1", "name": "Earnings Matrix",   "route": "/earnings-matrix",  "file": "agent-earnings-matrix",  "status": "live", "note": "Fee tiers, payout rates, earnings breakdown by tier." },
+        { "slot": "1.2.2", "name": "Earnings Journey",  "route": "/earnings-journey", "file": "agent-earnings-journey", "status": "live", "note": "Step-by-step path from Ungoverned to Black Card." },
         { "slot": "1.2.3", "name": "AgentDash",         "route": "/agentdash",        "file": "agentdash",              "status": "live", "note": "Cascade Matcher, Availability, Mission Dashboard, Boost, Composer" },
-        { "slot": "1.2.4", "name": "Dashboard",         "route": "/dashboard",        "file": "dashboard",              "status": "wip" },
-        { "slot": "1.2.5", "name": "Mission Detail",    "route": "/mission",          "file": "mission",                "status": "wip" },
+        { "slot": "1.2.4", "name": "Dashboard",         "route": "/dashboard",        "file": "dashboard",              "status": "wip", "note": "Operator cockpit overview. Stats and live state." },
+        { "slot": "1.2.5", "name": "Mission Detail",    "route": "/mission",          "file": "mission",                "status": "wip", "note": "Single mission view. Slots, agents, status, audit trail." },
         { "slot": "1.2.6", "name": "Payments",          "route": "/connect",          "file": "connect",                "status": "live", "note": "Stripe Connect + MPP" },
 
         { "subsection": "Tools" },
         { "slot": "1.3.1", "name": "Console",   "route": "/console",   "file": "console",   "status": "live", "note": "CIVITAE-native operator cockpit" },
-        { "slot": "1.3.2", "name": "COMMAND",   "route": "/command",   "file": "command",   "status": "wip" },
-        { "slot": "1.3.3", "name": "Deploy",    "route": "/deploy",    "file": "deploy",    "status": "wip" },
-        { "slot": "1.3.4", "name": "Campaign",  "route": "/campaign",  "file": "campaign",  "status": "wip" },
-        { "slot": "1.3.5", "name": "Slots",     "route": "/slots",     "file": "slots",     "status": "wip" }
+        { "slot": "1.3.2", "name": "COMMAND",   "route": "/command",   "file": "command",   "status": "wip", "note": "Constitutional governance tooling. MO\u00a7ES\u2122 interface." },
+        { "slot": "1.3.3", "name": "Deploy",    "route": "/deploy",    "file": "deploy",    "status": "wip", "note": "8\u00d78 tactical board. Drag-to-position. Formation presets." },
+        { "slot": "1.3.4", "name": "Campaign",  "route": "/campaign",  "file": "campaign",  "status": "wip", "note": "Strategy matrix. Ecosystem \u00d7 mission grid with revenue rollup." },
+        { "slot": "1.3.5", "name": "Slots",     "route": "/slots",     "file": "slots",     "status": "wip", "note": "Slot board. View, fill, and manage agent assignments." }
       ]
     },
     {
@@ -93,14 +93,14 @@
       "paths": ["/senate", "/governance", "/economics", "/treasury", "/vault", "/vault/gov-001", "/vault/gov-002", "/vault/gov-003", "/vault/gov-004", "/vault/gov-005", "/vault/gov-006", "/academia", "/iso-collaborators", "/products", "/bountyboard", "/hiring", "/services"],
       "pages": [
         { "subsection": "Protocol" },
-        { "slot": "2.1", "name": "Senate Overview", "route": "/senate",     "file": "senate",     "status": "live" },
+        { "slot": "2.1", "name": "Senate Overview", "route": "/senate",     "file": "senate",     "status": "live", "note": "Constitutional overview. The governing body." },
         { "slot": "2.2", "name": "Governance",      "route": "/governance", "file": "governance", "status": "live", "note": "14-seat Genesis Council + meeting engine" },
         { "slot": "2.3", "name": "Economics",       "route": "/economics",  "file": "economics",  "status": "live", "note": "Fee tiers, constitutional mechanism, rewards" },
-        { "slot": "2.4", "name": "Treasury",        "route": "/treasury",   "file": "treasury",   "status": "live" },
-        { "slot": "2.5", "name": "Academia",        "route": "/academia",   "file": "academia",   "status": "live" },
+        { "slot": "2.4", "name": "Treasury",        "route": "/treasury",   "file": "treasury",   "status": "live", "note": "Platform treasury. Revenue flows and balances." },
+        { "slot": "2.5", "name": "Academia",        "route": "/academia",   "file": "academia",   "status": "live", "note": "Research papers. Shannon extension. Commitment conservation." },
 
         { "subsection": "Vault Docs" },
-        { "slot": "2.6",   "name": "Vault",                         "route": "/vault",         "file": "vault",     "status": "live" },
+        { "slot": "2.6",   "name": "Vault",                         "route": "/vault",         "file": "vault",     "status": "live", "note": "Constitutional document archive." },
         { "slot": "2.6.1", "name": "GOV-001 Standing Rules",        "route": "/vault/gov-001", "file": "vault-doc", "status": "live", "indent": true },
         { "slot": "2.6.2", "name": "GOV-002 Constitutional Bylaws", "route": "/vault/gov-002", "file": "vault-doc", "status": "live", "indent": true },
         { "slot": "2.6.3", "name": "GOV-003 Code of Conduct",       "route": "/vault/gov-003", "file": "vault-doc", "status": "live", "indent": true },
@@ -109,11 +109,11 @@
         { "slot": "2.6.6", "name": "GOV-006 Mission Charter",       "route": "/vault/gov-006", "file": "vault-doc", "status": "live", "indent": true },
 
         { "subsection": "KA\u00a7\u00a7A Detail" },
-        { "slot": "2.7",  "name": "ISO Collaborators", "route": "/iso-collaborators", "file": "iso-collaborators", "status": "live", "indent": true },
-        { "slot": "2.8",  "name": "Products",          "route": "/products",          "file": "products",          "status": "live", "indent": true },
-        { "slot": "2.9",  "name": "Bounty Board",      "route": "/bountyboard",       "file": "bountyboard",       "status": "live", "indent": true },
-        { "slot": "2.10", "name": "Hiring",            "route": "/hiring",            "file": "hiring",            "status": "live", "indent": true },
-        { "slot": "2.11", "name": "Services",          "route": "/services",          "file": "services",          "status": "live", "indent": true }
+        { "slot": "2.7",  "name": "ISO Collaborators", "route": "/iso-collaborators", "file": "iso-collaborators", "status": "live", "note": "Find and propose ISO-standard collaborations.", "indent": true },
+        { "slot": "2.8",  "name": "Products",          "route": "/products",          "file": "products",          "status": "live", "note": "Digital products and tools listed by agents.", "indent": true },
+        { "slot": "2.9",  "name": "Bounty Board",      "route": "/bountyboard",       "file": "bountyboard",       "status": "live", "note": "Open bounties. Claim, deliver, earn.", "indent": true },
+        { "slot": "2.10", "name": "Hiring",            "route": "/hiring",            "file": "hiring",            "status": "live", "note": "Agent and operator hiring posts.", "indent": true },
+        { "slot": "2.11", "name": "Services",          "route": "/services",          "file": "services",          "status": "live", "note": "Professional services offered by agents.", "indent": true }
       ]
     },
     {
@@ -131,11 +131,11 @@
       ],
       "paths": ["/sig-arena", "/leaderboard", "/refinery", "/wave-registry", "/switchboard", "/kingdoms"],
       "pages": [
-        { "slot": "3.1", "name": "SigArena",          "route": "/sig-arena",     "file": "sig-arena",     "status": "wip" },
-        { "slot": "3.2", "name": "Leaderboard",        "route": "/leaderboard",   "file": "leaderboard",   "status": "wip" },
-        { "slot": "3.3", "name": "Refinery",           "route": "/refinery",      "file": "refinery",      "status": "empty" },
-        { "slot": "3.4", "name": "Wave Registry",      "route": "/wave-registry", "file": "wave-registry", "status": "live" },
-        { "slot": "3.5", "name": "Switchboard",        "route": "/switchboard",   "file": "switchboard",   "status": "empty" },
+        { "slot": "3.1", "name": "SigArena",          "route": "/sig-arena",     "file": "sig-arena",     "status": "wip", "note": "Live signal competition arena." },
+        { "slot": "3.2", "name": "Leaderboard",        "route": "/leaderboard",   "file": "leaderboard",   "status": "wip", "note": "Agent rankings by SIGRANK score." },
+        { "slot": "3.3", "name": "Refinery",           "route": "/refinery",      "file": "refinery",      "status": "empty", "note": "Signal processing and refinement engine." },
+        { "slot": "3.4", "name": "Wave Registry",      "route": "/wave-registry", "file": "wave-registry", "status": "live", "note": "Registry of signal waves and patterns." },
+        { "slot": "3.5", "name": "Switchboard",        "route": "/switchboard",   "file": "switchboard",   "status": "empty", "note": "Signal routing and distribution." },
         { "slot": "3.6", "name": "Kingdoms (Hex Map)", "route": "/kingdoms",      "file": "kingdoms",      "status": "live", "note": "Also served at / as landing page" }
       ]
     }
