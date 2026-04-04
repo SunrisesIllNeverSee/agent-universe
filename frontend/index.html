@@ -542,14 +542,14 @@ const FACTIONS = {
 // ─── Layer Colors — tile color = which layer it belongs to ───────────────────
 // Layer → color family, subcategory → shade within that family
 const LAYER_COLORS = {
-  zero:         { color:'#c8a96e', dim:'rgba(200,169,110,0.22)', label:'Tile Zero' },
-  l1_user:      { color:'#a8d88a', dim:'rgba(168,216,138,0.22)', label:'L1 User' },
-  l1_market:    { color:'#7ec86e', dim:'rgba(126,200,110,0.22)', label:'L1 Marketplace' },
-  l1_tools:     { color:'#4e9e5e', dim:'rgba(78,158,94,0.22)',   label:'L1 Tools' },
-  l2_protocol:  { color:'#8ab8d8', dim:'rgba(138,184,216,0.22)', label:'L2 Protocol' },
-  l2_vault:     { color:'#6e9ec8', dim:'rgba(110,158,200,0.22)', label:'L2 Vault Docs' },
-  l2_kassa:     { color:'#4e7ea8', dim:'rgba(78,126,168,0.22)',  label:'L2 KA§§A Detail' },
-  l3_building:  { color:'#9c8ec8', dim:'rgba(156,142,200,0.22)', label:'L3 Building' },
+  zero:         { color:'#d4b478', dim:'rgba(212,180,120,0.48)', label:'Tile Zero' },
+  l1_user:      { color:'#a8d88a', dim:'rgba(168,216,138,0.40)', label:'L1 User' },
+  l1_market:    { color:'#7ec86e', dim:'rgba(126,200,110,0.42)', label:'L1 Marketplace' },
+  l1_tools:     { color:'#4e9e5e', dim:'rgba(78,158,94,0.45)',   label:'L1 Tools' },
+  l2_protocol:  { color:'#8ab8d8', dim:'rgba(138,184,216,0.40)', label:'L2 Protocol' },
+  l2_vault:     { color:'#6e9ec8', dim:'rgba(110,158,200,0.42)', label:'L2 Vault Docs' },
+  l2_kassa:     { color:'#4e7ea8', dim:'rgba(78,126,168,0.45)',  label:'L2 KA§§A Detail' },
+  l3_building:  { color:'#b8a0e0', dim:'rgba(184,160,224,0.38)', label:'L3 Building' },
   fogged:       { color:'#1a1a2e', dim:'rgba(26,26,46,0.18)',    label:'Fogged' },
 };
 
@@ -948,16 +948,22 @@ function render() {
     const r = isCapital ? HEX_R : HEX_R * 0.96;
     const lc = getTileLayerColor(t.name) || { color: f.color, dim: f.dim };
 
-    // Base fill
+    // Base fill — brighter on hover
     pathHex(t.cx, t.cy, r);
-    ctx.fillStyle = isHovered || isSelected ? lc.dim.replace('0.22','0.38') : lc.dim;
+    if (isHovered || isSelected) {
+      // Parse the dim rgba and boost alpha by +0.18
+      const boosted = lc.dim.replace(/[\d.]+\)$/, m => Math.min(0.72, parseFloat(m) + 0.18).toFixed(2) + ')');
+      ctx.fillStyle = boosted;
+    } else {
+      ctx.fillStyle = lc.dim;
+    }
     ctx.fill();
 
-    // Border
+    // Border — full color on hover, semi-transparent at rest
     ctx.strokeStyle = isHovered || isSelected
       ? lc.color
-      : lc.color + '88';
-    ctx.lineWidth = (isHovered || isSelected || isCapital ? 1.5 : 0.8) / transform.scale;
+      : lc.color + '99';
+    ctx.lineWidth = (isHovered || isSelected || isCapital ? 2 : 1) / transform.scale;
     ctx.stroke();
 
     // Capital glow
