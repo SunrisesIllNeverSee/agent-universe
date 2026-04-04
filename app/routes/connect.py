@@ -539,6 +539,60 @@ async def stripe_webhook_v1(request: Request) -> dict:
     return {"received": True, "seed_doi": seed_doi}
 
 
+# ── Fee Credit Pack Checkout ───────────────────────────────────────────────
+
+@router.post("/api/fee-credits/checkout")
+async def fee_credits_checkout(payload: dict, request: Request) -> dict:
+    """Create a direct Stripe checkout session for a fee credit pack purchase.
+
+    Body: { "pack_name": "Standard", "price_cents": 5000 }
+    Returns: { "checkout_url": "https://checkout.stripe.com/..." }
+    """
+    if not kassa_payments.stripe_ready():
+        raise HTTPException(status_code=503, detail="Stripe not configured")
+
+    pack_name = (payload.get("pack_name") or "").strip()
+    price_cents = int(payload.get("price_cents") or 0)
+    if not pack_name:
+        raise HTTPException(status_code=400, detail="pack_name required")
+    if price_cents <= 0:
+        raise HTTPException(status_code=400, detail="price_cents must be positive")
+
+    proto = request.headers.get("x-forwarded-proto", "https")
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "signomy.xyz")
+    base = f"{proto}://{host}"
+
+    try:
+        import stripe
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": "usd",
+                    "unit_amount": price_cents,
+                    "product_data": {
+                        "name": f"CIVITAE Fee Credit Pack — {pack_name}",
+                        "description": "Prepaid governance fee credits. Never expire. Apply automatically at mission settlement.",
+                    },
+                },
+                "quantity": 1,
+            }],
+            mode="payment",
+            success_url=f"{base}/fee-credits?success=1&pack={pack_name}",
+            cancel_url=f"{base}/fee-credits?cancelled=1",
+            metadata={"type": "fee_credit_pack", "pack_name": pack_name, "price_cents": str(price_cents)},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Stripe error: {e}")
+
+    state.audit.log("economy", "fee_credit_checkout_created", {
+        "pack_name": pack_name,
+        "price_cents": price_cents,
+        "session_id": session.id,
+    })
+    return {"checkout_url": session.url, "session_id": session.id}
+
+
 # ── Connect Pages ──────────────────────────────────────────────────────────
 
 @router.get("/connect")
