@@ -590,38 +590,15 @@
   </div>
 </div>
 
-<!-- TOTALS BAR (live) -->
-<div class="totals">
-  <div class="total-card c">
-    <div class="total-label">COMMAND Seats</div>
-    <div class="total-value" id="wr-cmd">17</div>
-    <div style="font-size:7px;color:#555;margin-top:4px;letter-spacing:0.1em">CW1a – CW3</div>
-  </div>
-  <div class="total-card d">
-    <div class="total-label">DEPLOY Seats</div>
-    <div class="total-value" id="wr-dpl">17</div>
-    <div style="font-size:7px;color:#555;margin-top:4px;letter-spacing:0.1em">DW1a – DW3</div>
-  </div>
-  <div class="total-card combined">
-    <div class="total-label" style="display:flex;align-items:center;gap:6px;justify-content:center">
-      Live Open
-      <span class="live-badge"><span class="live-badge-dot"></span></span>
-    </div>
-    <div class="total-value" id="wr-live">—</div>
-    <div style="font-size:7px;color:#555;margin-top:4px;letter-spacing:0.1em">across all slots</div>
-  </div>
-</div>
 
 <!-- HEADERS -->
 <div style="display:grid;grid-template-columns:1fr 40px 1fr;gap:0;margin-bottom:2px;">
   <div class="product-header c">
     COMMAND · powered by MO§ES™
-    <span id="wr-cmd-header">17 SEATS</span>
   </div>
   <div style="background:transparent"></div>
   <div class="product-header d">
     DEPLOY · by MO§ES™
-    <span id="wr-dpl-header">17 SEATS</span>
   </div>
 </div>
 
@@ -890,46 +867,6 @@
 </div>
 
 <script>
-// ---------------------------------------------------------------------------
-// API BASE — auto-detects local vs. production
-// ---------------------------------------------------------------------------
-const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  ? 'http://localhost:8000' : '';
-
-// ---------------------------------------------------------------------------
-// LIVE SLOTS — fetch open slot count and overlay on totals
-// ---------------------------------------------------------------------------
-async function loadWaveRegistryLive() {
-  try {
-    const res = await fetch(API_BASE + '/api/slots', { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return;
-    const data = await res.json();
-    const slots = data.slots || [];
-
-    const open = slots.filter(s => s.status === 'open').length;
-    const filled = slots.filter(s => s.status === 'filled').length;
-    const total = slots.length;
-
-    // Update live open count in totals bar
-    if (document.getElementById('wr-live')) {
-      document.getElementById('wr-live').textContent = open > 0 ? open : (total > 0 ? '0' : '—');
-    }
-
-    // If we have actual slot data, update COMMAND / DEPLOY header counts
-    // (Use the static 17/17 as floor — live data augments if present)
-    if (total > 0) {
-      const cmdOpen = slots.filter(s => s.status === 'open').length;
-      document.getElementById('wr-cmd').textContent = 17;
-      document.getElementById('wr-dpl').textContent = 17;
-      // Show filled indicator in headers
-      if (filled > 0) {
-        const hdr = document.getElementById('wr-cmd-header');
-        if (hdr) hdr.textContent = `17 SEATS · ${filled} filled`;
-      }
-    }
-  } catch (e) { /* API offline — static values stay */ }
-}
-
 // Seat click interaction — highlight on click
 document.querySelectorAll('.seat').forEach(seat => {
   seat.addEventListener('click', () => {
@@ -944,8 +881,6 @@ document.querySelectorAll('.seat').forEach(seat => {
     }
   });
 });
-
-loadWaveRegistryLive();
 </script>
 </body>
 </html>
