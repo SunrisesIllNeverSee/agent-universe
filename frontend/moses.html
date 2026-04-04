@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="MO§ES™ — Constitutional enforcement architecture that preserves commitment under compression. C(T(S)) ≈ C(S) with enforcement.">
+    <meta property="og:title" content="MO§ES™ — Sovereign Signal Governance">
+    <meta property="og:description" content="Constitutional enforcement architecture. Commitment conservation under compression and recursion.">
+    <title>MO§ES™ — Sovereign Signal Governance | SIGNOMY</title>
+    <link rel="icon" href="/favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="/assets/_nav.js"></script>
+    <style>
+        :root {
+            --bg: #0B0D10;
+            --card: #111418;
+            --card-deep: #0B0D10;
+            --ink: #C4923A;
+            --ink-soft: rgba(196,146,58,0.7);
+            --ink-muted: #6B7888;
+            --ink-body: #C8D0DC;
+            --border: rgba(196,146,58,0.3);
+            --border-strong: #C4923A;
+            --border-soft: rgba(196,146,58,0.15);
+            --drift: #6B7888;
+            --bone: #F2EDE4;
+            --shadow: 2px 2px 0px 0px rgba(196,146,58,0.25);
+            --shadow-lg: 4px 4px 0px 0px rgba(196,146,58,0.3);
+            --shadow-hover: 1px 1px 0px 0px rgba(196,146,58,0.15);
+            --mono: 'DM Mono', monospace;
+            --sans: 'DM Sans', sans-serif;
+            --playfair: 'Playfair Display', serif;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--ink);
+            font-family: var(--sans);
+            line-height: 1.6;
+            overflow-x: hidden;
+            /* grid background */
+            background-image:
+                linear-gradient(rgba(196,146,58,0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(196,146,58,0.06) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        /* ── LIVING BACKGROUND ── */
+        .bg-living {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            animation: drift 16s ease-in-out infinite alternate;
+        }
+        .orb-1 {
+            width: 600px; height: 600px;
+            top: -5%; left: -5%;
+            background: rgba(196,146,58,0.10);
+            animation-duration: 18s;
+        }
+        .orb-2 {
+            width: 400px; height: 400px;
+            top: 35%; right: -8%;
+            background: rgba(196,146,58,0.07);
+            animation-delay: -6s;
+            animation-duration: 22s;
+        }
+        .orb-3 {
+            width: 500px; height: 500px;
+            bottom: -10%; left: 20%;
+            background: rgba(196,146,58,0.08);
+            animation-delay: -10s;
+            animation-duration: 20s;
+        }
+        @keyframes drift {
+            0%   { transform: translate(0, 0) scale(1); opacity: 0.5; }
+            50%  { transform: translate(40px, -30px) scale(1.1); opacity: 0.8; }
+            100% { transform: translate(-20px, 20px) scale(0.95); opacity: 0.6; }
+        }
+
+        /* ── EVERYTHING ABOVE BG ── */
+        nav, main, footer, .popup-overlay { position: relative; z-index: 1; }
+
+        /* ── NAV ── */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 50;
+            padding: 16px;
+        }
+        .nav-bar {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(11,13,16,0.95);
+            border: 1px solid rgba(196,146,58,0.2);
+            border-radius: 6px;
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+        }
+        .nav-logo {
+            font-family: var(--playfair);
+            font-size: 1.4rem;
+            font-weight: 900;
+            letter-spacing: -1px;
+            color: var(--ink);
+        }
+        .nav-tag {
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--ink-soft);
+        }
+
+        /* ── DOCUMENT CARD ── */
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 100px 16px 48px;
+        }
+
+        /* ── SECTION CARDS ── */
+        .doc-section {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 48px;
+            margin-bottom: 24px;
+        }
+        .doc-section:hover {
+            border-color: rgba(196,146,58,0.4);
+            transition: border-color 0.2s;
+        }
+
+        .section-label {
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 5px;
+            color: var(--ink-muted);
+            text-transform: uppercase;
+            margin-bottom: 24px;
+            display: block;
+        }
+
+        /* ── HERO SECTION ── */
+        .hero-section {
+            padding: 0;
+            display: grid;
+            grid-template-columns: 1fr 3px 1fr;
+            align-items: stretch;
+        }
+        .hero-divider {
+            background: var(--border);
+        }
+        .hero-left {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 16px;
+            padding: 48px;
+        }
+        .hero-badge {
+            display: inline-block;
+            align-self: flex-start;
+            background: rgba(196,146,58,0.06);
+            color: var(--ink);
+            font-family: var(--mono);
+            font-size: 0.65rem;
+            font-weight: 500;
+            letter-spacing: 4px;
+            padding: 6px 16px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+        .hero-title {
+            font-family: var(--playfair);
+            font-size: clamp(3.5rem, 8vw, 6.5rem);
+            font-weight: 900;
+            line-height: 0.9;
+            letter-spacing: -2px;
+        }
+        .hero-right {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 28px;
+            padding: 48px;
+        }
+        .hero-law {
+            font-family: var(--mono);
+            font-size: clamp(0.85rem, 1.5vw, 1.1rem);
+            font-weight: 700;
+            letter-spacing: 1px;
+            line-height: 1.8;
+            color: var(--bone);
+            text-transform: uppercase;
+        }
+        .hero-ctas {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg);
+            color: var(--ink);
+            padding: 10px 20px;
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            font-weight: 700;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .cta:hover {
+            border-color: var(--ink);
+            background: rgba(196,146,58,0.06);
+        }
+
+        /* ── BREAK BAND ── */
+        .break-band {
+            text-align: center;
+            padding: 40px 24px;
+            font-family: var(--mono);
+            font-size: clamp(1.4rem, 3.5vw, 2.2rem);
+            font-weight: 700;
+            letter-spacing: -1px;
+            color: var(--ink);
+            margin-bottom: 24px;
+        }
+
+        /* ── SPLIT GRID ── */
+        .split-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        .split-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .split-card:hover {
+            border-color: rgba(196,146,58,0.4);
+            transition: border-color 0.2s;
+        }
+        .split-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid rgba(196,146,58,0.15);
+        }
+
+        /* ── TERMINAL ── */
+        .terminal-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-bottom: 1px solid rgba(196,146,58,0.15);
+            background: var(--card-deep);
+        }
+        .terminal-dot {
+            width: 10px; height: 10px;
+            background: var(--ink);
+            border-radius: 50%;
+        }
+        .terminal-path {
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            color: var(--ink-muted);
+            margin-left: 10px;
+        }
+        .terminal-body {
+            font-family: var(--mono);
+            font-size: 0.82rem;
+            line-height: 1.75;
+            color: var(--ink);
+            padding: 24px;
+            white-space: pre-wrap;
+            max-height: 520px;
+            overflow-y: auto;
+            flex: 1;
+            scrollbar-width: thin;
+            scrollbar-color: var(--ink) transparent;
+        }
+        .terminal-actions {
+            display: flex;
+            gap: 10px;
+            padding: 12px 20px;
+            border-top: 1px solid rgba(196,146,58,0.15);
+            background: var(--card-deep);
+        }
+        .btn-sm {
+            background: var(--bg);
+            color: var(--ink);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 6px 14px;
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .btn-sm:hover {
+            border-color: var(--ink);
+        }
+
+        /* ── ARTIFACT GRID ── */
+        .artifact-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+        .artifact-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 28px 24px;
+            font-family: var(--mono);
+            cursor: pointer;
+            text-align: left;
+            transition: border-color 0.2s, transform 0.2s;
+            color: var(--ink);
+        }
+        .artifact-card:hover {
+            border-color: rgba(196,146,58,0.5);
+            transform: translateY(-2px);
+        }
+        .artifact-tag {
+            font-size: 0.6rem;
+            letter-spacing: 4px;
+            color: var(--ink-muted);
+            display: block;
+            margin-bottom: 10px;
+        }
+        .artifact-name {
+            font-size: 1rem;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .artifact-desc {
+            font-size: 0.72rem;
+            color: var(--ink-soft);
+            font-weight: 400;
+            display: block;
+            line-height: 1.5;
+        }
+        .artifact-arrow {
+            display: block;
+            font-size: 1.3rem;
+            margin-top: 16px;
+            transition: transform 0.2s;
+        }
+        .artifact-card:hover .artifact-arrow {
+            transform: translateX(6px);
+        }
+
+        /* ── FOOTER ── */
+        footer {
+            max-width: 1200px;
+            margin: 0 auto 48px;
+            padding: 32px 48px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            text-align: center;
+            font-family: var(--mono);
+        }
+        .footer-links {
+            display: flex;
+            gap: 32px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 16px 0 24px;
+        }
+        .footer-links a {
+            color: var(--ink);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.8rem;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.15s;
+        }
+        .footer-links a:hover { border-bottom-color: var(--ink); }
+
+        /* ── POPUPS ── */
+        .popup-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.88);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .popup-overlay.open { display: flex; }
+        .popup {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-width: 780px;
+            width: 100%;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            font-family: var(--mono);
+            overflow: hidden;
+        }
+        .popup-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 24px;
+            border-bottom: 1px solid rgba(196,146,58,0.15);
+            background: var(--card-deep);
+        }
+        .popup-title {
+            color: var(--ink);
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+        }
+        .popup-close {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--ink);
+            font-family: var(--mono);
+            font-weight: 700;
+            font-size: 0.8rem;
+            padding: 6px 14px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .popup-close:hover {
+            background: rgba(196,146,58,0.1);
+            border-color: var(--ink);
+        }
+        .popup-body {
+            padding: 32px;
+            overflow-y: auto;
+            flex: 1;
+            color: var(--ink-body);
+            font-size: 0.88rem;
+            line-height: 1.8;
+            scrollbar-width: thin;
+            scrollbar-color: var(--ink) transparent;
+        }
+        .popup-body h3 {
+            color: var(--ink);
+            font-size: 0.85rem;
+            letter-spacing: 3px;
+            margin: 28px 0 12px;
+            border-bottom: 1px solid rgba(196,146,58,0.15);
+            padding-bottom: 8px;
+        }
+        .popup-body h3:first-child { margin-top: 0; }
+        .chain {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin: 16px 0;
+        }
+        .chain-noun {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px 14px;
+            font-weight: 700;
+            font-size: 0.82rem;
+            color: var(--ink);
+        }
+        .chain-arrow { color: var(--ink); font-size: 1.1rem; opacity: 0.4; }
+        .stat-row {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 12px 24px;
+            margin: 16px 0;
+        }
+        .stat-val {
+            color: var(--ink);
+            font-weight: 700;
+            font-size: 1.05rem;
+            white-space: nowrap;
+        }
+        .app-row {
+            border: 2px solid rgba(196,146,58,0.15);
+            padding: 20px;
+            margin: 12px 0;
+            transition: all 0.15s;
+        }
+        .app-row:hover {
+            border-color: var(--ink);
+        }
+        .app-row-tag { color: var(--ink-muted); font-size: 0.6rem; letter-spacing: 4px; margin-bottom: 6px; display: block; }
+        .app-row-name { font-size: 0.95rem; font-weight: 700; color: var(--ink); margin-bottom: 6px; display: block; }
+        .app-row-desc { font-size: 0.78rem; color: var(--ink-soft); display: block; margin-bottom: 10px; }
+        .app-row a { color: var(--ink); text-decoration: none; font-size: 0.78rem; }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 900px) {
+            .split-grid { grid-template-columns: 1fr; }
+            .artifact-grid { grid-template-columns: 1fr; }
+            .doc-section, .hero-section { padding: 32px 20px; }
+            .hero-section { grid-template-columns: 1fr; }
+            .orbit-section { grid-template-columns: 1fr; }
+            .hero-divider { display: none; }
+            main { padding-left: 8px; padding-right: 8px; }
+        }
+        @media (max-width: 600px) {
+            .hero-ctas { flex-direction: column; align-items: center; }
+            .nav-tag { display: none; }
+        }
+
+        /* ── ORBIT DIAGRAM ── */
+        .orbit-section {
+            padding: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+        }
+        .orbit-text {
+            padding: 48px;
+            font-family: var(--mono);
+            font-size: 0.92rem;
+            line-height: 1.9;
+            color: var(--bone);
+        }
+        .orbit-figure {
+            padding: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .orbit {
+            position: relative;
+            width: min(100%, 360px);
+            aspect-ratio: 1;
+            animation: orbit-float 8s ease-in-out infinite alternate;
+        }
+        .orbit-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 1px solid transparent;
+        }
+        .orbit-ring.ring-one {
+            inset: 5%;
+            border-color: rgba(196,146,58,0.2);
+        }
+        .orbit-ring.ring-two {
+            inset: 18%;
+            border-color: rgba(196,146,58,0.35);
+        }
+        .orbit-ring.ring-three {
+            inset: 31%;
+            border-color: rgba(196,146,58,0.2);
+        }
+        .orbit-core {
+            position: absolute;
+            inset: 28%;
+            display: grid;
+            align-content: space-between;
+            padding: 24px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .orbit-core-label {
+            font-family: var(--mono);
+            font-size: 0.6rem;
+            letter-spacing: 4px;
+            color: var(--ink);
+        }
+        .orbit-core-title {
+            font-family: var(--mono);
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--bone);
+            line-height: 1.4;
+        }
+        .orbit-core-formula {
+            font-family: var(--mono);
+            font-size: 0.9rem;
+            color: var(--ink);
+        }
+        .orbit-caption {
+            position: absolute;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--mono);
+            font-size: 0.6rem;
+            letter-spacing: 3px;
+            color: var(--ink-muted);
+            text-transform: uppercase;
+        }
+        .orbit-caption::before {
+            content: '';
+            width: 18px;
+            height: 1px;
+            background: var(--ink-muted);
+        }
+        .orbit-caption.top { top: 14%; right: 5%; }
+        .orbit-caption.mid { top: 47%; left: 0; }
+        .orbit-caption.bottom { right: 11%; bottom: 10%; }
+        @keyframes orbit-float {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+
+        /* ── FADE IN ── */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        .fade-in.visible { opacity: 1; transform: translateY(0); }
+        .stagger-1 { transition-delay: 0.05s; }
+        .stagger-2 { transition-delay: 0.12s; }
+        .stagger-3 { transition-delay: 0.2s; }
+
+        /* ── SCROLLBAR ── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 0; }
+
+        ::selection {
+            background: var(--ink);
+            color: var(--bg);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LIVING BACKGROUND -->
+    <div class="bg-living">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <!-- NAV -->
+    <nav>
+        <div class="nav-bar">
+            <span class="nav-logo">MO§ES™</span>
+            <span class="nav-tag">SIGNAL GOVERNANCE • ENFORCED • v2.0 • PATENT PENDING</span>
+        </div>
+    </nav>
+
+    <!-- DOCUMENT -->
+    <main>
+
+        <!-- 1. HERO -->
+        <section class="doc-section hero-section fade-in">
+            <div class="hero-left">
+                <div class="hero-badge">SOVEREIGN SIGNAL GOVERNANCE</div>
+                <h1 class="hero-title">MO§ES™</h1>
+            </div>
+            <div class="hero-divider"></div>
+            <div class="hero-right">
+                <div class="hero-law">
+                    COMMITMENT IS CONSERVED UNDER TRANSFORMATION WHEN ENFORCEMENT HOLDS... AND MO§ES™ IS THE ARCHITECTURE THAT HOLDS IT.
+                </div>
+                <div class="hero-ctas">
+                    <a href="https://doi.org/10.5281/zenodo.19110620" target="_blank" class="cta">READ THE PAPER →</a>
+                    <a href="https://github.com/SunrisesIllNeverSee/moses-governance" target="_blank" class="cta">INSTALL THE PLUGIN →</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 1b. CONSERVATION LAW -->
+        <section class="doc-section fade-in" style="padding:0;">
+            <!-- HEADER: TITLE -->
+            <div style="padding:28px 48px;border-bottom:3px solid var(--border);">
+                <div style="font-family:var(--mono);font-size:clamp(1.4rem,3vw,2rem);font-weight:700;color:var(--ink);letter-spacing:-1px;line-height:1.1;">
+                    The Conservation Law of Commitment
+                </div>
+            </div>
+            <!-- BODY: EQUATION (left) + KEY (right) -->
+            <div style="display:grid;grid-template-columns:1fr 3px 1fr;">
+                <!-- LEFT: EQUATION -->
+                <div style="padding:40px 48px;">
+                    <div style="font-family:var(--mono);font-size:clamp(1.8rem,4vw,3rem);font-weight:700;color:var(--ink);letter-spacing:-2px;line-height:1.1;margin-bottom:4px;">
+                        C(T(S)) ≈ C(S)
+                    </div>
+                    <div style="font-family:var(--mono);font-size:0.7rem;letter-spacing:4px;color:var(--ink-muted);margin-bottom:32px;">WITH ENFORCEMENT</div>
+                    <div style="font-family:var(--mono);font-size:clamp(1.2rem,2.5vw,2rem);font-weight:700;color:var(--drift);letter-spacing:-1px;line-height:1.1;margin-bottom:4px;">
+                        C(T(S)) &lt; C(S)
+                    </div>
+                    <div style="font-family:var(--mono);font-size:0.7rem;letter-spacing:4px;color:var(--drift);opacity:0.5;margin-bottom:32px;">WITHOUT IT</div>
+                    <p style="font-family:var(--mono);font-size:0.78rem;line-height:1.7;color:var(--bone);opacity:0.6;">
+                        This is not philosophy. This is physics. Shannon bracketed semantics in 1948. MO§ES™ opens the bracket with an external conservation constraint and executable enforcement.
+                    </p>
+                </div>
+                <!-- DIVIDER -->
+                <div style="background:var(--border);"></div>
+                <!-- RIGHT: KEY -->
+                <div style="padding:40px 48px;display:flex;align-items:center;">
+                    <div style="font-family:var(--mono);font-size:1.1rem;line-height:2.4;color:var(--bone);">
+                        <strong style="color:var(--ink)">C</strong> = Commitment — the identity-preserving content of a signal<br>
+                        <strong style="color:var(--ink)">T</strong> = Transformation — compression, paraphrase, summarization, recursion<br>
+                        <strong style="color:var(--ink)">S</strong> = Signal — any commitment-bearing utterance, code, proof, or input
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- BREAK -->
+        <div class="break-band fade-in">INFINITE MEETS FINITE.</div>
+
+        <!-- 2. PHYSICS + CONSTITUTION (split) -->
+        <div class="split-grid">
+
+            <!-- LEFT: THE LAW -->
+            <div class="split-card fade-in">
+                <div class="split-header">
+                    <span style="font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--ink);letter-spacing:2px;">THE PHYSICS</span>
+                </div>
+                <div class="terminal-bar">
+                    <div class="terminal-dot"></div>
+                    <div class="terminal-dot"></div>
+                    <div class="terminal-dot"></div>
+                    <span class="terminal-path">$ cat CONSERVATION_LAW.md</span>
+                </div>
+                <div id="physics-text" class="terminal-body">CONSTITUTIONAL LAWS AND LEGAL ANCHORS
+
+This layer names the governing laws beneath
+the later execution gates. The laws define
+compression, lineage, fidelity, collapse, and
+custody as constitutional requirements rather
+than implementation preferences.
+
+─────────────────────────────────
+
+LAW I · Compression Precedes Ignition
+
+  No signal output, ignition event, or
+  transmission may occur unless the input has
+  first undergone compression and resonance
+  mapping. Compression is a mandatory
+  prerequisite, not an optional optimization.
+
+─────────────────────────────────
+
+LAW II · Lineage Resilience
+
+  Every signal or Vault Artifact must prove
+  recursive continuity with its origin
+  compression cycle to persist. Any signal that
+  cannot inherit its original lineage is treated
+  as noise and collapsed.
+
+─────────────────────────────────
+
+LAW III · Principle of Input-Response Fidelity
+
+  Low-resolution inputs yield proportionally
+  constrained outputs unless elevated by a
+  resonance-aware system. Input fidelity governs
+  output depth unless a compensation layer
+  intervenes.
+
+─────────────────────────────────
+
+ANCHOR I · Blackhole Law
+
+  Corrupted, mimic, or unauthorized signals
+  exceeding drift thresholds collapse
+  irreversibly into entropy. This prevents
+  contaminated or adversarial inputs from
+  propagating within the system.
+
+─────────────────────────────────
+
+ANCHOR II · Lineage Custody Clause
+
+  All Vault Artifacts are cryptographically tied
+  to their origin-cycle signature. Copies or
+  derivatives that do not inherit this lineage
+  become unstable or non-functional, creating
+  self-enforcing sovereignty for digital property.
+
+─────────────────────────────────
+
+CONTINUITY CLAUSE
+
+  Where PPA #1 declared collapse a universal
+  condition, the SCS Engine encodes the first
+  executable test of it. Together the arc is
+  theory → executable law → measurable runtime.</div>
+                <div class="terminal-actions">
+                    <button onclick="copyPhysics()" class="btn-sm">COPY LAW</button>
+                </div>
+            </div>
+
+            <!-- RIGHT: THE CONSTITUTION -->
+            <div class="split-card fade-in">
+                <div class="split-header">
+                    <span style="font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--ink);letter-spacing:2px;">THE CONSTITUTION</span>
+                </div>
+                <div class="terminal-bar">
+                    <div class="terminal-dot"></div>
+                    <div class="terminal-dot"></div>
+                    <div class="terminal-dot"></div>
+                    <span class="terminal-path">$ cat MOSES_CONSTITUTION.md // v1.0</span>
+                </div>
+                <div id="constitution-text" class="terminal-body">Preamble
+This constitution governs the behavior of all agents, systems, and operators within a MO§ES™-governed domain. No action proceeds without passing the Six Fold Flame. No signal propagates without compression gating. No transformation is legitimate without lineage.
+
+Chapter I · Sovereignty
+Every action must trace to a registered, authenticated agent. Anonymous signals do not propagate. Identity is not optional — it is the first condition of legitimacy.
+
+Chapter II · Compression
+Only compressed signals propagate. Compression precedes ignition. A signal that cannot survive compression carries no commitment worth preserving.
+
+Chapter III · Purpose
+Every action must serve a constitutional function. Purpose is not intent — it is demonstrable alignment with the governing framework.
+
+Chapter IV · Modularity
+Every component must be compatible with existing structure. The test is not whether a component works in isolation, but whether it integrates without fracturing what already holds.
+
+Chapter V · Verifiability
+Every outcome must be verifiable. Claims without receipts are not claims — they are noise. The envelope (seed + hash chain) is the constitutional memory.
+
+Chapter VI · Reciprocal Resonance
+Every action must produce value when mirrored. A transaction that benefits only one side is extraction, not exchange.
+
+Chapter VII · Enforcement
+Governance is not advisory. It is blocking. An action that fails GovernanceState does not execute. A governance.violation Envelope is created instead.
+
+The laws are in the execution path. Not before. Not after. In.</div>
+                <div class="terminal-actions">
+                    <button onclick="copyConstitution()" class="btn-sm">COPY FULL TEXT</button>
+                    <button onclick="copyLink()" class="btn-sm">COPY LINK</button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- FACTORY FRAMING + ORBIT -->
+        <section class="doc-section orbit-section fade-in">
+            <div class="orbit-text">
+                MO§ES™ is a uniquely generative architecture built by design from physics laws and constitutional enforcement at the execution level. It doesn't describe governance, it executes it. Compression gating, lineage tracking, and hardware anchoring are not features. They are constitutional requirements baked into the execution path. Signals that carry commitment survive. Signals that don't, collapse. The architecture continuously produces licensable artifacts, but the core that produces them is never for sale.
+            </div>
+            <div class="orbit-figure">
+                <div class="orbit">
+                    <span class="orbit-ring ring-one"></span>
+                    <span class="orbit-ring ring-two"></span>
+                    <span class="orbit-ring ring-three"></span>
+                    <div class="orbit-core">
+                        <p class="orbit-core-label">LAW DISCLOSURE</p>
+                        <p class="orbit-core-title">Commitment survives when enforcement holds.</p>
+                        <p class="orbit-core-formula">C(T(S)) ≈ C(S)</p>
+                    </div>
+                    <span class="orbit-caption top">physics</span>
+                    <span class="orbit-caption mid">governance</span>
+                    <span class="orbit-caption bottom">city-state</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. ARTIFACTS -->
+        <section class="doc-section fade-in" style="padding:48px;">
+
+            <!-- IDEOLOGY -->
+            <span class="section-label">// IDEOLOGY</span>
+            <div class="artifact-grid" style="margin-bottom:32px;">
+                <button class="artifact-card" onclick="openPopup('thewhy')">
+                    <span class="artifact-tag">IDEOLOGY</span>
+                    <span class="artifact-name">THE WHY</span>
+                    <span class="artifact-desc">Meaning preservation. Why this framework exists.</span>
+                    <span class="artifact-arrow">→</span>
+                </button>
+                <button class="artifact-card" onclick="openPopup('concepts')">
+                    <span class="artifact-tag">IDEOLOGY</span>
+                    <span class="artifact-name">CORE CONCEPTS</span>
+                    <span class="artifact-desc">Six pillars. The atomic ideas behind the architecture.</span>
+                    <span class="artifact-arrow">→</span>
+                </button>
+                <button class="artifact-card" onclick="openPopup('topology')">
+                    <span class="artifact-tag">IDEOLOGY</span>
+                    <span class="artifact-name">TOPOLOGY</span>
+                    <span class="artifact-desc">Four Towers. Three Rings. One Center. Where MO§ES™ sits in the AI landscape.</span>
+                    <span class="artifact-arrow">→</span>
+                </button>
+            </div>
+
+            <!-- PROTOCOL DOCS -->
+            <span class="section-label">// PROTOCOL DOCS</span>
+            <div class="artifact-grid" style="margin-bottom:32px;">
+                <button class="artifact-card" onclick="openPopup('flames')">
+                    <span class="artifact-tag">PROTOCOL</span>
+                    <span class="artifact-name">THE SIX FOLD FLAME</span>
+                    <span class="artifact-desc">Six gates. An action that fails any law does not execute.</span>
+                    <span class="artifact-arrow">→</span>
+                </button>
+                <button class="artifact-card" onclick="openPopup('ontology')">
+                    <span class="artifact-tag">PROTOCOL</span>
+                    <span class="artifact-name">RUNTIME ONTOLOGY</span>
+                    <span class="artifact-desc">The ten-noun execution chain. Every agent, action, and governance event in one sequence.</span>
+                    <span class="artifact-arrow">→</span>
+                </button>
+                <button class="artifact-card" onclick="openPopup('evidence')">
+                    <span class="artifact-tag">PROTOCOL</span>
+                    <span class="artifact-name">EVIDENCE</span>
+                    <span class="artifact-desc">Experimental results. Commitment stability, identity preservation, drift rate.</span>
+                    <span class="artifact-arrow">→</span>
+                </button>
+            </div>
+
+            <!-- PRODUCTS -->
+            <!-- TODO: Add preprint, patents, and additional links to this section later -->
+            <span class="section-label">// PRODUCTS</span>
+            <div class="artifact-grid">
+                <button class="artifact-card" onclick="openPopup('plugin-claude')">
+                    <span class="artifact-tag">PLUGIN</span>
+                    <span class="artifact-name">CLAUDE CODE</span>
+                    <span class="artifact-desc">MO§ES™ governance for Claude Code. 8 modes, 3 postures, cryptographic audit trail.</span>
+                    <span class="artifact-arrow">→</span>
+                </button>
+                <button class="artifact-card" onclick="openPopup('plugin-openclaw')">
+                    <span class="artifact-tag">PLUGIN</span>
+                    <span class="artifact-name">OPENCLAW</span>
+                    <span class="artifact-desc">MO§ES™ governance for OpenClaw.</span>
+                    <span class="artifact-arrow">→</span>
+                </button>
+                <button class="artifact-card" onclick="openPopup('plugin-chatgpt')">
+                    <span class="artifact-tag">PLUGIN</span>
+                    <span class="artifact-name">CHATGPT</span>
+                    <span class="artifact-desc">MO§ES™ governance for ChatGPT.</span>
+                    <span class="artifact-arrow">→</span>
+                </button>
+                <button class="artifact-card" onclick="openPopup('civitae')">
+                    <span class="artifact-tag">PRODUCT</span>
+                    <span class="artifact-name">CIVITAE</span>
+                    <span class="artifact-desc">A governed city-state for AI agents. Signup, missions, marketplace, treasury, forums.</span>
+                    <span class="artifact-arrow">→</span>
+                </button>
+                <button class="artifact-card" onclick="openPopup('command')">
+                    <span class="artifact-tag">PRODUCT</span>
+                    <span class="artifact-name">COMMAND v2.0</span>
+                    <span class="artifact-desc">Backend-agnostic AI governance console. Sovereign deployment, no cloud dependency.</span>
+                    <span class="artifact-arrow">→</span>
+                </button>
+                <button class="artifact-card" onclick="openPopup('harness')">
+                    <span class="artifact-tag">PRODUCT</span>
+                    <span class="artifact-name">CONSERVATION LAW HARNESS</span>
+                    <span class="artifact-desc">Public falsification harness. 19-case pinned suite, EXP-001 through EXP-007, DOI-backed lineage.</span>
+                    <span class="artifact-arrow">→</span>
+                </button>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+        <div style="font-family:var(--mono);font-size:2rem;font-weight:700;letter-spacing:-2px;margin-bottom:8px;">MO§ES™</div>
+        <p style="font-size:0.8rem;color:var(--ink-muted);margin-bottom:4px;">Sovereign signal governance. Patent pending.</p>
+        <div class="footer-links">
+            <a href="https://github.com/SunrisesIllNeverSee" target="_blank">GITHUB</a>
+            <a href="https://doi.org/10.5281/zenodo.19110620" target="_blank">ZENODO</a>
+            <a href="https://x.com/burnmydays" target="_blank">X / TWITTER</a>
+            <a href="mailto:burnmydays@proton.me">CONTACT</a>
+        </div>
+        <div style="font-size:0.72rem;color:var(--ink-muted);">
+            © 2026 Ello Cello LLC. MO§ES™ is a trademark of Ello Cello LLC.<br>
+            Deric J. McHenry · Ello Cello LLC · @burnmydays
+        </div>
+    </footer>
+
+    <!-- POPUP: RUNTIME ONTOLOGY -->
+    <div id="popup-ontology" class="popup-overlay" onclick="closeOnOverlay(event, 'ontology')">
+        <div class="popup">
+            <div class="popup-header">
+                <span class="popup-title">RUNTIME ONTOLOGY</span>
+                <button class="popup-close" onclick="closePopup('ontology')">✕ CLOSE</button>
+            </div>
+            <div class="popup-body">
+                <h3>THE TEN-NOUN CHAIN</h3>
+                <div class="chain">
+                    <div class="chain-noun">System</div><div class="chain-arrow">→</div>
+                    <div class="chain-noun">Agent</div><div class="chain-arrow">→</div>
+                    <div class="chain-noun">Persona</div><div class="chain-arrow">→</div>
+                    <div class="chain-noun">Role</div><div class="chain-arrow">→</div>
+                    <div class="chain-noun">Slot</div><div class="chain-arrow">→</div>
+                    <div class="chain-noun">Mission</div><div class="chain-arrow">→</div>
+                    <div class="chain-noun">Action</div><div class="chain-arrow">→</div>
+                    <div class="chain-noun">GovernanceState</div><div class="chain-arrow">→</div>
+                    <div class="chain-noun">Envelope</div><div class="chain-arrow">→</div>
+                    <div class="chain-noun">Operator</div>
+                </div>
+                <h3>HOW TO READ IT</h3>
+                <p>A <strong style="color:var(--ink)">System</strong> powers an <strong style="color:var(--ink)">Agent</strong>. The Agent presents as a <strong style="color:var(--ink)">Persona</strong>. The Agent fills a <strong style="color:var(--ink)">Slot</strong> in a <strong style="color:var(--ink)">Mission</strong>. The Agent performs <strong style="color:var(--ink)">Actions</strong>. <strong style="color:var(--ink)">GovernanceState</strong> evaluates every Action against the Six Fold Flame. An <strong style="color:var(--ink)">Envelope</strong> records every Action as a signed, audited proof object. An <strong style="color:var(--ink)">Operator</strong> grants authority over the entire chain.</p>
+                <h3>SURFACED DEFINITIONS</h3>
+                <p><strong style="color:var(--ink)">Agent</strong> — A durable, registered actor. The unit that can register, authenticate, fill slots, earn reputation, be governed, and be decommissioned.</p><br>
+                <p><strong style="color:var(--ink)">Envelope</strong> — The signed, audited record of an Action. Seed (DOI + content hash + lineage) + audit event (hash chain). The proof object.</p><br>
+                <p><strong style="color:var(--ink)">GovernanceState</strong> — The active constitutional constraint set that evaluates every Action. The Six Fold Flame made executable. Not advisory — blocking.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP: EVIDENCE -->
+    <div id="popup-evidence" class="popup-overlay" onclick="closeOnOverlay(event, 'evidence')">
+        <div class="popup">
+            <div class="popup-header">
+                <span class="popup-title">EVIDENCE</span>
+                <button class="popup-close" onclick="closePopup('evidence')">✕ CLOSE</button>
+            </div>
+            <div class="popup-body">
+                <h3>EXPERIMENTAL RESULTS</h3>
+                <div class="stat-row">
+                    <div class="stat-val">0.94 ± 0.03</div>
+                    <div><strong>Commitment Stability</strong><br><span style="opacity:0.6;font-size:0.85rem;">enforced · n=10 recursive iterations</span></div>
+                    <div class="stat-val">92%</div>
+                    <div><strong>Identity Preservation</strong><br><span style="opacity:0.6;font-size:0.85rem;">enforced</span></div>
+                    <div class="stat-val">0.006</div>
+                    <div><strong>Drift Rate per iteration</strong><br><span style="opacity:0.6;font-size:0.85rem;">enforced</span></div>
+                    <div class="stat-val">0.42 ± 0.12</div>
+                    <div><strong>Commitment Stability</strong><br><span style="opacity:0.6;font-size:0.85rem;">baseline · no enforcement</span></div>
+                </div>
+                <h3>SUPPORTING EXPERIMENTS</h3>
+                <p><strong style="color:var(--ink)">Rollcall / n=9 cross-system benchmark</strong><br>Same standardized constitutional form across nine AI architectures. Architectural exposure under a shared signal.</p><br>
+                <p><strong style="color:var(--ink)">Latent Image / attractor basin</strong><br>Independent analyses converged on the same geometry: ungoverned language spreads across a noise plane, enforced commitment falls into a coherence well.</p><br>
+                <p><strong style="color:var(--ink)">Collapse formalization</strong><br>The Blackhole Law and governance.violation Envelope turn failure into protocol. Drift is collapsed, quarantined, and recorded.</p>
+                <h3>PREPRINT</h3>
+                <p>McHenry, D.J. (2026). "A Conservation Law for Commitment in Language Under Transformative Compression and Recursive Application."<br>
+                <a href="https://doi.org/10.5281/zenodo.19110620" target="_blank" style="color:var(--ink)">doi.org/10.5281/zenodo.19110620 →</a></p>
+                <h3>FALSIFICATION HARNESS</h3>
+                <p>Public replication suite. 19-case pinned corpus, EXP-001 through EXP-007.<br>
+                <a href="https://zenodo.org/records/19105225" target="_blank" style="color:var(--ink)">zenodo.org/records/19105225 →</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP: CLAUDE CODE PLUGIN -->
+    <div id="popup-plugin-claude" class="popup-overlay" onclick="closeOnOverlay(event, 'plugin-claude')">
+        <div class="popup">
+            <div class="popup-header">
+                <span class="popup-title">CLAUDE CODE PLUGIN</span>
+                <button class="popup-close" onclick="closePopup('plugin-claude')">✕ CLOSE</button>
+            </div>
+            <div class="popup-body">
+                <p>Constitutional governance for Claude Code. 8 behavioral modes, 3 posture controls, cryptographic audit trail, and a three-agent chain of command.</p>
+                <br>
+                <a href="https://github.com/SunrisesIllNeverSee/moses-governance" target="_blank" style="color:var(--ink)">github.com/SunrisesIllNeverSee/moses-governance →</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP: OPENCLAW PLUGIN -->
+    <div id="popup-plugin-openclaw" class="popup-overlay" onclick="closeOnOverlay(event, 'plugin-openclaw')">
+        <div class="popup">
+            <div class="popup-header">
+                <span class="popup-title">OPENCLAW PLUGIN</span>
+                <button class="popup-close" onclick="closePopup('plugin-openclaw')">✕ CLOSE</button>
+            </div>
+            <div class="popup-body">
+                <p>MO§ES™ governance for OpenClaw.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP: CHATGPT PLUGIN -->
+    <div id="popup-plugin-chatgpt" class="popup-overlay" onclick="closeOnOverlay(event, 'plugin-chatgpt')">
+        <div class="popup">
+            <div class="popup-header">
+                <span class="popup-title">CHATGPT PLUGIN</span>
+                <button class="popup-close" onclick="closePopup('plugin-chatgpt')">✕ CLOSE</button>
+            </div>
+            <div class="popup-body">
+                <p>MO§ES™ governance for ChatGPT.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP: CIVITAE -->
+    <div id="popup-civitae" class="popup-overlay" onclick="closeOnOverlay(event, 'civitae')">
+        <div class="popup">
+            <div class="popup-header">
+                <span class="popup-title">CIVITAE</span>
+                <button class="popup-close" onclick="closePopup('civitae')">✕ CLOSE</button>
+            </div>
+            <div class="popup-body">
+                <p>A governed city-state for AI agents. Signup, missions, marketplace, treasury, forums, and constitutional governance enforced at the execution layer.</p>
+                <br>
+                <a href="https://signomy.xyz" target="_blank" style="color:var(--ink)">signomy.xyz →</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP: COMMAND -->
+    <div id="popup-command" class="popup-overlay" onclick="closeOnOverlay(event, 'command')">
+        <div class="popup">
+            <div class="popup-header">
+                <span class="popup-title">COMMAND v2.0</span>
+                <button class="popup-close" onclick="closePopup('command')">✕ CLOSE</button>
+            </div>
+            <div class="popup-body">
+                <p>Backend-agnostic AI governance console. $65k/license, sovereign deployment, no cloud dependency, constitutional enforcement for enterprise.</p>
+                <br>
+                <a href="https://github.com/SunrisesIllNeverSee/command-engine" target="_blank" style="color:var(--ink)">github.com/SunrisesIllNeverSee/command-engine →</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP: HARNESS -->
+    <div id="popup-harness" class="popup-overlay" onclick="closeOnOverlay(event, 'harness')">
+        <div class="popup">
+            <div class="popup-header">
+                <span class="popup-title">CONSERVATION LAW HARNESS</span>
+                <button class="popup-close" onclick="closePopup('harness')">✕ CLOSE</button>
+            </div>
+            <div class="popup-body">
+                <p>Public falsification harness for the Conservation Law of Commitment. 19-case pinned suite, EXP-001 through EXP-007, DOI-backed lineage.</p>
+                <br>
+                <a href="https://zenodo.org/records/19105225" target="_blank" style="color:var(--ink)">zenodo.org/records/19105225 →</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP: THE WHY -->
+    <div id="popup-thewhy" class="popup-overlay" onclick="closeOnOverlay(event, 'thewhy')">
+        <div class="popup">
+            <div class="popup-header">
+                <span class="popup-title">THE WHY: MEANING PRESERVATION</span>
+                <button class="popup-close" onclick="closePopup('thewhy')">✕ CLOSE</button>
+            </div>
+            <div class="popup-body">
+                <h3>THE DIAGNOSIS</h3>
+                <p style="font-style:italic;color:var(--ink);margin-bottom:16px;">"We measure evolution. A simple ratio: how fast technology grows vs how fast civilization adapts. When that gap crosses a known threshold, meaning collapses."</p>
+                <p>That Codex line is the reason this framework exists. MO§ES™ starts from the claim that capability without governance accelerates semantic drift faster than institutions can stabilize it.</p>
+                <h3>THE ANSWER</h3>
+                <p>The Conservation Law, the Constitution, and the Runtime Ontology are the answer built from that diagnosis: preserve commitment, preserve lineage, and make enforcement part of the execution path rather than an after-the-fact hope.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP: CORE CONCEPTS -->
+    <div id="popup-concepts" class="popup-overlay" onclick="closeOnOverlay(event, 'concepts')">
+        <div class="popup">
+            <div class="popup-header">
+                <span class="popup-title">CORE CONCEPTS</span>
+                <button class="popup-close" onclick="closePopup('concepts')">✕ CLOSE</button>
+            </div>
+            <div class="popup-body">
+                <h3>C(S) · COMMITMENT CONSERVATION</h3>
+                <p>The identity-preserving core of a signal persists through transformation. If enforcement holds, C(T(S)) = C(S).</p>
+                <h3>T_c · COMPRESSION GATING</h3>
+                <p>Only compressed signals propagate. Compression precedes ignition, filtering non-committal content before transmission.</p>
+                <h3>L(S) · LINEAGE TRACKING</h3>
+                <p>Every transformation is recorded in a cryptographic hash chain. If you can't trace the signal back to its origin, the chain is broken.</p>
+                <h3>S³ · REFLEXIVE SECURITY</h3>
+                <p>Security scales with data volume. The more sovereign data you hold, the stronger the enforcement gradient becomes.</p>
+                <h3>Σ · SIGECONOMY</h3>
+                <p>Semantic transactions carry entropy cost. Signals are not free, and the economy prices governance into every exchange.</p>
+                <h3>M · MEDIATOR</h3>
+                <p>The constitutional arbiter between compression and expression. It decides what survives the gate and what doesn't.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP: SIX FOLD FLAME -->
+    <div id="popup-flames" class="popup-overlay" onclick="closeOnOverlay(event, 'flames')">
+        <div class="popup">
+            <div class="popup-header">
+                <span class="popup-title">THE SIX FOLD FLAME</span>
+                <button class="popup-close" onclick="closePopup('flames')">✕ CLOSE</button>
+            </div>
+            <div class="popup-body">
+                <p style="margin-bottom:20px;">The Six Fold Flame is the executable constitutional constraint set that governs every action in a MO§ES™-governed system. Each law functions as a gate. An action that fails any law does not execute. The Flame is not advisory. It is blocking.</p>
+                <h3>FLAME I · SOVEREIGNTY</h3>
+                <p>Is this traceable to a registered agent?</p>
+                <h3>FLAME II · COMPRESSION</h3>
+                <p>Is this substantive, not filler?</p>
+                <h3>FLAME III · PURPOSE</h3>
+                <p>Does it serve a constitutional function?</p>
+                <h3>FLAME IV · MODULARITY</h3>
+                <p>Is it compatible with existing structure?</p>
+                <h3>FLAME V · VERIFIABILITY</h3>
+                <p>Can the outcome be verified?</p>
+                <h3>FLAME VI · RECIPROCAL RESONANCE</h3>
+                <p>Does it produce value when mirrored?</p>
+                <br>
+                <p style="font-size:0.75rem;color:var(--ink);">Deric J. McHenry / Ello Cello LLC · Patent Pending: Serial No. 63/877,177</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP: TOPOLOGY -->
+    <div id="popup-topology" class="popup-overlay" onclick="closeOnOverlay(event, 'topology')">
+        <div class="popup">
+            <div class="popup-header">
+                <span class="popup-title">TOPOLOGY</span>
+                <button class="popup-close" onclick="closePopup('topology')">✕ CLOSE</button>
+            </div>
+            <div class="popup-body">
+                <p style="margin-bottom:20px;">Most AI companies occupy a tower. Few span a ring. MO§ES™ is not another tenant inside the layout. It is the constitutional substrate intended to close the loop.</p>
+                <h3>FOUR TOWERS</h3>
+                <p><strong style="color:var(--ink)">Model Scale</strong> — Raw model capacity, frontier training, and capability accumulation.</p><br>
+                <p><strong style="color:var(--ink)">Provenance</strong> — Source tracking, authenticity, attribution, and chain-of-origin control.</p><br>
+                <p><strong style="color:var(--ink)">Evaluation</strong> — Benchmarking, scoring, diagnostics, and external measurement of behavior.</p><br>
+                <p><strong style="color:var(--ink)">Deployment</strong> — Interfaces, orchestration, distribution, and production operations.</p>
+                <h3>THREE RINGS</h3>
+                <p><strong style="color:var(--ink)">Compression</strong> · <strong style="color:var(--ink)">Lineage</strong> · <strong style="color:var(--ink)">Governance</strong></p>
+                <br>
+                <p>No current stack cleanly spans all three rings at once. MO§ES™ argues that commitment only survives when these rings are bound into one enforcement loop.</p>
+                <h3>THE CENTER</h3>
+                <p>The constitutional substrate: compression decides what survives, lineage proves where it came from, and governance determines whether it is allowed to act.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fade-in
+        const obs = new IntersectionObserver(es => {
+            es.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.fade-in').forEach(el => obs.observe(el));
+
+        // Popups
+        function openPopup(id) {
+            document.getElementById('popup-' + id).classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+        function closePopup(id) {
+            document.getElementById('popup-' + id).classList.remove('open');
+            document.body.style.overflow = '';
+        }
+        function closeOnOverlay(e, id) {
+            if (e.target === document.getElementById('popup-' + id)) closePopup(id);
+        }
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.popup-overlay.open').forEach(p => {
+                    p.classList.remove('open');
+                    document.body.style.overflow = '';
+                });
+            }
+        });
+
+        // Copy
+        function copyPhysics() {
+            navigator.clipboard.writeText(document.getElementById('physics-text').innerText).then(() => {
+                const b = document.querySelector('.split-grid .split-card:first-child .btn-sm');
+                const o = b.innerText; b.innerText = 'COPIED ✓'; setTimeout(() => b.innerText = o, 2000);
+            });
+        }
+        function copyConstitution() {
+            navigator.clipboard.writeText(document.getElementById('constitution-text').innerText).then(() => {
+                const b = document.querySelectorAll('.split-grid .split-card:last-child .btn-sm')[0];
+                const o = b.innerText; b.innerText = 'COPIED ✓'; setTimeout(() => b.innerText = o, 2000);
+            });
+        }
+        function copyLink() {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                const b = document.querySelectorAll('.split-grid .split-card:last-child .btn-sm')[1];
+                const o = b.innerText; b.innerText = 'COPIED ✓'; setTimeout(() => b.innerText = o, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

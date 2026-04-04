@@ -213,6 +213,11 @@ async def portal_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "portal.html")
 
 
+@router.get("/moses")
+async def moses_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "moses.html")
+
+
 @router.get("/grand-opening")
 async def grand_opening_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "grand-opening.html")
