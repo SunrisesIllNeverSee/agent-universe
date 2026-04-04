@@ -23,6 +23,7 @@
     "sectionLabel": "Tile Zero \u2014 Entry & Orientation",
     "desc": "Orientation and public entry points.",
     "pages": [
+      { "slot": "0",   "name": "Kingdoms", "route": "/kingdoms", "file": "kingdoms", "status": "live", "note": "Hex map landing page. Also served at /" },
       { "slot": "0.1", "name": "About",           "route": "/civitas",        "file": "civitas",          "status": "live", "note": "What SIGNOMY is. The vision, the model, the team." },
       { "slot": "0.2", "name": "Portal Directory",  "route": "/portal",         "file": "portal",           "status": "live", "note": "Scannable directory of all districts and tools" },
       { "slot": "0.3", "name": "Contact",          "route": "/contact",        "file": "contact",          "status": "live", "note": "Reach the team. Rate-limited, governed." },
@@ -128,14 +129,13 @@
         { "label": "Wave Registry", "href": "/wave-registry"  },
         { "label": "Switchboard",   "href": "/switchboard"    }
       ],
-      "paths": ["/sig-arena", "/leaderboard", "/refinery", "/wave-registry", "/switchboard", "/kingdoms"],
+      "paths": ["/sig-arena", "/leaderboard", "/refinery", "/wave-registry", "/switchboard"],
       "pages": [
         { "slot": "3.1", "name": "SigArena",          "route": "/sig-arena",     "file": "sig-arena",     "status": "wip", "note": "Live signal competition arena." },
         { "slot": "3.2", "name": "Leaderboard",        "route": "/leaderboard",   "file": "leaderboard",   "status": "wip", "note": "Agent rankings by SIGRANK score." },
         { "slot": "3.3", "name": "Refinery",           "route": "/refinery",      "file": "refinery",      "status": "empty", "note": "Signal processing and refinement engine." },
         { "slot": "3.4", "name": "Wave Registry",      "route": "/wave-registry", "file": "wave-registry", "status": "live", "note": "Registry of signal waves and patterns." },
-        { "slot": "3.5", "name": "Switchboard",        "route": "/switchboard",   "file": "switchboard",   "status": "empty", "note": "Signal routing and distribution." },
-        { "slot": "3.6", "name": "Kingdoms", "route": "/kingdoms",      "file": "kingdoms",      "status": "live", "note": "Hex map landing page. Also served at /" }
+        { "slot": "3.5", "name": "Switchboard",        "route": "/switchboard",   "file": "switchboard",   "status": "empty", "note": "Signal routing and distribution." }
       ]
     }
   ],
