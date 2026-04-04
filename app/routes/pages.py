@@ -208,6 +208,11 @@ async def advisory_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "advisory.html")
 
 
+@router.get("/portal")
+async def portal_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "portal.html")
+
+
 @router.get("/grand-opening")
 async def grand_opening_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "grand-opening.html")
@@ -222,10 +227,6 @@ async def black_card_page() -> FileResponse:
 async def early_believers_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "early-believers.html")
 
-
-@router.get("/kassa-review")
-async def kassa_review_page() -> FileResponse:
-    return FileResponse(state.frontend_dir / "kassa-review.html")
 
 
 @router.get("/earnings-matrix")

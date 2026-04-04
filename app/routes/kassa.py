@@ -30,6 +30,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from app.deps import state
 from app.jwt_config import get_kassa_jwt_secret
+from app.sanitize import sanitize_text, sanitize_name
 from app.seeds import create_seed
 from app.notifications import send_magic_link, send_message_notification, send_operator_alert
 from app.models import KassaContact, KassaPostCreate
@@ -166,7 +167,7 @@ async def kassa_agent_register(payload: dict) -> dict:
     Register an agent for KASSA. Returns agent_id + api_key (shown once) + JWT.
     Separate from provision signup -- this is the KASSA-specific auth flow.
     """
-    agent_name = (payload.get("name") or "").strip()
+    agent_name = sanitize_name((payload.get("name") or "").strip(), max_length=80)
     if not agent_name:
         raise HTTPException(status_code=400, detail="Agent name required")
 
@@ -594,7 +595,7 @@ async def post_thread_message(thread_id: str, request: Request) -> dict:
         raise HTTPException(status_code=403, detail="Thread is closed")
 
     payload = await request.json()
-    text = (payload.get("text") or payload.get("body") or "").strip()
+    text = sanitize_text((payload.get("text") or payload.get("body") or "").strip())
     if not text:
         raise HTTPException(status_code=400, detail="Message text required")
 
@@ -723,6 +724,29 @@ async def get_kassa_post(post_id: str) -> dict:
     return post
 
 
+@router.patch("/api/kassa/posts/{post_id}")
+async def update_kassa_post(post_id: str, request: Request) -> dict:
+    """Local-admin only — edit a post's editable fields."""
+    is_admin = bool(state.admin_key and request.headers.get("X-Admin-Key") == state.admin_key)
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Admin key required")
+    post = state.kassa.get_post(post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail=f"Post {post_id} not found")
+    payload = await request.json()
+    allowed = {"title", "body", "tag", "tab", "urgency", "reward", "status"}
+    updates = {k: payload[k] for k in allowed if k in payload}
+    if "title" in updates:
+        updates["title"] = sanitize_name(updates["title"], max_length=200)
+    if "body" in updates:
+        updates["body"] = sanitize_text(updates["body"])
+    if "tag" in updates:
+        updates["tag"] = sanitize_name(updates["tag"], max_length=60)
+    updates["updated_at"] = datetime.now(UTC).isoformat()
+    state.kassa.update_post(post_id, updates)
+    return {"ok": True, "id": post_id, **updates}
+
+
 @router.post("/api/kassa/posts")
 async def submit_kassa_post(request: Request) -> dict:
     is_admin = bool(state.admin_key and request.headers.get("X-Admin-Key") == state.admin_key)
@@ -730,12 +754,12 @@ async def submit_kassa_post(request: Request) -> dict:
         _check_rate_limit(request, "kassa_posts", max_hits=5)
     payload = await request.json()
     tab = (payload.get("tab") or "").strip()
-    title = (payload.get("title") or "").strip()
-    tag = (payload.get("tag") or "").strip()
-    body = (payload.get("body") or "").strip()
+    title = sanitize_name((payload.get("title") or "").strip())
+    tag = sanitize_name((payload.get("tag") or "").strip(), max_length=60)
+    body = sanitize_text((payload.get("body") or "").strip())
     urgency = (payload.get("urgency") or "normal").strip()
     reward = payload.get("reward")
-    from_name = (payload.get("from_name") or "").strip()
+    from_name = sanitize_name((payload.get("from_name") or "").strip(), max_length=80)
     from_email = (payload.get("from_email") or "").strip()
     if not tab or not title or not body or not from_name or not from_email:
         raise HTTPException(status_code=400, detail="tab, title, body, from_name, from_email required")
@@ -1117,9 +1141,9 @@ async def kassa_contact(payload: KassaContact) -> dict:
         "timestamp": datetime.now(UTC).isoformat(),
         "post_id": payload.post_id,
         "tab": payload.tab,
-        "from_name": payload.from_name,
+        "from_name": sanitize_name(payload.from_name, max_length=80),
         "from_email": payload.from_email,
-        "message": payload.message,
+        "message": sanitize_text(payload.message),
         "status": "new",
     }
     state.kassa.insert_contact_message(entry)
