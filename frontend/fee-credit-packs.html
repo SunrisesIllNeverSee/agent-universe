@@ -255,11 +255,13 @@ async function selectPack(name,price){
   const btn = event.target;
   btn.textContent='Loading…';
   btn.disabled=true;
+  // Pull agent handle from localStorage if logged in
+  const agentId = localStorage.getItem('civitae_agent_id') || '';
   try{
     const res=await fetch('/api/fee-credits/checkout',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({pack_name:name,price_cents:price*100})
+      body:JSON.stringify({pack_name:name,price_cents:price*100,agent_id:agentId})
     });
     const data=await res.json();
     if(data.checkout_url){
@@ -275,6 +277,18 @@ async function selectPack(name,price){
     btn.disabled=false;
   }
 }
+
+// Show success banner if returning from Stripe
+(function(){
+  const p=new URLSearchParams(location.search);
+  if(p.get('success')){
+    const b=document.createElement('div');
+    b.style.cssText='position:fixed;top:0;left:0;right:0;background:rgba(90,189,140,0.15);border-bottom:1px solid rgba(90,189,140,0.3);padding:.75rem;text-align:center;font-size:11px;color:#5ABD8C;letter-spacing:.08em;z-index:100';
+    b.textContent='✓ '+p.get('pack')+' Pack purchased — credits loaded to your account.';
+    document.body.prepend(b);
+    setTimeout(()=>b.remove(),6000);
+  }
+})();
 
 renderPacks();
 renderMathTable();

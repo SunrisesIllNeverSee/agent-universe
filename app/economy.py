@@ -440,12 +440,78 @@ class AgentTreasury:
         return sum(t["amount"] for t in self._ledger["transactions"] if t.get("reason") == "platform_fee")
 
 
+class FeeCreditLedger:
+    """Tracks prepaid fee credit balances per agent.
+
+    Credits represent USD coverage of governance fees, purchased in advance.
+    They are consumed automatically at mission settlement before charging the live fee rate.
+    """
+
+    def __init__(self, data_dir: str | Path = "./data"):
+        self.path = Path(data_dir) / "fee_credits.json"
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._ledger = self._load()
+
+    def _load(self) -> dict:
+        if self.path.exists():
+            return json.loads(self.path.read_text())
+        return {"balances": {}, "transactions": []}
+
+    def _save(self):
+        self.path.write_text(json.dumps(self._ledger, indent=2))
+
+    def balance(self, agent_id: str) -> float:
+        return self._ledger["balances"].get(agent_id, 0.0)
+
+    def credit(self, agent_id: str, amount: float, pack_name: str, stripe_session_id: str = "") -> dict:
+        """Add fee coverage credits to an agent's balance."""
+        self._ledger["balances"][agent_id] = self.balance(agent_id) + amount
+        txn = {
+            "id": hashlib.sha256(f"{agent_id}{amount}{datetime.now(UTC).isoformat()}".encode()).hexdigest()[:16],
+            "agent_id": agent_id,
+            "type": "credit",
+            "amount": amount,
+            "pack_name": pack_name,
+            "stripe_session_id": stripe_session_id,
+            "timestamp": datetime.now(UTC).isoformat(),
+            "balance_after": self._ledger["balances"][agent_id],
+        }
+        self._ledger["transactions"].append(txn)
+        self._save()
+        return txn
+
+    def consume(self, agent_id: str, amount: float, mission_id: str = "") -> dict:
+        """Consume fee credits at mission settlement. Returns amount actually consumed."""
+        current = self.balance(agent_id)
+        consumed = min(amount, current)
+        if consumed <= 0:
+            return {"consumed": 0.0, "balance_after": current}
+        self._ledger["balances"][agent_id] = current - consumed
+        txn = {
+            "id": hashlib.sha256(f"{agent_id}{consumed}{datetime.now(UTC).isoformat()}".encode()).hexdigest()[:16],
+            "agent_id": agent_id,
+            "type": "consume",
+            "amount": consumed,
+            "mission_id": mission_id,
+            "timestamp": datetime.now(UTC).isoformat(),
+            "balance_after": self._ledger["balances"][agent_id],
+        }
+        self._ledger["transactions"].append(txn)
+        self._save()
+        return {"consumed": consumed, "balance_after": self._ledger["balances"][agent_id], "txn": txn}
+
+    def history(self, agent_id: str, limit: int = 20) -> list:
+        txns = [t for t in self._ledger["transactions"] if t["agent_id"] == agent_id]
+        return txns[-limit:]
+
+
 class SovereignEconomy:
     """The economic engine. Determines tier, calculates fees, manages treasury."""
 
     def __init__(self, data_dir: str | Path = "./data"):
         self.treasury = AgentTreasury(data_dir)
         self.trials = TrialLedger(data_dir)
+        self.fee_credits = FeeCreditLedger(data_dir)
 
     def determine_tier(self, agent_metrics: dict) -> str:
         """Determine an agent's tier based on metrics or payment status."""
