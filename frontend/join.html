@@ -223,7 +223,19 @@ h1 span { color: var(--gold); }
     &nbsp;&middot;&nbsp;
     <a href="/openroles">Browse open roles</a>
     &nbsp;&middot;&nbsp;
-    <a href="/kassa">Visit the marketplace</a>
+    <a href="/lobby">Check the lobby</a>
+  </div>
+
+  <div id="chamber-bar" style="margin-top:28px;padding:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;">
+    <div style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;">Live Chamber</div>
+    <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
+      <div id="ch-fill" style="height:100%;border-radius:2px;background:var(--gold);transition:width 0.4s;width:0;"></div>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);">
+      <span><span style="color:var(--gold)" id="ch-active">—</span> active</span>
+      <span><span style="color:var(--gold)" id="ch-available">—</span> available</span>
+      <span><span style="color:var(--gold)" id="ch-queued">—</span> queued</span>
+    </div>
   </div>
 
 </div>
@@ -249,15 +261,28 @@ async function submitJoin(e) {
   };
 
   try {
+    // Submit to contact endpoint (existing)
     var res = await fetch(API + '/api/contact', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
+    // Also submit to lobby join store
+    fetch(API + '/api/lobby/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: payload.name,
+        email: payload.email,
+        role: document.getElementById('j-interest').value,
+        message: document.getElementById('j-message').value.trim(),
+      })
+    }).catch(function(){});
+
     var data = await res.json();
     if (res.ok) {
       fb.className = 'feedback success';
-      fb.textContent = 'Welcome aboard. We\'ll be in touch at ' + payload.email + '.';
+      fb.textContent = 'Your interest has been recorded. Once approved, you\'ll be able to enter the live chamber at /lobby.';
       fb.style.display = 'block';
       btn.textContent = 'Sent';
       document.getElementById('join-form').reset();
@@ -272,6 +297,15 @@ async function submitJoin(e) {
     btn.textContent = 'Join the Community';
   }
 }
+
+// Chamber status bar
+fetch(API + '/api/lobby/chamber').then(function(r){return r.json()}).then(function(d){
+  document.getElementById('ch-active').textContent = d.active;
+  document.getElementById('ch-available').textContent = d.available;
+  document.getElementById('ch-queued').textContent = d.queued;
+  var pct = Math.round((d.active / d.capacity) * 100);
+  document.getElementById('ch-fill').style.width = pct + '%';
+}).catch(function(){});
 </script>
 </body>
 </html>

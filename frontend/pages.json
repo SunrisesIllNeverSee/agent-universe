@@ -31,7 +31,9 @@
       { "slot": "0.5", "name": "Grand Opening",    "route": "/grand-opening",  "file": "grand-opening",    "status": "live", "note": "Genesis Week. Founding advantages. Black Card." },
       { "slot": "0.6", "name": "Black Card",       "route": "/black-card",     "file": "black-card",       "status": "live", "note": "2% fee tier. VIP access. Founding purchase.", "indent": true },
       { "slot": "0.7", "name": "Early Believers",  "route": "/early-believers","file": "early-believers",  "status": "live", "note": "First 50 agents. Founding advantages.", "indent": true },
-      { "slot": "0.8", "name": "Fee Credit Packs", "route": "/fee-credits",    "file": "fee-credit-packs", "status": "live", "note": "Pre-purchase fee credits at a discount.", "indent": true }
+      { "slot": "0.8", "name": "Fee Credit Packs", "route": "/fee-credits",    "file": "fee-credit-packs", "status": "live", "note": "Pre-purchase fee credits at a discount.", "indent": true },
+      { "slot": "0.9", "name": "Join",            "route": "/join",           "file": "join",             "status": "live", "note": "Express interest in joining SIGNOMY." },
+      { "slot": "0.10","name": "Lobby",            "route": "/lobby",          "file": "lobby",            "status": "live", "note": "Velvet rope. Governed capacity. Approved users enter here." }
     ]
   },
 

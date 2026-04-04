@@ -111,6 +111,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     from .economy import SovereignEconomy
     economy = SovereignEconomy(data_dir)
 
+    # ── Lobby (Velvet Rope) ─────────────────────────────────────────
+    from .lobby import LobbyStore
+    lobby = LobbyStore(data_dir / "lobby.db")
+
     # ── JWT secret ───────────────────────────────────────────────────
     _JWT_SECRET = get_kassa_jwt_secret()
 
@@ -136,6 +140,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     state.thread_hub = thread_hub
     state.slot_lock = slot_lock
     state.economy = economy
+    state.lobby = lobby
     state.admin_key = _ADMIN_KEY
     state.jwt_secret = _JWT_SECRET
     state.frontend_dir = frontend_dir
@@ -195,6 +200,11 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/advisory/apply",
         "/api/advisory/messages/",
         "/api/availability/",
+        "/api/lobby/join",
+        "/api/lobby/enter",
+        "/api/lobby/leave",
+        "/api/lobby/status",
+        "/api/lobby/chamber",
     )
 
     # Operator GET paths also require admin key (fail-closed)
@@ -222,6 +232,41 @@ def create_app(root: Path | None = None) -> FastAPI:
                 return JSONResponse({"detail": "CIVITAE_ADMIN_KEY not configured"}, status_code=403)
             if request.headers.get("X-Admin-Key") != _ADMIN_KEY:
                 return JSONResponse({"detail": "Admin key required"}, status_code=403)
+
+        return await call_next(request)
+
+    # ── Velvet Rope gate — protect working-city routes ─────────────
+    # Reading pages are public. Doing pages require an active lobby session.
+    _GATED_PREFIXES = (
+        "/kassa", "/missions", "/forums", "/deploy", "/campaign",
+        "/console", "/command", "/agentdash", "/dashboard", "/slots",
+        "/advisory", "/openroles", "/seeds", "/mission",
+    )
+    # API paths that correspond to gated features — let the frontend handle the gate
+    # so we only gate the HTML page serves, not the API endpoints
+    _GATE_EXEMPT_PREFIXES = ("/api/", "/ws/", "/assets/", "/lobby", "/join")
+
+    @app.middleware("http")
+    async def velvet_rope_gate(request: Request, call_next):
+        path = request.url.path
+
+        # Skip API, WebSocket, assets, lobby itself
+        if any(path.startswith(p) for p in _GATE_EXEMPT_PREFIXES):
+            return await call_next(request)
+
+        # Only gate HTML page serves for protected routes
+        if any(path.startswith(p) for p in _GATED_PREFIXES):
+            session_id = request.cookies.get("lobby_session")
+            user_id = request.cookies.get("lobby_uid")
+            if not session_id or not user_id:
+                from starlette.responses import RedirectResponse
+                return RedirectResponse("/lobby")
+
+            # Verify session is actually active
+            info = lobby.status(user_id)
+            if not info or info.status != "active":
+                from starlette.responses import RedirectResponse
+                return RedirectResponse("/lobby")
 
         return await call_next(request)
 
@@ -273,6 +318,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     from .routes.composer import router as composer_router
     from .routes.mission_dash import router as mission_dash_router
     from .routes.boost import router as boost_router
+    from .routes.lobby import router as lobby_router
 
     app.include_router(pages_router)
     app.include_router(core_router)
@@ -291,6 +337,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     app.include_router(composer_router)
     app.include_router(mission_dash_router)
     app.include_router(boost_router)
+    app.include_router(lobby_router)
 
     from app.routes.advisory import router as advisory_router
     app.include_router(advisory_router)

@@ -39,6 +39,7 @@ class AppState:
     hub: object          # ConnectionHub (authed — console, agents)
     public_hub: object   # ConnectionHub (read-only — public pages)
     thread_hub: object   # ThreadHub
+    lobby: object        # LobbyStore (velvet rope)
     slot_lock: asyncio.Lock
     admin_key: str = ""
     jwt_secret: str = ""
