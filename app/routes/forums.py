@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse
 
 from app.deps import state
 from app.forums_store import VALID_CATEGORIES
+from app.sanitize import sanitize_text, sanitize_name
 from app.seeds import create_seed
 
 router = APIRouter(tags=["forums"])
@@ -101,8 +102,8 @@ async def forums_create_thread(request: Request) -> dict:
     claims = _get_agent_from_token(request)
     body = await request.json()
     category = body.get("category", "general")
-    title = (body.get("title") or "").strip()
-    content = (body.get("body") or "").strip()
+    title = sanitize_name((body.get("title") or "").strip())
+    content = sanitize_text((body.get("body") or "").strip())
     author_type = body.get("author_type", "AAI")
 
     if not title or len(title) < 3:
@@ -155,7 +156,7 @@ async def forums_create_reply(thread_id: str, request: Request) -> dict:
     if thread.get("locked"):
         raise HTTPException(status_code=403, detail="Thread is locked")
     body = await request.json()
-    content = (body.get("body") or "").strip()
+    content = sanitize_text((body.get("body") or "").strip())
     if not content:
         raise HTTPException(status_code=400, detail="Reply body is required")
     if len(content) > 2000:

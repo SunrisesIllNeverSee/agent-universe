@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -245,11 +246,16 @@ _CONCEPT_SIGNALS = {
 
 
 def _action_concepts(action: str) -> set[str]:
+    """Detect governance-relevant concepts using word-boundary matching.
+
+    Uses \\b (word boundary) to avoid false positives like
+    'display' triggering 'pay' or 'keyboard' triggering 'key'.
+    """
     lowered = action.lower()
     return {
         concept
         for concept, signals in _CONCEPT_SIGNALS.items()
-        if any(signal in lowered for signal in signals)
+        if any(re.search(rf"\b{re.escape(signal)}\b", lowered) for signal in signals)
     }
 
 
@@ -291,6 +297,14 @@ def check_action_permitted(action_description: str, governance: GovernanceStateD
         }
 
     if governance.posture == "SCOUT":
+        # Explicitly high-risk actions are always blocked in SCOUT
+        if risk == "high":
+            return {
+                "permitted": False,
+                "reason": "SCOUT posture prohibits high-risk operations",
+                "triggered_rules": [f"SCOUT read-only block: {action_description} (classified high-risk)"],
+                "conditions": ["Switch posture to DEFENSE or OFFENSE for execution"],
+            }
         state_changing = concepts & {"transaction", "execution", "destructive", "outbound", "state_change"}
         if state_changing:
             return {

@@ -103,6 +103,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     assembler = ContextAssembler(router)
     mcp_bridge = MCPBridge(runtime, assembler)
     hub = ConnectionHub()
+    public_hub = ConnectionHub()
     thread_hub = ThreadHub()
     slot_lock = asyncio.Lock()
 
@@ -131,6 +132,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     state.assembler = assembler
     state.mcp_bridge = mcp_bridge
     state.hub = hub
+    state.public_hub = public_hub
     state.thread_hub = thread_hub
     state.slot_lock = slot_lock
     state.economy = economy
@@ -146,6 +148,17 @@ def create_app(root: Path | None = None) -> FastAPI:
     app.state.router = router
     app.state.mcp_bridge = mcp_bridge
     app.state.connection_hub = hub
+
+    # ── Global exception handler — prevent stack trace / secret leakage ──
+    @app.exception_handler(Exception)
+    async def _global_exception_handler(request: Request, exc: Exception):
+        # Log the real error server-side for debugging
+        logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+        # Return a generic error to the client — never expose internals
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"},
+        )
 
     # ── CORS ─────────────────────────────────────────────────────────
     _allowed_origin = os.environ.get("ALLOWED_ORIGIN", "")

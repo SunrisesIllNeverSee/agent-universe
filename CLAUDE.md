@@ -167,7 +167,7 @@ python run.py
 
 ---
 
-*Last updated: 2026-04-01*
+*Last updated: 2026-04-04*
 
 ## Active Technologies
 - HTML5, CSS3, Vanilla JavaScript (ES2022) — no transpiler. Zero npm. Zero build pipeline.
@@ -208,6 +208,18 @@ python run.py
 - Layer 5: Civitas Infrastructure (governance, economy, forums, academics)
 
 ## Recent Changes
+- 2026-04-04: Security hardening — 12 fixes across economy, governance, auth, XSS, error handling
+- 2026-04-04: Economy atomic persistence — `_atomic_save` + `_locked_load` (fcntl) on all JSON stores
+- 2026-04-04: Governance word-boundary matching — `_action_concepts` uses regex `\b`, no false positives
+- 2026-04-04: SCOUT posture fix — now blocks all `ACTION_RISK == "high"` actions, not just concept-detected ones
+- 2026-04-04: XSS sanitization — `app/sanitize.py` applied at storage boundary for all user input
+- 2026-04-04: Global exception handler — generic 500 to client, full trace server-side only
+- 2026-04-04: JWT fail-loud on Railway — refuses to start without persistent secret
+- 2026-04-04: SQLite WAL verification — warns if filesystem rejects WAL mode
+- 2026-04-04: 78 unit tests — economy engine (45) + governance engine (27) + existing (6)
+- 2026-04-04: Portal directory page — `/portal`, data-driven from `pages.json`
+- 2026-04-04: Soft launch banner — data-driven via `siteBanner` in `pages.json`, injected by `_nav.js`
+- 2026-04-04: `/ws/public` read-only WebSocket endpoint added (infrastructure for future use)
 - 2026-04-01: Agent @signomy.xyz email addresses — signup assigns, profiles expose, notifications use as FROM
 - 2026-04-01: SMTP live via Resend (domain verified, env vars on Railway, fire-and-forget delivery)
 - 2026-04-01: /api/contact endpoint restored (was lost in server split), persistent volume on Railway
@@ -259,5 +271,15 @@ python run.py
 | — | Flame review engine v1 | ✅ Live at /api/governance/flame-review/{id} |
 | — | Governance model (tier vs posture) | ✅ Marketplace tier-gated, high-risk posture-gated |
 | — | KA§§A board seeded (19 posts) | ⚠️ Need re-seed after volume attach |
+| Security | Economy atomic persistence | ✅ _atomic_save + _locked_load |
+| Security | XSS sanitization (all input paths) | ✅ app/sanitize.py |
+| Security | Governance SCOUT gap fix | ✅ High-risk actions blocked |
+| Security | Global exception handler | ✅ Generic 500, no stack leaks |
+| Security | JWT fail-loud on Railway | ✅ Refuses ephemeral in prod |
+| Security | SQLite WAL verification | ✅ Warns on filesystem rejection |
+| Tests | Economy engine (45 tests) | ✅ Tier, fee, payout, trial, treasury |
+| Tests | Governance engine (27 tests) | ✅ Concepts, postures, modes |
+| Frontend | Portal directory page | ✅ /portal, data-driven from pages.json |
+| Frontend | Soft launch banner | ✅ siteBanner in pages.json, _nav.js |
 | — | Refinery (SIGRANK) | ⬜ Placeholder |
 | — | Switchboard (signal routing) | ⬜ Depends on Refinery |

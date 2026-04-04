@@ -12,6 +12,14 @@ def get_kassa_jwt_secret() -> str:
     if secret:
         return secret
 
+    # In production (Railway), refuse to start with an ephemeral secret —
+    # every deploy would invalidate all JWTs, breaking auth silently.
+    if os.environ.get("RAILWAY_ENVIRONMENT"):
+        raise RuntimeError(
+            "KASSA_JWT_SECRET or JWT_SECRET must be set in production. "
+            "Run: railway variables set KASSA_JWT_SECRET=$(openssl rand -hex 32)"
+        )
+
     secret = secrets.token_hex(32)
     logging.getLogger("civitae").warning(
         "KASSA_JWT_SECRET and JWT_SECRET not set -- using one ephemeral key for "

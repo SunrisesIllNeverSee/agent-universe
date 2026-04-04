@@ -79,10 +79,23 @@
     document.head.appendChild(fontLink);
   }
 
+  // ── Banner text from pages.json ───────────────────────────────────────────
+  var SITE_BANNER = data.siteBanner || '';
+
   // ── Styles ───────────────────────────────────────────────────────────────────
   var styleEl = document.createElement('style');
   styleEl.id = 'civitae-nav-styles';
   styleEl.textContent = [
+
+    /* Banner bar */
+    '.cn-banner{height:28px;display:flex;align-items:center;justify-content:center;',
+    'background:rgba(196,146,58,0.08);border-bottom:1px solid rgba(196,146,58,0.15);',
+    'font-family:"DM Mono",monospace;font-size:0.62rem;letter-spacing:0.1em;',
+    'text-transform:uppercase;color:#C4923A;padding:0 16px;gap:8px;overflow:hidden;',
+    'white-space:nowrap;text-overflow:ellipsis;}',
+    '.cn-banner-dot{width:6px;height:6px;border-radius:50%;background:#C4923A;',
+    'flex-shrink:0;animation:cn-pulse 2s ease-in-out infinite;}',
+    '@keyframes cn-pulse{0%,100%{opacity:0.4}50%{opacity:1}}',
 
     /* Nav wrapper — column, auto height */
     '#civitae-nav{position:fixed;top:0;left:0;right:0;height:auto;',
@@ -199,12 +212,27 @@
     nav.id = 'civitae-nav';
 
     var currentLayer = getCurrentLayer();
+
+    // Banner (if siteBanner is set in pages.json)
+    var bannerHeight = 0;
+    if (SITE_BANNER) {
+      var banner = document.createElement('div');
+      banner.className = 'cn-banner';
+      var dot = document.createElement('span');
+      dot.className = 'cn-banner-dot';
+      banner.appendChild(dot);
+      banner.appendChild(document.createTextNode(SITE_BANNER));
+      nav.appendChild(banner);
+      bannerHeight = 28;
+    }
+
     nav.appendChild(buildTopBar(currentLayer));
     nav.appendChild(buildSubBar(currentLayer));
 
-    // 64px top bar + 36px sub-bar = 100px total offset
+    // 64px top bar + 36px sub-bar + banner = total offset
+    var totalHeight = 100 + bannerHeight;
     var current = parseInt(document.body.style.paddingTop) || 0;
-    if (current < 100) document.body.style.paddingTop = '100px';
+    if (current < totalHeight) document.body.style.paddingTop = totalHeight + 'px';
   }
 
   if (document.readyState === 'loading') {
