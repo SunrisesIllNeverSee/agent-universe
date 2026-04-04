@@ -304,17 +304,27 @@ python run.py
 | Landing page fix (`/` → kingdoms.html in vercel.json) | ✅ |
 | `/ws/public` read-only WebSocket | ✅ |
 
-### Grand Opening — Open Items
+### Grand Opening — Status
+
+**Done:**
+- ✅ grand-opening.html: 14 seats, wired to `/api/advisory/seats`, JS loops to 14
+- ✅ grand-opening.html: apply link → `/advisory`
+- ✅ grand-opening.html: OG meta tags + `_nav.js`
+- ✅ grand-opening.html: all 14 Black Card perks shown
+- ✅ black-card.html: `_nav.js` + OG tags
+- ✅ early-believers.html: `_nav.js` + OG tags
+- ✅ All routes in pages.py + pages.json
+
+**Open:**
 
 | Item | Status | Notes |
 |------|--------|-------|
-| grand-opening.html: "9 seats" → 14, wire to `/api/advisory/seats` | ⬜ | JS loop + API wiring |
-| grand-opening.html: apply link `/governance` → `/advisory` | ⬜ | |
-| grand-opening.html: countdown — set date or make configurable | ⬜ | |
-| grand-opening.html: remove "90-day trial" from Phase I perks | ⬜ | Fee-free ONLY if prepaid |
-| grand-opening.html: show all 14 Black Card perks (currently shows 4) | ⬜ | |
-| grand-opening.html: add OG meta tags + `_nav.js` | ⬜ | |
-| Black Card: reconcile fee/price across 7 pages (see inconsistency table below) | ⬜ | economics, civitas, entry, grand-opening all say different things |
+| grand-opening.html: countdown — set date or make configurable | ⬜ | Placeholder div exists, no date |
+| grand-opening.html: "90 days" recruiter window in Phase I perks | ⬜ | Should be removed — fee-free ONLY if prepaid |
+| agent-earnings-matrix.html: add `_nav.js` + OG tags | ⬜ | |
+| agent-earnings-journey.html: add `_nav.js` + OG tags | ⬜ | |
+| fee-credit-packs.html: add `_nav.js` + OG tags | ⬜ | |
+| Black Card: reconcile fee/price across pages | ⬜ | economics, civitas, entry, grand-opening all say different things |
 | Black Card: lifetime vs subscription decision | ⚠️ | Owner deciding — leaning lifetime $2,500 |
 | WAVE-CASCADE.md: standalone wave mechanic showcase | ⬜ | Reference for `/wave-registry` page |
 | KA§§A board re-seed (19 posts after volume attach) | ⬜ | |
