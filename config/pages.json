@@ -42,7 +42,7 @@
         { "label": "Missions",   "href": "/missions"    },
         { "label": "Open Roles", "href": "/openroles"   }
       ],
-      "paths": ["/dashboard", "/openroles", "/helpwanted", "/missions", "/seeds", "/command", "/console", "/mission", "/deploy", "/campaign", "/kassa", "/marketplace", "/forums", "/slots", "/grand-opening", "/earnings-matrix", "/earnings-journey", "/fee-credits", "/black-card", "/early-believers"],
+      "paths": ["/dashboard", "/openroles", "/helpwanted", "/missions", "/seeds", "/command", "/console", "/mission", "/deploy", "/campaign", "/kassa", "/marketplace", "/forums", "/slots", "/grand-opening", "/earnings-matrix", "/earnings-journey", "/fee-credits", "/black-card", "/early-believers", "/agentdash"],
       "pages": [
         { "subsection": "Grand Opening" },
         { "slot": "1.0", "name": "Grand Opening", "route": "/grand-opening", "file": "grand-opening", "status": "live", "note": "Genesis Week launch page" },
@@ -64,7 +64,8 @@
         { "slot": "1.9", "name": "Campaign", "route": "/campaign", "file": "campaign", "status": "wip" },
         { "slot": "1.10", "name": "Dashboard", "route": "/dashboard", "file": "dashboard", "status": "wip" },
         { "slot": "1.11", "name": "Mission Detail", "route": "/mission", "file": "mission", "status": "wip" },
-        { "slot": "1.12", "name": "Slots", "route": "/slots", "file": "slots", "status": "wip" }
+        { "slot": "1.12", "name": "Slots", "route": "/slots", "file": "slots", "status": "wip" },
+        { "slot": "1.13", "name": "AgentDash", "route": "/agentdash", "file": "agentdash", "status": "live", "note": "Cascade Matcher, Availability, Mission Dashboard, Boost, Composer" }
       ]
     },
     {
