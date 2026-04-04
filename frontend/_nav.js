@@ -107,15 +107,29 @@
     /* ── Top bar ── */
     '.cn-top-bar{height:64px;display:flex;align-items:center;flex-shrink:0;}',
 
-    /* Wordmark — <a> link, no button, no chevron */
-    '.cn-mark-link{',
+    /* Wordmark — dropdown trigger */
+    '.cn-mark-wrap{position:relative;height:100%;flex-shrink:0;border-right:1px solid #1E2228;}',
+    '.cn-mark-btn{',
     'font-family:"Playfair Display",serif;color:#C4923A;',
     'font-size:26px;font-weight:900;letter-spacing:0.01em;',
-    'text-decoration:none;border-right:1px solid #1E2228;',
-    'height:100%;padding:0 20px;display:flex;align-items:center;flex-shrink:0;',
+    'background:none;border:none;cursor:pointer;',
+    'height:100%;padding:0 20px;display:flex;align-items:center;gap:7px;',
     'transition:background 0.15s;}',
-    '.cn-mark-link:hover{background:rgba(196,146,58,0.07);}',
-    '.cn-mark-link em{color:#E8EAF0;}', /* base color — specific style applied randomly via JS */
+    '.cn-mark-btn:hover{background:rgba(196,146,58,0.07);}',
+    '.cn-mark-btn em{color:#E8EAF0;}',
+    '.cn-mark-chevron{font-size:9px;color:#555;line-height:1;transition:transform 0.18s;}',
+    '.cn-mark-wrap.open .cn-mark-chevron{transform:rotate(180deg);}',
+    /* Dropdown panel */
+    '.cn-mark-drop{display:none;position:absolute;top:calc(100% + 1px);left:0;',
+    'min-width:200px;background:rgba(10,11,14,0.99);',
+    'border:1px solid #1E2228;border-top:2px solid #C4923A;',
+    'box-shadow:0 16px 40px rgba(0,0,0,0.7);z-index:10000;padding:6px 0;}',
+    '.cn-mark-wrap.open .cn-mark-drop{display:block;}',
+    '.cn-drop-link{display:block;font-family:"DM Mono",monospace;font-size:0.68rem;',
+    'letter-spacing:0.1em;text-transform:uppercase;color:#7A8090;',
+    'text-decoration:none;padding:10px 18px;transition:color 0.12s,background 0.12s;}',
+    '.cn-drop-link:hover{color:#C4923A;background:rgba(196,146,58,0.06);}',
+    '.cn-drop-divider{height:1px;background:#1E2228;margin:4px 0;}',
 
     /* Layer tabs — right side of top bar */
     '.cn-layers{display:flex;align-items:center;height:100%;margin-left:auto;}',
@@ -150,17 +164,60 @@
     var topBar = document.createElement('div');
     topBar.className = 'cn-top-bar';
 
-    // Wordmark link
-    var mark = document.createElement('a');
-    mark.className = 'cn-mark-link';
-    mark.href = '/';
-    mark.appendChild(document.createTextNode('SIG'));
+    // Wordmark dropdown
+    var markWrap = document.createElement('div');
+    markWrap.className = 'cn-mark-wrap';
+
+    var markBtn = document.createElement('button');
+    markBtn.className = 'cn-mark-btn';
+    markBtn.setAttribute('aria-expanded', 'false');
+    markBtn.appendChild(document.createTextNode('SIG'));
     var em = document.createElement('em');
     em.textContent = 'NOMY';
     var v = NOMY_VARIANTS[Math.floor(Math.random() * NOMY_VARIANTS.length)];
     em.style.cssText = 'font-style:'+v.fontStyle+';font-family:'+v.fontFamily+';font-weight:'+v.fontWeight+';letter-spacing:'+v.letterSpacing+';color:'+v.color+';';
-    mark.appendChild(em);
-    topBar.appendChild(mark);
+    markBtn.appendChild(em);
+    var chevron = document.createElement('span');
+    chevron.className = 'cn-mark-chevron';
+    chevron.textContent = '▾';
+    markBtn.appendChild(chevron);
+    markWrap.appendChild(markBtn);
+
+    // Dropdown panel
+    var drop = document.createElement('div');
+    drop.className = 'cn-mark-drop';
+    var dropLinks = [
+      { label: 'Portal',    href: '/portal' },
+      { label: 'KA\u00a7\u00a7A \u2014 Marketplace', href: '/kassa' },
+      { label: 'Advisory',  href: '/advisory' },
+      { label: 'Contact',   href: '/contact' },
+    ];
+    dropLinks.forEach(function(l, i) {
+      var a = document.createElement('a');
+      a.className = 'cn-drop-link';
+      a.href = l.href;
+      a.textContent = l.label;
+      drop.appendChild(a);
+      if (i === 0) {
+        var div = document.createElement('div');
+        div.className = 'cn-drop-divider';
+        drop.appendChild(div);
+      }
+    });
+    markWrap.appendChild(drop);
+
+    // Toggle open/close
+    markBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var isOpen = markWrap.classList.toggle('open');
+      markBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+    document.addEventListener('click', function() {
+      markWrap.classList.remove('open');
+      markBtn.setAttribute('aria-expanded', 'false');
+    });
+
+    topBar.appendChild(markWrap);
 
     // Layer tabs
     var layers = document.createElement('div');
