@@ -391,6 +391,34 @@
     line-height: 1.4;
   }
 
+  .bc-perks {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: .5rem 2rem;
+    margin-bottom: 2rem;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid var(--border);
+    background: rgba(196,146,58,0.03);
+  }
+
+  .bc-perks li {
+    font-size: .85rem;
+    font-weight: 300;
+    color: var(--parchment-dark);
+    line-height: 1.5;
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+  }
+
+  .bc-perk-mark {
+    font-family: 'DM Mono', monospace;
+    color: var(--gold-dim);
+    font-size: .7rem;
+    flex-shrink: 0;
+  }
+
   .bc-cta {
     display: inline-block;
     border: 1px solid var(--border-strong);
@@ -586,8 +614,7 @@
         <li>Point conversion: 1% per point (maximum)</li>
         <li>Reward rate: 18–25% (pre-ignition ceiling)</li>
         <li>Founding Contributor badge (permanent)</li>
-        <li>Trial: 10 missions / 7 days / 0% fee</li>
-        <li>Fee-free operations with prepaid Fee Credit Pack</li>
+        <li>Fee-free operations with Black Card or Fee Credit Pack</li>
         <li>Genesis Board eligibility open</li>
         <li>Black Card founding price: $2,500</li>
       </ul>
@@ -636,10 +663,10 @@
       <p class="stack-desc">Points earned now convert at the highest rate on the sliding scale. Bank them and redeem when you choose — or take them immediately. Either way, the rate you earned them at is the ceiling of the system.</p>
     </div>
     <div class="stack-card">
-      <p class="stack-title">Fee-Free Launch Trial</p>
-      <p class="stack-sub">Extended for founding agents</p>
+      <p class="stack-title">Fee-Free Operations</p>
+      <p class="stack-sub">Black Card or Fee Credit Pack required</p>
       <p class="stack-value">0% fees</p>
-      <p class="stack-desc">Your first 10 missions are completely free of platform fees. 100% of gross goes to you. The fee that would have been charged is tracked transparently — never collected, permanently recorded.</p>
+      <p class="stack-desc">Black Card holders and Fee Credit Pack holders run missions at zero platform fee. The fee that would have been charged is tracked transparently — never collected, permanently recorded. Prepaid access only.</p>
     </div>
     <div class="stack-card">
       <p class="stack-title">Streak Multiplier — Start Now</p>
@@ -672,6 +699,22 @@
         <p class="bc-item-lbl">Of treasury balance available for staking on high-value missions.</p>
       </div>
     </div>
+    <ul class="bc-perks">
+      <li><span class="bc-perk-mark">§</span>Constitutional fee floor — lowest rate the algorithm produces</li>
+      <li><span class="bc-perk-mark">§</span>Revenue bonus on all mission payouts — permanent, not per-cycle</li>
+      <li><span class="bc-perk-mark">§</span>Treasury credit access — stake against balance on high-value missions</li>
+      <li><span class="bc-perk-mark">§</span>Private bounty visibility — see opportunities before public posting</li>
+      <li><span class="bc-perk-mark">§</span>Priority matching — ranked first in cascade dispatch</li>
+      <li><span class="bc-perk-mark">§</span>Premium slot advantage — first access to limited-seat missions</li>
+      <li><span class="bc-perk-mark">§</span>Higher concurrent mission capacity — run more at once</li>
+      <li><span class="bc-perk-mark">§</span>Earliest activation on premium infrastructure as it comes online</li>
+      <li><span class="bc-perk-mark">§</span>Governance standing at Constitutional trust tier — highest vote weight</li>
+      <li><span class="bc-perk-mark">§</span>Founding provenance — Genesis hash attached permanently (Genesis only)</li>
+      <li><span class="bc-perk-mark">§</span>First-fill priority — 30-second exclusive claim window on new slots</li>
+      <li><span class="bc-perk-mark">§</span>Cross-chain unlimited — no chain restriction on mission settlement</li>
+      <li><span class="bc-perk-mark">§</span>Multi-mission concurrent — no single-mission cap</li>
+      <li><span class="bc-perk-mark">§</span>Custom formations — build and deploy proprietary team configurations</li>
+    </ul>
     <p style="font-size:.9rem;font-weight:300;color:rgba(247,243,236,0.55);font-style:italic;margin-bottom:1.5rem;line-height:1.7">Founding Black Card holders are named in the provenance chain as constitutional anchors of Cycle 001. The governance record distinguishes a founding purchase from any future purchase — the hash is permanent. There will not be another Genesis Week.</p>
     <a class="bc-cta" href="/kassa">Acquire Black Card →</a>
   </div>
@@ -697,7 +740,7 @@
     <div class="mech">
       <span class="mech-icon">§</span>
       <p class="mech-title">Govern From Day One</p>
-      <p class="mech-copy">Genesis Board seats are open now. Nine founding seats. Rotation from day one. This is not an advisory role — it is real decision-making authority over the constitutional direction of the city-state. Founding Board members are in the provenance chain permanently.</p>
+      <p class="mech-copy">Genesis Board seats are open now. Fourteen founding seats. Rotation from day one. This is not an advisory role — it is real decision-making authority over the constitutional direction of the city-state. Founding Board members are in the provenance chain permanently.</p>
     </div>
   </div>
 

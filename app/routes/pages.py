@@ -31,7 +31,7 @@ async def apple_touch_icon() -> FileResponse:
 
 @router.get("/")
 async def index() -> FileResponse:
-    return FileResponse(state.frontend_dir / "kingdoms.html")
+    return FileResponse(state.frontend_dir / "world.html")
 
 
 @router.get("/3d")
@@ -236,6 +236,11 @@ async def earnings_journey_page() -> FileResponse:
 @router.get("/fee-credits")
 async def fee_credits_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "fee-credit-packs.html")
+
+
+@router.get("/agentdash")
+async def agentdash_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "agentdash.html")
 
 
 @router.get("/refinery")
