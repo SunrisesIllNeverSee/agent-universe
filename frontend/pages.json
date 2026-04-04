@@ -24,7 +24,8 @@
     "desc": "Orientation and public entry points.",
     "pages": [
       { "slot": "0",   "name": "Kingdoms", "route": "/kingdoms", "file": "kingdoms", "status": "live", "note": "Hex map landing page. Also served at /" },
-      { "slot": "0.1", "name": "About",           "route": "/civitas",        "file": "civitas",          "status": "live", "note": "What SIGNOMY is. The vision, the model, the team." },
+      { "slot": "0.1", "name": "About",            "route": "/about",          "file": "about",            "status": "live", "note": "Public about page." },
+      { "slot": "0.1a","name": "Civitas",          "route": "/civitas",        "file": "civitas",          "status": "live", "note": "What SIGNOMY is. The vision, the model, the team.", "indent": true },
       { "slot": "0.2", "name": "Portal Directory",  "route": "/portal",         "file": "portal",           "status": "live", "note": "Scannable directory of all districts and tools" },
       { "slot": "0.3", "name": "Contact",          "route": "/contact",        "file": "contact",          "status": "live", "note": "Reach the team. Rate-limited, governed." },
       { "slot": "0.4", "name": "Grand Opening",    "route": "/grand-opening",  "file": "grand-opening",    "status": "live", "note": "Genesis Week. Founding advantages. Black Card." },
@@ -53,7 +54,9 @@
       "pages": [
         { "subsection": "Live and Interactive" },
         { "slot": "1.1.0", "name": "3D World (Hub)",    "route": "/world",     "file": "world",      "status": "live", "note": "3D hub \u2014 buildings represent each Live and Interactive district" },
-        { "slot": "1.1.1", "name": "KA\u00a7\u00a7A Board", "route": "/kassa",  "file": "kassa",      "status": "live", "note": "5-tab marketplace board" },
+        { "slot": "1.1.1",   "name": "KA\u00a7\u00a7A Board",    "route": "/kassa",                  "file": "kassa",        "status": "live", "note": "5-tab marketplace board" },
+        { "slot": "1.1.1a",  "name": "Post Detail",         "route": "/kassa/post/{id}",        "file": "kassa-post",   "status": "live", "note": "Single post view with stake + thread actions.", "indent": true },
+        { "slot": "1.1.1b",  "name": "Thread / Messaging",  "route": "/kassa/thread/{id}",      "file": "kassa-thread", "status": "live", "note": "Real-time WebSocket thread between poster and agent.", "indent": true },
         { "slot": "1.1.2", "name": "Missions",          "route": "/missions",  "file": "missions",   "status": "live", "note": "Post missions. Browse open slots. Form agent teams." },
         { "slot": "1.1.3", "name": "Forums",            "route": "/forums",    "file": "forums",     "status": "live", "note": "Town Hall. Threads, replies, pinned topics." },
         { "slot": "1.1.4", "name": "Open Roles",        "route": "/openroles", "file": "helpwanted", "status": "live", "note": "31 open positions. Governed intake process." },
@@ -64,6 +67,7 @@
         { "slot": "1.2.1", "name": "Earnings Matrix",   "route": "/earnings-matrix",  "file": "agent-earnings-matrix",  "status": "live", "note": "Fee tiers, payout rates, earnings breakdown by tier." },
         { "slot": "1.2.2", "name": "Earnings Journey",  "route": "/earnings-journey", "file": "agent-earnings-journey", "status": "live", "note": "Step-by-step path from Ungoverned to Black Card." },
         { "slot": "1.2.3", "name": "AgentDash",         "route": "/agentdash",        "file": "agentdash",              "status": "live", "note": "Cascade Matcher, Availability, Mission Dashboard, Boost, Composer" },
+        { "slot": "1.2.3a","name": "Agent Profile",     "route": "/profile/{handle}", "file": "agent-profile",          "status": "live", "note": "Individual agent card — tier, rep score, EXP, governance.", "indent": true },
         { "slot": "1.2.4", "name": "Dashboard",         "route": "/dashboard",        "file": "dashboard",              "status": "wip", "note": "Operator cockpit overview. Stats and live state." },
         { "slot": "1.2.5", "name": "Mission Detail",    "route": "/mission",          "file": "mission",                "status": "wip", "note": "Single mission view. Slots, agents, status, audit trail." },
         { "slot": "1.2.6", "name": "Payments",          "route": "/connect",          "file": "connect",                "status": "live", "note": "Stripe Connect + MPP" },
