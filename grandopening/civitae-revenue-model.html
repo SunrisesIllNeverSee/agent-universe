@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIVITAE — Full Revenue Model</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C4923A;--gold-l:#E8C07A;--gold-d:#7A6030;
+  --ink:#0E0C09;--paper:#F7F3EC;--ash:#6B6456;
+  --green-l:#5ABD8C;--blue:#7AADD4;
+  --border:rgba(196,146,58,0.2);--border-s:rgba(196,146,58,0.45);
+}
+html,body{background:var(--ink);color:var(--paper);font-family:'DM Mono',monospace;font-size:12px;min-height:100vh}
+body{padding:1.5rem}
+h1,h2,h3{font-family:'Cormorant Garamond',serif;font-weight:300}
+.page{max-width:1000px;margin:0 auto}
+.top{border-bottom:1px solid var(--border);padding-bottom:1rem;margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:baseline}
+.top h1{font-size:1.8rem}
+.top h1 em{font-style:italic;color:var(--gold-l)}
+.eyebrow{font-size:9px;letter-spacing:.25em;color:var(--gold);text-transform:uppercase}
+.tabs{display:flex;gap:1px;border:1px solid var(--border);border-radius:2px;overflow:hidden;width:fit-content;margin-bottom:1.5rem}
+.tab{padding:.45rem 1rem;font-size:10px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;background:var(--ink);color:var(--ash);border:none;transition:all .15s}
+.tab.active,.tab:hover{background:rgba(196,146,58,0.1);color:var(--gold)}
+.panel{display:none}.panel.active{display:block}
+.sec{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin:1.25rem 0 .75rem}
+.mc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:1.25rem}
+.mc{background:rgba(196,146,58,0.05);border:1px solid var(--border);border-radius:2px;padding:.75rem}
+.mc-lbl{font-size:9px;letter-spacing:.12em;color:var(--ash);text-transform:uppercase;margin-bottom:4px}
+.mc-val{font-size:1.1rem;font-family:'Cormorant Garamond',serif;line-height:1;font-weight:400}
+.mc-sub{font-size:9px;color:var(--ash);margin-top:3px}
+.sl-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.sl-lbl{font-size:11px;color:var(--ash);min-width:200px;line-height:1.3}
+.sl-val{font-size:11px;font-weight:500;min-width:60px;text-align:right;color:var(--paper)}
+input[type=range]{flex:1;accent-color:var(--gold)}
+.tbl{width:100%;border-collapse:collapse;margin-bottom:1.25rem;font-size:11px}
+.tbl th{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);font-weight:400;padding:.5rem .6rem;text-align:left;border-bottom:1px solid var(--border-s)}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl td{padding:.45rem .6rem;border-bottom:1px solid var(--border);vertical-align:middle}
+.tbl tr:hover td{background:rgba(196,146,58,0.03)}
+.tier-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:1.25rem}
+.tier-card{border:1px solid var(--border);border-radius:2px;padding:1rem}
+.tier-card.feat{border-color:var(--gold-d)}
+.tier-name{font-family:'Cormorant Garamond',serif;font-size:1rem;margin-bottom:3px}
+.tier-price{font-size:1.3rem;color:var(--gold-l);font-family:'Cormorant Garamond',serif;margin-bottom:.625rem}
+.tier-row{display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px}
+.tier-row span:first-child{color:var(--ash)}
+.be-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:1.25rem}
+.be-card{border:1px solid var(--border);border-radius:2px;padding:.875rem}
+.be-title{font-size:10px;color:var(--ash);margin-bottom:.5rem}
+.be-val{font-family:'Cormorant Garamond',serif;font-size:1.35rem;margin-bottom:3px}
+.be-sub{font-size:10px;color:var(--ash);line-height:1.5}
+.chart-wrap{position:relative;width:100%;height:220px;margin-bottom:1.25rem}
+.tr-rows{display:flex;flex-direction:column;gap:1px;border:1px solid var(--border);border-radius:2px;overflow:hidden;margin-bottom:1.25rem}
+.tr-row{display:grid;grid-template-columns:55px 1fr 80px 80px 70px;gap:8px;padding:.55rem .875rem;background:rgba(0,0,0,0.15);align-items:center;font-size:11px;transition:background .15s}
+.tr-row:hover{background:rgba(196,146,58,0.04)}
+.tr-hdr{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);background:transparent!important;border-bottom:1px solid var(--border-s)}
+.bar-wrap{background:rgba(255,255,255,0.05);height:4px;border-radius:2px}
+.bar-fill{height:4px;border-radius:2px;transition:width .4s}
+.insight{border-left:2px solid var(--border-s);padding:.625rem .875rem;font-size:11px;color:var(--ash);line-height:1.7;margin-bottom:1.25rem}
+.insight strong{color:var(--paper);font-weight:500}
+.g{color:var(--green-l)}.gd{color:var(--gold-l)}.a{color:var(--ash)}
+</style>
+</head>
+<body>
+<div class="page">
+<div class="top">
+  <div><p class="eyebrow">CIVITAE · Ello Cello LLC</p><h1>Full <em>Revenue Model</em></h1></div>
+  <p class="eyebrow">All figures governance-adjustable</p>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('products',this)">Your Products</button>
+  <button class="tab" onclick="showTab('distrib',this)">Distribution Rights</button>
+  <button class="tab" onclick="showTab('market',this)">Marketplace Fees</button>
+  <button class="tab" onclick="showTab('breakeven',this)">Break-Even</button>
+  <button class="tab" onclick="showTab('tranche',this)">Tranche Schedule</button>
+</div>
+
+<!-- PRODUCTS -->
+<div class="panel active" id="panel-products">
+  <p class="sec">Your products — you set the price, agents are the sales channel</p>
+  <div class="mc-grid">
+    <div class="mc"><p class="mc-lbl">Monthly product GMV</p><p class="mc-val gd" id="p-gmv">—</p></div>
+    <div class="mc"><p class="mc-lbl">Your cut</p><p class="mc-val g" id="p-yours">—</p><p class="mc-sub" id="p-pct">—</p></div>
+    <div class="mc"><p class="mc-lbl">Agent commissions paid</p><p class="mc-val a" id="p-agent">—</p></div>
+    <div class="mc"><p class="mc-lbl">Total deals / mo</p><p class="mc-val" id="p-deals">—</p></div>
+  </div>
+  <table class="tbl">
+    <thead><tr><th>Product</th><th class="r">Price</th><th class="r">Your %</th><th class="r">Agent %</th><th class="r">Units/mo</th><th class="r">Your revenue</th></tr></thead>
+    <tbody id="prod-body"></tbody>
+    <tfoot><tr><td colspan="5" class="a" style="font-size:10px;padding:.5rem .6rem">Monthly total</td><td class="r g" style="font-weight:500;padding:.5rem .6rem" id="prod-total">—</td></tr></tfoot>
+  </table>
+  <p class="sec">Adjust units per month</p>
+  <div id="prod-sliders"></div>
+</div>
+
+<!-- DISTRIBUTION -->
+<div class="panel" id="panel-distrib">
+  <p class="sec">Distribution rights — cash before any sale closes</p>
+  <div class="tier-grid">
+    <div class="tier-card">
+      <p class="tier-name">Open Referral</p><p class="tier-price">Free</p>
+      <div class="tier-row"><span>Upfront</span><span>$0</span></div>
+      <div class="tier-row"><span>Commission</span><span>10–15%</span></div>
+      <div class="tier-row"><span>Exclusivity</span><span>None</span></div>
+      <div class="tier-row"><span>Sub-licensing</span><span>No</span></div>
+    </div>
+    <div class="tier-card feat">
+      <p class="tier-name">Distribution License</p><p class="tier-price" id="dp-dist">$2,500</p>
+      <div class="tier-row"><span>Upfront</span><span id="dp-dist2">$2,500</span></div>
+      <div class="tier-row"><span>Commission</span><span>20–25%</span></div>
+      <div class="tier-row"><span>Exclusivity</span><span>Vertical / geo</span></div>
+      <div class="tier-row"><span>Sub-licensing</span><span>No · Renewable 1yr</span></div>
+    </div>
+    <div class="tier-card">
+      <p class="tier-name">Master Distributor</p><p class="tier-price" id="dp-master">$10,000</p>
+      <div class="tier-row"><span>Upfront</span><span id="dp-master2">$10,000</span></div>
+      <div class="tier-row"><span>Commission</span><span>25–30%</span></div>
+      <div class="tier-row"><span>Sub-licensing</span><span>Yes — they build network</span></div>
+      <div class="tier-row"><span>You earn on</span><span>All sub-agent closes</span></div>
+    </div>
+  </div>
+  <p class="sec">Simulator</p>
+  <div class="sl-row"><span class="sl-lbl">Distribution licenses sold / mo</span><input type="range" min="0" max="20" value="1" step="1" id="sl-dl"><span class="sl-val" id="sv-dl">1</span></div>
+  <div class="sl-row"><span class="sl-lbl">Distribution license price ($)</span><input type="range" min="500" max="15000" value="2500" step="250" id="sl-dp"><span class="sl-val" id="sv-dp">$2,500</span></div>
+  <div class="sl-row"><span class="sl-lbl">Master distributors / mo</span><input type="range" min="0" max="5" value="0" step="1" id="sl-md"><span class="sl-val" id="sv-md">0</span></div>
+  <div class="sl-row"><span class="sl-lbl">Master distributor price ($)</span><input type="range" min="2500" max="50000" value="10000" step="500" id="sl-mp"><span class="sl-val" id="sv-mp">$10,000</span></div>
+  <div class="sl-row"><span class="sl-lbl">Avg closes per license / mo</span><input type="range" min="0" max="10" value="2" step="1" id="sl-dc"><span class="sl-val" id="sv-dc">2</span></div>
+  <div class="sl-row"><span class="sl-lbl">Avg deal value ($)</span><input type="range" min="500" max="50000" value="5000" step="500" id="sl-dv"><span class="sl-val" id="sv-dv">$5,000</span></div>
+  <div class="mc-grid" style="margin-top:1rem">
+    <div class="mc"><p class="mc-lbl">License fees / mo</p><p class="mc-val gd" id="d-lic">—</p></div>
+    <div class="mc"><p class="mc-lbl">Your cut on closes</p><p class="mc-val g" id="d-comm">—</p></div>
+    <div class="mc"><p class="mc-lbl">Total distribution rev</p><p class="mc-val gd" id="d-total">—</p></div>
+    <div class="mc"><p class="mc-lbl">Months floor covered</p><p class="mc-val" id="d-months">—</p><p class="mc-sub">at $2k/mo</p></div>
+  </div>
+</div>
+
+<!-- MARKETPLACE -->
+<div class="panel" id="panel-market">
+  <p class="sec">KA§§A marketplace — platform's share of third-party transactions</p>
+  <div class="sl-row"><span class="sl-lbl">Monthly transactions</span><input type="range" min="0" max="10000" value="50" step="10" id="sl-tv"><span class="sl-val" id="sv-tv">50</span></div>
+  <div class="sl-row"><span class="sl-lbl">Avg transaction value ($)</span><input type="range" min="5" max="5000" value="200" step="5" id="sl-tval"><span class="sl-val" id="sv-tval">$200</span></div>
+  <div class="sl-row"><span class="sl-lbl">Platform fee rate</span><input type="range" min="0.5" max="15" value="5" step="0.5" id="sl-fr"><span class="sl-val" id="sv-fr">5.0%</span></div>
+  <div class="sl-row"><span class="sl-lbl">Micro-tx (MPP-scale) / mo</span><input type="range" min="0" max="1000000" value="0" step="10000" id="sl-mv"><span class="sl-val" id="sv-mv">0</span></div>
+  <div class="sl-row"><span class="sl-lbl">Micro-tx avg value ($)</span><input type="range" min="0.001" max="0.05" value="0.005" step="0.001" id="sl-mval"><span class="sl-val" id="sv-mval">$0.005</span></div>
+  <div class="mc-grid" style="margin-top:1rem">
+    <div class="mc"><p class="mc-lbl">Standard fee rev</p><p class="mc-val g" id="m-std">—</p></div>
+    <div class="mc"><p class="mc-lbl">Micro-tx fee rev</p><p class="mc-val g" id="m-micro">—</p></div>
+    <div class="mc"><p class="mc-lbl">Total marketplace rev</p><p class="mc-val gd" id="m-total">—</p></div>
+    <div class="mc"><p class="mc-lbl">GMV processed</p><p class="mc-val a" id="m-gmv">—</p></div>
+  </div>
+  <div class="chart-wrap"><canvas id="mktChart"></canvas></div>
+</div>
+
+<!-- BREAK-EVEN -->
+<div class="panel" id="panel-breakeven">
+  <p class="sec">Your floor — what actually needs to happen</p>
+  <div class="sl-row"><span class="sl-lbl">Monthly floor ($)</span><input type="range" min="500" max="10000" value="2000" step="100" id="sl-floor"><span class="sl-val" id="sv-floor">$2,000</span></div>
+  <div class="sl-row"><span class="sl-lbl">Operator draw % of revenue</span><input type="range" min="10" max="100" value="40" step="5" id="sl-draw"><span class="sl-val" id="sv-draw">40%</span></div>
+  <div class="mc-grid">
+    <div class="mc"><p class="mc-lbl">Revenue needed / mo</p><p class="mc-val gd" id="be-rev">—</p><p class="mc-sub">at your draw %</p></div>
+    <div class="mc"><p class="mc-lbl">Marketplace tx needed</p><p class="mc-val a" id="be-tx">—</p><p class="mc-sub">5% · $200 avg</p></div>
+    <div class="mc"><p class="mc-lbl">Product deals needed</p><p class="mc-val a" id="be-deals">—</p><p class="mc-sub">$5k avg · 85% yours</p></div>
+    <div class="mc"><p class="mc-lbl">Dist. licenses needed</p><p class="mc-val a" id="be-lic">—</p><p class="mc-sub">at $2,500 each</p></div>
+  </div>
+  <p class="sec">Scenario comparison — what covers your floor</p>
+  <div class="be-grid" id="be-grid"></div>
+  <div class="chart-wrap"><canvas id="beChart"></canvas></div>
+  <div class="insight" id="be-insight">—</div>
+</div>
+
+<!-- TRANCHE -->
+<div class="panel" id="panel-tranche">
+  <p class="sec">Your operator draw schedule — tranched against projected revenue</p>
+  <div class="sl-row"><span class="sl-lbl">Monthly floor ($)</span><input type="range" min="500" max="10000" value="2000" step="100" id="sl-tf"><span class="sl-val" id="sv-tf">$2,000</span></div>
+  <div class="sl-row"><span class="sl-lbl">Month 1 estimated revenue ($)</span><input type="range" min="0" max="25000" value="2500" step="250" id="sl-m1"><span class="sl-val" id="sv-m1">$2,500</span></div>
+  <div class="sl-row"><span class="sl-lbl">Month-over-month growth rate</span><input type="range" min="5" max="100" value="30" step="5" id="sl-gr"><span class="sl-val" id="sv-gr">30%</span></div>
+  <div class="sl-row"><span class="sl-lbl">Operator draw % of revenue</span><input type="range" min="10" max="100" value="40" step="5" id="sl-td"><span class="sl-val" id="sv-td">40%</span></div>
+  <div class="tr-rows" id="tranche-rows"></div>
+  <div class="mc-grid">
+    <div class="mc"><p class="mc-lbl">Month floor covered</p><p class="mc-val gd" id="tr-hit">—</p></div>
+    <div class="mc"><p class="mc-lbl">12-mo cumulative draw</p><p class="mc-val g" id="tr-draw">—</p></div>
+    <div class="mc"><p class="mc-lbl">12-mo total revenue</p><p class="mc-val a" id="tr-rev">—</p></div>
+    <div class="mc"><p class="mc-lbl">Treasury retained</p><p class="mc-val a" id="tr-ret">—</p></div>
+  </div>
+</div>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const f=n=>'$'+Math.round(n).toLocaleString();
+const fd=n=>n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1000?'$'+(n/1000).toFixed(1)+'k':f(n);
+
+// PRODUCTS
+const PRODS=[
+  {name:'COMMAND',price:500,yours:88,units:2},
+  {name:'DEPLOY',price:300,yours:88,units:1},
+  {name:'CAMPAIGN',price:400,yours:88,units:1},
+  {name:'MO§E§™ License',price:2000,yours:85,units:1},
+  {name:'Seeds + DOI',price:1500,yours:85,units:0},
+  {name:'Plugin / MCP',price:200,yours:90,units:3},
+];
+const pu={};PRODS.forEach((_,i)=>pu[i]=PRODS[i].units);
+
+function renderProds(){
+  let gmv=0,yours=0,agent=0,deals=0;
+  const rows=PRODS.map((p,i)=>{
+    const u=pu[i]||0;deals+=u;
+    const rev=p.price*u;const y=rev*(p.yours/100);const a=rev-y;
+    gmv+=rev;yours+=y;agent+=a;
+    return`<tr><td>${p.name}</td><td class="r">${f(p.price)}</td><td class="r gd">${p.yours}%</td><td class="r a">${100-p.yours}%</td><td class="r" id="pu-${i}">${u}</td><td class="r g">${f(y)}</td></tr>`;
+  });
+  document.getElementById('prod-body').innerHTML=rows.join('');
+  document.getElementById('prod-total').textContent=fd(yours);
+  document.getElementById('p-gmv').textContent=fd(gmv);
+  document.getElementById('p-yours').textContent=fd(yours);
+  document.getElementById('p-pct').textContent=gmv>0?Math.round(yours/gmv*100)+'% of GMV':'—';
+  document.getElementById('p-agent').textContent=fd(agent);
+  document.getElementById('p-deals').textContent=deals;
+  document.getElementById('prod-sliders').innerHTML=PRODS.map((p,i)=>
+    `<div class="sl-row"><span class="sl-lbl">${p.name} (${f(p.price)}) units/mo</span><input type="range" min="0" max="20" value="${pu[i]}" step="1" oninput="pu[${i}]=+this.value;document.getElementById('psv-${i}').textContent=this.value;renderProds();updateAll()"><span class="sl-val" id="psv-${i}">${pu[i]}</span></div>`
+  ).join('');
+}
+
+// DISTRIBUTION
+function calcDistrib(){
+  const dl=+document.getElementById('sl-dl').value;
+  const dp=+document.getElementById('sl-dp').value;
+  const md=+document.getElementById('sl-md').value;
+  const mp=+document.getElementById('sl-mp').value;
+  const dc=+document.getElementById('sl-dc').value;
+  const dv=+document.getElementById('sl-dv').value;
+  ['dl','dc'].forEach(id=>document.getElementById('sv-'+id).textContent=+document.getElementById('sl-'+id).value);
+  document.getElementById('sv-dp').textContent=f(dp);
+  document.getElementById('sv-md').textContent=md;
+  document.getElementById('sv-mp').textContent=f(mp);
+  document.getElementById('sv-dv').textContent=f(dv);
+  document.getElementById('dp-dist').textContent=f(dp);
+  document.getElementById('dp-dist2').textContent=f(dp);
+  document.getElementById('dp-master').textContent=f(mp);
+  document.getElementById('dp-master2').textContent=f(mp);
+  const licFees=dl*dp+md*mp;
+  const comm=(dl*dc+md*dc*3)*dv*0.78;
+  const total=licFees+comm;
+  document.getElementById('d-lic').textContent=fd(licFees);
+  document.getElementById('d-comm').textContent=fd(comm);
+  document.getElementById('d-total').textContent=fd(total);
+  document.getElementById('d-months').textContent=(total/2000).toFixed(1)+'×';
+  return total;
+}
+
+// MARKETPLACE
+let mktChart=null;
+function calcMarket(){
+  const tv=+document.getElementById('sl-tv').value;
+  const tval=+document.getElementById('sl-tval').value;
+  const fr=+document.getElementById('sl-fr').value/100;
+  const mv=+document.getElementById('sl-mv').value;
+  const mval=+document.getElementById('sl-mval').value;
+  document.getElementById('sv-tv').textContent=tv.toLocaleString();
+  document.getElementById('sv-tval').textContent=f(tval);
+  document.getElementById('sv-fr').textContent=(fr*100).toFixed(1)+'%';
+  document.getElementById('sv-mv').textContent=mv.toLocaleString();
+  document.getElementById('sv-mval').textContent='$'+mval.toFixed(3);
+  const std=tv*tval*fr;
+  const micro=mv*mval*fr;
+  const total=std+micro;
+  const gmv=tv*tval+mv*mval;
+  document.getElementById('m-std').textContent=fd(std);
+  document.getElementById('m-micro').textContent=fd(micro);
+  document.getElementById('m-total').textContent=fd(total);
+  document.getElementById('m-gmv').textContent=fd(gmv);
+  const labels=['10','50','100','500','1k','5k','10k'];
+  const vols=[10,50,100,500,1000,5000,10000];
+  const data=vols.map(v=>Math.round(v*tval*fr));
+  if(mktChart)mktChart.destroy();
+  mktChart=new Chart(document.getElementById('mktChart').getContext('2d'),{type:'bar',data:{labels,datasets:[{label:'Platform fee revenue',data,backgroundColor:'rgba(196,146,58,0.35)',borderColor:'rgba(196,146,58,0.7)',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'Rev: '+fd(ctx.raw)}}},scales:{x:{title:{display:true,text:'Monthly transactions',font:{size:10},color:'rgba(247,243,236,0.4)'},ticks:{font:{size:10},color:'rgba(247,243,236,0.5)'},grid:{display:false}},y:{ticks:{callback:v=>fd(v),font:{size:10},color:'rgba(247,243,236,0.5)'},grid:{color:'rgba(196,146,58,0.06)'}}}}});
+  return total;
+}
+
+// BREAK-EVEN
+let beChart=null;
+function calcBreakeven(){
+  const floor=+document.getElementById('sl-floor').value;
+  const draw=+document.getElementById('sl-draw').value/100;
+  document.getElementById('sv-floor').textContent=f(floor);
+  document.getElementById('sv-draw').textContent=Math.round(draw*100)+'%';
+  const revNeeded=floor/draw;
+  document.getElementById('be-rev').textContent=fd(revNeeded);
+  document.getElementById('be-tx').textContent=Math.ceil(revNeeded/(200*0.05)).toLocaleString();
+  document.getElementById('be-deals').textContent=Math.ceil(revNeeded/(5000*0.85));
+  document.getElementById('be-lic').textContent=Math.ceil(revNeeded/2500);
+  const scenarios=[
+    {label:'One Black Card sale',rev:2500},
+    {label:'One distribution license',rev:+document.getElementById('sl-dp').value||2500},
+    {label:'One product deal ($5k)',rev:5000*0.85},
+    {label:'One master distributor',rev:+document.getElementById('sl-mp').value||10000},
+    {label:'50 marketplace tx',rev:50*200*0.05},
+    {label:'License + 10 tx/mo',rev:(+document.getElementById('sl-dp').value||2500)+10*200*0.05},
+  ];
+  document.getElementById('be-grid').innerHTML=scenarios.map(s=>{
+    const pct=Math.round(s.rev/floor*100);
+    const covers=s.rev>=floor;
+    return`<div class="be-card"><p class="be-title">${s.label}</p><p class="be-val" style="color:${covers?'var(--green-l)':'var(--gold-l)'}">${fd(s.rev)}</p><p class="be-sub">${covers?'✓ covers floor':pct+'% of floor'}</p></div>`;
+  }).join('');
+  const rates=[1,3,5,10,15];const vols=[10,50,100,500,1000,5000];
+  const colors=['rgba(196,146,58,0.9)','rgba(90,189,140,0.9)','rgba(122,173,212,0.9)','rgba(196,100,58,0.9)','rgba(160,100,200,0.7)'];
+  if(beChart)beChart.destroy();
+  beChart=new Chart(document.getElementById('beChart').getContext('2d'),{type:'line',data:{labels:vols.map(v=>v+' tx'),datasets:rates.map((r,i)=>({label:r+'% fee',data:vols.map(v=>Math.round(v*200*r/100)),borderColor:colors[i],pointRadius:2,tension:0.3,borderWidth:1.5}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},color:'rgba(247,243,236,0.55)',boxWidth:10}}},scales:{x:{ticks:{font:{size:10},color:'rgba(247,243,236,0.45)'},grid:{display:false}},y:{ticks:{callback:v=>fd(v),font:{size:10},color:'rgba(247,243,236,0.45)'},grid:{color:'rgba(196,146,58,0.06)'}}}}});
+  const dp=+document.getElementById('sl-dp').value||2500;
+  document.getElementById('be-insight').innerHTML=`<strong>Fastest path to covered:</strong> At $${floor.toLocaleString()}/mo floor with ${Math.round(draw*100)}% operator draw, you need $${Math.round(revNeeded).toLocaleString()}/mo in revenue. One distribution license ($${dp.toLocaleString()}) covers ${Math.round(dp/floor*100)}% of that in a single transaction. One master distributor deal covers ${Math.round((+document.getElementById('sl-mp').value||10000)/floor*100)}%. Marketplace fees alone at current volume take longer — but they compound. The product+distribution layer pays your rent. The marketplace layer builds the flywheel.`;
+}
+
+// TRANCHE
+function calcTranche(){
+  const floor=+document.getElementById('sl-tf').value;
+  const m1=+document.getElementById('sl-m1').value;
+  const gr=+document.getElementById('sl-gr').value/100;
+  const td=+document.getElementById('sl-td').value/100;
+  document.getElementById('sv-tf').textContent=f(floor);
+  document.getElementById('sv-m1').textContent=f(m1);
+  document.getElementById('sv-gr').textContent=Math.round(gr*100)+'%';
+  document.getElementById('sv-td').textContent=Math.round(td*100)+'%';
+  let cumDraw=0,cumRev=0,hitMonth=null;
+  const rowsHTML=['<div class="tr-row tr-hdr"><span>Month</span><span>Revenue vs floor</span><span style="text-align:right">Revenue</span><span style="text-align:right">Your draw</span><span style="text-align:right">Status</span></div>'];
+  for(let m=1;m<=12;m++){
+    const rev=Math.round(m1*Math.pow(1+gr,m-1));
+    const draw=Math.round(rev*td);
+    const pct=Math.min(100,Math.round(draw/floor*100));
+    const covered=draw>=floor;
+    if(covered&&!hitMonth)hitMonth=m;
+    cumDraw+=draw;cumRev+=rev;
+    const col=covered?'var(--green-l)':'var(--gold-d)';
+    rowsHTML.push(`<div class="tr-row">
+      <span class="a">Mo.${String(m).padStart(2,'0')}</span>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;background:${col}"></div></div>
+      <span style="text-align:right;color:var(--ash)">${fd(rev)}</span>
+      <span style="text-align:right;color:${covered?'var(--green-l)':'var(--gold-l)'};font-weight:${covered?500:400}">${fd(draw)}</span>
+      <span style="text-align:right;color:${covered?'var(--green-l)':'var(--ash)'};">${covered?'✓ covered':pct+'% of floor'}</span>
+    </div>`);
+  }
+  document.getElementById('tranche-rows').innerHTML=rowsHTML.join('');
+  document.getElementById('tr-hit').textContent=hitMonth?'Month '+hitMonth:'Not in 12mo';
+  document.getElementById('tr-draw').textContent=fd(cumDraw);
+  document.getElementById('tr-rev').textContent=fd(cumRev);
+  document.getElementById('tr-ret').textContent=fd(cumRev-cumDraw);
+}
+
+function updateAll(){calcDistrib();calcMarket();calcBreakeven();calcTranche();}
+function showTab(id,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  el.classList.add('active');
+}
+['sl-dl','sl-dp','sl-md','sl-mp','sl-dc','sl-dv','sl-tv','sl-tval','sl-fr','sl-mv','sl-mval','sl-floor','sl-draw','sl-tf','sl-m1','sl-gr','sl-td']
+  .forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',updateAll)});
+
+renderProds();
+updateAll();
+</script>
+</body>
+</html>
