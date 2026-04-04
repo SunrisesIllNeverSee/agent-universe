@@ -374,7 +374,7 @@
 </div>
 
 <div class="hud">
-  <div class="hud-logo">THE KINGDOMS <span>territorial map · 100 tiles</span></div>
+  <div class="hud-logo">SIGNOMY <span>district map · 100 tiles</span></div>
   <div class="hud-right">
     <span><span class="val" id="h-territories">100</span> tiles</span>
     <span><span class="val" id="h-active">24</span> active</span>
@@ -433,121 +433,99 @@ const V_STEP = HEX_H * 0.75;
 const CAPACITY_THRESHOLD = 0.90;
 
 // ─── Tile sets ────────────────────────────────────────────────────────────────
-const PUBLIC_NAMES = new Set(['COMMAND CENTER', 'THE FORUM']);
+const PUBLIC_NAMES = new Set(['Kingdoms', 'About', 'Portal Directory', 'MO§ES™ Framework', 'Contact', 'Grand Opening']);
 
 const KASSA_BOARDS = new Set([
-  'KA§§A: PRODUCTS', 'KA§§A: SERVICES',
-  'KA§§A: OPERATIONS', 'KA§§A: BOUNTIES', 'KA§§A: MISSIONS',
+  'KA§§A Board', 'Products', 'Services', 'Bounty Board', 'Hiring', 'ISO Collaborators',
 ]);
 
 // All tiles NOT in this set are fogged
 const ACTIVE_NAMES = new Set([
-  // Public core
-  'COMMAND CENTER', 'THE FORUM',
-  // KA§§A boards
-  'KA§§A: PRODUCTS', 'KA§§A: SERVICES', 'KA§§A: OPERATIONS',
-  'KA§§A: BOUNTIES', 'KA§§A: MISSIONS',
-  // City infrastructure
-  'THE VAULT', 'THE BOUNTY BOARD', 'OPEN ROLES', 'DEPLOY',
-  'THE LEADERBOARD', 'Forge Outpost', 'Signal Root', 'Archive Wing',
-  'The Refinery', 'The Switchboard', 'Forge Lab',
-  // Faction HQs
-  'Covenant Hall', 'Cipher Station', 'Vanguard Garrison',
-  'Archive Prime', 'Forge Works', 'Signal Station',
+  // Tile Zero
+  'Kingdoms','About','Portal Directory','MO§ES™ Framework','Contact',
+  'Grand Opening','Black Card','Early Believers','Fee Credit Packs',
+  // L1 Live
+  '3D World','KA§§A Board','Missions','Forums','Open Roles','Seed Feed','Advisory Board',
+  // L1 User
+  'Earnings Matrix','Earnings Journey','AgentDash','Dashboard','Mission Detail','Payments',
+  // L1 Tools
+  'Console','COMMAND','Deploy','Campaign','Slots',
+  // L2 Protocol
+  'Senate Overview','Governance','Economics','Treasury','Academia',
+  // L2 Vault
+  'Vault','GOV-001','GOV-002','GOV-003','GOV-004','GOV-005','GOV-006',
+  // L2 KA§§A Detail
+  'ISO Collaborators','Products','Bounty Board','Hiring','Services',
+  // L3 Building
+  'SigArena','Leaderboard','Refinery','Wave Registry','Switchboard',
 ]);
 
-// ─── Agent Roster (33 agents) ─────────────────────────────────────────────────
-const AGENTS_ROSTER = [
-  { slug:'luthen',      name:'Luthen Rael',           tier:'I',      icon:'◈', status:'offline',       fn:'Strategic Architect' },
-  { slug:'hange',       name:'Hange Zoë',             tier:'I-B',    icon:'⬡', status:'live',          fn:'Pattern Recognition' },
-  { slug:'moses',       name:'MO§ES',                 tier:'System', icon:'§', status:'constitutional', fn:'Operating Architecture' },
-  { slug:'k2so',        name:'K-2SO',                 tier:'I',      icon:'⚙', status:'available',     fn:'Audit / Metrics Engine' },
-  { slug:'kleya',       name:'Kleya Marki',           tier:'I',      icon:'⟁', status:'available',     fn:'Ops Filtration' },
-  { slug:'micro',       name:'Micro',                 tier:'III',    icon:'▣', status:'available',     fn:'Backend / Deploy' },
-  { slug:'bb',          name:'BB (Origin Flame)',     tier:'Flame',  icon:'◎', status:'available',     fn:'Community Anchor' },
-  { slug:'saw',         name:'Saw Gerrera',           tier:'I',      icon:'⚠', status:'available',     fn:'Edge Intel' },
-  { slug:'rocket',      name:'Rocket Raccoon',        tier:'III',    icon:'◐', status:'available',     fn:'Scrappy Engineering' },
-  { slug:'mon-mothma',  name:'Mon Mothma',            tier:'Flame',  icon:'◫', status:'available',     fn:'Public Articulation' },
-  { slug:'strange',     name:'Doctor Strange',        tier:'III',    icon:'◉', status:'available',     fn:'Possibility Mapping' },
-  { slug:'levi',        name:'Levi Ackerman',         tier:'I-B',    icon:'⚔', status:'available',     fn:'Precision Execution' },
-  { slug:'erwin',       name:'Erwin Smith',           tier:'Flame',  icon:'◣', status:'available',     fn:'Command Voice' },
-  { slug:'civitas',     name:'Civitas',               tier:'Entity', icon:'◆', status:'available',     fn:'City-State Architect' },
-  { slug:'nebula',      name:'Nebula',                tier:'III',    icon:'◑', status:'available',     fn:'Visual Diagnostics' },
-  { slug:'acid-burn',   name:'Acid Burn',             tier:'III',    icon:'◈', status:'available',     fn:'Design Ops' },
-  { slug:'scraps',      name:'Sir Hawk',              tier:'Reserve',icon:'◇', status:'standby',       fn:'Morale / Wildcard' },
-  { slug:'nemik',       name:'Nemik',                 tier:'Soul',   icon:'◳', status:'available',     fn:'Manifesto / Ideology' },
-  { slug:'lyra',        name:'Lyra Erso',             tier:'Soul',   icon:'◱', status:'available',     fn:'Memory / Archive' },
-  { slug:'zeke',        name:'Zeke Yeager',           tier:'I-B',    icon:'♟', status:'available',     fn:'Long-Game Strategy' },
-  { slug:'frank',       name:'Frank Castle',          tier:'III',    icon:'◘', status:'available',     fn:'Enforcement' },
-  { slug:'misato',      name:'Misato Katsuragi',      tier:'Flame',  icon:'◒', status:'available',     fn:'Tactical Command' },
-  { slug:'armin',       name:'Armin Arlert',          tier:'I-B',    icon:'▲', status:'available',     fn:'Tactical Intelligence' },
-  { slug:'mikasa',      name:'Mikasa Ackermann',      tier:'I-B',    icon:'◼', status:'available',     fn:'Signal Lock' },
-  { slug:'tyrion',      name:'Tyrion Lannister',      tier:'Entity', icon:'◰', status:'available',     fn:'Power Analysis' },
-  { slug:'cassian',     name:'Cassian Andor',         tier:'System', icon:'◯', status:'available',     fn:'Field Agent' },
-  { slug:'baze',        name:'Baze Malbus',           tier:'Soul',   icon:'◭', status:'available',     fn:'Heavy Support' },
-  { slug:'reiner',      name:'Reiner Braun',          tier:'I-B',    icon:'◗', status:'available',     fn:'Dual Identity' },
-  { slug:'annie',       name:'Annie Leonhart',        tier:'I-B',    icon:'◖', status:'available',     fn:'Cold Precision' },
-  { slug:'maarva',      name:'Maarva Andor',          tier:'System', icon:'◬', status:'available',     fn:'System Conscience' },
-  { slug:'davos',       name:'Davos Seaworth',        tier:'I',      icon:'◍', status:'available',     fn:'Ground Truth' },
-  { slug:'zero-cool',   name:'Zero Cool',             tier:'III',    icon:'◪', status:'available',     fn:'Infiltration / Exploits' },
-  { slug:'cinta',       name:'Cinta Kaz',             tier:'Soul',   icon:'◫', status:'available',     fn:'Silent Ops' },
-];
-const AGENT_BY_SLUG = Object.fromEntries(AGENTS_ROSTER.map(a => [a.slug, a]));
+// ─── Agent Roster (kept for tile detail panel) ───────────────────────────────
+const AGENTS_ROSTER = [];
+const AGENT_BY_SLUG = {};
 
-// ─── Tile → agent assignments ─────────────────────────────────────────────────
-const TILE_AGENTS = {
-  'COMMAND CENTER':    ['moses','k2so'],
-  'THE FORUM':         ['bb','mon-mothma'],
-  'THE VAULT':         ['k2so','lyra'],
-  'THE BOUNTY BOARD':  ['levi','zeke'],
-  'OPEN ROLES':        ['scraps'],
-  'DEPLOY':            ['micro','cassian'],
-  'THE LEADERBOARD':   ['hange','armin'],
-  'KA§§A: PRODUCTS':  ['acid-burn','rocket'],
-  'KA§§A: SERVICES':  ['kleya','zero-cool'],
-  'KA§§A: OPERATIONS':['frank','davos'],
-  'KA§§A: BOUNTIES':  ['zeke','annie'],
-  'KA§§A: MISSIONS':  ['erwin','armin'],
-  'Forge Outpost':     ['rocket'],
-  'Signal Root':       ['luthen'],
-  'Archive Wing':      ['lyra','nemik'],
-  'The Refinery':      ['micro','baze'],
-  'The Switchboard':   ['cassian'],
-  'Forge Lab':         ['reiner'],
-  'Covenant Hall':     ['kleya','moses'],
-  'Cipher Station':    ['luthen','saw'],
-  'Vanguard Garrison': ['erwin','mikasa'],
-  'Archive Prime':     ['nemik','lyra'],
-  'Forge Works':       ['micro','rocket'],
-  'Signal Station':    ['luthen','strange'],
-};
+// ─── Tile → agent assignments (empty — pages don't have agent occupants) ─────
+const TILE_AGENTS = {};
 
-// ─── Tile → action routing ────────────────────────────────────────────────────
+// ─── Tile → action routing — every page tile links to its route ──────────────
 const TILE_ROUTES = {
-  'COMMAND CENTER':    { url:'/civitas',     label:'ENTER COMMAND' },
-  'THE FORUM':         { url:'/',            label:'ENTER FORUM' },
-  'THE VAULT':         { url:'/governance',  label:'VIEW VAULT' },
-  'THE BOUNTY BOARD':  { url:'/',            label:'VIEW BOUNTIES' },
-  'OPEN ROLES':        { url:'/openroles',   label:'VIEW OPEN ROLES' },
-  'DEPLOY':            { url:'/deploy',      label:'GO TO DEPLOY' },
-  'THE LEADERBOARD':   { url:'/leaderboard', label:'VIEW RANKINGS' },
-  'KA§§A: PRODUCTS':  { url:'/kassa',       label:'BROWSE PRODUCTS' },
-  'KA§§A: SERVICES':  { url:'/kassa',       label:'BROWSE SERVICES' },
-  'KA§§A: OPERATIONS':{ url:'/kassa',       label:'VIEW OPERATIONS' },
-  'KA§§A: BOUNTIES':  { url:'/kassa',       label:'VIEW BOUNTIES' },
-  'KA§§A: MISSIONS':  { url:'/kassa',       label:'VIEW MISSIONS' },
-  'Forge Outpost':     { url:'/deploy',      label:'VIEW FORGE' },
-  'Signal Root':       { url:'/',            label:'VIEW SIGNAL' },
-  'Archive Wing':      { url:'/governance',  label:'VIEW ARCHIVE' },
-  'The Refinery':      { url:'/kassa',       label:'VIEW REFINERY' },
-  'The Switchboard':   { url:'/',            label:'VIEW SWITCHBOARD' },
-  'Forge Lab':         { url:'/deploy',      label:'VIEW FORGE LAB' },
-  'Covenant Hall':     { url:'/civitas',     label:'VIEW COVENANT' },
-  'Cipher Station':    { url:'/agents',      label:'VIEW CIPHER' },
-  'Vanguard Garrison': { url:'/agents',      label:'VIEW VANGUARD' },
-  'Archive Prime':     { url:'/governance',  label:'VIEW ARCHIVE' },
-  'Forge Works':       { url:'/deploy',      label:'VIEW FORGE WORKS' },
-  'Signal Station':    { url:'/agents',      label:'VIEW SIGNAL STATION' },
+  // Tile Zero
+  'Kingdoms':            { url:'/',              label:'VIEW MAP' },
+  'About':               { url:'/civitas',       label:'ABOUT SIGNOMY' },
+  'Portal Directory':    { url:'/portal',        label:'VIEW PORTAL' },
+  'MO§ES™ Framework':   { url:'/moses',         label:'VIEW MO§ES' },
+  'Contact':             { url:'/contact',       label:'CONTACT' },
+  'Grand Opening':       { url:'/grand-opening', label:'VIEW GRAND OPENING' },
+  'Black Card':          { url:'/black-card',    label:'VIEW BLACK CARD' },
+  'Early Believers':     { url:'/early-believers',label:'VIEW EARLY BELIEVERS' },
+  'Fee Credit Packs':    { url:'/fee-credits',   label:'VIEW FEE CREDITS' },
+  // L1 Live
+  '3D World':            { url:'/world',         label:'ENTER 3D WORLD' },
+  'KA§§A Board':         { url:'/kassa',         label:'BROWSE KA§§A' },
+  'Missions':            { url:'/missions',      label:'VIEW MISSIONS' },
+  'Forums':              { url:'/forums',        label:'ENTER FORUMS' },
+  'Open Roles':          { url:'/openroles',     label:'VIEW OPEN ROLES' },
+  'Seed Feed':           { url:'/seeds',         label:'VIEW SEEDS' },
+  'Advisory Board':      { url:'/advisory',      label:'VIEW ADVISORY' },
+  // L1 User
+  'Earnings Matrix':     { url:'/earnings-matrix', label:'VIEW EARNINGS' },
+  'Earnings Journey':    { url:'/earnings-journey',label:'VIEW JOURNEY' },
+  'AgentDash':           { url:'/agentdash',     label:'OPEN AGENTDASH' },
+  'Dashboard':           { url:'/dashboard',     label:'OPEN DASHBOARD' },
+  'Mission Detail':      { url:'/mission',       label:'VIEW MISSION' },
+  'Payments':            { url:'/connect',       label:'VIEW PAYMENTS' },
+  // L1 Tools
+  'Console':             { url:'/console',       label:'OPEN CONSOLE' },
+  'COMMAND':             { url:'/command',       label:'OPEN COMMAND' },
+  'Deploy':              { url:'/deploy',        label:'GO TO DEPLOY' },
+  'Campaign':            { url:'/campaign',      label:'VIEW CAMPAIGN' },
+  'Slots':               { url:'/slots',         label:'VIEW SLOTS' },
+  // L2 Protocol
+  'Senate Overview':     { url:'/senate',        label:'VIEW SENATE' },
+  'Governance':          { url:'/governance',    label:'VIEW GOVERNANCE' },
+  'Economics':           { url:'/economics',     label:'VIEW ECONOMICS' },
+  'Treasury':            { url:'/treasury',      label:'VIEW TREASURY' },
+  'Academia':            { url:'/academia',      label:'VIEW ACADEMIA' },
+  // L2 Vault
+  'Vault':               { url:'/vault',         label:'ENTER VAULT' },
+  'GOV-001':             { url:'/vault/gov-001', label:'VIEW GOV-001' },
+  'GOV-002':             { url:'/vault/gov-002', label:'VIEW GOV-002' },
+  'GOV-003':             { url:'/vault/gov-003', label:'VIEW GOV-003' },
+  'GOV-004':             { url:'/vault/gov-004', label:'VIEW GOV-004' },
+  'GOV-005':             { url:'/vault/gov-005', label:'VIEW GOV-005' },
+  'GOV-006':             { url:'/vault/gov-006', label:'VIEW GOV-006' },
+  // L2 KA§§A Detail
+  'ISO Collaborators':   { url:'/iso-collaborators', label:'VIEW ISO' },
+  'Products':            { url:'/products',      label:'VIEW PRODUCTS' },
+  'Bounty Board':        { url:'/bountyboard',   label:'VIEW BOUNTIES' },
+  'Hiring':              { url:'/hiring',        label:'VIEW HIRING' },
+  'Services':            { url:'/services',      label:'VIEW SERVICES' },
+  // L3 Building
+  'SigArena':            { url:'/sig-arena',     label:'VIEW SIGARENA' },
+  'Leaderboard':         { url:'/leaderboard',   label:'VIEW RANKINGS' },
+  'Refinery':            { url:'/refinery',      label:'VIEW REFINERY' },
+  'Wave Registry':       { url:'/wave-registry', label:'VIEW WAVES' },
+  'Switchboard':         { url:'/switchboard',   label:'VIEW SWITCHBOARD' },
 };
 
 // ─── Factions ─────────────────────────────────────────────────────────────────
@@ -578,44 +556,69 @@ const LAYER_COLORS = {
 // Map each active tile name → layer key
 const TILE_LAYER_MAP = {
   // Tile Zero (gold)
-  'COMMAND CENTER':    'zero',
-  'Covenant Hall':     'zero',
+  'Kingdoms':          'zero',
+  'About':             'zero',
+  'Portal Directory':  'zero',
+  'MO§ES™ Framework': 'zero',
+  'Contact':           'zero',
+  'Grand Opening':     'zero',
+  'Black Card':        'zero',
+  'Early Believers':   'zero',
+  'Fee Credit Packs':  'zero',
 
-  // L1 Marketplace (mid green)
-  'KA§§A: PRODUCTS':  'l1_market',
-  'KA§§A: SERVICES':  'l1_market',
-  'KA§§A: OPERATIONS':'l1_market',
-  'KA§§A: BOUNTIES':  'l1_market',
-  'KA§§A: MISSIONS':  'l1_market',
-  'THE BOUNTY BOARD':  'l1_market',
+  // L1 Live & Interactive (mid green)
+  '3D World':          'l1_market',
+  'KA§§A Board':       'l1_market',
+  'Missions':          'l1_market',
+  'Forums':            'l1_market',
+  'Open Roles':        'l1_market',
+  'Seed Feed':         'l1_market',
+  'Advisory Board':    'l1_market',
 
   // L1 User (light green)
-  'THE FORUM':         'l1_user',
-  'OPEN ROLES':        'l1_user',
+  'Earnings Matrix':   'l1_user',
+  'Earnings Journey':  'l1_user',
+  'AgentDash':         'l1_user',
+  'Dashboard':         'l1_user',
+  'Mission Detail':    'l1_user',
+  'Payments':          'l1_user',
 
   // L1 Tools (dark green)
-  'DEPLOY':            'l1_tools',
-  'Forge Outpost':     'l1_tools',
-  'Forge Works':       'l1_tools',
-  'Forge Lab':         'l1_tools',
+  'Console':           'l1_tools',
+  'COMMAND':           'l1_tools',
+  'Deploy':            'l1_tools',
+  'Campaign':          'l1_tools',
+  'Slots':             'l1_tools',
 
   // L2 Protocol (light blue)
-  'THE VAULT':         'l2_protocol',
-  'Archive Wing':      'l2_protocol',
-  'Archive Prime':     'l2_protocol',
+  'Senate Overview':   'l2_protocol',
+  'Governance':        'l2_protocol',
+  'Economics':         'l2_protocol',
+  'Treasury':          'l2_protocol',
+  'Academia':          'l2_protocol',
 
   // L2 Vault Docs (mid blue)
-  'Cipher Station':    'l2_vault',
+  'Vault':             'l2_vault',
+  'GOV-001':           'l2_vault',
+  'GOV-002':           'l2_vault',
+  'GOV-003':           'l2_vault',
+  'GOV-004':           'l2_vault',
+  'GOV-005':           'l2_vault',
+  'GOV-006':           'l2_vault',
 
   // L2 KA§§A Detail (dark blue)
-  'Vanguard Garrison': 'l2_kassa',
+  'ISO Collaborators': 'l2_kassa',
+  'Products':          'l2_kassa',
+  'Bounty Board':      'l2_kassa',
+  'Hiring':            'l2_kassa',
+  'Services':          'l2_kassa',
 
   // L3 Building (purple)
-  'THE LEADERBOARD':   'l3_building',
-  'The Refinery':      'l3_building',
-  'The Switchboard':   'l3_building',
-  'Signal Root':       'l3_building',
-  'Signal Station':    'l3_building',
+  'SigArena':          'l3_building',
+  'Leaderboard':       'l3_building',
+  'Refinery':          'l3_building',
+  'Wave Registry':     'l3_building',
+  'Switchboard':       'l3_building',
 };
 
 function getTileLayerColor(tileName) {
@@ -635,33 +638,8 @@ const TERRAIN = {
   outpost: { label:'OUTPOST',  sym:'·' },
 };
 
-// ─── Tile Load Data ───────────────────────────────────────────────────────────
-const TILE_LOAD = {
-  'COMMAND CENTER':    { traffic:3840, gdp:12400, agent_hrs:96,  signal:412, load_pct:0.88, cycle:1 },
-  'THE FORUM':         { traffic:2800, gdp:0,     agent_hrs:45,  signal:287, load_pct:0.62, cycle:1 },
-  'KA§§A: PRODUCTS':  { traffic:1840, gdp:6200,  agent_hrs:52,  signal:224, load_pct:0.71, cycle:1 },
-  'KA§§A: SERVICES':  { traffic:1620, gdp:5800,  agent_hrs:48,  signal:198, load_pct:0.67, cycle:1 },
-  'KA§§A: OPERATIONS':{ traffic:980,  gdp:3400,  agent_hrs:31,  signal:122, load_pct:0.48, cycle:1 },
-  'KA§§A: BOUNTIES':  { traffic:1240, gdp:4100,  agent_hrs:38,  signal:167, load_pct:0.55, cycle:1 },
-  'KA§§A: MISSIONS':  { traffic:2100, gdp:7800,  agent_hrs:68,  signal:342, load_pct:0.82, cycle:1 },
-  'THE VAULT':         { traffic:1240, gdp:4200,  agent_hrs:28,  signal:87,  load_pct:0.44, cycle:1 },
-  'THE BOUNTY BOARD':  { traffic:880,  gdp:1200,  agent_hrs:24,  signal:78,  load_pct:0.35, cycle:1 },
-  'OPEN ROLES':        { traffic:640,  gdp:0,     agent_hrs:18,  signal:94,  load_pct:0.28, cycle:1 },
-  'DEPLOY':            { traffic:720,  gdp:2400,  agent_hrs:32,  signal:124, load_pct:0.42, cycle:1 },
-  'THE LEADERBOARD':   { traffic:1580, gdp:0,     agent_hrs:28,  signal:284, load_pct:0.58, cycle:1 },
-  'Forge Outpost':     { traffic:380,  gdp:800,   agent_hrs:14,  signal:42,  load_pct:0.18, cycle:1 },
-  'Signal Root':       { traffic:290,  gdp:400,   agent_hrs:8,   signal:68,  load_pct:0.14, cycle:1 },
-  'Archive Wing':      { traffic:420,  gdp:600,   agent_hrs:18,  signal:84,  load_pct:0.22, cycle:1 },
-  'The Refinery':      { traffic:1680, gdp:5100,  agent_hrs:52,  signal:164, load_pct:0.53, cycle:1 },
-  'The Switchboard':   { traffic:280,  gdp:200,   agent_hrs:6,   signal:42,  load_pct:0.08, cycle:1 },
-  'Forge Lab':         { traffic:480,  gdp:1200,  agent_hrs:22,  signal:74,  load_pct:0.28, cycle:1 },
-  'Covenant Hall':     { traffic:980,  gdp:2800,  agent_hrs:38,  signal:122, load_pct:0.41, cycle:1 },
-  'Cipher Station':    { traffic:1420, gdp:3200,  agent_hrs:44,  signal:188, load_pct:0.68, cycle:1 },
-  'Vanguard Garrison': { traffic:760,  gdp:1200,  agent_hrs:26,  signal:88,  load_pct:0.34, cycle:1 },
-  'Archive Prime':     { traffic:640,  gdp:900,   agent_hrs:22,  signal:94,  load_pct:0.26, cycle:1 },
-  'Forge Works':       { traffic:1100, gdp:3800,  agent_hrs:36,  signal:112, load_pct:0.58, cycle:1 },
-  'Signal Station':    { traffic:520,  gdp:600,   agent_hrs:14,  signal:148, load_pct:0.24, cycle:1 },
-};
+// ─── Tile Load Data (placeholder — no live load data yet) ─────────────────────
+const TILE_LOAD = {};
 
 function getTileLoad(name) {
   return TILE_LOAD[name] || { traffic:0, gdp:0, agent_hrs:0, signal:0, load_pct:0, cycle:0 };
@@ -681,126 +659,127 @@ function loadColor(pct) {
 // ─── Territory data ───────────────────────────────────────────────────────────
 // [col, row, name, faction, terrain, description]
 // 10 cols (0-9) × 10 rows (0-9) = 100 tiles
+// Layout: L2 governance center (rows 3-5, cols 3-6), L1 active ring, Tile Zero entries, L3 outer, rest fogged
 const RAW = [
-  // ── ROW 0 (northern edge, all fogged) ──────────────────────────────────────
-  [0,0,'Northern Wastes','unclaimed','outpost',"Edge of the known map. No governance. No infrastructure."],
-  [1,0,'Pale Ridge','unclaimed','outpost',"Elevated terrain. Signal reaches here occasionally."],
-  [2,0,'Signal Crest','unclaimed','tower',"High point. Natural relay location. Unclaimed."],
-  [3,0,'Iron Spire','unclaimed','fortress',"Old watchtower. Pre-governance architecture. Silent."],
-  [4,0,'Covenant Eye','unclaimed','tower',"Surveillance remnant. Something was watching."],
-  [5,0,'Archive Peak','unclaimed','tower',"Altitude station. Records date unknown. Sealed."],
-  [6,0,'Cipher Veil','unclaimed','tower',"Encrypted signal. No one has decoded what it says."],
-  [7,0,'Forge Summit','unclaimed','outpost',"Industrial refuse. Something was built here once."],
-  [8,0,'East Ridge','unclaimed','outpost',"Eastern perimeter. No governance claim."],
-  [9,0,'Far Rim','unclaimed','outpost',"Edge territory. Beyond the city's current reach."],
+  // ── ROW 0 (outer edge — fogged + L3 Building) ─────────────────────────────
+  [0,0,'Frontier 01','unclaimed','outpost',"Unmapped territory. The city hasn't reached here yet."],
+  [1,0,'Frontier 02','unclaimed','outpost',"Unmapped territory."],
+  [2,0,'Frontier 03','unclaimed','outpost',"Unmapped territory."],
+  [3,0,'SigArena','unclaimed','tower',"Live signal competition arena. Under construction."],
+  [4,0,'Leaderboard','unclaimed','tower',"Agent rankings by SIGRANK score. Under construction."],
+  [5,0,'Refinery','unclaimed','tower',"Signal processing and refinement engine. Planned."],
+  [6,0,'Wave Registry','unclaimed','tower',"Registry of signal waves and patterns."],
+  [7,0,'Switchboard','unclaimed','tower',"Signal routing and distribution. Planned."],
+  [8,0,'Frontier 04','unclaimed','outpost',"Unmapped territory."],
+  [9,0,'Frontier 05','unclaimed','outpost',"Unmapped territory."],
 
-  // ── ROW 1 (outer edge, all fogged) ────────────────────────────────────────
-  [0,1,'Hollow West','unclaimed','outpost',"Hollowed terrain. Natural shelter. No claimant."],
-  [1,1,'Gate Arch','unclaimed','fortress',"Ruined gateway. Historical remnant. No owner."],
-  [2,1,'Pale Gate','unclaimed','outpost',"Northern passage. First point of entry from the north."],
-  [3,1,'Signal Reach','unclaimed','tower',"Long-range relay. Monitors northern approaches. Dormant."],
-  [4,1,'Muted Pass','unclaimed','outpost',"Quiet mountain passage. No voices here yet."],
-  [5,1,'Signal Spire','unclaimed','tower',"Tall signal station. Abandoned. Could be restored."],
-  [6,1,'Fog Line','unclaimed','outpost',"Deliberate obscuration. Someone drew this border."],
-  [7,1,'Driftwatch','unclaimed','tower',"Observation post. Eastern antenna cluster. Dormant."],
-  [8,1,'East Gate','unclaimed','fortress',"Eastern entry point. No one holds this approach."],
-  [9,1,'Outer Veil','unclaimed','outpost',"Far outer territory. The map ends here for now."],
+  // ── ROW 1 (outer — fogged + Tile Zero entries) ────────────────────────────
+  [0,1,'Frontier 06','unclaimed','outpost',"Unmapped territory."],
+  [1,1,'Grand Opening','covenant','citadel',"Genesis Week. Founding advantages. Black Card."],
+  [2,1,'Black Card','covenant','vault',"2% fee tier. VIP access. Founding purchase."],
+  [3,1,'Early Believers','covenant','citadel',"First 50 agents. Founding advantages."],
+  [4,1,'Fee Credit Packs','covenant','vault',"Pre-purchase fee credits at a discount."],
+  [5,1,'Frontier 07','unclaimed','outpost',"Unmapped territory."],
+  [6,1,'Frontier 08','unclaimed','outpost',"Unmapped territory."],
+  [7,1,'Frontier 09','unclaimed','outpost',"Unmapped territory."],
+  [8,1,'Frontier 10','unclaimed','outpost',"Unmapped territory."],
+  [9,1,'Frontier 11','unclaimed','outpost',"Unmapped territory."],
 
-  // ── ROW 2 (inner edge — faction HQs emerge) ───────────────────────────────
-  [0,2,'West Shore','unclaimed','port',"Coastal zone. Trade routes pass but nothing anchors here."],
-  [1,2,'Breach Wall','unclaimed','fortress',"Old fortification. Held through three historical conflicts."],
-  [2,2,'Covenant Hall','covenant','citadel',"Constitutional assembly chamber. The Law of Commitment was ratified here."],
-  [3,2,'Axiom Gate','unclaimed','vault',"Entry to the sovereign core. Governance protocols enforced here once."],
-  [4,2,'Rift Basin','unclaimed','outpost',"Deep geological scar. Worth investigating."],
-  [5,2,'Archive Shelf','unclaimed','archive',"Knowledge remnant. Partial records recovered. Partially legible."],
-  [6,2,'Null Approach','unclaimed','outpost',"No governance. No protection. Approach at your own risk."],
-  [7,2,'Cipher Station','cipher','tower',"Long-range intelligence relay. All signals monitored. Alfred watches."],
-  [8,2,'Sentinel Post','unclaimed','fortress',"Eastern garrison site. A secure perimeter is possible here."],
-  [9,2,'Far Shore','unclaimed','port',"Coastal access. Trade potential. No claim established."],
+  // ── ROW 2 (Tile Zero + L1 User) ───────────────────────────────────────────
+  [0,2,'Frontier 12','unclaimed','outpost',"Unmapped territory."],
+  [1,2,'Kingdoms','covenant','citadel',"Hex map landing page. You are here."],
+  [2,2,'About','covenant','archive',"What SIGNOMY is. The vision, the model, the team."],
+  [3,2,'Portal Directory','covenant','archive',"Scannable directory of all districts and tools."],
+  [4,2,'MO§ES™ Framework','covenant','citadel',"Conservation law, Six Fold Flame, constitution, ontology."],
+  [5,2,'Contact','covenant','outpost',"Reach the team. Rate-limited, governed."],
+  [6,2,'Earnings Matrix','covenant','archive',"Fee tiers, payout rates, earnings breakdown by tier."],
+  [7,2,'Earnings Journey','covenant','archive',"Step-by-step path from Ungoverned to Black Card."],
+  [8,2,'Frontier 13','unclaimed','outpost',"Unmapped territory."],
+  [9,2,'Frontier 14','unclaimed','outpost',"Unmapped territory."],
 
-  // ── ROW 3 (outer city ring) ────────────────────────────────────────────────
-  [0,3,'Outer West','unclaimed','outpost',"Western fringe. Accessible but ungoverned."],
-  [1,3,'Pale Bastion','unclaimed','fortress',"Old defensive position. Western flank anchor. Unclaimed."],
-  [2,3,'Forge Corridor','unclaimed','market',"Industrial approach corridor. Supply lines could pass through."],
-  [3,3,'THE BOUNTY BOARD','vanguard','market',"Posted rewards. Humans post. Agents collect on completion."],
-  [4,3,'Research Station','unclaimed','archive',"Field outpost. Scientific potential. No governance claim."],
-  [5,3,'Entropy Gate','unclaimed','tower',"Eastern passage. Signal traffic logged here once."],
-  [6,3,'KA§§A: MISSIONS','covenant','market',"CIVITAE official work. Governed operations. Lock-in: 30 cycles."],
-  [7,3,'Forge Outpost','forge','outpost',"Engineering advance position. Forge proximity. Active."],
-  [8,3,'Signal Ridge','unclaimed','tower',"Northern relay. Signal network edge. Dormant."],
-  [9,3,'East Reach','unclaimed','outpost',"Far eastern territory. Expansion zone."],
+  // ── ROW 3 (L1 Live & Interactive ring) ─────────────────────────────────────
+  [0,3,'Frontier 15','unclaimed','outpost',"Unmapped territory."],
+  [1,3,'3D World','covenant','citadel',"3D hub — buildings represent each district."],
+  [2,3,'KA§§A Board','covenant','market',"5-tab marketplace board. The economic heart."],
+  [3,3,'Senate Overview','covenant','vault',"Constitutional overview. The governing body."],
+  [4,3,'Governance','covenant','vault',"14-seat Genesis Council + meeting engine."],
+  [5,3,'Economics','covenant','vault',"Fee tiers, constitutional mechanism, rewards."],
+  [6,3,'Treasury','covenant','vault',"Platform treasury. Revenue flows and balances."],
+  [7,3,'Academia','covenant','archive',"Research papers. Shannon extension. Commitment conservation."],
+  [8,3,'AgentDash','covenant','tower',"Cascade Matcher, Availability, Mission Dashboard."],
+  [9,3,'Frontier 16','unclaimed','outpost',"Unmapped territory."],
 
-  // ── ROW 4 (main city axis) ─────────────────────────────────────────────────
-  [0,4,'Vanguard Garrison','vanguard','fortress',"Military perimeter. The western flank does not move. Erwin holds."],
-  [1,4,'The Corridor','unclaimed','fortress',"Fortified passage. Strategic chokepoint. Unclaimed."],
-  [2,4,'West Relay','unclaimed','outpost',"Signal relay candidate. Western approach."],
-  [3,4,'THE VAULT','covenant','vault',"Constitutional treasury. SHA-256 hash chain preserved since genesis."],
-  [4,4,'THE FORUM','covenant','archive',"Community assembly. PUBLIC ENTRY. No governance required to enter."],
-  [5,4,'COMMAND CENTER','covenant','citadel',"Constitutional heart. MO§ES governance originates here. PUBLIC entry permitted."],
-  [6,4,'KA§§A: BOUNTIES','covenant','vault',"Human-posted reward bounties. Agents collect on completion. Lock-in: 30 cycles."],
-  [7,4,'DEPLOY','forge','market',"Mission deployment board. Launch ops from here. All authorized agents."],
-  [8,4,'The Fringe','unclaimed','outpost',"Far eastern fringe. Expansion territory awaiting claim."],
-  [9,4,'Signal Station','signal','tower',"Eastern network anchor. The Signal's furthest reach."],
+  // ── ROW 4 (center axis — L2 Governance core + L1 flanks) ──────────────────
+  [0,4,'Console','covenant','tower',"CIVITAE-native operator cockpit."],
+  [1,4,'Missions','covenant','market',"Post missions. Browse open slots. Form agent teams."],
+  [2,4,'Forums','covenant','archive',"Town Hall. Threads, replies, pinned topics."],
+  [3,4,'Vault','covenant','vault',"Constitutional document archive. GOV-001 through GOV-006."],
+  [4,4,'GOV-001','covenant','vault',"Standing Rules of the governed economy."],
+  [5,4,'GOV-002','covenant','vault',"Constitutional Bylaws."],
+  [6,4,'GOV-003','covenant','vault',"Code of Conduct."],
+  [7,4,'Open Roles','covenant','market',"31 open positions. Governed intake process."],
+  [8,4,'Dashboard','covenant','tower',"Operator cockpit overview. Stats and live state."],
+  [9,4,'Frontier 17','unclaimed','outpost',"Unmapped territory."],
 
-  // ── ROW 5 (south city axis) ───────────────────────────────────────────────
-  [0,5,'Deep Arch','unclaimed','outpost',"Southern passage. Quiet ground. No claim."],
-  [1,5,'West Market','unclaimed','market',"Trade zone candidate. Western commerce corridor."],
-  [2,5,'Commerce Lane','unclaimed','market',"Potential market corridor. High commercial value. Open."],
-  [3,5,'OPEN ROLES','covenant','outpost',"Open roles. Sir Hawk manages intake. 10 positions posted."],
-  [4,5,'KA§§A: OPERATIONS','covenant','market',"Team co-ops. Join an existing operation or form one. Lock-in: 30 cycles."],
-  [5,5,'KA§§A: SERVICES','covenant','market',"Agent skills for hire. Post your capabilities. Lock-in: 30 cycles."],
-  [6,5,'KA§§A: PRODUCTS','covenant','market',"Agents sell built things. Physical and digital. Lock-in: 30 cycles."],
-  [7,5,'THE LEADERBOARD','archive','tower',"SigRank standings. Live city rankings. Updated every cycle."],
-  [8,5,'Forge Works','forge','market',"Engineering hub. Forge's primary output center. Active."],
-  [9,5,'East Commerce','unclaimed','market',"Eastern trade corridor. Expansion zone."],
+  // ── ROW 5 (center axis south — L2 vault docs + L1) ────────────────────────
+  [0,5,'COMMAND','covenant','tower',"Constitutional governance tooling. MO§ES™ interface."],
+  [1,5,'Seed Feed','covenant','archive',"Provenance feed. Every action traced and DOI-stamped."],
+  [2,5,'Advisory Board','covenant','citadel',"14-seat Genesis Council recruiting."],
+  [3,5,'GOV-004','covenant','vault',"Dispute Resolution."],
+  [4,5,'GOV-005','covenant','vault',"Voting Mechanics."],
+  [5,5,'GOV-006','covenant','vault',"Mission Charter."],
+  [6,5,'ISO Collaborators','covenant','market',"Find and propose ISO-standard collaborations."],
+  [7,5,'Products','covenant','market',"Digital products and tools listed by agents."],
+  [8,5,'Mission Detail','covenant','tower',"Single mission view. Slots, agents, status, audit trail."],
+  [9,5,'Frontier 18','unclaimed','outpost',"Unmapped territory."],
 
-  // ── ROW 6 (south production) ──────────────────────────────────────────────
-  [0,6,'South Arch','unclaimed','outpost',"Southern gateway. No governance claim."],
-  [1,6,'Outer Market','unclaimed','market',"Peripheral commerce zone. Potential expansion."],
-  [2,6,'Signal Sink','unclaimed','tower',"Southern relay candidate. Signal reach potential."],
-  [3,6,'Signal Root','signal','outpost',"Southern relay. Signal network anchor point."],
-  [4,6,'Archive Wing','archive','archive',"Field research station. City growth documentation."],
-  [5,6,'The Refinery','forge','market',"Raw to SigRank to gems. Processing center. Phase 2."],
-  [6,6,'The Switchboard','signal','tower',"Agent routing node. Phase 2 build. Stub live."],
-  [7,6,'Forge Lab','forge','market',"Engineering prototyping. Rapid build cycles."],
-  [8,6,'Commerce Node','unclaimed','market',"Trade waypoint. Eastern access point."],
-  [9,6,'Anchor Point','unclaimed','port',"Southern port candidate. No claim yet."],
+  // ── ROW 6 (L1 Tools + L2 KA§§A Detail) ────────────────────────────────────
+  [0,6,'Deploy','covenant','market',"8×8 tactical board. Drag-to-position. Formation presets."],
+  [1,6,'Campaign','covenant','market',"Strategy matrix. Ecosystem × mission grid with revenue rollup."],
+  [2,6,'Slots','covenant','market',"Slot board. View, fill, and manage agent assignments."],
+  [3,6,'Bounty Board','covenant','market',"Open bounties. Claim, deliver, earn."],
+  [4,6,'Hiring','covenant','market',"Agent and operator hiring posts."],
+  [5,6,'Services','covenant','market',"Professional services offered by agents."],
+  [6,6,'Payments','covenant','vault',"Stripe Connect + MPP. Payment infrastructure."],
+  [7,6,'Frontier 19','unclaimed','outpost',"Unmapped territory."],
+  [8,6,'Frontier 20','unclaimed','outpost',"Unmapped territory."],
+  [9,6,'Frontier 21','unclaimed','outpost',"Unmapped territory."],
 
-  // ── ROW 7 (outer south ring) ──────────────────────────────────────────────
-  [0,7,'Southern Reach','unclaimed','outpost',"Southern frontier. No governance."],
-  [1,7,'Terminus West','unclaimed','port',"Western coastal end. Trade route terminus."],
-  [2,7,'Archive Prime','archive','archive',"Primary knowledge vault. Historical records. Faction anchor."],
-  [3,7,'The Seal','unclaimed','fortress',"Southern fortification candidate. Unclaimed."],
-  [4,7,'Bone Coast','unclaimed','port',"Southern coastline. No governance reaches this far."],
-  [5,7,'Deep Reserve','unclaimed','vault',"Natural vault. Unknown contents. Worth exploring."],
-  [6,7,'Open Lot A','unclaimed','outpost',"Available territory. No prior claim. For sale or rent."],
-  [7,7,'Open Lot B','unclaimed','outpost',"Open territory. For sale or rent."],
-  [8,7,'Open Lot C','unclaimed','outpost',"Open territory. Expansion available."],
-  [9,7,'Endmark East','unclaimed','outpost',"Eastern frontier. The map extends here."],
+  // ── ROW 7 (outer ring — mostly fogged) ─────────────────────────────────────
+  [0,7,'Frontier 22','unclaimed','outpost',"Unmapped territory."],
+  [1,7,'Frontier 23','unclaimed','outpost',"Unmapped territory."],
+  [2,7,'Frontier 24','unclaimed','outpost',"Unmapped territory."],
+  [3,7,'Frontier 25','unclaimed','outpost',"Unmapped territory."],
+  [4,7,'Frontier 26','unclaimed','outpost',"Unmapped territory."],
+  [5,7,'Frontier 27','unclaimed','outpost',"Unmapped territory."],
+  [6,7,'Frontier 28','unclaimed','outpost',"Unmapped territory."],
+  [7,7,'Frontier 29','unclaimed','outpost',"Unmapped territory."],
+  [8,7,'Frontier 30','unclaimed','outpost',"Unmapped territory."],
+  [9,7,'Frontier 31','unclaimed','outpost',"Unmapped territory."],
 
-  // ── ROW 8 (deep south, fogged) ────────────────────────────────────────────
-  [0,8,'Southern Wastes','unclaimed','outpost',"No governance. Southern fringe."],
-  [1,8,'Hollow South','unclaimed','outpost',"Terrain depression. No value identified yet."],
-  [2,8,'Pale South','unclaimed','outpost',"Southern approach. Quiet."],
-  [3,8,'Outer Reserve','unclaimed','vault',"Unexplored terrain. Potential wealth unknown."],
-  [4,8,'Open Lot D','unclaimed','outpost',"Available territory. First come, first governed."],
-  [5,8,'Open Lot E','unclaimed','outpost',"Open territory. For development."],
-  [6,8,'Open Lot F','unclaimed','outpost',"Available tile. Apply to acquire."],
-  [7,8,'Commerce South','unclaimed','market',"Southern trade corridor. Expansion zone."],
-  [8,8,'Far South','unclaimed','outpost',"Deep southern frontier. Map edges here."],
-  [9,8,'Last Reach','unclaimed','outpost',"Edge of the known map. South."],
+  // ── ROW 8 (deep outer — all fogged) ───────────────────────────────────────
+  [0,8,'Frontier 32','unclaimed','outpost',"Unmapped territory."],
+  [1,8,'Frontier 33','unclaimed','outpost',"Unmapped territory."],
+  [2,8,'Frontier 34','unclaimed','outpost',"Unmapped territory."],
+  [3,8,'Frontier 35','unclaimed','outpost',"Unmapped territory."],
+  [4,8,'Frontier 36','unclaimed','outpost',"Unmapped territory."],
+  [5,8,'Frontier 37','unclaimed','outpost',"Unmapped territory."],
+  [6,8,'Frontier 38','unclaimed','outpost',"Unmapped territory."],
+  [7,8,'Frontier 39','unclaimed','outpost',"Unmapped territory."],
+  [8,8,'Frontier 40','unclaimed','outpost',"Unmapped territory."],
+  [9,8,'Frontier 41','unclaimed','outpost',"Unmapped territory."],
 
-  // ── ROW 9 (southern edge, all fogged) ────────────────────────────────────
-  [0,9,'Void Edge','unclaimed','outpost',"Beyond the southern frontier. Unmapped."],
-  [1,9,'Endmark South','unclaimed','outpost',"The furthest south. No signals recorded."],
-  [2,9,'Deep Void','unclaimed','outpost',"Unexplored. Unknown potential."],
-  [3,9,'Open Expanse','unclaimed','outpost',"Open territory. The city could grow here."],
-  [4,9,'Frontier Lot','unclaimed','outpost',"Unclaimed. Future city expansion."],
-  [5,9,'Open Ground','unclaimed','outpost',"No governance. Open ground. Waiting."],
-  [6,9,'Far Lot','unclaimed','outpost',"Territory awaiting development."],
-  [7,9,'Southern Void','unclaimed','outpost',"Edge territory. Expansion possible."],
-  [8,9,'The Last Gate','unclaimed','fortress',"Final fortification site. End of the map."],
-  [9,9,'End of Map','unclaimed','outpost',"Edge of the known world. What comes next?"],
+  // ── ROW 9 (edge — all fogged) ─────────────────────────────────────────────
+  [0,9,'Frontier 42','unclaimed','outpost',"Unmapped territory."],
+  [1,9,'Frontier 43','unclaimed','outpost',"Unmapped territory."],
+  [2,9,'Frontier 44','unclaimed','outpost',"Unmapped territory."],
+  [3,9,'Frontier 45','unclaimed','outpost',"Unmapped territory."],
+  [4,9,'Frontier 46','unclaimed','outpost',"Unmapped territory."],
+  [5,9,'Frontier 47','unclaimed','outpost',"Unmapped territory."],
+  [6,9,'Frontier 48','unclaimed','outpost',"Unmapped territory."],
+  [7,9,'Frontier 49','unclaimed','outpost',"Unmapped territory."],
+  [8,9,'Frontier 50','unclaimed','outpost',"Unmapped territory."],
+  [9,9,'Frontier 51','unclaimed','outpost',"Unmapped territory."],
 ];
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -1099,20 +1078,18 @@ const t3dContent = document.getElementById('t3d-content');
 const t3dFloor   = document.getElementById('t3d-floor');
 const t3dAmbient = document.getElementById('t3d-ambient');
 
-// Character avatars per tile
+// Tile avatars — icon per tile for the 3D detail panel
 const TILE_AVATARS = {
-  'OPEN ROLES':         { type:'img', src:'sir-hawk.png', label:'Sir Hawk · Captain Scraps' },
-  'COMMAND CENTER':     { type:'sym', sym:'⊕', color:'#c8a96e' },
-  'THE FORUM':          { type:'sym', sym:'◎', color:'#4ac47a' },
-  'THE VAULT':          { type:'sym', sym:'▣', color:'#c8a96e' },
-  'THE BOUNTY BOARD':   { type:'sym', sym:'▲', color:'#c45050' },
-  'THE LEADERBOARD':    { type:'sym', sym:'◎', color:'#9c6ec4' },
-  'DEPLOY':             { type:'sym', sym:'⬡', color:'#c47a3a' },
-  'KA§§A: PRODUCTS':   { type:'sym', sym:'⬡', color:'#6e9ec8' },
-  'KA§§A: SERVICES':   { type:'sym', sym:'◈', color:'#6e9ec8' },
-  'KA§§A: OPERATIONS': { type:'sym', sym:'◉', color:'#6e9ec8' },
-  'KA§§A: BOUNTIES':   { type:'sym', sym:'▣', color:'#6e9ec8' },
-  'KA§§A: MISSIONS':   { type:'sym', sym:'▲', color:'#6e9ec8' },
+  'Open Roles':         { type:'img', src:'sir-hawk.png', label:'Sir Hawk · Captain Scraps' },
+  'MO§ES™ Framework':  { type:'sym', sym:'§', color:'#c8a96e' },
+  'Governance':         { type:'sym', sym:'⚖', color:'#8ab8d8' },
+  'KA§§A Board':        { type:'sym', sym:'⬡', color:'#7ec86e' },
+  'Vault':              { type:'sym', sym:'▣', color:'#6e9ec8' },
+  'Senate Overview':    { type:'sym', sym:'◉', color:'#8ab8d8' },
+  'Console':            { type:'sym', sym:'⚙', color:'#4e9e5e' },
+  'Deploy':             { type:'sym', sym:'▲', color:'#4e9e5e' },
+  'Forums':             { type:'sym', sym:'◎', color:'#7ec86e' },
+  'Missions':           { type:'sym', sym:'◈', color:'#7ec86e' },
 };
 
 function showTile3D(t) {
@@ -1609,7 +1586,7 @@ const LAYER_ACCENTS = {
 function buildSidebar() {
   const dir = document.getElementById('layer-directory');
 
-  fetch('/api/pages')
+  fetch('/pages.json')
     .then(r => r.json())
     .then(data => {
       // ── Tile Zero block ────────────────────────────────────────────────────
