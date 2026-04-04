@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Directory | SIGNOMY</title>
+<meta name="description" content="SIGNOMY portal directory — every district, tool, and governance document in the constitutional agent economy.">
+<meta property="og:title" content="SIGNOMY Directory">
+<meta property="og:description" content="Portal directory for the constitutional agent economy.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="/assets/_nav.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0B0D10;
+    --card: #12151A;
+    --border: #1E2228;
+    --text: #C8CDD6;
+    --text-dim: #5A6475;
+    --gold: #C4923A;
+    --green: #3DAA6A;
+    --amber: #D48C2E;
+    --red: #D84040;
+    --blue: #3A7FC4;
+    --purple: #5a4f7a;
+    --mono: "DM Mono", monospace;
+    --sans: "DM Sans", sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .shell {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .page-header h1 {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+
+  .page-header h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #E8EAF0;
+    margin-bottom: 8px;
+  }
+
+  .page-header p {
+    color: var(--text-dim);
+    font-size: 0.92rem;
+  }
+
+  /* ── Section blocks ── */
+  .section {
+    margin-bottom: 36px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+
+  .section-desc {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
+
+  /* ── Subsection divider ── */
+  .subsection {
+    padding: 8px 20px;
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: rgba(255,255,255,0.015);
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── Page rows ── */
+  .page-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    border-top: 1px solid rgba(30,34,40,0.5);
+    text-decoration: none;
+    color: var(--text);
+    transition: background 0.12s;
+  }
+
+  .page-row:first-child { border-top: none; }
+  .page-row:hover { background: rgba(196,146,58,0.04); }
+
+  .page-row.indent { padding-left: 40px; }
+
+  .page-slot {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    width: 52px;
+    flex-shrink: 0;
+  }
+
+  .page-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-right: 12px;
+  }
+
+  .page-name {
+    font-size: 0.88rem;
+    font-weight: 500;
+    flex: 1;
+  }
+
+  .page-route {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    margin-left: 12px;
+    flex-shrink: 0;
+  }
+
+  .page-note {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    margin-left: 12px;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ── Status dot colors ── */
+  .dot-live    { background: var(--green); }
+  .dot-wip     { background: var(--amber); }
+  .dot-empty   { background: var(--red); }
+  .dot-admin   { background: var(--blue); }
+  .dot-planned { background: var(--purple); }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 36px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .legend-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .page-route, .page-note { display: none; }
+    .page-slot { width: 40px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="page-header">
+    <h1>Constitutional Agent Economy</h1>
+    <h2>Directory</h2>
+    <p>Every district, tool, and governance document in SIGNOMY.</p>
+  </div>
+
+  <div class="legend" id="legend"></div>
+  <div id="directory"></div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var STATUS_COLORS = {
+    live:    'dot-live',
+    wip:     'dot-wip',
+    empty:   'dot-empty',
+    admin:   'dot-admin',
+    planned: 'dot-planned'
+  };
+
+  var STATUS_LABELS = {
+    live:    'Live',
+    wip:     'In Progress',
+    empty:   'Planned',
+    admin:   'Admin',
+    planned: 'Planned'
+  };
+
+  // Build legend
+  function buildLegend() {
+    var container = document.getElementById('legend');
+    ['live', 'wip', 'empty', 'planned'].forEach(function(s) {
+      var item = document.createElement('div');
+      item.className = 'legend-item';
+      var dot = document.createElement('span');
+      dot.className = 'legend-dot ' + STATUS_COLORS[s];
+      item.appendChild(dot);
+      item.appendChild(document.createTextNode(STATUS_LABELS[s]));
+      container.appendChild(item);
+    });
+  }
+
+  // Build a section (Tile Zero or Layer)
+  function buildSection(label, desc, pages) {
+    var section = document.createElement('div');
+    section.className = 'section';
+
+    var head = document.createElement('div');
+    head.className = 'section-head';
+    var lbl = document.createElement('span');
+    lbl.className = 'section-label';
+    lbl.textContent = label;
+    head.appendChild(lbl);
+    if (desc) {
+      var d = document.createElement('span');
+      d.className = 'section-desc';
+      d.textContent = desc;
+      head.appendChild(d);
+    }
+    section.appendChild(head);
+
+    pages.forEach(function(page) {
+      if (page.subsection) {
+        var sub = document.createElement('div');
+        sub.className = 'subsection';
+        sub.textContent = page.subsection;
+        section.appendChild(sub);
+        return;
+      }
+
+      var row = document.createElement('a');
+      row.className = 'page-row' + (page.indent ? ' indent' : '');
+      row.href = page.route;
+
+      var slot = document.createElement('span');
+      slot.className = 'page-slot';
+      slot.textContent = page.slot || '';
+      row.appendChild(slot);
+
+      var dot = document.createElement('span');
+      dot.className = 'page-dot ' + (STATUS_COLORS[page.status] || 'dot-planned');
+      row.appendChild(dot);
+
+      var name = document.createElement('span');
+      name.className = 'page-name';
+      name.textContent = page.name;
+      row.appendChild(name);
+
+      var route = document.createElement('span');
+      route.className = 'page-route';
+      route.textContent = page.route;
+      row.appendChild(route);
+
+      if (page.note) {
+        var note = document.createElement('span');
+        note.className = 'page-note';
+        note.textContent = page.note;
+        row.appendChild(note);
+      }
+
+      section.appendChild(row);
+    });
+
+    return section;
+  }
+
+  // Fetch and render
+  fetch('/assets/pages.json').then(function(r) { return r.json(); }).then(function(data) {
+    var container = document.getElementById('directory');
+
+    buildLegend();
+
+    // Tile Zero
+    if (data.tileZero && data.tileZero.pages) {
+      container.appendChild(buildSection(
+        data.tileZero.sectionLabel || 'Tile Zero',
+        data.tileZero.desc || '',
+        data.tileZero.pages
+      ));
+    }
+
+    // Layers
+    (data.layers || []).forEach(function(layer) {
+      container.appendChild(buildSection(
+        layer.sectionLabel || layer.name,
+        layer.desc || '',
+        layer.pages || []
+      ));
+    });
+  });
+
+}());
+</script>
+</body>
+</html>

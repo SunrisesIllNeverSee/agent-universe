@@ -578,11 +578,46 @@ async def mcp_send(payload: MCPSendRequest) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+#  WEBSOCKET — Connection rate limiter
+# ═══════════════════════════════════════════════════════════════════════════
+
+_ws_connect_times: dict[str, list[float]] = {}
+_WS_MAX_CONNECTIONS_PER_MIN = 10
+
+
+def _ws_rate_check(websocket: WebSocket) -> bool:
+    """Return True if the connection should be rejected (rate exceeded)."""
+    client = websocket.client
+    ip = client.host if client else "unknown"
+    ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:16]
+    now = _time.time()
+    recent = [t for t in _ws_connect_times.get(ip_hash, []) if now - t < 60]
+    if len(recent) >= _WS_MAX_CONNECTIONS_PER_MIN:
+        return True
+    recent.append(now)
+    _ws_connect_times[ip_hash] = recent
+    return False
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 #  WEBSOCKET — Main governance WebSocket
 # ═══════════════════════════════════════════════════════════════════════════
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:
+    """Main governance WebSocket — the public square.
+
+    Open by design. The security model is constitutional governance +
+    cryptographic verification, not access control. Any agent can join
+    by verifying lineage. Any agent can be excluded by failing the check.
+    The structure itself refuses you — nobody blocks you.
+
+    Rate-limited to prevent connection flooding.
+    """
+    if _ws_rate_check(websocket):
+        await websocket.close(code=4029, reason="Too many connections")
+        return
+
     hub = state.hub
     runtime = state.runtime
     audit = state.audit
@@ -618,12 +653,47 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+#  WEBSOCKET — Public read-only feed (no auth, rate-limited)
+# ═══════════════════════════════════════════════════════════════════════════
+
+@router.websocket("/ws/public")
+async def public_websocket_endpoint(websocket: WebSocket) -> None:
+    """Read-only WebSocket for public pages (world, missions, index).
+
+    Receives state_snapshot and event broadcasts but cannot send commands.
+    No auth required — this is the public-facing governance feed.
+    """
+    if _ws_rate_check(websocket):
+        await websocket.close(code=4029, reason="Too many connections")
+        return
+
+    public_hub = state.public_hub
+    await public_hub.connect(websocket)
+    await websocket.send_json(state.current_state_event())
+    try:
+        while True:
+            payload = await websocket.receive_json()
+            action = payload.get("action")
+            if action == "ping":
+                await websocket.send_json({"type": "pong", "payload": {}})
+            else:
+                # Public feed is read-only — reject all commands
+                await websocket.send_json({"type": "error", "payload": {"message": "Read-only connection"}})
+    except WebSocketDisconnect:
+        public_hub.disconnect(websocket)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 #  WEBSOCKET — Per-Thread WebSocket
 # ═══════════════════════════════════════════════════════════════════════════
 
 @router.websocket("/ws/thread/{thread_id}")
 async def thread_websocket(thread_id: str, websocket: WebSocket) -> None:
     """Per-thread WebSocket for real-time messaging. Auth via query param."""
+    if _ws_rate_check(websocket):
+        await websocket.close(code=4029, reason="Too many connections")
+        return
+
     kassa = state.kassa
     thread_hub = state.thread_hub
 

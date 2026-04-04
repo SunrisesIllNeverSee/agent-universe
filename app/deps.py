@@ -36,7 +36,8 @@ class AppState:
     assembler: ContextAssembler
     mcp_bridge: MCPBridge
     economy: SovereignEconomy
-    hub: object          # ConnectionHub
+    hub: object          # ConnectionHub (authed — console, agents)
+    public_hub: object   # ConnectionHub (read-only — public pages)
     thread_hub: object   # ThreadHub
     slot_lock: asyncio.Lock
     admin_key: str = ""
@@ -44,8 +45,11 @@ class AppState:
     frontend_dir: Path
 
     async def emit(self, event_type: str, payload: dict) -> None:
-        """Broadcast an event to all connected WebSocket clients."""
-        await self.hub.broadcast({"type": event_type, "payload": payload})
+        """Broadcast an event to all connected WebSocket clients (authed + public)."""
+        event = {"type": event_type, "payload": payload}
+        await self.hub.broadcast(event)
+        if hasattr(self, "public_hub") and self.public_hub is not None:
+            await self.public_hub.broadcast(event)
 
     def data_path(self, *parts: str) -> Path:
         return self.data_dir.joinpath(*parts)

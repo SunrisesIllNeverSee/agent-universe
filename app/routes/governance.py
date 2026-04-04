@@ -16,6 +16,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from app.deps import state
+from app.sanitize import sanitize_text, sanitize_name
 from app.seeds import create_seed, _read_seeds
 
 router = APIRouter(tags=["governance"])
@@ -84,8 +85,8 @@ async def governance_sessions() -> dict:
 @router.post("/api/governance/meeting")
 async def call_meeting(payload: dict) -> dict:
     """Call a meeting. Requires a caller (agent_id) and subject."""
-    caller = payload.get("caller", "")
-    subject = payload.get("subject", "")
+    caller = sanitize_name(payload.get("caller", ""), max_length=80)
+    subject = sanitize_text(payload.get("subject", ""))
     quorum = payload.get("quorum", 3)
     if not caller or not subject:
         return JSONResponse({"error": "caller and subject required"}, status_code=400)
@@ -181,8 +182,8 @@ async def join_meeting(meeting_id: str, payload: dict) -> dict:
 @router.post("/api/governance/meeting/{meeting_id}/motion")
 async def propose_motion(meeting_id: str, payload: dict) -> dict:
     """Propose a motion in a meeting. Requires quorum."""
-    proposer = payload.get("proposer", "")
-    motion_text = payload.get("motion", "")
+    proposer = sanitize_name(payload.get("proposer", ""), max_length=80)
+    motion_text = sanitize_text(payload.get("motion", ""))
     if not proposer or not motion_text:
         return JSONResponse({"error": "proposer and motion required"}, status_code=400)
     meetings = _load_meetings()
@@ -232,9 +233,9 @@ async def propose_motion(meeting_id: str, payload: dict) -> dict:
 @router.post("/api/governance/meeting/{meeting_id}/vote")
 async def cast_vote(meeting_id: str, payload: dict) -> dict:
     """Cast a vote on a pending motion. Votes: yea, nay, abstain."""
-    voter = payload.get("voter", "")
+    voter = sanitize_name(payload.get("voter", ""), max_length=80)
     motion_id = payload.get("motion_id", "")
-    vote = payload.get("vote", "").lower()
+    vote = payload.get("vote", "").lower().strip()
     if not voter or not motion_id or vote not in ("yea", "nay", "abstain"):
         return JSONResponse({"error": "voter, motion_id, and vote (yea/nay/abstain) required"}, status_code=400)
     meetings = _load_meetings()

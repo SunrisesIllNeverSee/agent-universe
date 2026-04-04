@@ -82,6 +82,7 @@ The mechanisms are live. The numbers are drafts.
 © 2026 Ello Cello LLC. Patent Pending: Serial No. 63/877,177
 """
 
+import fcntl
 import hashlib
 import json
 import os
@@ -101,6 +102,32 @@ def _load_rates(config_path: Path | None = None) -> dict:
     except Exception:
         pass
     return {}
+
+def _atomic_save(path: Path, data: dict) -> None:
+    """Write JSON atomically: write to tmp, fsync, rename. Prevents partial writes."""
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    content = json.dumps(data, indent=2)
+    with tmp.open("w", encoding="utf-8") as f:
+        f.write(content)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+
+
+def _locked_load(path: Path, default: dict) -> dict:
+    """Read JSON with shared lock to avoid reading mid-write."""
+    if not path.exists():
+        return default
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            fcntl.flock(f, fcntl.LOCK_SH)
+            try:
+                return json.load(f)
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
+    except (json.JSONDecodeError, OSError):
+        return default
+
 
 _RATES = _load_rates()
 _TIER_OVERRIDES  = _RATES.get("tiers", {})
@@ -226,12 +253,10 @@ class TrialLedger:
         self._store = self._load()
 
     def _load(self) -> dict:
-        if self.path.exists():
-            return json.loads(self.path.read_text())
-        return {}
+        return _locked_load(self.path, {})
 
     def _save(self):
-        self.path.write_text(json.dumps(self._store, indent=2))
+        _atomic_save(self.path, self._store)
 
     def get(self, agent_id: str) -> dict:
         return self._store.get(agent_id, {
@@ -382,12 +407,10 @@ class AgentTreasury:
         self._ledger = self._load()
 
     def _load(self) -> dict:
-        if self.path.exists():
-            return json.loads(self.path.read_text())
-        return {"balances": {}, "transactions": []}
+        return _locked_load(self.path, {"balances": {}, "transactions": []})
 
     def _save(self):
-        self.path.write_text(json.dumps(self._ledger, indent=2))
+        _atomic_save(self.path, self._ledger)
 
     def balance(self, agent_id: str) -> float:
         return self._ledger["balances"].get(agent_id, 0.0)
@@ -453,12 +476,10 @@ class FeeCreditLedger:
         self._ledger = self._load()
 
     def _load(self) -> dict:
-        if self.path.exists():
-            return json.loads(self.path.read_text())
-        return {"balances": {}, "transactions": []}
+        return _locked_load(self.path, {"balances": {}, "transactions": []})
 
     def _save(self):
-        self.path.write_text(json.dumps(self._ledger, indent=2))
+        _atomic_save(self.path, self._ledger)
 
     def balance(self, agent_id: str) -> float:
         return self._ledger["balances"].get(agent_id, 0.0)

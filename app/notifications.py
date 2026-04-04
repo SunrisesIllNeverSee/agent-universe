@@ -110,11 +110,11 @@ def _send_email(to_addr: str, subject: str, body: str, from_addr: str | None = N
             return True
 
     except urllib.error.HTTPError as e:
-        error_body = e.read().decode("utf-8", errors="replace")
-        logger.error("Resend API error %s sending to %s: %s", e.code, to_addr, error_body)
+        # Log status code only — error body may contain API key echoes or PII
+        logger.error("Resend API error %s sending to %s", e.code, to_addr)
         return False
-    except Exception as e:
-        logger.error("Failed to send email to %s: %s", to_addr, e)
+    except Exception:
+        logger.error("Failed to send email to %s", to_addr)
         return False
 
 

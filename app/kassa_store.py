@@ -164,7 +164,15 @@ class KassaStore:
         self._lock = Lock()
         self._conn = sqlite3.connect(str(db_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
-        self._conn.execute("PRAGMA journal_mode=WAL")
+        result = self._conn.execute("PRAGMA journal_mode=WAL").fetchone()
+        if result and result[0].lower() != "wal":
+            import logging
+            logging.getLogger("civitae").warning(
+                "SQLite WAL mode failed for %s (got %s). "
+                "This may indicate a network filesystem (NFS/FUSE) that doesn't support WAL. "
+                "Data integrity is at risk under concurrent access.",
+                db_path, result[0],
+            )
         self._conn.execute("PRAGMA foreign_keys=ON")
         self._conn.executescript(_SCHEMA)
         self._conn.commit()
