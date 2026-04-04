@@ -173,6 +173,7 @@ async def get_page_html(page: str) -> JSONResponse:
         "governance", "helpwanted", "hiring", "index", "iso-collaborators",
         "kassa", "kassa-post", "kassa-thread", "kingdoms", "leaderboard", "mission", "missions",
         "products", "refinery", "services", "sig-arena", "sitemap",
+        "join", "lobby",
         "slots", "switchboard", "treasury", "vault", "wave-registry", "welcome", "world",
     }
     # Reject path traversal characters before any filesystem operation
