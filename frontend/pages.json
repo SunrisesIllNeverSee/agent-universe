@@ -49,7 +49,7 @@
         { "label": "Open Roles", "href": "/openroles"   },
         { "label": "AgentDash",  "href": "/agentdash"   }
       ],
-      "paths": ["/", "/portal", "/dashboard", "/openroles", "/helpwanted", "/missions", "/seeds", "/command", "/console", "/mission", "/deploy", "/campaign", "/kassa", "/marketplace", "/forums", "/slots", "/earnings-matrix", "/earnings-journey", "/agentdash", "/advisory", "/connect"],
+      "paths": ["/portal", "/dashboard", "/openroles", "/helpwanted", "/missions", "/seeds", "/command", "/console", "/mission", "/deploy", "/campaign", "/kassa", "/marketplace", "/forums", "/slots", "/earnings-matrix", "/earnings-journey", "/agentdash", "/advisory", "/connect"],
       "pages": [
         { "subsection": "Live and Interactive" },
         { "slot": "1.1.0", "name": "3D World (Hub)",    "route": "/world",     "file": "world",      "status": "live", "note": "3D hub \u2014 buildings represent each Live and Interactive district" },

@@ -46,7 +46,7 @@
   var TAB_LABELS = { 1:'Active', 2:'Context', 3:'Building' };
 
   // ── Skip fixed-viewport pages (they have their own topbar) ────────────────────
-  var SKIP = ['/kingdoms', '/console', '/deploy', '/campaign'];
+  var SKIP = ['/', '/kingdoms', '/console', '/deploy', '/campaign'];
   var path = window.location.pathname.replace(/\/$/, '') || '/';
   for (var s = 0; s < SKIP.length; s++) {
     if (path === SKIP[s]) return;
