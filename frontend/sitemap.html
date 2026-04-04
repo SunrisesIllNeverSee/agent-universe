@@ -56,12 +56,13 @@
   .btn.danger   { border-color: var(--red); color: var(--red); }
 
   /* ── Layout ── */
-  .layout { display: flex; flex: 1; overflow: hidden; }
+  .layout { display: flex; flex: 1; overflow: hidden; min-height: 0; }
 
   /* ── Left sidebar ── */
   .sidebar {
     width: 220px;
     flex-shrink: 0;
+    min-height: 0;
     background: var(--panel2);
     border-right: 1px solid var(--border);
     overflow-y: auto;
