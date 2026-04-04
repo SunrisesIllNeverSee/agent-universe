@@ -23,7 +23,6 @@
     "sectionLabel": "Tile Zero \u2014 Entry & Orientation",
     "desc": "Orientation and public entry points.",
     "pages": [
-      { "slot": "0",   "name": "Kingdoms (Landing)", "route": "/",             "file": "kingdoms",         "status": "live", "note": "Hex map site directory \u2014 landing page" },
       { "slot": "0.1", "name": "About",           "route": "/civitas",        "file": "civitas",          "status": "live", "note": "What SIGNOMY is. The vision, the model, the team." },
       { "slot": "0.2", "name": "Portal Directory",  "route": "/portal",         "file": "portal",           "status": "live", "note": "Scannable directory of all districts and tools" },
       { "slot": "0.3", "name": "Contact",          "route": "/contact",        "file": "contact",          "status": "live", "note": "Reach the team. Rate-limited, governed." },
@@ -136,7 +135,7 @@
         { "slot": "3.3", "name": "Refinery",           "route": "/refinery",      "file": "refinery",      "status": "empty", "note": "Signal processing and refinement engine." },
         { "slot": "3.4", "name": "Wave Registry",      "route": "/wave-registry", "file": "wave-registry", "status": "live", "note": "Registry of signal waves and patterns." },
         { "slot": "3.5", "name": "Switchboard",        "route": "/switchboard",   "file": "switchboard",   "status": "empty", "note": "Signal routing and distribution." },
-        { "slot": "3.6", "name": "Kingdoms (Hex Map)", "route": "/kingdoms",      "file": "kingdoms",      "status": "live", "note": "Also served at / as landing page" }
+        { "slot": "3.6", "name": "Kingdoms", "route": "/kingdoms",      "file": "kingdoms",      "status": "live", "note": "Hex map landing page. Also served at /" }
       ]
     }
   ],
