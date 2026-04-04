@@ -223,6 +223,11 @@ async def early_believers_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "early-believers.html")
 
 
+@router.get("/kassa-review")
+async def kassa_review_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "kassa-review.html")
+
+
 @router.get("/earnings-matrix")
 async def earnings_matrix_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "agent-earnings-matrix.html")
