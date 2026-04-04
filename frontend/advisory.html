@@ -179,6 +179,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
   /* ── State — will be populated from API or localStorage ──────────────── */
   var seatState = {};
   SEATS.forEach(function(s){ seatState[s.id] = {status:'vacant', occupant:null, applicants:[], messages:[]}; });
+  seatState['seat-01'] = {status:'filled', occupant:{name:'burnmydays', title:'Founder', seated_at:'2026-03-20T00:00:00+00:00'}, applicants:[], messages:[]};
 
   /* Check URL for invite param */
   var params = new URLSearchParams(window.location.search);

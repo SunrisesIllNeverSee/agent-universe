@@ -781,8 +781,10 @@
 
   // Genesis Board seats — live from API
   const seatsEl = document.getElementById('seats');
+  // Seat-01 is always burnmydays (Founder) — merge with API data
+  var FOUNDER_SEATS = {'seat-01': {status:'filled', occupant:{name:'burnmydays'}}};
   fetch('/api/advisory/seats').then(r => r.json()).then(data => {
-    const seats = data.seats || {};
+    const seats = Object.assign({}, FOUNDER_SEATS, data.seats || {});
     for (let i = 1; i <= 14; i++) {
       const id = 'seat-' + String(i).padStart(2, '0');
       const st = seats[id] || {};
@@ -799,8 +801,16 @@
   }).catch(() => {
     for (let i = 1; i <= 14; i++) {
       const s = document.createElement('div');
-      s.className = 'seat open';
-      s.textContent = i;
+      if (i === 1) {
+        s.className = 'seat';
+        s.textContent = '\u2713';
+        s.title = 'burnmydays — Founder';
+      } else {
+        s.className = 'seat open';
+        s.textContent = i;
+        s.style.cursor = 'pointer';
+        s.onclick = () => window.location.href = '/advisory?seat=seat-' + String(i).padStart(2, '0');
+      }
       seatsEl.appendChild(s);
     }
   });
