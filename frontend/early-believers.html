@@ -57,11 +57,14 @@ header p{font-size:1rem;color:var(--ash);font-style:italic;max-width:540px;margi
 .wave-name{font-family:'Cormorant Garamond',serif;font-size:1.1rem}
 .wave-badge{font-size:9px;letter-spacing:.12em;padding:3px 8px;border-radius:2px}
 .w-open{background:rgba(90,189,140,0.15);color:var(--green);border:1px solid rgba(90,189,140,0.25)}
-.w-closed{background:rgba(107,100,86,0.2);color:var(--ash);border:1px solid rgba(107,100,86,0.3)}
-.w-invite{background:rgba(196,146,58,0.12);color:var(--gold);border:1px solid rgba(196,146,58,0.25)}
+.w-bid{background:rgba(245,158,11,0.15);color:var(--bid);border:1px solid rgba(245,158,11,0.25)}
 .wave-detail{padding:0 1.25rem 1.25rem;display:none}
 .wave.expanded .wave-detail{display:block}
-.wave-entry{font-size:9px;letter-spacing:.08em;color:var(--ash);margin-bottom:.75rem;text-transform:uppercase}
+.wave-price{font-size:9px;letter-spacing:.1em;color:var(--ash);margin-bottom:.75rem;text-transform:uppercase}
+.wave-seats{display:flex;gap:6px;margin-bottom:.75rem}
+.seat{width:32px;height:32px;border:1px solid var(--border-s);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--gold-d)}
+.seat.open{border-color:var(--gold);color:var(--gold)}
+.seat.bid{border-color:var(--bid);color:var(--bid)}
 .wave-info{font-size:10px;color:var(--ash);line-height:1.7}
 
 /* PROVENANCE */
@@ -121,7 +124,7 @@ footer{border-top:1px solid var(--border);padding:2rem 0;text-align:center;margi
     <div class="vs-item"><strong>Governance authority</strong> — motion creation, proposal rights</div>
     <div class="vs-item"><strong>Curated entry</strong> — application, alignment, invitation</div>
     <div class="vs-item"><strong>Closes over time</strong> — cohort narrows each wave</div>
-    <div class="vs-item"><strong>Non-transferable</strong> — provenance stays with the founding account</div>
+    <div class="vs-item"><strong>Transferable</strong> — founding provenance travels with the class on sale</div>
   </div>
   <div class="vs-card">
     <div class="vs-label bc">Black Card</div>
@@ -146,8 +149,8 @@ footer{border-top:1px solid var(--border);padding:2rem 0;text-align:center;margi
 <div class="provenance-block">
   <div class="prov-icon">◈</div>
   <div>
-    <div class="prov-title">Cycle 001 · Non-Transferable · Permanent</div>
-    <div class="prov-desc">The provenance record attaches at entry and cannot be moved, sold, or reissued. It marks your account as part of the founding cohort — a distinction that exists in the chain regardless of what happens to the platform afterward. Every class that joins after Genesis operates in the structure you helped establish.</div>
+    <div class="prov-title">Cycle 001 · Transferable</div>
+    <div class="prov-desc">The provenance record attaches at entry and travels with the class. The founding hash is permanent — a Genesis cohort member who transfers their position still passes the origin record with it. Every class that joins after Genesis operates in the structure you helped establish.</div>
   </div>
 </div>
 
@@ -160,40 +163,44 @@ footer{border-top:1px solid var(--border);padding:2rem 0;text-align:center;margi
 
 <footer>
   <p class="footer-copy">SIGNOMY · Early Believers · <span>Genesis Cohort · Cycle 001</span></p>
-  <p class="footer-copy" style="margin-top:.5rem">Founding class · Non-transferable · Closes after Genesis</p>
+  <p class="footer-copy" style="margin-top:.5rem">Founding class · Transferable · Closes after Genesis</p>
 </footer>
 
 <script>
 var WAVES = [
   {
     name: 'Wave 1 — Genesis',
+    seats: 5,
+    type: 'open',
     badge: 'OPEN',
-    badgeClass: 'w-open',
-    entry: 'Make Offer',
+    price: 'Make Offer',
     desc: 'The founding window. This is where the class has meaning — a believer who enters here is saying they want a place in the origin story, not just a better operating position. Founding provenance is established here. Standards are high. The cohort is real.',
     expanded: true
   },
   {
     name: 'Wave 2 — Selective',
-    badge: 'INVITE ONLY',
-    badgeClass: 'w-invite',
-    entry: '$500',
+    seats: 3,
+    type: 'open',
+    badge: 'OPEN',
+    price: '$500',
     desc: 'If the class remains open at all, it narrows here. No longer broad founding access — selective continuation for exceptional alignments only. Entry standards rise. This is not open enrollment.',
     expanded: false
   },
   {
     name: 'Wave 3 — Restricted',
+    seats: 5,
+    type: 'bid',
     badge: 'CLOSED',
-    badgeClass: 'w-closed',
-    entry: 'Bid / Offer',
+    price: 'Bid / Offer',
     desc: 'The founding class is protected. Broad entry closes here to preserve the force of the Genesis cohort. If any access exists, it requires explicit justification.',
     expanded: false
   },
   {
     name: 'Wave 4 — Strategic',
-    badge: 'NEGOTIATED',
-    badgeClass: 'w-invite',
-    entry: '$1,000',
+    seats: 2,
+    type: 'bid',
+    badge: 'CLOSED',
+    price: '$1,000',
     desc: 'Reserved for rare additions of constitutional or strategic significance — never through normal checkout. Explicit offer and rationale required. The chain records the distinction.',
     expanded: false
   },
@@ -213,7 +220,7 @@ WAVES.forEach(function(w) {
   name.textContent = w.name;
 
   var badge = document.createElement('span');
-  badge.className = 'wave-badge ' + w.badgeClass;
+  badge.className = 'wave-badge ' + (w.type === 'bid' ? 'w-bid' : 'w-open');
   badge.textContent = w.badge;
 
   header.appendChild(name);
@@ -222,15 +229,25 @@ WAVES.forEach(function(w) {
   var detail = document.createElement('div');
   detail.className = 'wave-detail';
 
-  var entry = document.createElement('div');
-  entry.className = 'wave-entry';
-  entry.textContent = w.entry;
+  var price = document.createElement('div');
+  price.className = 'wave-price';
+  price.textContent = w.price;
+
+  var seats = document.createElement('div');
+  seats.className = 'wave-seats';
+  for (var s = 0; s < w.seats; s++) {
+    var seat = document.createElement('div');
+    seat.className = 'seat ' + w.type;
+    seat.textContent = (s + 1);
+    seats.appendChild(seat);
+  }
 
   var info = document.createElement('div');
   info.className = 'wave-info';
   info.textContent = w.desc;
 
-  detail.appendChild(entry);
+  detail.appendChild(price);
+  detail.appendChild(seats);
   detail.appendChild(info);
 
   wave.appendChild(header);
