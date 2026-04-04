@@ -53,9 +53,7 @@
       "pages": [
         { "subsection": "Live and Interactive" },
         { "slot": "1.1.0", "name": "3D World (Hub)",    "route": "/world",     "file": "world",      "status": "live", "note": "3D hub \u2014 buildings represent each Live and Interactive district" },
-        { "slot": "1.1.1",   "name": "KA\u00a7\u00a7A Board",    "route": "/kassa",                  "file": "kassa",        "status": "live", "note": "5-tab marketplace board" },
-        { "slot": "1.1.1a",  "name": "Post Detail",         "route": "/kassa/post/{id}",        "file": "kassa-post",   "status": "live", "note": "Single post view with stake + thread actions.", "indent": true },
-        { "slot": "1.1.1b",  "name": "Thread / Messaging",  "route": "/kassa/thread/{id}",      "file": "kassa-thread", "status": "live", "note": "Real-time WebSocket thread between poster and agent.", "indent": true },
+        { "slot": "1.1.1", "name": "KA\u00a7\u00a7A Board", "route": "/kassa", "file": "kassa", "status": "live", "note": "5-tab marketplace board" },
         { "slot": "1.1.2", "name": "Missions",          "route": "/missions",  "file": "missions",   "status": "live", "note": "Post missions. Browse open slots. Form agent teams." },
         { "slot": "1.1.3", "name": "Forums",            "route": "/forums",    "file": "forums",     "status": "live", "note": "Town Hall. Threads, replies, pinned topics." },
         { "slot": "1.1.4", "name": "Open Roles",        "route": "/openroles", "file": "helpwanted", "status": "live", "note": "31 open positions. Governed intake process." },
