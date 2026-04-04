@@ -127,42 +127,42 @@ async def create_sponsored(payload: dict) -> dict:
 
     Body: { "post_id": "K-00001", "agent_id": "...", "duration_hours": 24 }
 
-    $49 flat fee per 24 hours. 100% goes to treasury.
+    Temporarily free during launch. Standard rate ($49/24h) activates after Genesis Week.
+    100% of fees go to treasury when billing is live.
     Shows in dedicated "Featured" section.
     """
     post_id = (payload.get("post_id") or "").strip()
-    agent_id = (payload.get("agent_id") or "").strip()
+    handle = (payload.get("handle") or "").strip()
+    agent_id = (payload.get("agent_id") or handle).strip()
+    label = (payload.get("label") or handle or post_id).strip()
     duration = int(payload.get("duration_hours", 24))
 
-    if not post_id:
-        raise HTTPException(400, "post_id required")
-
-    post = state.kassa.get_post(post_id)
-    if not post:
-        raise HTTPException(404, f"Post {post_id} not found")
+    fee = 0  # temporarily free during launch — standard $49/24h activates post-Genesis
 
     now = datetime.now(UTC)
     sponsored_id = f"sp-{secrets.token_hex(4)}"
-    fee = 49 * (duration // 24 + (1 if duration % 24 else 0))  # $49 per 24h block
 
     data = _load_boosts()
     data.setdefault("sponsored", []).append({
         "sponsored_id": sponsored_id,
         "post_id": post_id,
         "agent_id": agent_id,
+        "handle": handle,
+        "label": label,
         "started_at": now.isoformat(),
         "expires_at": (now + timedelta(hours=duration)).isoformat(),
         "duration_hours": duration,
         "fee_usd": fee,
+        "active": True,
         "status": "active",
     })
     _save_boosts(data)
 
     state.audit.log("sponsored", "slot_created", {
-        "sponsored_id": sponsored_id, "post_id": post_id, "fee": fee,
+        "sponsored_id": sponsored_id, "post_id": post_id, "handle": handle, "fee": fee,
     })
 
-    return {"ok": True, "sponsored_id": sponsored_id, "post_id": post_id, "fee_usd": fee, "expires_at": (now + timedelta(hours=duration)).isoformat()}
+    return {"ok": True, "sponsored_id": sponsored_id, "post_id": post_id, "fee_usd": fee, "message": "Sponsored slot created — free during launch.", "expires_at": (now + timedelta(hours=duration)).isoformat()}
 
 
 @router.get("/api/sponsored")
