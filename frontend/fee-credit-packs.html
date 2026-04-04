@@ -251,9 +251,29 @@ function calcSavings(){
   document.getElementById('calc-save').textContent='$'+stdPackCost.toFixed(2);
 }
 
-function selectPack(name,price){
-  // In production: redirect to Stripe checkout
-  alert(`Redirecting to checkout for ${name} Pack ($${price})\n\nIn production this connects to Stripe.`);
+async function selectPack(name,price){
+  const btn = event.target;
+  btn.textContent='Loading…';
+  btn.disabled=true;
+  try{
+    const res=await fetch('/api/fee-credits/checkout',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({pack_name:name,price_cents:price*100})
+    });
+    const data=await res.json();
+    if(data.checkout_url){
+      window.location.href=data.checkout_url;
+    } else {
+      alert(data.detail||'Checkout unavailable. Please try again.');
+      btn.textContent='Get '+name+' →';
+      btn.disabled=false;
+    }
+  } catch(e){
+    alert('Network error. Please try again.');
+    btn.textContent='Get '+name+' →';
+    btn.disabled=false;
+  }
 }
 
 renderPacks();
