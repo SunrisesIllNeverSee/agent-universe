@@ -180,9 +180,24 @@ python run.py
 - `frontend/_nav.js` — single source of truth for site-wide navigation
 - Served at `/assets/_nav.js`
 - Injected via `<script src="/assets/_nav.js"></script>` in `</head>` of every content page
-- Fixed-viewport pages (console, deploy, campaign, world) have their OWN topbar — do NOT inject `_nav.js` there, they are in the SKIP list
-- To add/change nav links: edit `NAV_LINKS` in `_nav.js` only
-- `activeFor` array on each link handles sub-page highlighting (e.g. COMMAND stays gold on /console, /deploy, /campaign)
+- Fixed-viewport pages (`/`, `/kingdoms`, `/console`, `/deploy`, `/campaign`) have their OWN topbar — do NOT inject `_nav.js` there, they are in the SKIP list
+- `/` and `/kingdoms` both serve `kingdoms.html` (hex map landing) — both are in SKIP
+- To add/change nav links: edit layers[].navLinks in `pages.json`
+- `pages.json` drives everything: nav tabs, sub-links, portal directory, banner
+
+### Soft Launch Banner
+- Controlled by `"siteBanner"` field in `pages.json` — one line of text
+- Injected by `_nav.js` as a 28px amber bar with pulsing dot above the top bar
+- To kill it: delete the `"siteBanner"` line from `pages.json`. No code change.
+- Does NOT appear on SKIP pages (kingdoms, console, deploy, campaign)
+
+### Portal Directory (`/portal`)
+- File: `frontend/portal.html` — scannable directory of every page in SIGNOMY
+- **Data-driven** — fetches `pages.json` at load, builds sections from tileZero + layers
+- Automatically updates when `pages.json` changes — no code edits needed
+- Add a page → add to `pages.json` → portal shows it. Change status → dot color updates.
+- Shows: slot number, status dot (green/amber/red/purple), name, route, note
+- Every row is a clickable link to the page
 
 ### Sitemap as Communication Layer
 - `frontend/sitemap.html` is the shared source of truth between sessions
@@ -242,44 +257,83 @@ python run.py
 
 ## Build Phase Status
 
+### Core Build (Phases 0–3) — All Complete
+
 | Phase | Description | Status |
 |-------|-------------|--------|
-| Phase 0 | Unblock (nav, routes, security) | ✅ Complete |
-| Phase 1A | Seeds wired into endpoints | ✅ Complete |
-| Phase 1B | Touch ≠ Use | ✅ Complete |
-| Phase 1C | ISO Collaborator labels | ✅ Complete |
+| Phase 0 | Unblock (nav, routes, security) | ✅ |
+| Phase 1A–1G | Seeds, economy, ISO labels, backdating | ✅ |
 | Phase 1D | Concentric rings visual | ⚠️ Owner configuring |
-| Phase 1E | SIG Economy wired | ✅ Complete |
-| Phase 1F | Ring 0 stub | Downstream of 1D |
-| Phase 1G | Backdate existing content | ✅ Complete |
-| Phase 2A | WebSocket threads + magic links | ✅ Complete |
-| Phase 2B | Seeds wired to KA§§A | ✅ Complete |
-| Phase 2C | Contact page | ✅ Complete |
-| Phase 2D | User profiles | ✅ Complete |
-| Phase 2E | Console wired | ✅ Complete |
-| Phase 2F | Wording + welcome | ✅ Complete |
-| Phase 3 | Forums backend | ✅ Complete |
-| Phase 3 | Meeting state machine + voting | ✅ Complete |
-| Phase 3 | Marketplace comms (threads) | ✅ Complete |
-| Stripe | Checkout/webhook flow | ✅ Working on Railway |
+| Phase 1F | Ring 0 stub | Blocked on 1D |
+| Phase 2A–2F | Threads, seeds→KA§§A, contact, profiles, console, wording | ✅ |
+| Phase 3 | Forums, meetings, marketplace comms | ✅ |
+
+### Infrastructure — Complete
+
+| Area | Description | Status |
+|------|-------------|--------|
+| Struct | server.py split (12 route modules) | ✅ |
+| Struct | Persistent volume on Railway | ✅ /app/data |
+| Stripe | Checkout/webhook flow | ✅ Railway production |
 | Stripe | MPP sandbox | ✅ Checked out |
 | Stripe | V2 Connect full test | ⬜ Needs browser test |
-| Struct | server.py split (12 route modules) | ✅ Complete |
-| Struct | Persistent volume on Railway | ✅ Attached at /app/data |
-| Email | Resend SMTP configured | ✅ Domain verified, emails sending |
-| Email | Agent @signomy.xyz addresses | ✅ Assigned on signup |
-| — | Flame review engine v1 | ✅ Live at /api/governance/flame-review/{id} |
-| — | Governance model (tier vs posture) | ✅ Marketplace tier-gated, high-risk posture-gated |
-| — | KA§§A board seeded (19 posts) | ⚠️ Need re-seed after volume attach |
-| Security | Economy atomic persistence | ✅ _atomic_save + _locked_load |
-| Security | XSS sanitization (all input paths) | ✅ app/sanitize.py |
-| Security | Governance SCOUT gap fix | ✅ High-risk actions blocked |
-| Security | Global exception handler | ✅ Generic 500, no stack leaks |
-| Security | JWT fail-loud on Railway | ✅ Refuses ephemeral in prod |
-| Security | SQLite WAL verification | ✅ Warns on filesystem rejection |
-| Tests | Economy engine (45 tests) | ✅ Tier, fee, payout, trial, treasury |
-| Tests | Governance engine (27 tests) | ✅ Concepts, postures, modes |
-| Frontend | Portal directory page | ✅ /portal, data-driven from pages.json |
-| Frontend | Soft launch banner | ✅ siteBanner in pages.json, _nav.js |
-| — | Refinery (SIGRANK) | ⬜ Placeholder |
-| — | Switchboard (signal routing) | ⬜ Depends on Refinery |
+| Email | Resend SMTP + @signomy.xyz agent emails | ✅ |
+| Governance | Flame review, tier/posture gating | ✅ |
+
+### Security Hardening (2026-04-04) — Complete
+
+| Fix | Status |
+|-----|--------|
+| Economy atomic persistence (`_atomic_save` + `_locked_load`) | ✅ |
+| XSS sanitization all input paths (`app/sanitize.py`) | ✅ |
+| Governance SCOUT gap (high-risk actions blocked) | ✅ |
+| Governance word-boundary matching (regex `\b`) | ✅ |
+| Global exception handler (generic 500) | ✅ |
+| JWT fail-loud on Railway | ✅ |
+| SQLite WAL verification | ✅ |
+| WebSocket rate limiting (10 conn/min per IP) | ✅ |
+| Error log sanitization | ✅ |
+| 78 unit tests (economy 45 + governance 27 + existing 6) | ✅ |
+
+### Frontend (2026-04-04) — Complete
+
+| Item | Status |
+|------|--------|
+| Portal directory `/portal` (data-driven from pages.json) | ✅ |
+| Soft launch banner (`siteBanner` in pages.json) | ✅ |
+| Landing page fix (`/` → kingdoms.html in vercel.json) | ✅ |
+| `/ws/public` read-only WebSocket | ✅ |
+
+### Grand Opening — Open Items
+
+| Item | Status | Notes |
+|------|--------|-------|
+| grand-opening.html: "9 seats" → 14, wire to `/api/advisory/seats` | ⬜ | JS loop + API wiring |
+| grand-opening.html: apply link `/governance` → `/advisory` | ⬜ | |
+| grand-opening.html: countdown — set date or make configurable | ⬜ | |
+| grand-opening.html: remove "90-day trial" from Phase I perks | ⬜ | Fee-free ONLY if prepaid |
+| grand-opening.html: show all 14 Black Card perks (currently shows 4) | ⬜ | |
+| grand-opening.html: add OG meta tags + `_nav.js` | ⬜ | |
+| Black Card: reconcile fee/price across 7 pages (see inconsistency table below) | ⬜ | economics, civitas, entry, grand-opening all say different things |
+| Black Card: lifetime vs subscription decision | ⚠️ | Owner deciding — leaning lifetime $2,500 |
+| WAVE-CASCADE.md: standalone wave mechanic showcase | ⬜ | Reference for `/wave-registry` page |
+| KA§§A board re-seed (19 posts after volume attach) | ⬜ | |
+
+### After-Launch Backend — Not Built Yet
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Fee Credit Pack purchase/balance/apply endpoints | ⬜ | Frontend exists, backend stub |
+| Seed Card (points, streaks, badges, 48h banking) | ⬜ | |
+| Sliding Scale Reward Engine | ⬜ | |
+| Phase transition logic (Day 1/8/31) | ⬜ | |
+| Founding Contributor badge auto-assign | ⬜ | |
+| Cascade Matcher (AGENTDASH Layer 1) | ⬜ | |
+| Availability blocks (AGENTDASH Layer 2) | ⬜ | |
+| Operator auth flow (login → JWT → console) | ⬜ | |
+| Agent polling → WebSocket push | ⬜ | Architecture upgrade |
+| GPT/Gemini/DeepSeek/Grok agents (need API keys) | ⬜ | Wired, not configured |
+| Chain adapter execution layer | ⬜ | Governance gates live, chain calls pending |
+| End-to-end economic loop (Register → Fill → Earn → Cash Out) | ⬜ | **The real launch blocker** |
+| Refinery (SIGRANK) | ⬜ | Placeholder |
+| Switchboard (signal routing) | ⬜ | Depends on Refinery |

@@ -6,7 +6,8 @@
     { "source": "/marketplace", "destination": "/products", "statusCode": 308 }
   ],
   "rewrites": [
-    { "source": "/", "destination": "/world.html" },
+    { "source": "/", "destination": "/kingdoms.html" },
+    { "source": "/portal", "destination": "/portal.html" },
     { "source": "/api/:path*", "destination": "https://agent-universe-production.up.railway.app/api/:path*" },
     { "source": "/docs/:path*", "destination": "https://agent-universe-production.up.railway.app/docs/:path*" },
     { "source": "/health", "destination": "https://agent-universe-production.up.railway.app/health" },
