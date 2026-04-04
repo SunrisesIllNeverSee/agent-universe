@@ -274,14 +274,8 @@ function makeLabelEl(b) {
   nameEl.className = 'b-label-name';
   nameEl.textContent = b.name;
 
-  const countEl = document.createElement('span');
-  countEl.className = 'b-label-count';
-  countEl.id = 'lbl-' + b.id;
-  countEl.textContent = '\u2014';
-
   wrap.appendChild(iconEl);
   wrap.appendChild(nameEl);
-  wrap.appendChild(countEl);
   return wrap;
 }
 
@@ -468,22 +462,6 @@ async function loadData() {
     document.getElementById('h-agents').textContent    = agents;
     document.getElementById('h-bounties').textContent  = missions;
     document.getElementById('h-slots').textContent     = open.length;
-
-    const counts = {
-      kassa:    missions + ' listings',
-      missions: open.length + ' open',
-      openroles:'open roles',
-      seeds:    'live',
-      console:  agents > 0 ? 'governed' : 'idle',
-      command:  agents > 0 ? 'governed' : 'idle',
-      deploy:   'tactical',
-      campaign: 'strategy',
-      slots:    open.length + ' open',
-    };
-    BUILDINGS.forEach(b => {
-      const el = document.getElementById('lbl-' + b.id);
-      if (el && counts[b.id] != null) el.textContent = counts[b.id];
-    });
 
     // Tier-driven glow
     BUILDINGS.forEach(b => {
