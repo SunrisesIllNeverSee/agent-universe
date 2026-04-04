@@ -78,8 +78,19 @@
       });
   }
 
-  // ── Fetch page data, then build ───────────────────────────────────────────────
-  fetch('/assets/pages.json').then(function(r) { return r.json(); }).then(function(data) {
+  // ── Fetch page data (cached in sessionStorage) ─────────────────────────────────
+  function fetchPagesData() {
+    var cached = null;
+    try { cached = sessionStorage.getItem('_nav_pages'); } catch(e) {}
+    if (cached) {
+      try { return Promise.resolve(JSON.parse(cached)); } catch(e) {}
+    }
+    return fetch('/assets/pages.json').then(function(r) { return r.json(); }).then(function(d) {
+      try { sessionStorage.setItem('_nav_pages', JSON.stringify(d)); } catch(e) {}
+      return d;
+    });
+  }
+  fetchPagesData().then(function(data) {
     var LAYERS = data.layers;
     var FALLBACK_LINKS = data.fallbackLinks;
 
@@ -96,8 +107,12 @@
     return null;
   }
 
-  // ── Load Playfair Display ─────────────────────────────────────────────────────
-  if (!document.getElementById('civitae-nav-fonts')) {
+  // ── Font loading — skip if page already loads Playfair in <head> ──────────────
+  // Most pages include Playfair via <link> already; only inject if missing.
+  var hasPlayfair = false;
+  var existingLinks = document.querySelectorAll('link[href*="Playfair"]');
+  if (existingLinks.length > 0) hasPlayfair = true;
+  if (!hasPlayfair && !document.getElementById('civitae-nav-fonts')) {
     var fontLink = document.createElement('link');
     fontLink.id   = 'civitae-nav-fonts';
     fontLink.rel  = 'stylesheet';
