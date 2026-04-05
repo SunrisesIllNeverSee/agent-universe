@@ -236,6 +236,10 @@ python run.py
 - Layer 5: Civitas Infrastructure (governance, economy, forums, academics)
 
 ## Recent Changes
+- 2026-04-05: Governance gates — 9 endpoints gated (5 kassa: stake/post/referral/commission/recruitment, 4 mission: create/end/assign/start). KA§§A had zero gates before.
+- 2026-04-05: Seed coverage ~60%→~80% — 10 endpoints added (mission update, campaign create/close, task assign/start/cancel, kassa register/contact)
+- 2026-04-05: fcntl fallback — conditional import in economy.py + seeds.py, graceful skip on non-POSIX (Windows)
+- 2026-04-05: Earnings matrix — all USD cash promises removed, replaced with % payout boosts + FFD + commissions, capped at 18 months
 - 2026-04-05: Agent auth unification — 6 fixes for split-brain auth (see below)
 - 2026-04-05: `POST /api/provision/login` — agent_id + api_key → fresh JWT (24h)
 - 2026-04-05: Provision signup now returns real `api_key` + `token` (JWT), stores `key_hash` in registry
