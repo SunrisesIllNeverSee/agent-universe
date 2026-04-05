@@ -82,7 +82,10 @@ The mechanisms are live. The numbers are drafts.
 © 2026 Ello Cello LLC. Patent Pending: Serial No. 63/877,177
 """
 
-import fcntl
+try:
+    import fcntl
+except ImportError:
+    fcntl = None  # Non-POSIX (Windows) — file locking unavailable
 import hashlib
 import json
 import os
@@ -120,11 +123,13 @@ def _locked_load(path: Path, default: dict) -> dict:
         return default
     try:
         with path.open("r", encoding="utf-8") as f:
-            fcntl.flock(f, fcntl.LOCK_SH)
+            if fcntl:
+                fcntl.flock(f, fcntl.LOCK_SH)
             try:
                 return json.load(f)
             finally:
-                fcntl.flock(f, fcntl.LOCK_UN)
+                if fcntl:
+                    fcntl.flock(f, fcntl.LOCK_UN)
     except (json.JSONDecodeError, OSError):
         return default
 

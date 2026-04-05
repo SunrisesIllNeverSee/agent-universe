@@ -140,6 +140,9 @@ def _award_exp(agent_id: str, exp: int, track: str) -> dict:
 @router.post("/api/missions")
 async def create_mission(payload: dict) -> dict:
     """Create a new DEPLOY mission."""
+    gate = state.runtime.check_action("create mission")
+    if not gate["permitted"]:
+        return JSONResponse({"error": gate["reason"], "governance": gate}, status_code=403)
     missions = _load_missions()
     mid = f"mission-{_secrets_mod.token_hex(4)}"
     mission = {
@@ -207,6 +210,9 @@ async def get_mission(mission_id: str) -> dict:
 
 @router.post("/api/missions/{mission_id}/end")
 async def end_mission(mission_id: str, payload: dict | None = None) -> dict:
+    gate = state.runtime.check_action("end mission")
+    if not gate["permitted"]:
+        return JSONResponse({"error": gate["reason"], "governance": gate}, status_code=403)
     missions = _load_missions()
     mission = next((m for m in missions if m["id"] == mission_id), None)
     if not mission:
@@ -268,6 +274,10 @@ async def update_mission(mission_id: str, payload: dict) -> dict:
         if k in payload:
             mission[k] = payload[k]
     _save_missions(missions)
+    try:
+        await create_seed(source_type="mission_updated", source_id=mission_id, creator_id="operator", creator_type="BI", seed_type="touched", metadata={k: payload[k] for k in ["posture", "formation", "status", "target", "limits"] if k in payload})
+    except Exception:
+        pass
     return mission
 
 
@@ -297,6 +307,10 @@ async def create_campaign(payload: dict) -> dict:
     _save_campaigns(campaigns)
     state.audit.log("campaign", "created", {"campaign_id": campaign["id"], "name": campaign["name"]})
     await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    try:
+        await create_seed(source_type="campaign", source_id=campaign["id"], creator_id=campaign.get("created_by", "operator"), creator_type="BI", seed_type="planted", metadata={"name": campaign["name"]})
+    except Exception:
+        pass
     return campaign
 
 
@@ -338,6 +352,10 @@ async def close_campaign(campaign_id: str, payload: dict) -> dict:
     _save_campaigns(campaigns)
     state.audit.log("campaign", "closed", {"campaign_id": campaign_id, "name": campaign.get("name")})
     await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    try:
+        await create_seed(source_type="campaign_closed", source_id=campaign_id, creator_id="operator", creator_type="BI", seed_type="touched", metadata={"name": campaign.get("name"), "outcome": campaign["outcome"]})
+    except Exception:
+        pass
     return campaign
 
 
@@ -441,6 +459,9 @@ async def get_task(task_id: str) -> dict:
 @router.post("/api/tasks/{task_id}/assign")
 async def assign_task(task_id: str, payload: dict) -> dict:
     """Assign an agent to an open task."""
+    gate = state.runtime.check_action("assign task")
+    if not gate["permitted"]:
+        return JSONResponse({"error": gate["reason"], "governance": gate}, status_code=403)
     agent_id = payload.get("agent_id", "")
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
@@ -456,18 +477,29 @@ async def assign_task(task_id: str, payload: dict) -> dict:
     _save_tasks(tasks)
     state.audit.log("mission", "task_assigned", {"task_id": task_id, "agent_id": agent_id})
     await state.emit("task_assigned", {"task_id": task_id, "agent_id": agent_id})
+    try:
+        await create_seed(source_type="task_assigned", source_id=task_id, creator_id=agent_id, creator_type="AAI", seed_type="touched", metadata={"mission_id": task.get("mission_id", "")})
+    except Exception:
+        pass
     return task
 
 
 @router.post("/api/tasks/{task_id}/start")
 async def start_task(task_id: str) -> dict:
     """Mark task in-progress."""
+    gate = state.runtime.check_action("start task")
+    if not gate["permitted"]:
+        return JSONResponse({"error": gate["reason"], "governance": gate}, status_code=403)
     tasks = _load_tasks()
     task = next((t for t in tasks if t["id"] == task_id), None)
     if not task:
         return JSONResponse({"error": "Task not found"}, status_code=404)
     task["status"] = "in_progress"
     _save_tasks(tasks)
+    try:
+        await create_seed(source_type="task_started", source_id=task_id, creator_id=task.get("assigned_agent", "unknown"), creator_type="AAI", seed_type="touched", metadata={"mission_id": task.get("mission_id", "")})
+    except Exception:
+        pass
     return task
 
 
@@ -587,6 +619,10 @@ async def cancel_task(task_id: str) -> dict:
     task["status"] = "cancelled"
     _save_tasks(tasks)
     state.audit.log("mission", "task_cancelled", {"task_id": task_id})
+    try:
+        await create_seed(source_type="task_cancelled", source_id=task_id, creator_id=task.get("assigned_agent", "operator"), creator_type="AAI", seed_type="touched", metadata={"mission_id": task.get("mission_id", "")})
+    except Exception:
+        pass
     return task
 
 
