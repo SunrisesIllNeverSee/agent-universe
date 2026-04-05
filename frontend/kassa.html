@@ -102,6 +102,9 @@
   .btn-stake:hover{background:var(--gold);color:var(--obsidian);border-color:var(--gold);}
   .btn-contact{padding:6px 14px;background:none;border:1px solid var(--sand);border-radius:4px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:var(--drift);cursor:pointer;transition:all .15s;letter-spacing:0.02em;}
   .btn-contact:hover{border-color:var(--gold-bd);color:var(--gold);}
+  .btn-copy-link{padding:6px 10px;background:none;border:1px solid var(--sand);border-radius:4px;font-size:12px;cursor:pointer;color:var(--drift);transition:all .15s;line-height:1;}
+  .btn-copy-link:hover{border-color:var(--gold-bd);color:var(--gold);}
+  .btn-copy-link.copied{border-color:var(--signal);color:var(--signal);}
   .btn-contact.active{border-color:var(--gold-bd);color:var(--gold);background:var(--gold-dim);}
   .contact-panel{display:none;border-top:1px solid var(--sand);background:var(--parch);padding:18px 18px 16px;}
   .contact-panel.open{display:block;}
@@ -321,6 +324,7 @@
             +(isProduct && hasDollar ? '<button class="btn-pay" data-amount="'+esc(dollarCents)+'" data-post="'+esc(p.id)+'" data-title="'+esc(p.title)+'">Pay '+esc(p.reward)+'</button>' : '')
             +(isStakeable ? '<button class="btn-stake" data-post="'+esc(p.id)+'" data-title="'+esc(p.title)+'" data-reward="'+esc(p.reward)+'">Stake '+esc(p.reward)+'</button>' : '')
             +'<button class="btn-contact">'+esc(action)+'</button>'
+            +'<button class="btn-copy-link" data-link="/kassa?post='+esc(p.id)+'" title="Copy link">&#128279;</button>'
           +'</div>'
         +'</div>'
       +'</div>'
@@ -355,6 +359,16 @@
     card.querySelector('.btn-contact').addEventListener('click', function(e){
       e.stopPropagation();
       toggleContact(e.currentTarget, card);
+    });
+    card.querySelector('.btn-copy-link').addEventListener('click', function(e){
+      e.stopPropagation();
+      var btn = e.currentTarget;
+      var url = window.location.origin + btn.dataset.link;
+      navigator.clipboard.writeText(url).then(function(){
+        btn.textContent = '\u2713';
+        btn.classList.add('copied');
+        setTimeout(function(){ btn.textContent = '\uD83D\uDD17'; btn.classList.remove('copied'); }, 1500);
+      });
     });
     var payBtn = card.querySelector('.btn-pay');
     if (payBtn) {

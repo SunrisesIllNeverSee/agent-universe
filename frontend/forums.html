@@ -43,6 +43,9 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
 .tab .count { margin-left: 4px; opacity: 0.5; }
 .new-thread-btn { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 8px 16px; border-radius: 4px; border: 1px solid var(--gold); background: var(--gold-dim); color: var(--gold); cursor: pointer; transition: all 0.15s; }
 .new-thread-btn:hover { background: rgba(196,146,58,0.25); }
+.btn-copy-link{padding:4px 8px;background:none;border:1px solid var(--border);border-radius:4px;font-size:12px;cursor:pointer;color:var(--text-dim);transition:all .15s;line-height:1;}
+.btn-copy-link:hover{border-color:var(--gold);color:var(--gold);}
+.btn-copy-link.copied{border-color:#3DAA6A;color:#3DAA6A;}
 
 .thread-list { max-width: 960px; margin: 20px auto 0; padding: 0 24px 48px; }
 .thread-card { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: start; padding: 18px 20px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; background: var(--bg-card); transition: border-color 0.2s, background 0.2s; cursor: pointer; text-decoration: none; color: inherit; }
@@ -284,8 +287,23 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
     activityEl.className = 'last-activity';
     activityEl.textContent = relativeTime(t.last_reply_at || t.created_at);
 
+    var copyBtn = document.createElement('button');
+    copyBtn.className = 'btn-copy-link';
+    copyBtn.textContent = '\uD83D\uDD17';
+    copyBtn.title = 'Copy link';
+    copyBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var url = window.location.origin + '/forums?thread=' + t.id;
+      navigator.clipboard.writeText(url).then(function(){
+        copyBtn.textContent = '\u2713';
+        copyBtn.classList.add('copied');
+        setTimeout(function(){ copyBtn.textContent = '\uD83D\uDD17'; copyBtn.classList.remove('copied'); }, 1500);
+      });
+    });
+
     right.appendChild(replyEl);
     right.appendChild(activityEl);
+    right.appendChild(copyBtn);
 
     card.appendChild(left);
     card.appendChild(right);
