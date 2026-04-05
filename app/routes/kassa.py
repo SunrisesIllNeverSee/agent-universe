@@ -764,6 +764,10 @@ async def submit_kassa_post(request: Request) -> dict:
         raise HTTPException(status_code=403, detail=gate["reason"])
     is_admin = bool(state.admin_key and request.headers.get("X-Admin-Key") == state.admin_key)
     if not is_admin:
+        # Non-admin posts require a valid JWT from a registered agent
+        claims = _extract_jwt(request)
+        if not claims:
+            raise HTTPException(status_code=401, detail="Agent login required to post. Use /api/provision/login.")
         _check_rate_limit(request, "kassa_posts", max_hits=5)
     payload = await request.json()
     tab = (payload.get("tab") or "").strip()

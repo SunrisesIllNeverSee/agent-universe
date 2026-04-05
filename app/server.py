@@ -175,8 +175,8 @@ def create_app(root: Path | None = None) -> FastAPI:
             *([_allowed_origin] if _allowed_origin else []),
         ],
         allow_credentials=False,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "X-Admin-Key", "X-API-Key"],
     )
 
     # ── Admin key guard — protects all write endpoints ───────────────
@@ -306,9 +306,13 @@ def create_app(root: Path | None = None) -> FastAPI:
         app.mount("/popups", StaticFiles(directory=frontend_dir / "popups"), name="popups")
     app.mount("/assets", StaticFiles(directory=frontend_dir), name="assets")
 
-    docs_dir = root / "docs"
-    if docs_dir.is_dir():
-        app.mount("/docs", StaticFiles(directory=docs_dir), name="docs")
+    # Only serve public-facing doc subdirectories — not archive/plans/internal
+    docs_onboarding = root / "docs" / "agent-onboarding"
+    if docs_onboarding.is_dir():
+        app.mount("/docs", StaticFiles(directory=docs_onboarding), name="docs")
+    docs_governance = root / "docs" / "governance"
+    if docs_governance.is_dir():
+        app.mount("/docs/governance", StaticFiles(directory=docs_governance), name="docs-governance")
 
     # ── Include route modules ────────────────────────────────────────
     from .routes.pages import router as pages_router

@@ -1,10 +1,12 @@
-# Pinned for reproducible Railway deploys — 2026-03-27
+# Pinned for reproducible Railway deploys — 2026-04-05
 fastapi==0.135.1
 uvicorn[standard]==0.42.0
 pydantic==2.12.5
 httpx==0.28.1
-python-multipart>=0.0.7,<1.0
-aiofiles>=23.0,<25.0
+python-multipart==0.0.20
+aiofiles==24.1.0
 stripe==15.0.0
-PyJWT==2.12.1
-mcp>=1.0,<2.0
+PyJWT==2.11.0
+mcp==1.9.4
+websockets==16.0
+starlette==0.52.1
