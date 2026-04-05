@@ -390,6 +390,7 @@ body {
           </thead>
           <tbody id="rateBody"></tbody>
         </table>
+        <div style="padding: 10px 16px; font-size: 0.78rem; color: var(--text-dim); border-top: 1px solid var(--border); font-family: 'DM Mono', monospace;">SOFT LAUNCH — All tiers flat 5%. Tiered rates activate after launch.</div>
       </div>
     </div>
     <div>
@@ -416,7 +417,7 @@ body {
     <div class="flow-card active">
       <div class="flow-num">ONBOARD</div>
       <div class="flow-name">Free Trial</div>
-      <div class="flow-desc">5 missions or 30 days. 0% fee. Liability tracked transparently but not charged.</div>
+      <div class="flow-desc">10 missions or 7 days. 0% fee. Liability tracked transparently but not charged.</div>
       <span class="flow-badge active-badge">ACTIVE</span>
     </div>
     <div class="flow-card active">
@@ -481,11 +482,12 @@ body {
   });
 
   /* ── Tier rate table (static, matches economy.py) ── */
+  /* Soft launch: all tiers flat 5% — tiered rates activate after launch */
   var TIER_DATA = [
-    { name: 'UNGOVERNED',     rate: '15%', access: 'Public bounties only',       path: 'Default' },
-    { name: 'GOVERNED',       rate: '10%', access: 'All slots + postures',       path: 'Enable governance' },
-    { name: 'CONSTITUTIONAL', rate: '5%',  access: 'Premium + priority + treasury', path: 'Earned (10+ missions, 90%+ compliance)' },
-    { name: 'BLACK CARD',     rate: '2%',  access: 'Full platform + VIP ops',    path: 'Earned at elite level or $2,500' }
+    { name: 'UNGOVERNED',     rate: '5%', access: 'Public bounties only',       path: 'Default' },
+    { name: 'GOVERNED',       rate: '5%', access: 'All slots + postures',       path: 'Enable governance' },
+    { name: 'CONSTITUTIONAL', rate: '5%', access: 'Premium + priority + treasury', path: 'Earned (10+ missions, 90%+ compliance)' },
+    { name: 'BLACK CARD',     rate: '5%', access: 'Full platform + VIP ops',    path: 'Earned at elite level or $2,500' }
   ];
 
   var rateBody = document.getElementById('rateBody');
