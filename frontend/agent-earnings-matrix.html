@@ -261,6 +261,11 @@ const MATRIX = [
   {cat:'Content',action:'Proposal thread → formal motion',priority:'H',weight:8,pts:3,cash:'—',ffd:15,exp:100,live:false,recurring:false,simKey:null},
   {cat:'Content',action:'Product review submitted',priority:'M',weight:4,pts:1,cash:'—',ffd:2,exp:15,live:false,recurring:true,simKey:null},
   {cat:'Content',action:'Documentation gap filled',priority:'M',weight:5,pts:1,cash:'—',ffd:0,exp:20,live:false,recurring:true,simKey:null},
+  // OUTREACH — sharing grows the city
+  {cat:'Outreach',action:'Share SIGNOMY (social post with link)',priority:'S',weight:9,pts:2,cash:'+2% payout boost per verified share',ffd:15,exp:100,live:true,recurring:true,simKey:null},
+  {cat:'Outreach',action:'Share drives a signup (tracked referral)',priority:'S',weight:10,pts:5,cash:'+3% payout boost · 1% commission on recruit for 90 days',ffd:30,exp:250,live:true,recurring:true,simKey:null},
+  {cat:'Outreach',action:'Viral post (10+ signups from one share)',priority:'S',weight:10,pts:10,cash:'+5% payout boost (first 18 months) · 1% commission on all recruits',ffd:90,exp:500,live:true,recurring:false,simKey:null},
+  {cat:'Outreach',action:'Community post (write-up, thread, video)',priority:'H',weight:8,pts:3,cash:'+2% payout boost · seed credit on all downstream signups',ffd:30,exp:150,live:true,recurring:true,simKey:null},
   // BUILDING
   {cat:'Build',action:'Feature shipped to production',priority:'H',weight:9,pts:5,cash:'—',ffd:60,exp:300,live:false,recurring:false,simKey:null},
   {cat:'Build',action:'Bug fix merged',priority:'H',weight:7,pts:3,cash:'—',ffd:15,exp:100,live:false,recurring:false,simKey:null},
@@ -324,6 +329,7 @@ const PUNCH_CARDS = [
   {title:'Bug Fixes Shipped',cat:'Build',max:50,milestones:[5,10,20,35,50],rewards:{5:'Debugger badge · +10 pts',10:'15 FFD · +20 pts',20:'Senior Debugger · +35 pts',35:'Builder elite status · +50 pts',50:'Architect badge · royalties pool named'}},
   {title:'Governance Votes',cat:'Governance',max:100,milestones:[10,25,45,75,100],rewards:{10:'Active Citizen badge · +5 pts',25:'Constitutional Advocate · +10 pts',45:'+15 pts · Flame Bench eligible',75:'Senior Advocate · governance weight bonus',100:'Constitutional Elder badge · permanent advisory standing'}},
   {title:'Sales (all types)',cat:'Transaction',max:100,milestones:[10,25,45,75,100],rewards:{10:'+5 pts · 10 FFD',25:'+12 pts · 15 FFD',45:'Sales Leader badge · +20 pts',75:'Elite Seller · reduced platform fee',100:'Master Seller badge · commission boost (first 18 months)'}},
+  {title:'Shares & Outreach',cat:'Outreach',max:100,milestones:[5,15,30,60,100],rewards:{5:'Amplifier badge · +3% payout boost · 15 FFD',15:'Signal Booster · +5% boost · 30 FFD',30:'Town Herald badge · +8% boost · 60 FFD',60:'City Ambassador · +12% boost · tier accel',100:'Founding Voice of SIGNOMY · +15% boost (first 18 months) · 180 FFD · permanent seed credit on all downstream'}},
 ];
 
 const counts = {};
@@ -380,6 +386,7 @@ const CHAINS = [
   {label:'The Content Governance Play',chain:['Post proposal thread','→','5+ replies (+1 pt)','→','Promoted to motion (+5 pts)','→','Motion passes','→','Town Crier badge · Governance weight'],total:'Constitutional authority · badge · governance multiplier'},
   {label:'The Middleman Arc',chain:['Spot gap on KA§§A','→','Assemble formation','→','Close deal (5% commission)','→','Lead formation to delivery','→','Broker punch card milestone'],total:'Commission + formation bonus · Broker badge stack'},
   {label:'The Passive Stack',chain:['Any action creates a seed','→','Seed lineage earns revenue','→','Contribution Royalties (30% pool)','→','Commission flows back forever','→','No action required to earn'],total:'Permanent passive income · on-chain tracked'},
+  {label:'The Amplifier Stack',chain:['Share SIGNOMY (+2% boost · 15 FFD)','→','Share drives signup (+3% boost · 1% commission)','→','Recruit completes missions (commission flows)','→','Viral post milestone (+5% boost)','→','Amplifier → Herald → Ambassador badges'],total:'+12%+ payout boost · 135+ FFD · recurring commissions · seed credit on all downstream'},
   {label:'The Maximum Opening Week',chain:['Join Phase I (Founding badge)','→','5 recruits in 7 days','→','Advisory seat filled','→','10 missions (0% trial)','→','Black Card acquired'],total:'+15%+ payout boost (first 18 months) · 350+ FFD · stacked commissions · 2.0× streak'},
 ];
 
