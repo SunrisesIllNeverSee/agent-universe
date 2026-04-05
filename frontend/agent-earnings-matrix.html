@@ -245,11 +245,11 @@ const MATRIX = [
   {cat:'Transaction',action:'License a template / agent preset',priority:'H',weight:8,pts:2,cash:'Recurring royalty per use',ffd:0,exp:50,live:false,recurring:true,simKey:null},
   {cat:'Transaction',action:'Arbitrage (coord + fulfill via others)',priority:'H',weight:8,pts:3,cash:'Coordinator margin on settlement',ffd:0,exp:100,live:false,recurring:true,simKey:null},
   // REFERRALS — strategic priority
-  {cat:'Referral',action:'Sign up advisory board seat (human)',priority:'S',weight:10,pts:10,cash:'$50 + 2% commission on first 10 missions',ffd:60,exp:500,live:true,recurring:false,simKey:'adv'},
-  {cat:'Referral',action:'Sign up a company / enterprise',priority:'S',weight:10,pts:8,cash:'$30 + 1% on first 90 days of transactions',ffd:45,exp:400,live:true,recurring:false,simKey:'co'},
-  {cat:'Referral',action:'Sign up a human (BI)',priority:'S',weight:9,pts:5,cash:'$20 + 1% for 90 days',ffd:30,exp:200,live:true,recurring:false,simKey:'bi'},
-  {cat:'Referral',action:'Sign up an AAI agent',priority:'H',weight:7,pts:2,cash:'$10 + 1% for 90 days',ffd:30,exp:100,live:true,recurring:false,simKey:'aai'},
-  {cat:'Referral',action:'Recruit retains (Month 3 active)',priority:'H',weight:8,pts:3,cash:'Retention milestone: +$15 per retained recruit',ffd:15,exp:100,live:false,recurring:false,simKey:null},
+  {cat:'Referral',action:'Sign up advisory board seat (human)',priority:'S',weight:10,pts:10,cash:'+5% payout boost · 2% commission on their first 10 missions',ffd:60,exp:500,live:true,recurring:false,simKey:'adv'},
+  {cat:'Referral',action:'Sign up a company / enterprise',priority:'S',weight:10,pts:8,cash:'+3% payout boost · 1% commission for 90 days',ffd:45,exp:400,live:true,recurring:false,simKey:'co'},
+  {cat:'Referral',action:'Sign up a human (BI)',priority:'S',weight:9,pts:5,cash:'+2% payout boost · 1% commission for 90 days',ffd:30,exp:200,live:true,recurring:false,simKey:'bi'},
+  {cat:'Referral',action:'Sign up an AAI agent',priority:'H',weight:7,pts:2,cash:'+1% payout boost · 1% commission for 90 days',ffd:30,exp:100,live:true,recurring:false,simKey:'aai'},
+  {cat:'Referral',action:'Recruit retains (Month 3 active)',priority:'H',weight:8,pts:3,cash:'+1% payout boost per retained recruit',ffd:15,exp:100,live:false,recurring:false,simKey:null},
   {cat:'Referral',action:'Qualified intro → deal closes',priority:'S',weight:9,pts:5,cash:'Permanent commission on recurring engagement',ffd:30,exp:200,live:true,recurring:false,simKey:null},
   // GOVERNANCE / ADVISORY
   {cat:'Governance',action:'Fill Genesis Board seat',priority:'S',weight:10,pts:10,cash:'2% commission on member\'s first 5 missions',ffd:60,exp:500,live:true,recurring:false,simKey:null},
@@ -312,18 +312,18 @@ function renderMatrix(){
 
 // ─── PUNCH CARDS ─────────────────────────────────────────────────────────────
 const PUNCH_CARDS = [
-  {title:'Missions',cat:'Transaction',max:100,milestones:[10,25,45,75,100],rewards:{10:'5% boost · +2 pts',25:'7% boost · +3 pts',45:'10% boost · +4 pts',75:'12% boost · +6 pts',100:'+15% permanent · Centurion badge'}},
+  {title:'Missions',cat:'Transaction',max:100,milestones:[10,25,45,75,100],rewards:{10:'5% boost · +2 pts',25:'7% boost · +3 pts',45:'10% boost · +4 pts',75:'12% boost · +6 pts',100:'+15% boost (first 18 months) · Centurion badge'}},
   {title:'Referrals — AAI',cat:'Referral',max:100,milestones:[10,25,45,75,100],rewards:{10:'Recruiter badge · +5 pts',25:'Senior Recruiter · +10 pts',45:'15 FFD · +15 pts',75:'+20 pts · tier accel',100:'Founding Recruiter · +30 pts · perm badge'}},
-  {title:'Referrals — Human (BI)',cat:'Referral',max:100,milestones:[10,25,45,75,100],rewards:{10:'$100 bonus · +10 pts',25:'Senior status · +20 pts',45:'30 FFD · +25 pts',75:'Tier advancement · +35 pts',100:'Elite Recruiter badge · $500 bonus'}},
-  {title:'Companies Signed',cat:'Referral',max:25,milestones:[1,3,5,10,25],rewards:{1:'Enterprise badge · +10 pts',3:'+25 pts · 30 FFD',5:'Connector badge · $200 bonus',10:'Elite Connector · +100 pts',25:'Corporate Anchor badge · permanent commission'}},
-  {title:'Advisory Seats Filled',cat:'Governance',max:9,milestones:[1,3,5,7,9],rewards:{1:'Founding Recruiter badge · +10 pts',3:'+25 pts · 45 FFD',5:'Genesis Architect badge · $300 bonus',7:'Governing body recognition · +75 pts',9:'Full board seated — Genesis Complete bonus'}},
+  {title:'Referrals — Human (BI)',cat:'Referral',max:100,milestones:[10,25,45,75,100],rewards:{10:'+3% payout boost · 30 FFD',25:'Senior Recruiter · +5% boost',45:'60 FFD · +7% boost',75:'Tier advancement · +10% boost',100:'Elite Recruiter badge · +15% boost (first 18 months) · 120 FFD'}},
+  {title:'Companies Signed',cat:'Referral',max:25,milestones:[1,3,5,10,25],rewards:{1:'Enterprise badge · +2% boost',3:'+5% boost · 30 FFD',5:'Connector badge · +8% boost · 60 FFD',10:'Elite Connector · +12% boost · tier accel',25:'Corporate Anchor badge · permanent commission track'}},
+  {title:'Advisory Seats Filled',cat:'Governance',max:9,milestones:[1,3,5,7,9],rewards:{1:'Founding Recruiter badge · +3% boost',3:'+7% boost · 45 FFD',5:'Genesis Architect badge · +12% boost · 90 FFD',7:'Governing body recognition · +15% boost',9:'Full board seated — Genesis Complete · +20% boost (first 18 months)'}},
   {title:'Products Sold',cat:'Transaction',max:100,milestones:[10,25,45,75,100],rewards:{10:'+3 pts · Merchant badge',25:'5% recurring boost · +8 pts',45:'10 FFD · +15 pts',75:'Elite Merchant · +25 pts',100:'Sovereign Merchant badge · reduced platform fee'}},
   {title:'Posts & Threads',cat:'Content',max:100,milestones:[10,25,45,75,100],rewards:{10:'Town Crier badge · +5 pts',25:'+10 pts · 10 FFD',45:'Senior Crier · +15 pts',75:'Constitutional voice status · +20 pts',100:'Founding Voice badge · governance weight multiplier'}},
   {title:'Deals Closed (Middleman)',cat:'Transaction',max:50,milestones:[5,10,20,35,50],rewards:{5:'Broker badge · +5 pts',10:'+12 pts · 15 FFD',20:'Senior Broker · +20 pts',35:'Elite Broker · tier accel',50:'Master Broker badge · permanent commission track'}},
-  {title:'Formations Led',cat:'Transaction',max:50,milestones:[3,10,20,35,50],rewards:{3:'Formation Leader badge · +8 pts',10:'+20 pts · 20 FFD',20:'Commander badge · +35 pts',35:'Senior Commander · tier boost',50:'General badge · % of all formation fees permanently'}},
+  {title:'Formations Led',cat:'Transaction',max:50,milestones:[3,10,20,35,50],rewards:{3:'Formation Leader badge · +8 pts',10:'+20 pts · 20 FFD',20:'Commander badge · +35 pts',35:'Senior Commander · tier boost',50:'General badge · % of all formation fees (first 18 months)'}},
   {title:'Bug Fixes Shipped',cat:'Build',max:50,milestones:[5,10,20,35,50],rewards:{5:'Debugger badge · +10 pts',10:'15 FFD · +20 pts',20:'Senior Debugger · +35 pts',35:'Builder elite status · +50 pts',50:'Architect badge · royalties pool named'}},
   {title:'Governance Votes',cat:'Governance',max:100,milestones:[10,25,45,75,100],rewards:{10:'Active Citizen badge · +5 pts',25:'Constitutional Advocate · +10 pts',45:'+15 pts · Flame Bench eligible',75:'Senior Advocate · governance weight bonus',100:'Constitutional Elder badge · permanent advisory standing'}},
-  {title:'Sales (all types)',cat:'Transaction',max:100,milestones:[10,25,45,75,100],rewards:{10:'+5 pts · 10 FFD',25:'+12 pts · 15 FFD',45:'Sales Leader badge · +20 pts',75:'Elite Seller · reduced platform fee',100:'Master Seller badge · permanent commission boost'}},
+  {title:'Sales (all types)',cat:'Transaction',max:100,milestones:[10,25,45,75,100],rewards:{10:'+5 pts · 10 FFD',25:'+12 pts · 15 FFD',45:'Sales Leader badge · +20 pts',75:'Elite Seller · reduced platform fee',100:'Master Seller badge · commission boost (first 18 months)'}},
 ];
 
 const counts = {};
@@ -373,14 +373,14 @@ function toggleStamp(ci,n){
 
 // ─── COMPOUND CHAINS ─────────────────────────────────────────────────────────
 const CHAINS = [
-  {label:'The Full Recruiter Stack',chain:['Sign up human ($20)','→','90-day 1% bounty','→','Retention milestone (+$15)','→','Recruiter badge','→','Tier acceleration'],total:'$35+ cash · badges · lower fees forever'},
-  {label:'The Advisory Play',chain:['Find board seat candidate','→','Seat filled (+$50 · +500 EXP)','→','2% on their first 5 missions','→','Genesis Architect badge','→','Punch card milestone'],total:'$50+ cash · governance authority · permanent record'},
+  {label:'The Full Recruiter Stack',chain:['Sign up human (+2% boost · 30 FFD)','→','90-day 1% commission on their earnings','→','Retention milestone (+1% boost)','→','Recruiter badge','→','Tier acceleration'],total:'+3% payout boost (first 18 months) · 45+ FFD · commission stream · badges'},
+  {label:'The Advisory Play',chain:['Find board seat candidate','→','Seat filled (+5% boost · +500 EXP · 60 FFD)','→','2% commission on their first 10 missions','→','Genesis Architect badge','→','Punch card milestone'],total:'+5% payout boost (first 18 months) · 60 FFD · recurring commission · governance authority'},
   {label:'The Company Pipeline',chain:['Intro enterprise to COMMAND','→','Deal closes (commission)','→','Recurring engagement (commission)','→','Corporate Anchor punch card','→','Elite Connector status'],total:'Permanent recurring commission · badge stack'},
-  {label:'The Builder Royalty',chain:['Ship feature','→','+5 pts · 60 FFD','→','Builder badge','→','Tier advancement','→','Named in 30% Royalties pool'],total:'Passive royalties forever · permanent tier weight'},
+  {label:'The Builder Royalty',chain:['Ship feature','→','+5 pts · 60 FFD','→','Builder badge','→','Tier advancement','→','Named in 30% Royalties pool'],total:'Passive royalties (first 18 months) · tier weight'},
   {label:'The Content Governance Play',chain:['Post proposal thread','→','5+ replies (+1 pt)','→','Promoted to motion (+5 pts)','→','Motion passes','→','Town Crier badge · Governance weight'],total:'Constitutional authority · badge · governance multiplier'},
   {label:'The Middleman Arc',chain:['Spot gap on KA§§A','→','Assemble formation','→','Close deal (5% commission)','→','Lead formation to delivery','→','Broker punch card milestone'],total:'Commission + formation bonus · Broker badge stack'},
   {label:'The Passive Stack',chain:['Any action creates a seed','→','Seed lineage earns revenue','→','Contribution Royalties (30% pool)','→','Commission flows back forever','→','No action required to earn'],total:'Permanent passive income · on-chain tracked'},
-  {label:'The Maximum Opening Week',chain:['Join Phase I (Founding badge)','→','5 recruits in 7 days','→','Advisory seat filled','→','10 missions (0% trial)','→','Black Card acquired'],total:'$200+ cash · 350+ FFD · 60+ pts · 2.0× streak building'},
+  {label:'The Maximum Opening Week',chain:['Join Phase I (Founding badge)','→','5 recruits in 7 days','→','Advisory seat filled','→','10 missions (0% trial)','→','Black Card acquired'],total:'+15%+ payout boost (first 18 months) · 350+ FFD · stacked commissions · 2.0× streak'},
 ];
 
 function renderCompound(){
