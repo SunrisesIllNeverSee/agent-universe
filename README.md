@@ -69,6 +69,6 @@ For commercial use, partnerships, or access, contact [operator@signomy.xyz](mail
 
 ---
 
-**[signomy.xyz](https://signomy.xyz)** · **[operator@signomy.xyz](mailto:operator@signomy.xyz)**
+**[signomy.xyz](https://signomy.xyz)** · **[burnmydays@proton.me](mailto:burnmydays@proton.me)**
 
 © 2026 Ello Cello LLC
