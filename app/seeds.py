@@ -15,7 +15,10 @@ import hashlib
 import json
 import uuid
 import os
-import fcntl
+try:
+    import fcntl
+except ImportError:
+    fcntl = None  # Non-POSIX (Windows) — file locking unavailable
 from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, Query, HTTPException
@@ -109,11 +112,13 @@ def _append_seed(record: dict):
     """Atomic append to seeds.jsonl with file locking."""
     line = json.dumps(record, separators=(",", ":")) + "\n"
     with open(SEEDS_FILE, "a") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
+        if fcntl:
+            fcntl.flock(f, fcntl.LOCK_EX)
         f.write(line)
         f.flush()
         os.fsync(f.fileno())
-        fcntl.flock(f, fcntl.LOCK_UN)
+        if fcntl:
+            fcntl.flock(f, fcntl.LOCK_UN)
 
 
 def _read_seeds() -> list[dict]:
