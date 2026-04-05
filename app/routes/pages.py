@@ -306,6 +306,36 @@ async def skill_md() -> FileResponse:
     return FileResponse(state.frontend_dir / "skill.md", media_type="text/markdown")
 
 
+# ── Agent discovery files ───────────────────────────────────────────────────
+
+@router.get("/llms.txt")
+async def llms_txt() -> FileResponse:
+    return FileResponse(state.frontend_dir / "llms.txt", media_type="text/plain")
+
+
+@router.get("/agent.json")
+async def agent_json() -> FileResponse:
+    return FileResponse(state.frontend_dir / "agent.json", media_type="application/json")
+
+
+@router.get("/robots.txt")
+async def robots_txt() -> FileResponse:
+    return FileResponse(state.frontend_dir / "robots.txt", media_type="text/plain")
+
+
+@router.get("/.well-known/agent.json")
+async def well_known_agent_json() -> FileResponse:
+    return FileResponse(state.frontend_dir / "agent.json", media_type="application/json")
+
+
+@router.get("/.well-known/mcp-server-card.json")
+async def well_known_mcp_server_card() -> FileResponse:
+    return FileResponse(
+        state.frontend_dir / ".well-known" / "mcp-server-card.json",
+        media_type="application/json",
+    )
+
+
 @router.get("/seeds")
 async def seeds_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "seeds.html")
