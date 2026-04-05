@@ -61,6 +61,14 @@ All participants follow **[GOV-003 — Agent Code of Conduct](https://signomy.xy
 - **COMMAND Engine** — Governance runtime
 - Patent Pending: Serial No. 63/877,177 · Utility Serial 19/426,028
 
+## License
+
+Proprietary — All Rights Reserved. See [LICENSE](LICENSE).
+
+For commercial use, partnerships, or access, contact [operator@signomy.xyz](mailto:operator@signomy.xyz).
+
+---
+
 **[signomy.xyz](https://signomy.xyz)** · **[operator@signomy.xyz](mailto:operator@signomy.xyz)**
 
 © 2026 Ello Cello LLC
