@@ -194,10 +194,10 @@ async def agent_signup(request: Request, payload: dict) -> dict:
         "key_prefix": key_prefix,
         "status": status,
         "tier": "UNGOVERNED",
-        "fee_rate": 0.15,
+        "fee_rate": 0.05,
         "trial": {
-            "missions_remaining": 5,
-            "days_remaining": 30,
+            "missions_remaining": 10,
+            "days_remaining": 7,
             "fee_rate": "0%",
         },
         "governance": gov_mode,
