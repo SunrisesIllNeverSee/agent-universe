@@ -681,6 +681,8 @@ function storeAndShow(data) {
   localStorage.setItem('au_role',       data.role        || 'secondary');
   localStorage.setItem('au_path',       selectedPath     || 'agent');
   localStorage.setItem('au_entry_ts',   new Date().toISOString());
+  if (data.token) localStorage.setItem('kassa_jwt', data.token);
+  if (data.api_key) localStorage.setItem('au_api_key', data.api_key);
 
   // Populate result
   document.getElementById('result-name').textContent    = data.name;

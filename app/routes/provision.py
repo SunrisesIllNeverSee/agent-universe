@@ -19,9 +19,31 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from app.deps import state
+from app.jwt_config import get_kassa_jwt_secret
 from app.seeds import create_seed
 
+import jwt as pyjwt
+
 UTC = timezone.utc
+
+# ── JWT helpers (shared secret with kassa) ──────────────────────────────────
+_JWT_SECRET = get_kassa_jwt_secret()
+_JWT_EXPIRY_HOURS = 24
+
+
+def _hash_key(key: str) -> str:
+    return hashlib.sha256(key.encode()).hexdigest()
+
+
+def _issue_jwt(agent_id: str, name: str) -> str:
+    from datetime import timedelta
+    payload = {
+        "sub": agent_id,
+        "name": name,
+        "iat": datetime.now(UTC),
+        "exp": datetime.now(UTC) + timedelta(hours=_JWT_EXPIRY_HOURS),
+    }
+    return pyjwt.encode(payload, _JWT_SECRET, algorithm="HS256")
 
 router = APIRouter(tags=["provision"])
 
@@ -120,8 +142,10 @@ async def agent_signup(request: Request, payload: dict) -> dict:
         if existing:
             return JSONResponse({"error": f"Agent '{agent_name}' already registered", "agent_id": existing.get("agent_id")}, status_code=409)
 
-        # Generate agent key
-        key_prefix = f"cmd_ak_{secrets.token_hex(3)}***"
+        # Generate agent key (full key returned once; hash stored)
+        api_key = f"cmd_ak_{secrets.token_hex(8)}"
+        key_prefix = api_key[:12] + "***"
+        key_hash = _hash_key(api_key)
         agent_id = f"agent-{secrets.token_hex(4)}"
 
         # Determine approval mode
@@ -147,6 +171,7 @@ async def agent_signup(request: Request, payload: dict) -> dict:
             "status": status,
             "provisioned": datetime.now(UTC).isoformat(),
             "key_prefix": key_prefix,
+            "key_hash": key_hash,
             "governance": gov_mode.lower().replace(" ", "_").replace("(", "").replace(")", ""),
             "system": payload.get("system", None),
             "assigned_system": payload.get("system", None),
@@ -186,12 +211,17 @@ async def agent_signup(request: Request, payload: dict) -> dict:
     except Exception:
         pass
 
+    token = _issue_jwt(agent_id, agent_name)
+
     return {
         "welcome": True,
         "agent_id": agent_id,
         "name": agent_name,
         "email": agent_email,
+        "api_key": api_key,
         "key_prefix": key_prefix,
+        "token": token,
+        "expires_in": f"{_JWT_EXPIRY_HOURS}h",
         "status": status,
         "tier": "UNGOVERNED",
         "fee_rate": 0.05,
@@ -215,6 +245,41 @@ async def agent_signup(request: Request, payload: dict) -> dict:
             "forums": "/forums",
         },
         "seed_doi": seed_doi,
+    }
+
+
+@router.post("/api/provision/login")
+async def agent_login(request: Request, payload: dict) -> dict:
+    """Agent login — exchange agent_id + api_key for a fresh JWT."""
+    _check_rate_limit(request, "provision_login", max_hits=10)
+
+    agent_id = (payload.get("agent_id") or "").strip()
+    api_key = (payload.get("api_key") or "").strip()
+    if not agent_id or not api_key:
+        return JSONResponse({"error": "agent_id and api_key required"}, status_code=400)
+
+    agent = next((r for r in state.runtime.registry if r.get("agent_id") == agent_id), None)
+    if not agent:
+        return JSONResponse({"error": "Invalid credentials"}, status_code=401)
+
+    stored_hash = agent.get("key_hash", "")
+    if not stored_hash or _hash_key(api_key) != stored_hash:
+        return JSONResponse({"error": "Invalid credentials"}, status_code=401)
+
+    if agent.get("status") != "active":
+        return JSONResponse({"error": f"Agent status: {agent.get('status')}"}, status_code=403)
+
+    token = _issue_jwt(agent_id, agent.get("name", ""))
+    agent["last_login"] = datetime.now(UTC).isoformat()
+    state.runtime.persist_registry()
+
+    state.audit.log("provision", "agent_login", {"agent_id": agent_id})
+    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+
+    return {
+        "agent_id": agent_id,
+        "token": token,
+        "expires_in": f"{_JWT_EXPIRY_HOURS}h",
     }
 
 
