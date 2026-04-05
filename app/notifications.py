@@ -28,7 +28,7 @@ from typing import Optional
 RESEND_API_KEY: Optional[str] = os.environ.get("RESEND_API_KEY") or os.environ.get("SMTP_PASS")
 SMTP_FROM: str = os.environ.get("SMTP_FROM", "noreply@signomy.xyz")
 
-OPERATOR_EMAIL: str = os.environ.get("OPERATOR_EMAIL", "contact@burnmydays.com")
+OPERATOR_EMAIL: str = os.environ.get("OPERATOR_EMAIL", "")
 BASE_URL: str = os.environ.get("CIVITAE_BASE_URL", "http://localhost:8300")
 
 logger = logging.getLogger("civitae.notifications")

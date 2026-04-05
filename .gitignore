@@ -3,6 +3,8 @@ __pycache__/
 .venv/
 .env
 .DS_Store
+
+# Runtime data — never commit
 data/*.jsonl
 data/*.json
 data/*.db
@@ -11,10 +13,25 @@ data/*.db-wal
 data/*.md
 data/archive/
 !data/.gitkeep
+
+# Sensitive — operational IP, personal data, security audits
+CLAUDE.md
+IDENTITY.md
+config/provision.json
+config/vault.json
+roster/
+grandopening/
+specs/
+experiments/
+governance-cache/
+reference/DEPLOY_Pricing_Architecture_v2.md
+.claude/
+.specify/
+
+# Infrastructure
 vault/
 forks/
 reports/
 .playwright-mcp/
-data/kassa.db
 .deric/
 .railway/
