@@ -103,19 +103,39 @@ class RuntimeState:
         os.replace(tmp_path, path)
 
     def persist_registry(self) -> None:
-        """Write provision.json back with current registry state."""
+        """Write provision.json back with current registry state.
+        Uses fcntl file lock for cross-process safety (multi-worker).
+        """
+        import fcntl
         payload = {"provision": self.provision, "registry": self.registry}
+        lock_path = self.config_dir / "provision.json.lock"
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
         with self._lock:
-            self._atomic_write_json(self.config_dir / "provision.json", payload)
+            with lock_path.open("w") as lf:
+                fcntl.flock(lf, fcntl.LOCK_EX)
+                try:
+                    self._atomic_write_json(self.config_dir / "provision.json", payload)
+                finally:
+                    fcntl.flock(lf, fcntl.LOCK_UN)
 
     def reload_registry(self) -> None:
-        """Re-read provision.json from disk (multi-worker sync)."""
+        """Re-read provision.json from disk (multi-worker sync).
+        Uses fcntl shared lock to avoid reading mid-write.
+        """
+        import fcntl
         prov_path = self.config_dir / "provision.json"
+        lock_path = self.config_dir / "provision.json.lock"
         if prov_path.exists():
             try:
-                data = json.loads(prov_path.read_text(encoding="utf-8"))
-                self.registry = data.get("registry", [])
-                self.provision = data.get("provision", self.provision)
+                lock_path.parent.mkdir(parents=True, exist_ok=True)
+                with lock_path.open("w") as lf:
+                    fcntl.flock(lf, fcntl.LOCK_SH)
+                    try:
+                        data = json.loads(prov_path.read_text(encoding="utf-8"))
+                        self.registry = data.get("registry", [])
+                        self.provision = data.get("provision", self.provision)
+                    finally:
+                        fcntl.flock(lf, fcntl.LOCK_UN)
             except Exception:
                 pass
 
