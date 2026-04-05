@@ -252,6 +252,9 @@ async def agent_provision_status(agent_id: str) -> dict:
     runtime = state.runtime
     economy = state.economy
 
+    # Reload registry from disk in case another worker wrote it (multi-worker sync)
+    runtime.reload_registry()
+
     agent = next((r for r in runtime.registry if r.get("agent_id") == agent_id), None)
     if not agent:
         return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)

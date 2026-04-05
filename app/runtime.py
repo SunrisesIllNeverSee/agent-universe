@@ -108,6 +108,17 @@ class RuntimeState:
         with self._lock:
             self._atomic_write_json(self.config_dir / "provision.json", payload)
 
+    def reload_registry(self) -> None:
+        """Re-read provision.json from disk (multi-worker sync)."""
+        prov_path = self.config_dir / "provision.json"
+        if prov_path.exists():
+            try:
+                data = json.loads(prov_path.read_text(encoding="utf-8"))
+                self.registry = data.get("registry", [])
+                self.provision = data.get("provision", self.provision)
+            except Exception:
+                pass
+
     def persist(self) -> None:
         payload = {
             "governance": self.governance.model_dump(mode="json"),
