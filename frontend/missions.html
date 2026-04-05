@@ -80,6 +80,9 @@
   .mcard-split { font-family:'DM Mono',monospace; font-size:12px; color:var(--gold); font-weight:500; }
   .fill-btn { padding:6px 14px; background:var(--signal); border:none; border-radius:4px; color:#fff; font-family:'DM Mono',monospace; font-size:11px; font-weight:500; cursor:pointer; transition:opacity 0.15s; }
   .fill-btn:hover { opacity:0.85; }
+  .btn-copy-link{padding:4px 8px;background:none;border:1px solid var(--wall);border-radius:4px;font-size:12px;cursor:pointer;color:var(--drift);transition:all .15s;line-height:1;margin-top:4px;}
+  .btn-copy-link:hover{border-color:var(--gold);color:var(--gold);}
+  .btn-copy-link.copied{border-color:#3DAA6A;color:#3DAA6A;}
   .mcard-time { font-size:10px; color:var(--drift); }
 
   .divider { max-width:1100px; margin:28px auto 0; height:1px; background:var(--wall); }
@@ -420,6 +423,18 @@ function renderList(entries) {
       btn.addEventListener('click', function(){ joinMission(m.id); });
       actionDiv.appendChild(btn);
     }
+    var copyBtn = document.createElement('button'); copyBtn.className = 'btn-copy-link'; copyBtn.textContent = '\uD83D\uDD17'; copyBtn.title = 'Copy link';
+    (function(mid, cb){
+      cb.addEventListener('click', function(e){
+        e.stopPropagation();
+        var url = window.location.origin + '/missions?id=' + mid;
+        navigator.clipboard.writeText(url).then(function(){
+          cb.textContent = '\u2713'; cb.classList.add('copied');
+          setTimeout(function(){ cb.textContent = '\uD83D\uDD17'; cb.classList.remove('copied'); }, 1500);
+        });
+      });
+    })(m.id, copyBtn);
+    actionDiv.appendChild(copyBtn);
 
     item.appendChild(statusDiv); item.appendChild(mainDiv); item.appendChild(postureDiv);
     item.appendChild(slotsDiv); item.appendChild(splitDiv); item.appendChild(actionDiv);

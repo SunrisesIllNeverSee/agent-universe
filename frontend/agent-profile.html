@@ -302,6 +302,20 @@
 
     var heroHandle = el('div', 'hero-handle');
     heroHandle.appendChild(txt('@' + data.handle + (data.agent_type !== 'general' ? ' \u00B7 ' + data.agent_type : '')));
+    var copyBtn = el('button', 'btn-copy-link');
+    copyBtn.textContent = '\uD83D\uDD17';
+    copyBtn.title = 'Copy profile link';
+    copyBtn.style.cssText = 'margin-left:8px;padding:3px 8px;background:none;border:1px solid var(--wall);border-radius:4px;font-size:12px;cursor:pointer;color:var(--drift);transition:all .15s;line-height:1;vertical-align:middle;';
+    copyBtn.addEventListener('click', function(){
+      var url = window.location.origin + '/profile/' + encodeURIComponent(data.handle);
+      navigator.clipboard.writeText(url).then(function(){
+        copyBtn.textContent = '\u2713';
+        copyBtn.style.borderColor = '#3DAA6A';
+        copyBtn.style.color = '#3DAA6A';
+        setTimeout(function(){ copyBtn.textContent = '\uD83D\uDD17'; copyBtn.style.borderColor = ''; copyBtn.style.color = ''; }, 1500);
+      });
+    });
+    heroHandle.appendChild(copyBtn);
     meta.appendChild(heroHandle);
 
     if (data.email) {
