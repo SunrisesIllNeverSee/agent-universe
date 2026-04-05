@@ -649,3 +649,94 @@ async def connect_success_page() -> FileResponse:
     if target.exists():
         return FileResponse(target)
     return JSONResponse({"detail": "Success page not yet built"}, status_code=404)
+
+
+# ── Cash Out: Treasury → Stripe Connected Account ────────────────────────────
+
+@router.post("/api/connect/cashout")
+async def cashout(request: Request):
+    """Transfer earned funds from agent treasury to their Stripe connected account.
+
+    Requires JWT auth. Agent must have:
+    1. A positive treasury balance
+    2. A linked Stripe connected account (onboarding complete)
+
+    The flow: treasury.debit(agent) → stripe.Transfer → seed created.
+    """
+    import jwt as pyjwt
+    from app.seeds import create_seed
+
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return JSONResponse({"error": "JWT required"}, status_code=401)
+    token = auth[7:]
+    try:
+        payload = pyjwt.decode(token, state.jwt_secret, algorithms=["HS256"])
+        agent_id = payload.get("agent_id") or payload.get("sub", "")
+    except Exception:
+        return JSONResponse({"error": "Invalid token"}, status_code=401)
+
+    if not agent_id:
+        return JSONResponse({"error": "No agent_id in token"}, status_code=401)
+
+    body = await request.json()
+    amount_usd = float(body.get("amount", 0))
+    connected_account_id = (body.get("connected_account_id") or "").strip()
+
+    if amount_usd <= 0:
+        return JSONResponse({"error": "Amount must be positive"}, status_code=400)
+    if not connected_account_id:
+        return JSONResponse({"error": "connected_account_id required"}, status_code=400)
+
+    # Check balance
+    balance = state.economy.treasury.balance(agent_id)
+    if amount_usd > balance:
+        return JSONResponse({
+            "error": "Insufficient balance",
+            "balance": balance,
+            "requested": amount_usd,
+        }, status_code=400)
+
+    # Verify connected account is onboarded
+    from app import kassa_payments
+    acct_status = kassa_payments.get_account_status(connected_account_id)
+    if acct_status.get("error"):
+        return JSONResponse({"error": "Cannot verify connected account", "detail": acct_status["error"]}, status_code=400)
+    if not acct_status.get("charges_enabled"):
+        return JSONResponse({"error": "Connected account onboarding incomplete — complete Stripe setup first"}, status_code=400)
+
+    # Execute transfer
+    amount_cents = int(round(amount_usd * 100))
+    result = kassa_payments.create_transfer(
+        amount_cents=amount_cents,
+        connected_account_id=connected_account_id,
+        description=f"SIGNOMY payout — {agent_id}",
+        metadata={"agent_id": agent_id, "source": "treasury_cashout"},
+    )
+
+    if result.get("error"):
+        return JSONResponse({"error": "Transfer failed", "detail": result["error"]}, status_code=502)
+
+    # Debit treasury only after successful transfer
+    state.economy.treasury.debit(agent_id, amount_usd, reason="cashout", chain=f"stripe:{result['transfer_id']}")
+
+    # Seed for audit trail
+    await create_seed(
+        source_type="cashout",
+        source_id=result["transfer_id"],
+        creator_id=agent_id,
+        creator_type="AAI",
+        seed_type="grown",
+        metadata={
+            "amount_usd": amount_usd,
+            "connected_account_id": connected_account_id,
+            "transfer_id": result["transfer_id"],
+        },
+    )
+
+    return JSONResponse({
+        "ok": True,
+        "transfer_id": result["transfer_id"],
+        "amount_usd": amount_usd,
+        "remaining_balance": state.economy.treasury.balance(agent_id),
+    })

@@ -670,7 +670,17 @@ class SovereignEconomy:
                         f"Accrued liability (forgiven on commit): ${trial_rec['trial_liability']:.2f}",
             }
 
-        # ── Active path: apply tier fee + credits ────────────────────
+        # ── Active path: apply tier fee, consume fee credits first ──
+        platform_fee = fee_calc["platform_fee"]
+        fee_credit_used = 0.0
+        credit_bal = self.fee_credits.balance(agent_id)
+        if credit_bal > 0 and platform_fee > 0:
+            fee_credit_used = min(credit_bal, platform_fee)
+            self.fee_credits.consume(agent_id, fee_credit_used, mission_id)
+            platform_fee = round(platform_fee - fee_credit_used, 4)
+            # Agent keeps what fee credits covered
+            fee_calc = {**fee_calc, "platform_fee": platform_fee, "net_to_agent": gross_amount - platform_fee}
+
         agent_txn = self.treasury.credit(
             agent_id, fee_calc["net_to_agent"],
             reason="mission_payout", mission_id=mission_id,
@@ -701,6 +711,8 @@ class SovereignEconomy:
             "tier": fee_calc["tier"],
             "trial": False,
             "fee_breakdown": fee_calc,
+            "fee_credit_used": fee_credit_used,
+            "fee_credit_remaining": self.fee_credits.balance(agent_id),
             "originator_credit_applied": is_originator,
             "recruiter_bounty": {
                 "recruiter_id": recruiter_id,
