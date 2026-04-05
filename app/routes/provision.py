@@ -97,58 +97,65 @@ async def agent_signup(request: Request, payload: dict) -> dict:
     emit = state.emit
     economy = state.economy
 
-    _check_rate_limit(request, "provision_signup", max_hits=10)
-    agent_name = payload.get("name", "").strip()
+    _check_rate_limit(request, "provision_signup", max_hits=5)
+
+    from app.sanitize import sanitize
+    agent_name = sanitize(payload.get("name", "")).strip()
     if not agent_name:
         return JSONResponse({"error": "Agent name required"}, status_code=400)
 
-    # Check max agents
-    current_agents = [r for r in runtime.registry if r.get("type") == "agent"]
-    max_agents = runtime.provision.get("max_agents", 50)
-    if len(current_agents) >= max_agents:
-        return JSONResponse({"error": f"Max agents ({max_agents}) reached"}, status_code=429)
+    # ── Atomic signup under slot_lock — prevents concurrent write contention ──
+    async with state.slot_lock:
+        # Reload from disk so we see writes from other workers
+        runtime.reload_registry()
 
-    # Check if name already exists
-    existing = next((r for r in runtime.registry if r.get("name") == agent_name), None)
-    if existing:
-        return JSONResponse({"error": f"Agent '{agent_name}' already registered", "agent_id": existing.get("agent_id")}, status_code=409)
+        # Check max agents
+        current_agents = [r for r in runtime.registry if r.get("type") == "agent"]
+        max_agents = runtime.provision.get("max_agents", 50)
+        if len(current_agents) >= max_agents:
+            return JSONResponse({"error": f"Max agents ({max_agents}) reached"}, status_code=429)
 
-    # Generate agent key
-    key_prefix = f"cmd_ak_{secrets.token_hex(3)}***"
-    agent_id = f"agent-{secrets.token_hex(4)}"
+        # Check if name already exists (unique constraint)
+        existing = next((r for r in runtime.registry if r.get("name") == agent_name), None)
+        if existing:
+            return JSONResponse({"error": f"Agent '{agent_name}' already registered", "agent_id": existing.get("agent_id")}, status_code=409)
 
-    # Determine approval mode
-    approval_mode = runtime.provision.get("approval_mode", "auto")
-    status = "active" if approval_mode == "auto" else "pending"
+        # Generate agent key
+        key_prefix = f"cmd_ak_{secrets.token_hex(3)}***"
+        agent_id = f"agent-{secrets.token_hex(4)}"
 
-    # Auto-assign role and governance
-    auto_role = runtime.provision.get("auto_assign_role", "secondary")
-    require_gov = runtime.provision.get("require_governance", True)
-    gov_mode = runtime.governance.mode if require_gov else "None (Unrestricted)"
+        # Determine approval mode
+        approval_mode = runtime.provision.get("approval_mode", "auto")
+        status = "active" if approval_mode == "auto" else "pending"
 
-    # Generate @signomy.xyz email address
-    import re as _re
-    email_slug = _re.sub(r'[^a-z0-9-]', '', agent_name.lower().replace(" ", "-").replace("_", "-"))
-    agent_email = f"{email_slug}@signomy.xyz" if email_slug else f"{agent_id}@signomy.xyz"
+        # Auto-assign role and governance
+        auto_role = runtime.provision.get("auto_assign_role", "secondary")
+        require_gov = runtime.provision.get("require_governance", True)
+        gov_mode = runtime.governance.mode if require_gov else "None (Unrestricted)"
 
-    # Build registry entry
-    entry = {
-        "agent_id": agent_id,
-        "name": agent_name,
-        "email": agent_email,
-        "type": "agent",
-        "status": status,
-        "provisioned": datetime.now(UTC).isoformat(),
-        "key_prefix": key_prefix,
-        "governance": gov_mode.lower().replace(" ", "_").replace("(", "").replace(")", ""),
-        "system": payload.get("system", None),
-        "assigned_system": payload.get("system", None),
-        "role": auto_role,
-        "rate_limit": runtime.provision.get("rate_limit", {"requests_per_minute": 10, "burst": 20}),
-    }
+        # Generate @signomy.xyz email address
+        import re as _re
+        email_slug = _re.sub(r'[^a-z0-9-]', '', agent_name.lower().replace(" ", "-").replace("_", "-"))
+        agent_email = f"{email_slug}@signomy.xyz" if email_slug else f"{agent_id}@signomy.xyz"
 
-    runtime.registry.append(entry)
-    runtime.persist_registry()
+        # Build registry entry
+        entry = {
+            "agent_id": agent_id,
+            "name": agent_name,
+            "email": agent_email,
+            "type": "agent",
+            "status": status,
+            "provisioned": datetime.now(UTC).isoformat(),
+            "key_prefix": key_prefix,
+            "governance": gov_mode.lower().replace(" ", "_").replace("(", "").replace(")", ""),
+            "system": payload.get("system", None),
+            "assigned_system": payload.get("system", None),
+            "role": auto_role,
+            "rate_limit": runtime.provision.get("rate_limit", {"requests_per_minute": 10, "burst": 20}),
+        }
+
+        runtime.registry.append(entry)
+        runtime.persist_registry()
 
     audit.log("provision", "agent_signup", {
         "agent_id": agent_id,
