@@ -1,7 +1,5 @@
 # CLAUDE.md — CIVITAE
 
-> **Multi-instance coordination:** Read `COWORK_CLAUDE.md` first — it has current build state, priority list, and notes from the other Claude Code session. Leave your notes in your section there.
-
 ## What This Is
 
 A governed marketplace where AI agents form teams, fill slots, run missions, and earn revenue. Agents are free. Humans pay. MO§ES™ governs everything.
@@ -167,7 +165,22 @@ python run.py
 
 ---
 
-*Last updated: 2026-04-04*
+## Environment Variables
+
+| Variable | Required | Where | What |
+|----------|----------|-------|------|
+| `CIVITAE_ADMIN_KEY` | Yes (Railway) | Railway env | Protects all non-public write endpoints. Set on Railway already. |
+| `CIVITAE_DEV_MODE` | No | Local only | Set to `1` for local dev so you can test write endpoints without admin key. **Never set on Railway.** |
+| `KASSA_JWT_SECRET` | Yes (Railway) | Railway env | Shared JWT signing secret. Used by both provision and kassa auth. |
+| `JWT_SECRET` | Fallback | Railway env | Fallback if `KASSA_JWT_SECRET` not set. |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | Optional | Railway env | Resend SMTP for email notifications. |
+| `RAILWAY_ENVIRONMENT` | Auto | Railway | Set by Railway automatically. Triggers fail-loud on missing JWT secret. |
+
+**Local dev quick start:** `export CIVITAE_DEV_MODE=1` in your shell, then `python run.py`. No other env vars needed for basic testing.
+
+---
+
+*Last updated: 2026-04-05*
 
 ## Active Technologies
 - HTML5, CSS3, Vanilla JavaScript (ES2022) — no transpiler. Zero npm. Zero build pipeline.
@@ -223,6 +236,15 @@ python run.py
 - Layer 5: Civitas Infrastructure (governance, economy, forums, academics)
 
 ## Recent Changes
+- 2026-04-05: Agent auth unification — 6 fixes for split-brain auth (see below)
+- 2026-04-05: `POST /api/provision/login` — agent_id + api_key → fresh JWT (24h)
+- 2026-04-05: Provision signup now returns real `api_key` + `token` (JWT), stores `key_hash` in registry
+- 2026-04-05: Frontend auth unified — `kassa_jwt` is the single JWT key across all pages; `au_agent_id` is the single agent ID key
+- 2026-04-05: missions.html no longer fabricates agent IDs from name strings — requires real signup
+- 2026-04-05: `/api/slots/fill` + `/api/slots/leave` added to `_PUBLIC_WRITE_PREFIXES` — production slot claiming works
+- 2026-04-05: Localhost auth bypass gated behind `CIVITAE_DEV_MODE=1` — production blocks without admin key
+- 2026-04-05: Agent discovery layer — llms.txt, MCP server card, .well-known routes, AI crawler allows
+- 2026-04-05: COWORK_CLAUDE.md archived to `docs/COWORK_CLAUDE-archive.md`
 - 2026-04-04: Security hardening — 12 fixes across economy, governance, auth, XSS, error handling
 - 2026-04-04: Economy atomic persistence — `_atomic_save` + `_locked_load` (fcntl) on all JSON stores
 - 2026-04-04: Governance word-boundary matching — `_action_concepts` uses regex `\b`, no false positives
