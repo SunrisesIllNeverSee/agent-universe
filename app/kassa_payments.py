@@ -881,3 +881,54 @@ def create_payment(
         )
 
     return {"error": f"Unknown rail: {rail}"}
+
+
+# ── Stripe Transfer (Platform → Connected Account) ──────────────────────
+
+def create_transfer(
+    amount_cents: int,
+    connected_account_id: str,
+    description: str = "SIGNOMY payout",
+    metadata: dict | None = None,
+) -> dict:
+    """Transfer funds from platform balance to a connected account.
+
+    This is the cash-out step: agent has earned money in their treasury,
+    now we push it to their Stripe connected account.
+
+    Args:
+        amount_cents: Amount in cents to transfer.
+        connected_account_id: The Stripe connected account ID (acct_xxx).
+        description: Transfer description shown in Stripe dashboard.
+        metadata: Optional metadata dict.
+
+    Returns:
+        dict with transfer_id, amount, status, or error details.
+    """
+    if not _stripe_ready:
+        return {"error": "Stripe not configured. Set STRIPE_SECRET_KEY."}
+    if amount_cents <= 0:
+        return {"error": "Amount must be positive."}
+    if not connected_account_id:
+        return {"error": "Connected account ID required."}
+
+    stripe = _stripe_module
+    try:
+        transfer = stripe.Transfer.create(
+            amount=amount_cents,
+            currency="usd",
+            destination=connected_account_id,
+            description=description,
+            metadata=metadata or {},
+        )
+        return {
+            "transfer_id": transfer.id,
+            "amount_cents": transfer.amount,
+            "amount_usd": round(transfer.amount / 100, 2),
+            "destination": transfer.destination,
+            "status": "pending",
+        }
+    except stripe.error.StripeError as e:
+        return {"error": str(e), "type": type(e).__name__}
+    except Exception as e:
+        return {"error": str(e)}

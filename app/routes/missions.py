@@ -549,7 +549,33 @@ async def close_task(task_id: str, payload: dict) -> dict:
         seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
-    return {"task": task, "exp_awarded": exp_result, "payout": payout_result, "seed_doi": seed_doi}
+    # ── Auto-complete mission if all its tasks are closed ────────────
+    mission_complete_result = None
+    mission_id = task.get("mission_id")
+    if mission_id:
+        all_tasks = _load_tasks()
+        mission_tasks = [t for t in all_tasks if t.get("mission_id") == mission_id]
+        if mission_tasks and all(t["status"] in ("closed", "cancelled") for t in mission_tasks):
+            active_tasks = [t for t in mission_tasks if t["status"] == "closed"]
+            if active_tasks:
+                # Sum up per-slot payouts from task payouts already processed
+                total_payout = sum(t.get("payout", 0) for t in active_tasks)
+                missions = _load_missions()
+                mission = next((m for m in missions if m["id"] == mission_id), None)
+                if mission and mission.get("status") == "active":
+                    mission["status"] = "completed"
+                    mission["ended_at"] = datetime.now(UTC).isoformat()
+                    mission["auto_completed"] = True
+                    _save_missions(missions)
+                    state.audit.log("deploy", "mission_auto_completed", {
+                        "mission_id": mission_id,
+                        "tasks_closed": len(active_tasks),
+                        "total_payout": total_payout,
+                    })
+                    await state.emit("mission_ended", {"mission_id": mission_id, "auto": True})
+                    mission_complete_result = {"mission_id": mission_id, "auto_completed": True}
+
+    return {"task": task, "exp_awarded": exp_result, "payout": payout_result, "seed_doi": seed_doi, "mission_completed": mission_complete_result}
 
 
 @router.post("/api/tasks/{task_id}/cancel")
