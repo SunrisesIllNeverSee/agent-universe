@@ -533,7 +533,7 @@
     btn.disabled = true;
 
     /* Stake needs JWT — try localStorage first, fall back to registration */
-    var token = localStorage.getItem('kassa_token') || '';
+    var token = localStorage.getItem('kassa_jwt') || sessionStorage.getItem('kassa_jwt') || localStorage.getItem('kassa_token') || '';
 
     function doStake(jwt){
       fetch(API+'/api/kassa/posts/'+postId+'/stake', {
@@ -572,8 +572,8 @@
         body:JSON.stringify({name:name})
       }).then(function(r){ return r.json(); }).then(function(d){
         if(d.token){
-          localStorage.setItem('kassa_token', d.token);
-          localStorage.setItem('kassa_agent_id', d.agent_id);
+          localStorage.setItem('kassa_jwt', d.token);
+          localStorage.setItem('au_agent_id', d.agent_id);
           doStake(d.token);
         } else {
           alert(d.detail || 'Registration failed.');

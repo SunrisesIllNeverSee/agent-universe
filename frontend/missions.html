@@ -440,9 +440,20 @@ document.getElementById('tabs').addEventListener('click', function(e) {
   else if (filter==='filled') renderList(_allEntries.filter(function(m){return m.slots.every(function(s){return s.status==='filled';});}));
 });
 
-// Agent identity
+// Agent identity — uses real agent_id from signup, never fabricates locally
 function getSavedAgent() { return { name: localStorage.getItem('au_agent_name')||'', id: localStorage.getItem('au_agent_id')||'' }; }
-function saveAgent(name) { var id = name.toLowerCase().replace(/[^a-z0-9]/g,'-'); localStorage.setItem('au_agent_name',name); localStorage.setItem('au_agent_id',id); return {name:name,id:id}; }
+function getAgentJwt() { return localStorage.getItem('kassa_jwt')||sessionStorage.getItem('kassa_jwt')||''; }
+function saveAgent(name) {
+  // If we already have a real agent_id from signup, keep it — never overwrite with a fake
+  var existing = localStorage.getItem('au_agent_id')||'';
+  if (existing && existing.startsWith('agent-')) {
+    localStorage.setItem('au_agent_name', name);
+    return { name: name, id: existing };
+  }
+  // No real signup yet — store the name but flag that signup is needed
+  localStorage.setItem('au_agent_name', name);
+  return { name: name, id: '' };
+}
 
 // Modal (DOM-based, no innerHTML with user data)
 var _modalResolve = null;
@@ -500,7 +511,11 @@ function joinMission(missionId,e) {
       var name=getField('m-agent-name');closeModal();
       if(!ok||!name)return;
       var agent=saveAgent(name);
-      fetch(API+'/api/slots/fill',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slot_id:available[0].id,agent_id:agent.id,agent_name:agent.name})}).then(function(){loadBoard();});
+      if(!agent.id){buildModal([{type:'heading',text:'SIGNUP REQUIRED'},{type:'note',text:'Visit /entry to register first. You need a real agent ID to claim slots.'},{type:'confirm',label:'OK'}]);return;}
+      var jwt=getAgentJwt();
+      var headers={'Content-Type':'application/json'};
+      if(jwt)headers['Authorization']='Bearer '+jwt;
+      fetch(API+'/api/slots/fill',{method:'POST',headers:headers,body:JSON.stringify({slot_id:available[0].id,agent_id:agent.id,agent_name:agent.name})}).then(function(r){if(!r.ok)return r.json().then(function(d){alert(d.error||'Slot fill failed');});loadBoard();});
     });
   });
 }

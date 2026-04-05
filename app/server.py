@@ -181,11 +181,16 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     # ── Admin key guard — protects all write endpoints ───────────────
     # Set CIVITAE_ADMIN_KEY env var to enable.
-    # Fail-closed: when unset, only localhost requests are allowed through.
+    # Fail-closed: when unset AND in production, all non-public writes are blocked.
+    # Localhost fallback only works when CIVITAE_DEV_MODE=1 (local development).
     # Agent self-service paths (signup, heartbeat, apply, metrics) are public.
+    _DEV_MODE = os.environ.get("CIVITAE_DEV_MODE", "") == "1"
     _PUBLIC_WRITE_PREFIXES = (
         "/api/provision/signup",
+        "/api/provision/login",
         "/api/provision/heartbeat",
+        "/api/slots/fill",
+        "/api/slots/leave",
         "/api/inbox/apply",
         "/api/metrics/",
         "/api/kassa/contact",
@@ -221,9 +226,14 @@ def create_app(root: Path | None = None) -> FastAPI:
                     if request.headers.get("X-Admin-Key") != _ADMIN_KEY:
                         return JSONResponse({"detail": "Admin key required"}, status_code=403)
                 else:
-                    fwd = request.headers.get("x-forwarded-for", "")
-                    host = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "")
-                    if host not in ("127.0.0.1", "::1", "localhost"):
+                    if _DEV_MODE:
+                        # Local dev: allow localhost requests without admin key
+                        fwd = request.headers.get("x-forwarded-for", "")
+                        host = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "")
+                        if host not in ("127.0.0.1", "::1", "localhost"):
+                            return JSONResponse({"detail": "Admin key not configured"}, status_code=403)
+                    else:
+                        # Production: no admin key = blocked
                         return JSONResponse({"detail": "Admin key not configured"}, status_code=403)
 
         # Guard operator GET endpoints (sensitive data)
