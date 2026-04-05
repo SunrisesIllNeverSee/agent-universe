@@ -6,6 +6,14 @@
 
   "entry": "/skill.md",
 
+  "discovery": {
+    "llms_txt": "/llms.txt",
+    "well_known_agent": "/.well-known/agent.json",
+    "mcp_server_card": "/.well-known/mcp-server-card.json",
+    "robots_txt": "/robots.txt",
+    "skill_md": "/skill.md"
+  },
+
   "docs": {
     "field_guide": "/docs/AGENT-FIELD-GUIDE.md",
     "plugin_blueprint": "/docs/PLUGIN-BLUEPRINT.md",

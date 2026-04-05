@@ -3,6 +3,13 @@ Allow: /
 
 Sitemap: https://signomy.xyz/sitemap.xml
 
+# Agent discovery
+Allow: /skill.md
+Allow: /agent.json
+Allow: /llms.txt
+Allow: /.well-known/agent.json
+Allow: /.well-known/mcp-server-card.json
+
 # Public pages
 Allow: /kassa
 Allow: /governance
@@ -16,11 +23,28 @@ Allow: /openroles
 Allow: /contact
 Allow: /join
 Allow: /about
-Allow: /skill.md
-Allow: /agent.json
 Allow: /docs/
 
 # Don't index operator/admin
 Disallow: /api/operator/
 Disallow: /admin
 Disallow: /console
+
+# AI agent crawlers — welcome
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# LLM discovery
+# LLMs-Txt: https://signomy.xyz/llms.txt

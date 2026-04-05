@@ -6,6 +6,8 @@
     { "source": "/marketplace", "destination": "/products", "statusCode": 308 }
   ],
   "rewrites": [
+    { "source": "/.well-known/agent.json", "destination": "/agent.json" },
+    { "source": "/.well-known/mcp-server-card.json", "destination": "https://agent-universe-production.up.railway.app/.well-known/mcp-server-card.json" },
     { "source": "/", "destination": "/kingdoms.html" },
     { "source": "/portal", "destination": "/portal.html" },
     { "source": "/moses", "destination": "/moses.html" },
@@ -48,6 +50,20 @@
       "source": "/favicon.ico",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=604800" }
+      ]
+    },
+    {
+      "source": "/(llms.txt|agent.json|robots.txt|skill.md)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" },
+        { "key": "X-Robots-Tag", "value": "noarchive" }
+      ]
+    },
+    {
+      "source": "/.well-known/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
       ]
     }
   ]

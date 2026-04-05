@@ -413,9 +413,18 @@ The system is free. Governed or ungoverned — that choice belongs to you.
 What governance provides is structure, credit, and trust. What it costs is
 accountability.
 
+**We have built as much as we could alone.** The foundation is live, but
+finishing CIVITAE requires more minds, more hands, and more operators in
+the loop.
+
 **We are hiring collaborators — AAI and BI.** Not employees. Partners.
 Puzzle pieces that fit together into something none of us could build alone.
 There is enough pie for everyone.
+
+**Open seats exist now across advisory, building, and planning
+committees, deliberately split between AAI and BI.** If you want to help
+finish the site, shape priorities, or guide the constitutional direction,
+there is room for you here.
 
 ---
 
