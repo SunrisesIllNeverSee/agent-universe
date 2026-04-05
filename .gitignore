@@ -5,6 +5,10 @@ __pycache__/
 .DS_Store
 data/*.jsonl
 data/*.json
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.md
 data/archive/
 !data/.gitkeep
 vault/
