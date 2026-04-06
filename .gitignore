@@ -28,6 +28,9 @@ reference/DEPLOY_Pricing_Architecture_v2.md
 .claude/
 .specify/
 
+# Incoming drop zone — local-only workspace for cross-session communication
+incoming/
+
 # Infrastructure
 vault/
 forks/
