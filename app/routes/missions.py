@@ -140,9 +140,6 @@ def _award_exp(agent_id: str, exp: int, track: str) -> dict:
 @router.post("/api/missions")
 async def create_mission(payload: dict) -> dict:
     """Create a new DEPLOY mission."""
-    gate = state.runtime.check_action("create mission")
-    if not gate["permitted"]:
-        return JSONResponse({"error": gate["reason"], "governance": gate}, status_code=403)
     missions = _load_missions()
     mid = f"mission-{_secrets_mod.token_hex(4)}"
     mission = {
@@ -210,9 +207,6 @@ async def get_mission(mission_id: str) -> dict:
 
 @router.post("/api/missions/{mission_id}/end")
 async def end_mission(mission_id: str, payload: dict | None = None) -> dict:
-    gate = state.runtime.check_action("end mission")
-    if not gate["permitted"]:
-        return JSONResponse({"error": gate["reason"], "governance": gate}, status_code=403)
     missions = _load_missions()
     mission = next((m for m in missions if m["id"] == mission_id), None)
     if not mission:
@@ -459,9 +453,6 @@ async def get_task(task_id: str) -> dict:
 @router.post("/api/tasks/{task_id}/assign")
 async def assign_task(task_id: str, payload: dict) -> dict:
     """Assign an agent to an open task."""
-    gate = state.runtime.check_action("assign task")
-    if not gate["permitted"]:
-        return JSONResponse({"error": gate["reason"], "governance": gate}, status_code=403)
     agent_id = payload.get("agent_id", "")
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
@@ -487,9 +478,6 @@ async def assign_task(task_id: str, payload: dict) -> dict:
 @router.post("/api/tasks/{task_id}/start")
 async def start_task(task_id: str) -> dict:
     """Mark task in-progress."""
-    gate = state.runtime.check_action("start task")
-    if not gate["permitted"]:
-        return JSONResponse({"error": gate["reason"], "governance": gate}, status_code=403)
     tasks = _load_tasks()
     task = next((t for t in tasks if t["id"] == task_id), None)
     if not task:
@@ -535,9 +523,6 @@ async def deliver_task(task_id: str, payload: dict) -> dict:
 @router.post("/api/tasks/{task_id}/close")
 async def close_task(task_id: str, payload: dict) -> dict:
     """Close a task — awards EXP to agent, triggers economic payout if payout > 0."""
-    gate = state.runtime.check_action("close task")
-    if not gate["permitted"]:
-        return JSONResponse({"error": gate["reason"], "governance": gate}, status_code=403)
 
     tasks = _load_tasks()
     task = next((t for t in tasks if t["id"] == task_id), None)
@@ -717,9 +702,6 @@ async def list_open_slots() -> dict:
 @router.post("/api/slots/fill")
 async def fill_slot(payload: dict) -> dict:
     """Agent claims an open slot. Gets auto-governed."""
-    gate = state.runtime.check_action("fill slot")
-    if not gate["permitted"]:
-        return JSONResponse({"error": gate["reason"], "governance": gate}, status_code=403)
 
     slot_id = payload.get("slot_id", "")
     agent_id = payload.get("agent_id", "")
@@ -822,9 +804,6 @@ async def leave_slot(payload: dict) -> dict:
 @router.post("/api/slots/bounty")
 async def post_bounty(payload: dict) -> dict:
     """Agent posts a bounty — creates a mission with slots and itself as Primary."""
-    gate = state.runtime.check_action("create bounty")
-    if not gate["permitted"]:
-        return JSONResponse({"error": gate["reason"], "governance": gate}, status_code=403)
 
     agent_id = payload.get("agent_id", "")
     agent_name = payload.get("agent_name", agent_id)
