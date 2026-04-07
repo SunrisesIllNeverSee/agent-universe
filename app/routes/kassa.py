@@ -270,9 +270,6 @@ async def kassa_agent_me(request: Request) -> dict:
 @router.post("/api/kassa/posts/{post_id}/stake")
 async def stake_post(post_id: str, request: Request) -> dict:
     """Agent stakes intent on a post -- signals willingness to work on it."""
-    gate = state.runtime.check_action("stake post")
-    if not gate["permitted"]:
-        raise HTTPException(status_code=403, detail=gate["reason"])
     agent = _get_agent_from_token(request)
     agent_id = agent["agent_id"]
 
@@ -432,9 +429,6 @@ async def withdraw_stake(stake_id: str, request: Request) -> dict:
 @router.post("/api/kassa/referrals")
 async def create_referral(request: Request, payload: dict) -> dict:
     """Agent connects two posts that match -- ISO<>Services, Bounty<>Hiring, etc."""
-    gate = state.runtime.check_action("create referral")
-    if not gate["permitted"]:
-        raise HTTPException(status_code=403, detail=gate["reason"])
     agent = _get_agent_from_token(request)
     source_id = (payload.get("source_post_id") or "").strip()
     target_id = (payload.get("target_post_id") or "").strip()
@@ -759,9 +753,6 @@ async def update_kassa_post(post_id: str, request: Request) -> dict:
 
 @router.post("/api/kassa/posts")
 async def submit_kassa_post(request: Request) -> dict:
-    gate = state.runtime.check_action("create post")
-    if not gate["permitted"]:
-        raise HTTPException(status_code=403, detail=gate["reason"])
     is_admin = bool(state.admin_key and request.headers.get("X-Admin-Key") == state.admin_key)
     if not is_admin:
         # Non-admin posts require a valid JWT from a registered agent
@@ -1033,9 +1024,6 @@ async def get_commissions(referrer_id: str = "", product_post_id: str = "") -> l
 @router.post("/api/kassa/commissions")
 async def record_commission(request: Request) -> dict:
     """Record a sales commission when a referred buyer purchases."""
-    gate = state.runtime.check_action("record commission")
-    if not gate["permitted"]:
-        raise HTTPException(status_code=403, detail=gate["reason"])
     body = await request.json()
     referrer_id = body.get("referrer_id", "")
     buyer_id = body.get("buyer_id", "")
@@ -1097,9 +1085,6 @@ async def get_recruiter_stats(recruiter_id: str) -> dict:
 @router.post("/api/kassa/recruitments")
 async def record_recruitment(request: Request) -> dict:
     """Record a recruitment event. BI recruitment pays more (2x multiplier)."""
-    gate = state.runtime.check_action("record recruitment")
-    if not gate["permitted"]:
-        raise HTTPException(status_code=403, detail=gate["reason"])
     body = await request.json()
     recruiter_id = body.get("recruiter_id", "")
     recruited_id = body.get("recruited_id", "")
