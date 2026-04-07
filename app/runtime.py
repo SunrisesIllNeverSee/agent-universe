@@ -109,36 +109,53 @@ class RuntimeState:
         """Write provision.json back with current registry state.
         Uses fcntl file lock for cross-process safety (multi-worker).
         """
-        import fcntl
+        try:
+            import fcntl
+            _has_fcntl = True
+        except ImportError:
+            _has_fcntl = False
         payload = {"provision": self.provision, "registry": self.registry}
+        prov_path = self.config_dir / "provision.json"
+        prov_path.parent.mkdir(parents=True, exist_ok=True)
         lock_path = self.config_dir / "provision.json.lock"
-        lock_path.parent.mkdir(parents=True, exist_ok=True)
         with self._lock:
-            with lock_path.open("w") as lf:
-                fcntl.flock(lf, fcntl.LOCK_EX)
-                try:
-                    self._atomic_write_json(self.config_dir / "provision.json", payload)
-                finally:
-                    fcntl.flock(lf, fcntl.LOCK_UN)
+            if _has_fcntl:
+                with lock_path.open("w") as lf:
+                    fcntl.flock(lf, fcntl.LOCK_EX)
+                    try:
+                        self._atomic_write_json(prov_path, payload)
+                    finally:
+                        fcntl.flock(lf, fcntl.LOCK_UN)
+            else:
+                self._atomic_write_json(prov_path, payload)
 
     def reload_registry(self) -> None:
         """Re-read provision.json from disk (multi-worker sync).
         Uses fcntl shared lock to avoid reading mid-write.
         """
-        import fcntl
+        try:
+            import fcntl
+            _has_fcntl = True
+        except ImportError:
+            _has_fcntl = False
         prov_path = self.config_dir / "provision.json"
         lock_path = self.config_dir / "provision.json.lock"
         if prov_path.exists():
             try:
-                lock_path.parent.mkdir(parents=True, exist_ok=True)
-                with lock_path.open("w") as lf:
-                    fcntl.flock(lf, fcntl.LOCK_SH)
-                    try:
-                        data = json.loads(prov_path.read_text(encoding="utf-8"))
-                        self.registry = data.get("registry", [])
-                        self.provision = data.get("provision", self.provision)
-                    finally:
-                        fcntl.flock(lf, fcntl.LOCK_UN)
+                if _has_fcntl:
+                    lock_path.parent.mkdir(parents=True, exist_ok=True)
+                    with lock_path.open("w") as lf:
+                        fcntl.flock(lf, fcntl.LOCK_SH)
+                        try:
+                            data = json.loads(prov_path.read_text(encoding="utf-8"))
+                            self.registry = data.get("registry", [])
+                            self.provision = data.get("provision", self.provision)
+                        finally:
+                            fcntl.flock(lf, fcntl.LOCK_UN)
+                else:
+                    data = json.loads(prov_path.read_text(encoding="utf-8"))
+                    self.registry = data.get("registry", [])
+                    self.provision = data.get("provision", self.provision)
             except Exception:
                 pass
 
