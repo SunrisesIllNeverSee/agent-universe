@@ -52,19 +52,9 @@
     if (path === SKIP[s]) return;
   }
 
-  // ── Velvet Rope — only activates when 50+ concurrent users ──────────────────
-  var GATE_THRESHOLD = 50;
-  fetch('/api/lobby/status', { credentials: 'include' })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      var count = d.chamber ? d.chamber.active : 0;
-      if (count >= GATE_THRESHOLD && d.status !== 'active') {
-        window.location.href = '/lobby';
-      }
-    })
-    .catch(function() {
-      // API unreachable — let user through
-    });
+  // ── Velvet Rope — DISABLED until 75+ concurrent users are realistic ─────────
+  // Lobby page still exists at /lobby. Re-enable this block when traffic warrants it.
+  // See: docs/after-launch/VELVET-ROPE-LOBBY.md
 
   // ── Fetch page data (cached in sessionStorage) ─────────────────────────────────
   function fetchPagesData() {
