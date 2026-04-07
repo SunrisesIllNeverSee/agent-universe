@@ -57,7 +57,8 @@
   fetch('/api/lobby/status', { credentials: 'include' })
     .then(function(r) { return r.json(); })
     .then(function(d) {
-      if (d.active_count >= GATE_THRESHOLD && d.status !== 'active') {
+      var count = d.chamber ? d.chamber.active : 0;
+      if (count >= GATE_THRESHOLD && d.status !== 'active') {
         window.location.href = '/lobby';
       }
     })
