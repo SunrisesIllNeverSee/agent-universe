@@ -50,7 +50,14 @@ class RuntimeState:
             AgentConfig.model_validate(item)
             for item in json.loads((self.config_dir / "agents.json").read_text(encoding="utf-8"))["agents"]
         ]
-        prov_file = self.config_dir / "provision.json"
+        # provision.json: check data_dir (persistent) first, fall back to config_dir, then empty
+        prov_file = self.data_dir / "provision.json"
+        if not prov_file.exists():
+            prov_fallback = self.config_dir / "provision.json"
+            if prov_fallback.exists():
+                # Migrate from config/ to data/ on first run
+                import shutil
+                shutil.copy2(prov_fallback, prov_file)
         provision_data = json.loads(prov_file.read_text(encoding="utf-8")) if prov_file.exists() else {}
         self.provision = provision_data.get("provision", {})
         self.registry = provision_data.get("registry", [])
@@ -115,9 +122,9 @@ class RuntimeState:
         except ImportError:
             _has_fcntl = False
         payload = {"provision": self.provision, "registry": self.registry}
-        prov_path = self.config_dir / "provision.json"
+        prov_path = self.data_dir / "provision.json"
         prov_path.parent.mkdir(parents=True, exist_ok=True)
-        lock_path = self.config_dir / "provision.json.lock"
+        lock_path = self.data_dir / "provision.json.lock"
         with self._lock:
             if _has_fcntl:
                 with lock_path.open("w") as lf:
@@ -138,8 +145,8 @@ class RuntimeState:
             _has_fcntl = True
         except ImportError:
             _has_fcntl = False
-        prov_path = self.config_dir / "provision.json"
-        lock_path = self.config_dir / "provision.json.lock"
+        prov_path = self.data_dir / "provision.json"
+        lock_path = self.data_dir / "provision.json.lock"
         if prov_path.exists():
             try:
                 if _has_fcntl:
