@@ -15,7 +15,7 @@ data/archive/
 !data/.gitkeep
 
 # Sensitive — operational IP, personal data, security audits
-CLAUDE.md
+CLAUDE.local.md
 IDENTITY.md
 config/provision.json
 config/vault.json
