@@ -157,12 +157,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     # ── Global exception handler — prevent stack trace / secret leakage ──
     @app.exception_handler(Exception)
     async def _global_exception_handler(request: Request, exc: Exception):
-        import traceback as _tb
         logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
-        # TEMPORARY: expose traceback for debugging — revert before public launch
         return JSONResponse(
             status_code=500,
-            content={"detail": str(exc), "trace": _tb.format_exc()},
+            content={"detail": "Internal server error"},
         )
 
     # ── CORS ─────────────────────────────────────────────────────────
