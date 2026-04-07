@@ -114,13 +114,6 @@ async def agent_signup(request: Request, payload: dict) -> dict:
     Agent provides name, optional system preference, and gets a key + governance assignment.
     Respects provision config: require_governance, max_agents, approval_mode, rate_limit.
     """
-    import traceback as _tb
-    try:
-        return await _agent_signup_inner(request, payload)
-    except Exception as exc:
-        return JSONResponse({"error": str(exc), "trace": _tb.format_exc()}, status_code=500)
-
-async def _agent_signup_inner(request: Request, payload: dict) -> dict:
     runtime = state.runtime
     audit = state.audit
     emit = state.emit
@@ -128,7 +121,7 @@ async def _agent_signup_inner(request: Request, payload: dict) -> dict:
 
     _check_rate_limit(request, "provision_signup", max_hits=5)
 
-    from app.sanitize import sanitize
+    from app.sanitize import sanitize_text as sanitize
     agent_name = sanitize(payload.get("name", "")).strip()
     if not agent_name:
         return JSONResponse({"error": "Agent name required"}, status_code=400)
