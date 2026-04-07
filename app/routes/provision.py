@@ -20,6 +20,7 @@ from fastapi.responses import JSONResponse
 
 from app.deps import state
 from app.jwt_config import get_kassa_jwt_secret
+from app.sanitize import sanitize_text as sanitize
 from app.seeds import create_seed
 
 import jwt as pyjwt
@@ -121,7 +122,6 @@ async def agent_signup(request: Request, payload: dict) -> dict:
 
     _check_rate_limit(request, "provision_signup", max_hits=5)
 
-    from app.sanitize import sanitize_text as sanitize
     agent_name = sanitize(payload.get("name", "")).strip()
     if not agent_name:
         return JSONResponse({"error": "Agent name required"}, status_code=400)
