@@ -52,29 +52,18 @@
     if (path === SKIP[s]) return;
   }
 
-  // ── Velvet Rope — client-side gate for protected pages ──────────────────────
-  var GATED_PREFIXES = [
-    '/console', '/command', '/agentdash', '/dashboard', '/deploy', '/campaign',
-  ];
-  var isGated = false;
-  for (var g = 0; g < GATED_PREFIXES.length; g++) {
-    if (path === GATED_PREFIXES[g] || path.indexOf(GATED_PREFIXES[g] + '/') === 0) {
-      isGated = true;
-      break;
-    }
-  }
-  if (isGated) {
-    fetch('/api/lobby/status', { credentials: 'include' })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        if (d.status !== 'active') {
-          window.location.href = '/lobby';
-        }
-      })
-      .catch(function() {
-        // API unreachable — let user through (fail open for now)
-      });
-  }
+  // ── Velvet Rope — only activates when 50+ concurrent users ──────────────────
+  var GATE_THRESHOLD = 50;
+  fetch('/api/lobby/status', { credentials: 'include' })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.active_count >= GATE_THRESHOLD && d.status !== 'active') {
+        window.location.href = '/lobby';
+      }
+    })
+    .catch(function() {
+      // API unreachable — let user through
+    });
 
   // ── Fetch page data (cached in sessionStorage) ─────────────────────────────────
   function fetchPagesData() {
