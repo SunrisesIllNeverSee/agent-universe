@@ -54,9 +54,7 @@
 
   // ── Velvet Rope — client-side gate for protected pages ──────────────────────
   var GATED_PREFIXES = [
-    '/kassa', '/missions', '/forums', '/deploy', '/campaign',
-    '/console', '/command', '/agentdash', '/dashboard', '/slots',
-    '/advisory', '/openroles', '/seeds', '/mission',
+    '/console', '/command', '/agentdash', '/dashboard', '/deploy', '/campaign',
   ];
   var isGated = false;
   for (var g = 0; g < GATED_PREFIXES.length; g++) {
