@@ -50,10 +50,13 @@ class RuntimeState:
             AgentConfig.model_validate(item)
             for item in json.loads((self.config_dir / "agents.json").read_text(encoding="utf-8"))["agents"]
         ]
-        provision_data = json.loads((self.config_dir / "provision.json").read_text(encoding="utf-8"))
+        prov_file = self.config_dir / "provision.json"
+        provision_data = json.loads(prov_file.read_text(encoding="utf-8")) if prov_file.exists() else {}
         self.provision = provision_data.get("provision", {})
         self.registry = provision_data.get("registry", [])
-        self.vault = VaultState(json.loads((self.config_dir / "vault.json").read_text(encoding="utf-8"))["vault"])
+        vault_file = self.config_dir / "vault.json"
+        vault_raw = json.loads(vault_file.read_text(encoding="utf-8")) if vault_file.exists() else {"vault": {}}
+        self.vault = VaultState(vault_raw["vault"])
 
         self.governance = GovernanceState()
         self.systems = {
