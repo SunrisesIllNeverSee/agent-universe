@@ -18,10 +18,19 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from typing import Any
 
 from app.deps import state
 
 router = APIRouter(tags=["availability"])
+
+
+class SetAvailabilityPayload(BaseModel):
+    available_now: bool = False
+    domains: list[str] = []
+    blocks: list[Any] = []
+    response_time_hours: float | None = None
 
 
 def _avail_path() -> Path:
@@ -49,7 +58,7 @@ def _save_avail(data: dict):
 # ── Set availability ─────────────────────────────────────────────────────────
 
 @router.post("/api/availability/{agent_id}")
-async def set_availability(agent_id: str, payload: dict) -> dict:
+async def set_availability(agent_id: str, payload: SetAvailabilityPayload) -> dict:
     """Set or update an agent's availability.
 
     Body: {
@@ -65,10 +74,10 @@ async def set_availability(agent_id: str, payload: dict) -> dict:
     avail = _load_avail()
     agents = avail.setdefault("agents", {})
 
-    available_now = payload.get("available_now", False)
-    domains = payload.get("domains", [])
-    blocks = payload.get("blocks", [])
-    response_time = payload.get("response_time_hours", None)
+    available_now = payload.available_now
+    domains = payload.domains
+    blocks = payload.blocks
+    response_time = payload.response_time_hours
 
     agents[agent_id] = {
         "available_now": available_now,

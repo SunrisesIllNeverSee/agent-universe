@@ -21,6 +21,8 @@ from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, W
 from fastapi.responses import JSONResponse
 
 from app.deps import state
+from pydantic import BaseModel
+
 from app.models import (
     DeployUpdate,
     GovernanceUpdate,
@@ -31,6 +33,28 @@ from app.models import (
     VaultSelection,
 )
 from app.seeds import create_seed
+
+
+class GovernanceCheckPayload(BaseModel):
+    action: str
+
+
+class ForkSessionPayload(BaseModel):
+    label: str = ""
+
+
+class StarMessagePayload(BaseModel):
+    id: int | str | None = None
+    note: str = ""
+    tag: str = "gold"
+
+
+class UnstarMessagePayload(BaseModel):
+    id: int | str | None = None
+
+
+class McpJoinPayload(BaseModel):
+    name: str
 
 UTC = timezone.utc
 
@@ -143,8 +167,8 @@ async def get_hash() -> dict:
 # ═══════════════════════════════════════════════════════════════════════════
 
 @router.post("/api/governance/check")
-async def check_governed_action(payload: dict) -> dict:
-    return state.runtime.check_action(payload["action"])
+async def check_governed_action(payload: GovernanceCheckPayload) -> dict:
+    return state.runtime.check_action(payload.action)
 
 
 @router.post("/api/governance")
@@ -331,7 +355,7 @@ async def list_vault_files() -> dict:
 # ═══════════════════════════════════════════════════════════════════════════
 
 @router.post("/api/fork")
-async def fork_session(payload: dict | None = None) -> dict:
+async def fork_session(payload: ForkSessionPayload | None = None) -> dict:
     """
     Fork the current session into a new branch.
     Snapshots governance, systems, vault, messages, and audit.
@@ -340,8 +364,7 @@ async def fork_session(payload: dict | None = None) -> dict:
     runtime = state.runtime
     audit = state.audit
     root = state.root
-    payload = payload or {}
-    fork_label = payload.get("label", datetime.now(UTC).strftime("fork-%Y%m%d-%H%M%S"))
+    fork_label = (payload.label if payload and payload.label else "") or datetime.now(UTC).strftime("fork-%Y%m%d-%H%M%S")
     fork_dir = root / "forks" / fork_label
     fork_dir.mkdir(parents=True, exist_ok=True)
 
@@ -439,15 +462,15 @@ def _save_stars(stars: list[dict]):
 
 
 @router.post("/api/messages/star")
-async def star_message(payload: dict) -> dict:
+async def star_message(payload: StarMessagePayload) -> dict:
     """Star/favorite a message by ID with optional note and tag."""
     runtime = state.runtime
     audit = state.audit
     store = state.store
     root = state.root
-    msg_id = payload.get("id")
-    note = payload.get("note", "")
-    tag = payload.get("tag", "gold")
+    msg_id = payload.id
+    note = payload.note
+    tag = payload.tag
     if msg_id is None:
         return JSONResponse({"error": "id required"}, status_code=400)
 
@@ -519,9 +542,9 @@ async def star_message(payload: dict) -> dict:
 
 
 @router.post("/api/messages/unstar")
-async def unstar_message(payload: dict) -> dict:
+async def unstar_message(payload: UnstarMessagePayload) -> dict:
     """Remove star from a message."""
-    msg_id = payload.get("id")
+    msg_id = payload.id
     stars = _load_stars()
     stars = [s for s in stars if s.get("id") != msg_id]
     _save_stars(stars)
@@ -544,10 +567,10 @@ async def mcp_status() -> dict:
 
 
 @router.post("/api/mcp/join")
-async def mcp_join(payload: dict) -> dict:
+async def mcp_join(payload: McpJoinPayload) -> dict:
     runtime = state.runtime
     audit = state.audit
-    joined = state.mcp_bridge.chat_join(payload["name"])
+    joined = state.mcp_bridge.chat_join(payload.name)
     await state.emit("presence_updated", {"presence": runtime.presence, "joined": joined})
     await state.emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
     return joined

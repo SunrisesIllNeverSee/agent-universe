@@ -14,12 +14,38 @@ from pathlib import Path
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from app.deps import state
 from app.sanitize import sanitize_text, sanitize_name
 from app.seeds import create_seed, _read_seeds
 
 router = APIRouter(tags=["governance"])
+
+
+class CallMeetingPayload(BaseModel):
+    caller: str = ""
+    subject: str = ""
+    quorum: int = 3
+
+
+class JoinMeetingPayload(BaseModel):
+    agent_id: str = ""
+
+
+class ProposeMotionPayload(BaseModel):
+    proposer: str = ""
+    motion: str = ""
+
+
+class CastVotePayload(BaseModel):
+    voter: str = ""
+    motion_id: str = ""
+    vote: str = ""
+
+
+class AdjournMeetingPayload(BaseModel):
+    pass
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -83,11 +109,11 @@ async def governance_sessions() -> dict:
 
 
 @router.post("/api/governance/meeting")
-async def call_meeting(payload: dict) -> dict:
+async def call_meeting(payload: CallMeetingPayload) -> dict:
     """Call a meeting. Requires a caller (agent_id) and subject."""
-    caller = sanitize_name(payload.get("caller", ""), max_length=80)
-    subject = sanitize_text(payload.get("subject", ""))
-    quorum = payload.get("quorum", 3)
+    caller = sanitize_name(payload.caller, max_length=80)
+    subject = sanitize_text(payload.subject)
+    quorum = payload.quorum
     if not caller or not subject:
         return JSONResponse({"error": "caller and subject required"}, status_code=400)
     meetings = _load_meetings()
@@ -142,9 +168,9 @@ async def get_meeting(meeting_id: str) -> dict:
 
 
 @router.post("/api/governance/meeting/{meeting_id}/join")
-async def join_meeting(meeting_id: str, payload: dict) -> dict:
+async def join_meeting(meeting_id: str, payload: JoinMeetingPayload) -> dict:
     """Agent joins a meeting as attendee."""
-    agent_id = payload.get("agent_id", "")
+    agent_id = payload.agent_id
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
     meetings = _load_meetings()
@@ -180,10 +206,10 @@ async def join_meeting(meeting_id: str, payload: dict) -> dict:
 
 
 @router.post("/api/governance/meeting/{meeting_id}/motion")
-async def propose_motion(meeting_id: str, payload: dict) -> dict:
+async def propose_motion(meeting_id: str, payload: ProposeMotionPayload) -> dict:
     """Propose a motion in a meeting. Requires quorum."""
-    proposer = sanitize_name(payload.get("proposer", ""), max_length=80)
-    motion_text = sanitize_text(payload.get("motion", ""))
+    proposer = sanitize_name(payload.proposer, max_length=80)
+    motion_text = sanitize_text(payload.motion)
     if not proposer or not motion_text:
         return JSONResponse({"error": "proposer and motion required"}, status_code=400)
     meetings = _load_meetings()
@@ -231,11 +257,11 @@ async def propose_motion(meeting_id: str, payload: dict) -> dict:
 
 
 @router.post("/api/governance/meeting/{meeting_id}/vote")
-async def cast_vote(meeting_id: str, payload: dict) -> dict:
+async def cast_vote(meeting_id: str, payload: CastVotePayload) -> dict:
     """Cast a vote on a pending motion. Votes: yea, nay, abstain."""
-    voter = sanitize_name(payload.get("voter", ""), max_length=80)
-    motion_id = payload.get("motion_id", "")
-    vote = payload.get("vote", "").lower().strip()
+    voter = sanitize_name(payload.voter, max_length=80)
+    motion_id = payload.motion_id
+    vote = payload.vote.lower().strip()
     if not voter or not motion_id or vote not in ("yea", "nay", "abstain"):
         return JSONResponse({"error": "voter, motion_id, and vote (yea/nay/abstain) required"}, status_code=400)
     meetings = _load_meetings()
@@ -289,7 +315,7 @@ async def cast_vote(meeting_id: str, payload: dict) -> dict:
 
 
 @router.post("/api/governance/meeting/{meeting_id}/adjourn")
-async def adjourn_meeting(meeting_id: str, payload: dict = {}) -> dict:
+async def adjourn_meeting(meeting_id: str, payload: AdjournMeetingPayload | None = None) -> dict:
     """Adjourn a meeting. Only the caller or by majority vote."""
     meetings = _load_meetings()
     meeting = next((m for m in meetings if m["id"] == meeting_id), None)

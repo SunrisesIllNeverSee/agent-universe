@@ -24,8 +24,14 @@ from app.sanitize import sanitize_text as sanitize
 from app.seeds import create_seed
 
 import jwt as pyjwt
+from pydantic import BaseModel
 
 UTC = timezone.utc
+
+
+class IssueAgentKeyPayload(BaseModel):
+    agent_id: str
+    requested_by: str = "operator"
 
 # ── JWT helpers (shared secret with kassa) ──────────────────────────────────
 _JWT_SECRET = get_kassa_jwt_secret()
@@ -284,13 +290,13 @@ async def agent_login(request: Request, payload: dict) -> dict:
 
 
 @router.post("/api/provision/key")
-async def issue_agent_key(payload: dict) -> dict:
+async def issue_agent_key(payload: IssueAgentKeyPayload) -> dict:
     """Issue or rotate an API key for a registered agent."""
     runtime = state.runtime
     audit = state.audit
     emit = state.emit
 
-    agent_id = payload.get("agent_id", "")
+    agent_id = payload.agent_id
     agent = next((r for r in runtime.registry if r.get("agent_id") == agent_id), None)
     if not agent:
         return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
@@ -300,7 +306,7 @@ async def issue_agent_key(payload: dict) -> dict:
 
     audit.log("provision", "key_rotated", {
         "agent_id": agent_id,
-        "requested_by": payload.get("requested_by", "operator"),
+        "requested_by": payload.requested_by,
         "new_key_prefix": agent["key_prefix"],
         "governance": {
             "mode": runtime.governance.mode,

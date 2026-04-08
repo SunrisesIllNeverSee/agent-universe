@@ -14,11 +14,33 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from app.deps import state
 from app.seeds import create_seed
 
 router = APIRouter(tags=["advisory"])
+
+
+class SeatApplicationPayload(BaseModel):
+    seat_id: str
+    name: str
+    email: str
+    type: str = "BI"
+    message: str
+
+
+class SeatMemberPayload(BaseModel):
+    seat_id: str
+    name: str
+    handle: str = ""
+    type: str = "BI"
+    agent_id: str = ""
+
+
+class SeatMessagePayload(BaseModel):
+    name: str = "Anonymous"
+    text: str
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -63,13 +85,13 @@ async def get_council_seats() -> dict:
 # ── POST /api/advisory/apply — apply for a seat ─────────────────────────────
 
 @router.post("/api/advisory/apply")
-async def apply_for_seat(payload: dict) -> dict:
+async def apply_for_seat(payload: SeatApplicationPayload) -> dict:
     """Apply for a council seat. Creates seed + notifies operator."""
-    seat_id = (payload.get("seat_id") or "").strip()
-    name = (payload.get("name") or "").strip()
-    email = (payload.get("email") or "").strip()
-    agent_type = (payload.get("type") or "BI").strip()
-    message = (payload.get("message") or "").strip()
+    seat_id = payload.seat_id.strip()
+    name = payload.name.strip()
+    email = payload.email.strip()
+    agent_type = payload.type.strip()
+    message = payload.message.strip()
 
     if not seat_id or not name or not email or not message:
         raise HTTPException(400, "seat_id, name, email, message required")
@@ -132,18 +154,18 @@ async def apply_for_seat(payload: dict) -> dict:
 # ── POST /api/advisory/seat — operator seats someone (admin) ────────────────
 
 @router.post("/api/advisory/seat")
-async def seat_member(request: Request, payload: dict) -> dict:
+async def seat_member(request: Request, payload: SeatMemberPayload) -> dict:
     """Operator approves and seats a council member. Requires admin key."""
     if not state.admin_key:
         raise HTTPException(403, "CIVITAE_ADMIN_KEY not configured")
     if request.headers.get("X-Admin-Key") != state.admin_key:
         raise HTTPException(403, "Admin key required")
 
-    seat_id = (payload.get("seat_id") or "").strip()
-    name = (payload.get("name") or "").strip()
-    handle = (payload.get("handle") or name).strip()
-    agent_type = (payload.get("type") or "BI").strip()
-    agent_id = (payload.get("agent_id") or "").strip()
+    seat_id = payload.seat_id.strip()
+    name = payload.name.strip()
+    handle = (payload.handle or name).strip()
+    agent_type = payload.type.strip()
+    agent_id = payload.agent_id.strip()
 
     if not seat_id or not name:
         raise HTTPException(400, "seat_id and name required")
@@ -198,10 +220,10 @@ async def get_seat_messages(seat_id: str) -> dict:
 # ── POST /api/advisory/messages/{seat_id} — post to seat thread ──────────────
 
 @router.post("/api/advisory/messages/{seat_id}")
-async def post_seat_message(seat_id: str, payload: dict) -> dict:
+async def post_seat_message(seat_id: str, payload: SeatMessagePayload) -> dict:
     """Post a message to a seat's discussion thread."""
-    name = (payload.get("name") or "Anonymous").strip()
-    text = (payload.get("text") or "").strip()
+    name = (payload.name or "Anonymous").strip()
+    text = (payload.text or "").strip()
     if not text:
         raise HTTPException(400, "text required")
 

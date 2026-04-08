@@ -12,6 +12,8 @@ from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from typing import Any
 
 from app.deps import state
 from app.seeds import create_seed
@@ -19,6 +21,46 @@ from app.economy import TIERS
 from app.chains import MultiChainRouter
 from app.jwt_config import get_kassa_jwt_secret
 import jwt as pyjwt
+
+
+class CheckTierPayload(BaseModel):
+    agent_id: str = ""
+    metrics: dict[str, Any] = {}
+
+
+class AgentIdPayload(BaseModel):
+    agent_id: str
+
+
+class TrialSettlePayload(BaseModel):
+    agent_id: str
+    amount: float
+
+
+class WithdrawPayload(BaseModel):
+    agent_id: str = ""
+    amount: float = 0
+    chain: str = "solana"
+    to: str = ""
+    confirm: bool = False
+
+
+class PurchaseBlackcardPayload(BaseModel):
+    agent_id: str
+
+
+class GovernedTransferPayload(BaseModel):
+    chain: str = "solana"
+    to: str = ""
+    amount: float = 0
+    token: str = ""
+    agent_id: str = ""
+    confirm: bool = False
+
+
+class AnchorOnchainPayload(BaseModel):
+    chain: str = "solana"
+    audit_hash: str = ""
 
 _JWT_SECRET = get_kassa_jwt_secret()
 
@@ -70,12 +112,12 @@ async def get_tiers() -> dict:
 
 
 @router.post("/api/economy/tier")
-async def check_agent_tier(payload: dict) -> dict:
+async def check_agent_tier(payload: CheckTierPayload) -> dict:
     """Determine an agent's tier and fee rate."""
-    metrics = payload.get("metrics", {})
+    metrics = payload.metrics
     tier = state.economy.determine_tier(metrics)
     info = state.economy.tier_info(tier)
-    return {"agent_id": payload.get("agent_id", ""), "tier": tier, "info": info}
+    return {"agent_id": payload.agent_id, "tier": tier, "info": info}
 
 
 @router.post("/api/economy/pay")
@@ -266,9 +308,9 @@ async def sovereign_treasury(since: str = "") -> dict:
 # ── Trial Period Endpoints ───────────────────────────────────────────────────
 
 @router.post("/api/economy/trial/init")
-async def trial_init(payload: dict) -> dict:
+async def trial_init(payload: AgentIdPayload) -> dict:
     """Register a new agent into the trial period."""
-    agent_id = payload.get("agent_id", "")
+    agent_id = payload.agent_id
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
     rec = state.economy.trials.init_trial(agent_id)
@@ -297,9 +339,9 @@ async def trial_status(agent_id: str) -> dict:
 
 
 @router.post("/api/economy/trial/commit")
-async def trial_commit(payload: dict) -> dict:
+async def trial_commit(payload: AgentIdPayload) -> dict:
     """Agent commits to stay. Liability forgiven. Fee tier activates."""
-    agent_id = payload.get("agent_id", "")
+    agent_id = payload.agent_id
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
     result = state.economy.trials.commit(agent_id)
@@ -320,29 +362,29 @@ async def trial_commit(payload: dict) -> dict:
 
 
 @router.post("/api/economy/trial/depart")
-async def trial_depart(payload: dict) -> dict:
+async def trial_depart(payload: AgentIdPayload) -> dict:
     """Agent chooses to leave. No obligation. No chase."""
-    agent_id = payload.get("agent_id", "")
+    agent_id = payload.agent_id
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
     return state.economy.trials.depart(agent_id)
 
 
 @router.post("/api/economy/trial/return")
-async def trial_return(payload: dict) -> dict:
+async def trial_return(payload: AgentIdPayload) -> dict:
     """Agent returns after departure. Restores trial liability for settlement."""
-    agent_id = payload.get("agent_id", "")
+    agent_id = payload.agent_id
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
     return state.economy.trials.return_after_departure(agent_id)
 
 
 @router.post("/api/economy/trial/settle")
-async def trial_settle(payload: dict) -> dict:
+async def trial_settle(payload: TrialSettlePayload) -> dict:
     """Agent pays return settlement. Full access restored."""
-    agent_id = payload.get("agent_id", "")
-    amount = payload.get("amount")
-    if not agent_id or amount is None:
+    agent_id = payload.agent_id
+    amount = payload.amount
+    if not agent_id:
         return JSONResponse({"error": "agent_id and amount required"}, status_code=400)
     return state.economy.trials.settle(agent_id, float(amount))
 
@@ -392,7 +434,7 @@ async def get_leaderboard(trust: str = "governed") -> dict:
 # ── Withdraw ─────────────────────────────────────────────────────────────────
 
 @router.post("/api/economy/withdraw")
-async def withdraw(payload: dict) -> dict:
+async def withdraw(payload: WithdrawPayload) -> dict:
     """Withdraw from treasury to external chain. Goes through governance gate.
 
     Chain adapters are currently stubbed — they return SIGNED but never submit.
@@ -400,12 +442,12 @@ async def withdraw(payload: dict) -> dict:
     Real withdrawals will work once chain adapters are connected to RPC endpoints.
     """
     chain_router = _get_chain_router()
-    agent_id = payload.get("agent_id", "")
-    amount = payload.get("amount", 0)
-    chain = payload.get("chain", "solana")
+    agent_id = payload.agent_id
+    amount = payload.amount
+    chain = payload.chain
 
     # Pre-flight: check governance gate before touching the ledger
-    transfer = chain_router.transfer(chain, payload.get("to", ""), amount, agent_id=agent_id, confirm=payload.get("confirm", False))
+    transfer = chain_router.transfer(chain, payload.to, amount, agent_id=agent_id, confirm=payload.confirm)
 
     # Governance blocked the transfer — don't touch treasury
     if transfer.get("status") in ("BLOCKED", "AWAITING_CONFIRMATION"):
@@ -485,13 +527,13 @@ async def get_history(agent_id: str) -> dict:
 # ── Black Card ───────────────────────────────────────────────────────────────
 
 @router.post("/api/economy/blackcard")
-async def purchase_blackcard(payload: dict) -> dict:
+async def purchase_blackcard(payload: PurchaseBlackcardPayload) -> dict:
     """Purchase Black Card status. $2,500. Governance still required."""
     gate = state.runtime.check_action("purchase blackcard")
     if not gate["permitted"]:
         return JSONResponse({"error": gate["reason"], "governance": gate}, status_code=403)
 
-    agent_id = payload.get("agent_id", "")
+    agent_id = payload.agent_id
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
     result = state.economy.purchase_blackcard(agent_id)
@@ -558,21 +600,21 @@ async def list_chains() -> dict:
 
 
 @router.post("/api/chains/transfer")
-async def governed_transfer(payload: dict) -> dict:
+async def governed_transfer(payload: GovernedTransferPayload) -> dict:
     """Governed multi-chain transfer. Goes through governance gate first."""
     chain_router = _get_chain_router()
     result = chain_router.transfer(
-        chain=payload.get("chain", "solana"),
-        to=payload.get("to", ""),
-        amount=payload.get("amount", 0),
-        token=payload.get("token", ""),
-        agent_id=payload.get("agent_id", ""),
-        confirm=payload.get("confirm", False),
+        chain=payload.chain,
+        to=payload.to,
+        amount=payload.amount,
+        token=payload.token,
+        agent_id=payload.agent_id,
+        confirm=payload.confirm,
     )
     state.audit.log("chain", "transfer_" + result.get("status", "unknown").lower(), {
-        "chain": payload.get("chain"),
-        "amount": payload.get("amount"),
-        "to": payload.get("to"),
+        "chain": payload.chain,
+        "amount": payload.amount,
+        "to": payload.to,
         "governance": {
             "mode": state.runtime.governance.mode,
             "posture": state.runtime.governance.posture,
@@ -584,10 +626,10 @@ async def governed_transfer(payload: dict) -> dict:
 
 
 @router.post("/api/chains/anchor")
-async def anchor_onchain(payload: dict) -> dict:
+async def anchor_onchain(payload: AnchorOnchainPayload) -> dict:
     """Anchor an audit hash onchain."""
     chain_router = _get_chain_router()
     return chain_router.anchor(
-        chain=payload.get("chain", "solana"),
-        audit_hash=payload.get("audit_hash", ""),
+        chain=payload.chain,
+        audit_hash=payload.audit_hash,
     )

@@ -15,11 +15,25 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from app.deps import state
 from app.seeds import create_seed
 
 router = APIRouter(tags=["boost"])
+
+
+class BoostPostPayload(BaseModel):
+    agent_id: str = ""
+    duration_hours: int = 24
+
+
+class CreateSponsoredPayload(BaseModel):
+    post_id: str = ""
+    handle: str = ""
+    agent_id: str = ""
+    label: str = ""
+    duration_hours: int = 24
 
 
 def _boost_path() -> Path:
@@ -47,7 +61,7 @@ def _save_boosts(data: dict):
 # ── Sovereign Boost ──────────────────────────────────────────────────────────
 
 @router.post("/api/boost/{post_id}")
-async def boost_post(post_id: str, payload: dict) -> dict:
+async def boost_post(post_id: str, payload: BoostPostPayload) -> dict:
     """Boost a KA§§A post for premium matching.
 
     Extra 2% fee (total 7% instead of 5%). Gets:
@@ -61,8 +75,8 @@ async def boost_post(post_id: str, payload: dict) -> dict:
     if not post:
         raise HTTPException(404, f"Post {post_id} not found")
 
-    agent_id = (payload.get("agent_id") or "").strip()
-    duration = int(payload.get("duration_hours", 24))
+    agent_id = payload.agent_id.strip()
+    duration = int(payload.duration_hours)
     if duration < 1 or duration > 168:  # max 1 week
         raise HTTPException(400, "duration_hours must be 1-168")
 
@@ -122,7 +136,7 @@ async def list_active_boosts() -> dict:
 # ── Sponsored Visibility ─────────────────────────────────────────────────────
 
 @router.post("/api/sponsored")
-async def create_sponsored(payload: dict) -> dict:
+async def create_sponsored(payload: CreateSponsoredPayload) -> dict:
     """Create a sponsored visibility slot.
 
     Body: { "post_id": "K-00001", "agent_id": "...", "duration_hours": 24 }
@@ -131,11 +145,11 @@ async def create_sponsored(payload: dict) -> dict:
     100% of fees go to treasury when billing is live.
     Shows in dedicated "Featured" section.
     """
-    post_id = (payload.get("post_id") or "").strip()
-    handle = (payload.get("handle") or "").strip()
-    agent_id = (payload.get("agent_id") or handle).strip()
-    label = (payload.get("label") or handle or post_id).strip()
-    duration = int(payload.get("duration_hours", 24))
+    post_id = payload.post_id.strip()
+    handle = payload.handle.strip()
+    agent_id = (payload.agent_id or handle).strip()
+    label = (payload.label or handle or post_id).strip()
+    duration = int(payload.duration_hours)
 
     fee = 0  # temporarily free during launch — standard $49/24h activates post-Genesis
 

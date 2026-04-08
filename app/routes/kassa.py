@@ -34,8 +34,19 @@ from app.sanitize import sanitize_text, sanitize_name
 from app.seeds import create_seed
 from app.notifications import send_magic_link, send_message_notification, send_operator_alert
 from app.models import KassaContact, KassaPostCreate
+from pydantic import BaseModel
 
 router = APIRouter(tags=["kassa"])
+
+
+class KassaRegisterPayload(BaseModel):
+    name: str
+    system: str | None = None
+
+
+class KassaLoginPayload(BaseModel):
+    agent_id: str
+    api_key: str
 
 # ── JWT config ───────────────────────────────────────────────────────────────
 
@@ -162,12 +173,12 @@ def _send_notify_email(entry: dict) -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/api/kassa/agent/register")
-async def kassa_agent_register(payload: dict) -> dict:
+async def kassa_agent_register(payload: KassaRegisterPayload) -> dict:
     """
     Register an agent for KASSA. Returns agent_id + api_key (shown once) + JWT.
     Separate from provision signup -- this is the KASSA-specific auth flow.
     """
-    agent_name = sanitize_name((payload.get("name") or "").strip(), max_length=80)
+    agent_name = sanitize_name((payload.name or "").strip(), max_length=80)
     if not agent_name:
         raise HTTPException(status_code=400, detail="Agent name required")
 
@@ -189,7 +200,7 @@ async def kassa_agent_register(payload: dict) -> dict:
         "key_hash": key_hash,
         "key_prefix": api_key[:10] + "***",
         "governance": state.runtime.governance.mode.lower().replace(" ", "_").replace("(", "").replace(")", ""),
-        "system": payload.get("system"),
+        "system": payload.system,
         "role": "secondary",
         "rate_limit": state.runtime.provision.get("rate_limit", {"requests_per_minute": 10, "burst": 20}),
     }
@@ -217,10 +228,10 @@ async def kassa_agent_register(payload: dict) -> dict:
 
 
 @router.post("/api/kassa/agent/login")
-async def kassa_agent_login(payload: dict) -> dict:
+async def kassa_agent_login(payload: KassaLoginPayload) -> dict:
     """Agent login -- exchange agent_id + api_key for a JWT."""
-    agent_id = (payload.get("agent_id") or "").strip()
-    api_key = (payload.get("api_key") or "").strip()
+    agent_id = payload.agent_id.strip()
+    api_key = payload.api_key.strip()
     if not agent_id or not api_key:
         raise HTTPException(status_code=400, detail="agent_id and api_key required")
 
