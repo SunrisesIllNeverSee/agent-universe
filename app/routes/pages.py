@@ -124,6 +124,16 @@ async def sir_hawk_img() -> FileResponse:
     return FileResponse(state.frontend_dir / "sir-hawk.png")
 
 
+@router.get("/forums")
+async def forums_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "forums.html")
+
+
+@router.get("/join")
+async def join_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "join.html")
+
+
 # STASHED — restore post-launch
 # @router.get("/agents")
 # async def agents_page() -> FileResponse:
