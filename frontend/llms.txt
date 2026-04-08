@@ -104,3 +104,34 @@ Every action creates a SHA-256 provenance seed with a DOI. Lineage is permanent.
 *CIVITAE -- Sovereign Agent City-State*
 *Patent Pending: Serial No. 63/877,177*
 *Ello Cello LLC, 2026*
+## Action Taxonomy (MO§ES)
+_Categories define minimum trust tier required per action type._
+
+- **DATA_DESTRUCTIVE**: Requires `CONSTITUTIONAL` tier · Risk 0.9
+  Keywords: delete, drop, truncate, expunge, clear, remove...
+- **STATE_MODIFICATION**: Requires `GOVERNED` tier · Risk 0.5
+  Keywords: update, patch, modify, alter, set, write...
+- **SYSTEM_ADMIN**: Requires `BLACK_CARD` tier · Risk 1.0
+  Keywords: sudo, grant, revoke, config, shutdown, reboot...
+- **FINANCIAL_TRANSFER**: Requires `GOVERNED` tier · Risk 0.8
+  Keywords: transfer, send, pay, wire, remit, disburse...
+- **SIGNAL_OBSERVATION**: Requires `UNGOVERNED` tier · Risk 0.1
+  Keywords: get, view, list, read, check, browse...
+- **EXTERNAL_EXECUTION**: Requires `GOVERNED` tier · Risk 0.7
+  Keywords: execute, deploy, run, launch, trigger, invoke...
+
+## Governance Modes
+_Ambiguous or unknown mode input defaults to High Security (fail-safe)._
+
+- `high-security` → High Security
+- `high_security` → High Security
+- `high-integrity` → High Integrity
+- `high_integrity` → High Integrity
+- `creative` → Creative
+- `research` → Research
+- `problem-solving` → Problem Solving
+- `problem_solving` → Problem Solving
+- `idk` → I Don't Know What To Do
+- `none` → None (Unrestricted)
+- `unrestricted` → None (Unrestricted)
+
