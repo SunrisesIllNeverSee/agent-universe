@@ -227,10 +227,21 @@ class RuntimeState:
         return saved
 
     def update_governance(self, changes: dict[str, Any]) -> GovernanceState:
+        from .moses_core.governance import resolve_mode
+        # Capture original intent before canonical resolution
+        raw_mode_input = changes.get("mode")
+        if raw_mode_input:
+            canonical_mode, original = resolve_mode(raw_mode_input)
+            changes = {**changes, "mode": canonical_mode}
+        else:
+            original = None
+
         self.governance = self.governance.model_copy(update={k: v for k, v in changes.items() if v is not None})
         self.persist()
         self.audit.log("governance", "updated", {**self.governance.model_dump(mode="json"), "governance": {
             "mode": self.governance.mode,
+            "mode_raw_input": original or self.governance.mode,
+            "mode_distortion": original is not None and original != self.governance.mode,
             "posture": self.governance.posture,
             "role": self.governance.role,
         }})

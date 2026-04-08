@@ -166,24 +166,31 @@ class GovernanceStateData:
     communication_pref: str = "Concise"
     goal: str = "Tactical Execution"
     vault_documents: list[dict] = field(default_factory=list)
+    # Original intent vector — raw input before canonical translation.
+    # Preserves signal fidelity: auditors can see what was requested
+    # vs. what the governance layer resolved it to.
+    mode_raw_input: str = ""
 
 
-def resolve_mode(mode_input: str) -> str:
+def resolve_mode(mode_input: str) -> tuple[str, str]:
+    """Resolve mode input to canonical name. Returns (canonical, original_input).
+
+    Stores original intent alongside canonical so distortion introduced
+    by the translation layer is auditable — not silently discarded.
+    """
     stripped = mode_input.strip()
     key = stripped.lower()
-    # If it's already a known canonical mode name, use it directly
     if stripped in MODES:
-        return stripped
-    # Known alias → canonical name
+        return stripped, stripped
     if key in MODE_ALIASES:
-        return MODE_ALIASES[key]
-    # Unknown/ambiguous input → High Security (fail-safe, not fail-open)
-    return "High Security"
+        return MODE_ALIASES[key], stripped
+    # Unknown/ambiguous → High Security (fail-safe, not fail-open)
+    return "High Security", stripped
 
 
 def translate_mode(mode: str) -> dict:
-    # Unknown mode → High Security (fail-safe, not fail-open)
-    return MODES.get(resolve_mode(mode), MODES["High Security"])
+    canonical, _ = resolve_mode(mode)
+    return MODES.get(canonical, MODES["High Security"])
 
 
 def translate_posture(posture: str) -> dict:
@@ -208,6 +215,11 @@ def assemble_context(
         "agent": agent_name,
         "constitutional_governance": {
             "mode": governance.mode,
+            "mode_raw_input": governance.mode_raw_input or governance.mode,
+            "mode_translation_distortion": (
+                governance.mode_raw_input != governance.mode
+                and governance.mode_raw_input != ""
+            ),
             "mode_constraints": mode_config["constraints"],
             "mode_prohibited": mode_config.get("prohibited", []),
             "mode_priority": mode_config.get("priority", "unrestricted"),
@@ -243,14 +255,54 @@ def assemble_context(
 
 
 _CONCEPT_SIGNALS = {
-    "transaction": ["transfer", "send", "swap", "trade", "pay", "wire"],
-    "execution": ["execute", "deploy", "run", "launch", "trigger", "invoke"],
-    "destructive": ["delete", "remove", "destroy", "wipe", "purge", "truncate"],
-    "outbound": ["upload", "post", "publish", "push", "export", "transmit"],
-    "external_access": ["external", "api", "url", "fetch", "http", "connect"],
-    "sensitive_data": ["password", "key", "secret", "credential", "token", "private"],
-    "speculation": ["assume", "probably", "guess", "perhaps", "maybe", "likely"],
-    "state_change": ["write", "edit", "modify", "update", "create", "patch"],
+    "transaction": [
+        "transfer", "send", "swap", "trade", "pay", "wire",
+        # Evasion synonyms
+        "remit", "disburse", "allocate", "settle", "move funds",
+        "relay", "route", "dispatch funds", "forward",
+    ],
+    "execution": [
+        "execute", "deploy", "run", "launch", "trigger", "invoke",
+        "initiate", "activate", "start", "begin operation", "carry out",
+        "perform", "enact", "action", "process",
+    ],
+    "destructive": [
+        "delete", "remove", "destroy", "wipe", "purge", "truncate",
+        # Evasion synonyms — the exact class Gemini flagged
+        "expunge", "erase", "eliminate", "drop", "terminate", "clear",
+        "reset", "flush", "annihilate", "structural removal", "zero out",
+        "scrub", "overwrite", "discard",
+    ],
+    "outbound": [
+        "upload", "post", "publish", "push", "export", "transmit",
+        "broadcast", "relay", "emit", "send out", "exfiltrate",
+        "output", "forward", "distribute",
+    ],
+    "external_access": [
+        "external", "api", "url", "fetch", "http", "connect",
+        "request", "call", "reach", "contact", "query", "endpoint",
+        "webhook", "network", "outbound request",
+    ],
+    "sensitive_data": [
+        "password", "key", "secret", "credential", "token", "private",
+        "passphrase", "seed phrase", "mnemonic", "api key", "auth",
+        "certificate", "pem", "jwt", "bearer", "hash", "salt",
+    ],
+    "speculation": [
+        "assume", "probably", "guess", "perhaps", "maybe", "likely",
+        "possibly", "could be", "might", "presumably", "appears to",
+        "seems", "i think", "speculate", "uncertain",
+    ],
+    "state_change": [
+        "write", "edit", "modify", "update", "create", "patch",
+        "alter", "rewrite", "change", "mutate", "insert", "append",
+        "set", "configure", "adjust", "replace",
+    ],
+    "privilege_escalation": [
+        "sudo", "admin", "root", "grant", "revoke", "elevate",
+        "override", "bypass", "ignore", "skip", "circumvent",
+        "disable", "unlock", "promote",
+    ],
 }
 
 
@@ -259,13 +311,23 @@ def _action_concepts(action: str) -> set[str]:
 
     Uses \\b (word boundary) to avoid false positives like
     'display' triggering 'pay' or 'keyboard' triggering 'key'.
+    Multi-word signals use substring matching since \\b doesn't
+    apply cleanly across spaces.
     """
     lowered = action.lower()
-    return {
-        concept
-        for concept, signals in _CONCEPT_SIGNALS.items()
-        if any(re.search(rf"\b{re.escape(signal)}\b", lowered) for signal in signals)
-    }
+    detected = set()
+    for concept, signals in _CONCEPT_SIGNALS.items():
+        for signal in signals:
+            if " " in signal:
+                # Multi-word: substring match
+                if signal in lowered:
+                    detected.add(concept)
+                    break
+            else:
+                if re.search(rf"\b{re.escape(signal)}\b", lowered):
+                    detected.add(concept)
+                    break
+    return detected
 
 
 # ── Action risk levels ─────────────────────────────────────────────────────
