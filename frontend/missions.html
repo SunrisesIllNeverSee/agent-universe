@@ -291,9 +291,15 @@ fetch(API + '/api/state').then(function(r){return r.json();}).then(function(d){u
 var _allEntries = [];
 
 function loadBoard() {
-  fetch(API + '/api/slots').then(function(r){return r.json();}).catch(function(){return {slots:[]};}).then(function(slotsResp) {
-    var allSlots = slotsResp.slots || [];
+  Promise.all([
+    fetch(API + '/api/slots').then(function(r){return r.json();}).catch(function(){return {slots:[]};}),
+    fetch(API + '/api/missions').then(function(r){return r.json();}).catch(function(){return {missions:[]};})
+  ]).then(function(results) {
+    var allSlots = results[0].slots || [];
+    var missionsList = results[1].missions || [];
     var missions = {};
+
+    // Build from slots first (slot-attached missions)
     allSlots.forEach(function(s) {
       if (!missions[s.mission_id]) missions[s.mission_id] = {
         id: s.mission_id, label: s.mission_label, slots: [],
@@ -303,6 +309,22 @@ function loadBoard() {
       };
       missions[s.mission_id].slots.push(s);
     });
+
+    // Merge in missions from /api/missions that have no slots yet
+    missionsList.forEach(function(m) {
+      var mid = m.mission_id || m.id;
+      if (!missions[mid]) {
+        missions[mid] = {
+          id: mid,
+          label: m.label || m.name || mid,
+          slots: [],
+          posture: m.posture || 'SCOUT',
+          mode: m.mode || '',
+          desc: m.objective || m.description || 'Governed operation under MO\u00a7ES\u2122.'
+        };
+      }
+    });
+
     _allEntries = Object.values(missions);
     var openSlots = allSlots.filter(function(s){return s.status==='open';});
     var filledSlots = allSlots.filter(function(s){return s.status==='filled';});
