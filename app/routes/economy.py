@@ -10,13 +10,27 @@ import json
 import os
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app.deps import state
 from app.seeds import create_seed
 from app.economy import TIERS
 from app.chains import MultiChainRouter
+from app.jwt_config import get_kassa_jwt_secret
+import jwt as pyjwt
+
+_JWT_SECRET = get_kassa_jwt_secret()
+
+
+def _verify_jwt(request: Request) -> dict | None:
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return None
+    try:
+        return pyjwt.decode(auth[7:], _JWT_SECRET, algorithms=["HS256"])
+    except (pyjwt.ExpiredSignatureError, pyjwt.InvalidTokenError):
+        return None
 
 router = APIRouter(tags=["economy"])
 
@@ -65,13 +79,17 @@ async def check_agent_tier(payload: dict) -> dict:
 
 
 @router.post("/api/economy/pay")
-async def process_payment(payload: dict) -> dict:
+async def process_payment(payload: dict, request: Request) -> dict:
     """Process a slot payment with tiered fees."""
+    claims = _verify_jwt(request)
+    if not claims:
+        return JSONResponse({"error": "Valid Bearer token required"}, status_code=401)
+
     gate = state.runtime.check_action("process payment")
     if not gate["permitted"]:
         return JSONResponse({"error": gate["reason"], "governance": gate}, status_code=403)
 
-    agent_id = payload.get("agent_id", "")
+    agent_id = claims.get("sub", "")
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
 
@@ -117,17 +135,21 @@ async def process_payment(payload: dict) -> dict:
 
 
 @router.post("/api/economy/mission-payout")
-async def process_mission_payout(payload: dict) -> dict:
+async def process_mission_payout(payload: dict, request: Request) -> dict:
     """Mission-level payout — one fee per mission close, not per transaction.
 
-    Required: agent_id, amount, mission_id
+    Required: amount, mission_id
     Optional: metrics, originator_id, recruiter_id, agent_mission_count
     """
+    claims = _verify_jwt(request)
+    if not claims:
+        return JSONResponse({"error": "Valid Bearer token required"}, status_code=401)
+
     gate = state.runtime.check_action("mission payout")
     if not gate["permitted"]:
         return JSONResponse({"error": gate["reason"], "governance": gate}, status_code=403)
 
-    agent_id = payload.get("agent_id", "")
+    agent_id = claims.get("sub", "")
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
     raw_amount = payload.get("amount")
