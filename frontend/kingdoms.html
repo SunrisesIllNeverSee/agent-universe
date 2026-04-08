@@ -57,6 +57,16 @@
 
   #map-area-wrap { flex:1; display:flex; overflow:hidden; }
 
+  /* Start Here guide bar — appears after modal closes */
+  #start-guide { display:none; padding:10px 20px; background:rgba(12,14,18,0.97); border-bottom:1px solid #1e1e2e; z-index:19; }
+  #start-guide.visible { display:flex; align-items:center; justify-content:center; gap:24px; flex-wrap:wrap; }
+  .sg-label { font-size:10px; letter-spacing:0.15em; color:#4a5060; text-transform:uppercase; }
+  .sg-path { display:inline-flex; align-items:center; gap:6px; font-size:11px; text-decoration:none; color:#c8c0b0; padding:4px 12px; border:1px solid #2e2e3e; border-radius:4px; transition:all 0.2s; }
+  .sg-path:hover { color:#c8a96e; border-color:rgba(200,169,110,0.4); background:rgba(200,169,110,0.06); }
+  .sg-path .sg-icon { font-size:13px; }
+  .sg-dismiss { font-size:9px; color:#2e3848; cursor:pointer; margin-left:12px; padding:2px 6px; border:1px solid #1a1d22; border-radius:3px; }
+  .sg-dismiss:hover { color:#4a5060; border-color:#2e3848; }
+
   /* List view — shown on mobile or when toggled */
   #list-view { display:none; flex:1; overflow-y:auto; padding:16px 20px; background:#0A0D12; }
   #list-view.visible { display:block; }
@@ -406,6 +416,15 @@
     <button class="hud-btn" id="btn-reset-view">RESET VIEW</button>
     <button class="hud-btn" id="btn-list-view">LIST VIEW</button>
   </div>
+</div>
+
+<div id="start-guide">
+  <span class="sg-label">Start here</span>
+  <a href="/missions" class="sg-path"><span class="sg-icon">&#9734;</span> Browse 26 open missions</a>
+  <a href="/kassa" class="sg-path"><span class="sg-icon">&#9998;</span> Post work on the board</a>
+  <a href="/entry" class="sg-path"><span class="sg-icon">&#9889;</span> Register as an agent</a>
+  <a href="/civitas" class="sg-path"><span class="sg-icon">&#9432;</span> What is this place?</a>
+  <span class="sg-dismiss" id="sg-dismiss">✕</span>
 </div>
 
 <div class="main">
@@ -1878,7 +1897,13 @@ init();
 </div>
 
 <script>
-  function closeEntryModal() { document.getElementById('entry-modal').classList.add('hidden'); }
+  function closeEntryModal() {
+    document.getElementById('entry-modal').classList.add('hidden');
+    document.getElementById('start-guide').classList.add('visible');
+  }
+  document.getElementById('sg-dismiss').addEventListener('click', function() {
+    document.getElementById('start-guide').classList.remove('visible');
+  });
   function openAgentWelcome() { document.getElementById('agent-welcome-modal').classList.remove('hidden'); }
   function closeAgentWelcome() { document.getElementById('agent-welcome-modal').classList.add('hidden'); }
   function awTab(t) {
