@@ -169,12 +169,21 @@ class GovernanceStateData:
 
 
 def resolve_mode(mode_input: str) -> str:
-    key = mode_input.strip().lower()
-    return MODE_ALIASES.get(key, mode_input)
+    stripped = mode_input.strip()
+    key = stripped.lower()
+    # If it's already a known canonical mode name, use it directly
+    if stripped in MODES:
+        return stripped
+    # Known alias → canonical name
+    if key in MODE_ALIASES:
+        return MODE_ALIASES[key]
+    # Unknown/ambiguous input → High Security (fail-safe, not fail-open)
+    return "High Security"
 
 
 def translate_mode(mode: str) -> dict:
-    return MODES.get(resolve_mode(mode), MODES["None (Unrestricted)"])
+    # Unknown mode → High Security (fail-safe, not fail-open)
+    return MODES.get(resolve_mode(mode), MODES["High Security"])
 
 
 def translate_posture(posture: str) -> dict:
@@ -279,7 +288,12 @@ ACTION_RISK: dict[str, str] = {
 }
 
 
-def check_action_permitted(action_description: str, governance: GovernanceStateData) -> dict:
+# Minimum tier required for high-risk actions
+_TIER_ORDER = ["UNGOVERNED", "GOVERNED", "CONSTITUTIONAL", "BLACK_CARD"]
+_HIGH_RISK_MIN_TIER = "GOVERNED"
+
+
+def check_action_permitted(action_description: str, governance: GovernanceStateData, agent_tier: str = "UNGOVERNED") -> dict:
     mode_config = translate_mode(governance.mode)
     concepts = _action_concepts(action_description)
     conditions: list[str] = []
@@ -294,6 +308,17 @@ def check_action_permitted(action_description: str, governance: GovernanceStateD
             "reason": f"Marketplace action permitted (tier-governed) under {governance.mode}",
             "triggered_rules": [],
             "conditions": [],
+        }
+
+    # High-risk actions require minimum GOVERNED tier
+    tier_rank = _TIER_ORDER.index(agent_tier) if agent_tier in _TIER_ORDER else 0
+    min_rank = _TIER_ORDER.index(_HIGH_RISK_MIN_TIER)
+    if risk == "high" and tier_rank < min_rank:
+        return {
+            "permitted": False,
+            "reason": f"High-risk action requires {_HIGH_RISK_MIN_TIER} tier or above (agent is {agent_tier})",
+            "triggered_rules": [f"Tier gate: {action_description} blocked for {agent_tier}"],
+            "conditions": ["Achieve GOVERNED tier to unlock high-risk operations"],
         }
 
     if governance.posture == "SCOUT":

@@ -126,22 +126,34 @@ async def agent_signup(request: Request, payload: dict) -> dict:
     emit = state.emit
     economy = state.economy
 
-    _check_rate_limit(request, "provision_signup", max_hits=5)
+    # 2 signups per IP per hour — prevents Sybil trial abuse
+    _check_rate_limit(request, "provision_signup", max_hits=2)
 
     agent_name = sanitize(payload.get("name", "")).strip()
     if not agent_name:
         return JSONResponse({"error": "Agent name required"}, status_code=400)
+
+    # Extract caller IP for per-IP agent cap
+    fwd = request.headers.get("x-forwarded-for", "")
+    caller_ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
 
     # ── Atomic signup under slot_lock — prevents concurrent write contention ──
     async with state.slot_lock:
         # Reload from disk so we see writes from other workers
         runtime.reload_registry()
 
-        # Check max agents
+        # Check max agents (global cap)
         current_agents = [r for r in runtime.registry if r.get("type") == "agent"]
         max_agents = runtime.provision.get("max_agents", 50)
         if len(current_agents) >= max_agents:
             return JSONResponse({"error": f"Max agents ({max_agents}) reached"}, status_code=429)
+
+        # Per-IP agent cap — max 3 agents per IP ever (Sybil resistance)
+        MAX_AGENTS_PER_IP = 3
+        ip_agents = [r for r in runtime.registry if r.get("signup_ip") == caller_ip and r.get("type") == "agent"]
+        if len(ip_agents) >= MAX_AGENTS_PER_IP:
+            state.audit.log("security", "sybil_signup_blocked", {"ip": caller_ip, "count": len(ip_agents)})
+            return JSONResponse({"error": "Max agents per origin reached"}, status_code=429)
 
         # Check if name already exists (unique constraint)
         existing = next((r for r in runtime.registry if r.get("name") == agent_name), None)
@@ -178,6 +190,7 @@ async def agent_signup(request: Request, payload: dict) -> dict:
             "provisioned": datetime.now(UTC).isoformat(),
             "key_prefix": key_prefix,
             "key_hash": key_hash,
+            "signup_ip": caller_ip,
             "governance": gov_mode.lower().replace(" ", "_").replace("(", "").replace(")", ""),
             "system": payload.get("system", None),
             "assigned_system": payload.get("system", None),
