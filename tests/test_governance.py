@@ -103,7 +103,7 @@ class TestCheckActionPermitted:
 
     # SCOUT blocks state-changing high-risk actions
     def test_scout_blocks_transfer(self):
-        result = check_action_permitted("chain transfer", _gov(posture="SCOUT"))
+        result = check_action_permitted("chain transfer", _gov(posture="SCOUT"), agent_tier="GOVERNED")
         assert result["permitted"] is False
         assert "SCOUT" in result["reason"]
 
@@ -117,24 +117,32 @@ class TestCheckActionPermitted:
 
     # DEFENSE adds conditions but permits
     def test_defense_permits_with_conditions(self):
-        result = check_action_permitted("chain transfer", _gov(posture="DEFENSE"))
+        result = check_action_permitted("chain transfer", _gov(mode="None (Unrestricted)", posture="DEFENSE"), agent_tier="GOVERNED")
         assert result["permitted"] is True
         assert len(result["conditions"]) > 0
 
     # OFFENSE permits within mode constraints
     def test_offense_permits_transfer(self):
-        result = check_action_permitted("chain transfer", _gov(posture="OFFENSE"))
+        result = check_action_permitted("chain transfer", _gov(mode="None (Unrestricted)", posture="OFFENSE"), agent_tier="GOVERNED")
         assert result["permitted"] is True
 
     # Unknown actions default to high-risk (posture-checked)
     def test_unknown_action_defaults_high_risk_scout_blocks(self):
-        # Unknown actions default to high risk — SCOUT blocks them
-        result = check_action_permitted("some new operation", _gov(posture="SCOUT"))
+        result = check_action_permitted("some new operation", _gov(posture="SCOUT"), agent_tier="GOVERNED")
         assert result["permitted"] is False
 
     def test_unknown_action_offense_permits(self):
-        # Unknown actions in OFFENSE are permitted (no concept-triggered prohibitions)
-        result = check_action_permitted("some new operation", _gov(posture="OFFENSE"))
+        result = check_action_permitted("some new operation", _gov(mode="None (Unrestricted)", posture="OFFENSE"), agent_tier="GOVERNED")
+        assert result["permitted"] is True
+
+    # Tier gate — UNGOVERNED blocked from high-risk actions
+    def test_ungoverned_blocked_from_high_risk(self):
+        result = check_action_permitted("chain transfer", _gov(mode="None (Unrestricted)", posture="OFFENSE"), agent_tier="UNGOVERNED")
+        assert result["permitted"] is False
+        assert "GOVERNED" in result["reason"]
+
+    def test_governed_permitted_high_risk(self):
+        result = check_action_permitted("chain transfer", _gov(mode="None (Unrestricted)", posture="OFFENSE"), agent_tier="GOVERNED")
         assert result["permitted"] is True
 
     def test_unknown_destructive_action_scout_blocks(self):
@@ -146,6 +154,7 @@ class TestCheckActionPermitted:
         result = check_action_permitted(
             "this probably works",
             _gov(mode="High Security", posture="OFFENSE"),
+            agent_tier="GOVERNED",
         )
         assert result["permitted"] is False
         assert "prohibition" in result["reason"].lower()
