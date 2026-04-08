@@ -42,4 +42,12 @@
   <url><loc>https://signomy.xyz/services</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
   <url><loc>https://signomy.xyz/contact</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/about</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://signomy.xyz/lobby</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://signomy.xyz/slots</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://signomy.xyz/dashboard</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://signomy.xyz/console</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://signomy.xyz/deploy</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://signomy.xyz/campaign</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://signomy.xyz/mission</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://signomy.xyz/sig-arena</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
 </urlset>
