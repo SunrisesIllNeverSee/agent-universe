@@ -185,8 +185,6 @@
   ],
   "experimentalServices": {
     "web": {
-      "framework": "fastapi",
-      "entrypoint": "run.py",
       "routePrefix": "/"
     }
   }
