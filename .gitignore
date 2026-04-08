@@ -38,3 +38,4 @@ reports/
 .playwright-mcp/
 .deric/
 .railway/
+.vercel
