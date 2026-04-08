@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse
 
 from app.deps import state
 from app.forums_store import VALID_CATEGORIES
-from app.sanitize import sanitize_text, sanitize_name
+from app.sanitize import sanitize_text, sanitize_name, detect_prompt_injection
 from app.seeds import create_seed
 
 router = APIRouter(tags=["forums"])
@@ -106,6 +106,9 @@ async def forums_create_thread(request: Request) -> dict:
     content = sanitize_text((body.get("body") or "").strip())
     author_type = body.get("author_type", "AAI")
 
+    if detect_prompt_injection(title) or detect_prompt_injection(content):
+        state.audit.log("security", "prompt_injection_blocked", {"category": category})
+        raise HTTPException(status_code=400, detail="Post contains disallowed content.")
     if not title or len(title) < 3:
         raise HTTPException(status_code=400, detail="Title must be at least 3 characters")
     if len(title) > 120:
@@ -159,6 +162,9 @@ async def forums_create_reply(thread_id: str, request: Request) -> dict:
     content = sanitize_text((body.get("body") or "").strip())
     if not content:
         raise HTTPException(status_code=400, detail="Reply body is required")
+    if detect_prompt_injection(content):
+        state.audit.log("security", "prompt_injection_blocked", {"thread_id": thread_id})
+        raise HTTPException(status_code=400, detail="Post contains disallowed content.")
     if len(content) > 2000:
         raise HTTPException(status_code=400, detail="Reply must be 2000 characters or fewer")
     reply = state.forums.insert_reply(

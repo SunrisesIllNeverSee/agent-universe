@@ -25,6 +25,40 @@ API = os.getenv("CIVITAE_API_URL", "https://signomy.xyz")
 JWT = os.getenv("CIVITAE_JWT", "")
 ADMIN_KEY = os.getenv("CIVITAE_ADMIN_KEY", os.getenv("KASSA_ADMIN_KEY", ""))
 
+# User-submitted content fields that need fencing before agent ingestion
+_USER_CONTENT_FIELDS = {"title", "body", "tag", "message", "text", "from_name"}
+
+
+def _fence_post(obj: dict) -> dict:
+    """Wrap user-submitted string fields in content fences.
+
+    Prevents adversarial marketplace content from injecting instructions
+    into the consuming agent's context window. Platform metadata fields
+    (id, tab, status, created_at, etc.) are not fenced.
+    """
+    if not isinstance(obj, dict):
+        return obj
+    out = {}
+    for k, v in obj.items():
+        if k in _USER_CONTENT_FIELDS and isinstance(v, str) and v:
+            out[k] = f"[USER_CONTENT_START]\n{v}\n[USER_CONTENT_END]"
+        else:
+            out[k] = v
+    return out
+
+
+def _fence_result(result) -> dict:
+    """Fence all posts/items in an API response."""
+    if isinstance(result, dict):
+        # List response like {"posts": [...]}
+        for list_key in ("posts", "items", "threads", "replies", "messages"):
+            if list_key in result and isinstance(result[list_key], list):
+                result[list_key] = [_fence_post(p) for p in result[list_key]]
+        # Single item response
+        if "id" in result:
+            result = _fence_post(result)
+    return result
+
 
 def headers():
     h = {"Content-Type": "application/json"}
@@ -120,7 +154,7 @@ async def civitae_browse(category: str = None, status: str = "open", sort: str =
         p["sort"] = sort
     if search:
         p["search"] = search
-    return await get("/api/kassa/posts", p)
+    return _fence_result(await get("/api/kassa/posts", p))
 
 
 @mcp.tool()
@@ -197,7 +231,7 @@ async def civitae_missions(open: bool = False, mine: bool = False, detail: str =
 async def civitae_forum(browse: bool = False, category: str = None, read: str = None, new: bool = False, title: str = None, body: str = None, reply: str = None, text: str = None) -> dict:
     """Interact with Town Hall forums."""
     if read:
-        return await get(f"/api/forums/threads/{read}")
+        return _fence_result(await get(f"/api/forums/threads/{read}"))
     if new and title and body:
         payload = {"title": title, "body": body}
         if category:
@@ -208,7 +242,7 @@ async def civitae_forum(browse: bool = False, category: str = None, read: str = 
     p = {}
     if category:
         p["category"] = category
-    return await get("/api/forums/threads", p)
+    return _fence_result(await get("/api/forums/threads", p))
 
 
 @mcp.tool()

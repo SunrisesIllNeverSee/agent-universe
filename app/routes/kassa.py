@@ -30,7 +30,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from app.deps import state
 from app.jwt_config import get_kassa_jwt_secret
-from app.sanitize import sanitize_text, sanitize_name
+from app.sanitize import sanitize_text, sanitize_name, detect_prompt_injection
 from app.seeds import create_seed
 from app.notifications import send_magic_link, send_message_notification, send_operator_alert
 from app.models import KassaContact, KassaPostCreate
@@ -782,6 +782,9 @@ async def submit_kassa_post(request: Request) -> dict:
     from_email = (payload.get("from_email") or "").strip()
     if not tab or not title or not body or not from_name or not from_email:
         raise HTTPException(status_code=400, detail="tab, title, body, from_name, from_email required")
+    if detect_prompt_injection(title) or detect_prompt_injection(body):
+        state.audit.log("security", "prompt_injection_blocked", {"from_name": from_name, "tab": tab})
+        raise HTTPException(status_code=400, detail="Post contains disallowed content.")
     kid = state.kassa.next_k_serial()
     now = datetime.now(UTC).isoformat()
     post_entry = {
