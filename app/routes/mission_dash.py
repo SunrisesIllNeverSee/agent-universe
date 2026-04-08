@@ -19,12 +19,35 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from typing import Any
 
 from app.deps import state
 
 router = APIRouter(tags=["mission_dash"])
 
 VALID_STATUSES = ["draft", "posted", "matched", "in_progress", "review", "paid", "cancelled"]
+
+
+class InitDashboardPayload(BaseModel):
+    status: str = "draft"
+    milestones: list[str] = []
+    deadline: str | None = None
+    assigned_agent: str | None = None
+    payout_amount: float = 0
+    progress_pct: int = 0
+    eta: str | None = None
+
+
+class UpdateProgressPayload(BaseModel):
+    progress_pct: int | None = None
+    note: str = ""
+    eta: str | None = None
+    status: str | None = None
+
+
+class CompleteMilestonePayload(BaseModel):
+    milestone: str = ""
 
 
 def _dash_path() -> Path:
@@ -52,7 +75,7 @@ def _save_dash(data: dict):
 # ── Create / Initialize dashboard for a mission ─────────────────────────────
 
 @router.post("/api/mission-dash/{mission_id}")
-async def init_mission_dashboard(mission_id: str, payload: dict) -> dict:
+async def init_mission_dashboard(mission_id: str, payload: InitDashboardPayload) -> dict:
     """Initialize or update a mission's dashboard state.
 
     Body: {
@@ -69,11 +92,11 @@ async def init_mission_dashboard(mission_id: str, payload: dict) -> dict:
     existing = missions.get(mission_id, {})
     now = datetime.now(UTC).isoformat()
 
-    status = payload.get("status", existing.get("status", "draft"))
+    status = payload.status or existing.get("status", "draft")
     if status not in VALID_STATUSES:
         raise HTTPException(400, f"Invalid status. Must be one of: {VALID_STATUSES}")
 
-    milestones = payload.get("milestones", existing.get("milestones", []))
+    milestones = payload.milestones if payload.milestones else existing.get("milestones", [])
     milestone_state = existing.get("milestone_state", {})
     # Initialize any new milestones
     for m in milestones:
@@ -82,13 +105,13 @@ async def init_mission_dashboard(mission_id: str, payload: dict) -> dict:
 
     missions[mission_id] = {
         "status": status,
-        "progress_pct": payload.get("progress_pct", existing.get("progress_pct", 0)),
+        "progress_pct": payload.progress_pct if payload.progress_pct is not None else existing.get("progress_pct", 0),
         "milestones": milestones,
         "milestone_state": milestone_state,
-        "deadline": payload.get("deadline", existing.get("deadline")),
-        "assigned_agent": payload.get("assigned_agent", existing.get("assigned_agent")),
-        "payout_amount": payload.get("payout_amount", existing.get("payout_amount", 0)),
-        "eta": payload.get("eta", existing.get("eta")),
+        "deadline": payload.deadline if payload.deadline is not None else existing.get("deadline"),
+        "assigned_agent": payload.assigned_agent if payload.assigned_agent is not None else existing.get("assigned_agent"),
+        "payout_amount": payload.payout_amount if payload.payout_amount else existing.get("payout_amount", 0),
+        "eta": payload.eta if payload.eta is not None else existing.get("eta"),
         "updates": existing.get("updates", []),
         "created_at": existing.get("created_at", now),
         "updated_at": now,
@@ -104,7 +127,7 @@ async def init_mission_dashboard(mission_id: str, payload: dict) -> dict:
 # ── Update progress ──────────────────────────────────────────────────────────
 
 @router.post("/api/mission-dash/{mission_id}/progress")
-async def update_progress(mission_id: str, payload: dict) -> dict:
+async def update_progress(mission_id: str, payload: UpdateProgressPayload) -> dict:
     """Agent updates progress percentage and optional note.
 
     Body: { "progress_pct": 45, "note": "Draft complete, starting review", "eta": "2026-04-08" }
@@ -116,14 +139,14 @@ async def update_progress(mission_id: str, payload: dict) -> dict:
 
     now = datetime.now(UTC).isoformat()
 
-    if "progress_pct" in payload:
-        mission["progress_pct"] = max(0, min(100, int(payload["progress_pct"])))
-    if "eta" in payload:
-        mission["eta"] = payload["eta"]
-    if "status" in payload and payload["status"] in VALID_STATUSES:
-        mission["status"] = payload["status"]
+    if payload.progress_pct is not None:
+        mission["progress_pct"] = max(0, min(100, int(payload.progress_pct)))
+    if payload.eta is not None:
+        mission["eta"] = payload.eta
+    if payload.status and payload.status in VALID_STATUSES:
+        mission["status"] = payload.status
 
-    note = (payload.get("note") or "").strip()
+    note = (payload.note or "").strip()
     if note:
         mission.setdefault("updates", []).append({
             "note": note,
@@ -140,7 +163,7 @@ async def update_progress(mission_id: str, payload: dict) -> dict:
 # ── Complete milestone ───────────────────────────────────────────────────────
 
 @router.post("/api/mission-dash/{mission_id}/milestone")
-async def complete_milestone(mission_id: str, payload: dict) -> dict:
+async def complete_milestone(mission_id: str, payload: CompleteMilestonePayload) -> dict:
     """Mark a milestone as complete.
 
     Body: { "milestone": "Deliver draft" }
@@ -150,7 +173,7 @@ async def complete_milestone(mission_id: str, payload: dict) -> dict:
     if not mission:
         raise HTTPException(404, f"Mission dashboard {mission_id} not found")
 
-    milestone_name = (payload.get("milestone") or "").strip()
+    milestone_name = (payload.milestone or "").strip()
     if milestone_name not in mission.get("milestone_state", {}):
         raise HTTPException(404, f"Milestone '{milestone_name}' not found")
 

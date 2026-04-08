@@ -15,11 +15,32 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import APIRouter
+from pydantic import BaseModel
+from typing import Any
 
 from app.deps import state
 from app.seeds import create_seed
 
 router = APIRouter(tags=["metrics"])
+
+
+class AgentMetricPayload(BaseModel):
+    agent_id: str = "unknown"
+    name: str = ""
+    event: str = ""
+    amount: float = 0
+    description: str = ""
+
+
+class MissionMetricPayload(BaseModel):
+    mission_id: str = "unknown"
+    label: str = ""
+    posture: str = ""
+    formation: str = ""
+    agents_deployed: int = 0
+    event: str = ""
+    outcome: str = "completed"
+    amount: float = 0
 
 # ── Atomic write helper ─────────────────────────────────────────────────────
 
@@ -62,13 +83,13 @@ def _save_metrics(m: dict) -> None:
 
 
 @router.post("/api/metrics/agent")
-async def log_agent_metric(payload: dict) -> dict:
+async def log_agent_metric(payload: AgentMetricPayload) -> dict:
     """Log a metric for an agent — mission result, compliance event, revenue."""
     m = _load_metrics()
-    agent_id = payload.get("agent_id", "unknown")
+    agent_id = payload.agent_id
     if agent_id not in m["agents"]:
         m["agents"][agent_id] = {
-            "name": payload.get("name", agent_id),
+            "name": payload.name or agent_id,
             "missions_completed": 0,
             "missions_failed": 0,
             "governance_checks": 0,
@@ -81,7 +102,7 @@ async def log_agent_metric(payload: dict) -> dict:
         }
 
     agent = m["agents"][agent_id]
-    event = payload.get("event", "")
+    event = payload.event
 
     if event == "mission_complete":
         agent["missions_completed"] += 1
@@ -94,25 +115,25 @@ async def log_agent_metric(payload: dict) -> dict:
     elif event == "message_sent":
         agent["messages_sent"] += 1
     elif event == "revenue":
-        amount = payload.get("amount", 0)
+        amount = payload.amount
         agent["revenue_generated"] += amount
         m["financial"]["revenue"] += amount
         m["financial"]["transactions"].append({
             "agent_id": agent_id,
             "type": "revenue",
             "amount": amount,
-            "description": payload.get("description", ""),
+            "description": payload.description,
             "timestamp": datetime.now(UTC).isoformat(),
         })
     elif event == "cost":
-        amount = payload.get("amount", 0)
+        amount = payload.amount
         agent["costs_incurred"] += amount
         m["financial"]["costs"] += amount
         m["financial"]["transactions"].append({
             "agent_id": agent_id,
             "type": "cost",
             "amount": amount,
-            "description": payload.get("description", ""),
+            "description": payload.description,
             "timestamp": datetime.now(UTC).isoformat(),
         })
 
@@ -182,18 +203,18 @@ async def get_metrics() -> dict:
 
 
 @router.post("/api/metrics/mission")
-async def log_mission_metric(payload: dict) -> dict:
+async def log_mission_metric(payload: MissionMetricPayload) -> dict:
     """Log mission-level metrics."""
     m = _load_metrics()
-    mission_id = payload.get("mission_id", "unknown")
+    mission_id = payload.mission_id
     if mission_id not in m["missions"]:
         m["missions"][mission_id] = {
-            "label": payload.get("label", ""),
-            "posture": payload.get("posture", ""),
-            "formation": payload.get("formation", ""),
+            "label": payload.label,
+            "posture": payload.posture,
+            "formation": payload.formation,
             "started": datetime.now(UTC).isoformat(),
             "ended": None,
-            "agents_deployed": payload.get("agents_deployed", 0),
+            "agents_deployed": payload.agents_deployed,
             "governance_blocks": 0,
             "messages": 0,
             "revenue": 0,
@@ -202,19 +223,19 @@ async def log_mission_metric(payload: dict) -> dict:
         }
 
     mission = m["missions"][mission_id]
-    event = payload.get("event", "")
+    event = payload.event
 
     if event == "ended":
         mission["ended"] = datetime.now(UTC).isoformat()
-        mission["outcome"] = payload.get("outcome", "completed")
+        mission["outcome"] = payload.outcome
     elif event == "governance_block":
         mission["governance_blocks"] += 1
     elif event == "message":
         mission["messages"] += 1
     elif event == "revenue":
-        mission["revenue"] += payload.get("amount", 0)
+        mission["revenue"] += payload.amount
     elif event == "cost":
-        mission["costs"] += payload.get("amount", 0)
+        mission["costs"] += payload.amount
 
     _save_metrics(m)
     seed_doi = None
@@ -226,7 +247,7 @@ async def log_mission_metric(payload: dict) -> dict:
                 creator_id="operator",
                 creator_type="BI",
                 seed_type="planted",
-                metadata={"mission_id": mission_id, "outcome": payload.get("outcome", "completed")},
+                metadata={"mission_id": mission_id, "outcome": payload.outcome},
             )
             seed_doi = seed_result.get("doi") if seed_result else None
         except Exception:

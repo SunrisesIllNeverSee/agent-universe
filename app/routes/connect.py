@@ -17,12 +17,33 @@ import re
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel
 
 from app.deps import state
 from app.seeds import create_seed
 from app import kassa_payments
 
 router = APIRouter(tags=["connect"])
+
+
+class ConnectAccountPayload(BaseModel):
+    display_name: str
+    email: str
+    country: str = "us"
+
+
+class ConnectRecipientPayload(BaseModel):
+    display_name: str
+    email: str = ""
+    country: str = "us"
+
+
+class ConnectProductPayload(BaseModel):
+    name: str
+    description: str = ""
+    price_cents: int = 0
+    currency: str = "usd"
+    connected_account_id: str = ""
 
 
 # ── Auth helper (fail-closed) ──────────────────────────────────────────────
@@ -230,20 +251,20 @@ async def initiate_payment(post_id: str, request: Request) -> dict:
 # ── Stripe Connect: Connected Accounts ─────────────────────────────────────
 
 @router.post("/api/connect/accounts")
-async def create_connect_account(payload: dict) -> dict:
+async def create_connect_account(payload: ConnectAccountPayload) -> dict:
     """Create a Stripe connected account for an agent or operator.
 
     Body: { "display_name": "...", "email": "...", "country": "us" }
     """
-    name = (payload.get("display_name") or "").strip()
-    email = (payload.get("email") or "").strip()
+    name = payload.display_name.strip()
+    email = payload.email.strip()
     if not name or not email:
         raise HTTPException(status_code=400, detail="display_name and email required")
 
     result = kassa_payments.create_connected_account(
         display_name=name,
         email=email,
-        country=payload.get("country", "us"),
+        country=payload.country,
     )
     if result.get("error"):
         raise HTTPException(status_code=503, detail=result["error"])
@@ -255,7 +276,7 @@ async def create_connect_account(payload: dict) -> dict:
 
 
 @router.post("/api/connect/v2/accounts")
-async def create_recipient_account(payload: dict) -> dict:
+async def create_recipient_account(payload: ConnectRecipientPayload) -> dict:
     """Create a Stripe V2 Recipient account for agent payouts.
 
     Body: { "display_name": "...", "email": "...", "country": "us" }
@@ -263,15 +284,15 @@ async def create_recipient_account(payload: dict) -> dict:
     V2 Recipient accounts are machine-native — for autonomous agents receiving
     mission/bounty payouts. Falls back to V1 Express if V2 API not enabled.
     """
-    name = (payload.get("display_name") or "").strip()
-    email = (payload.get("email") or "").strip()
+    name = payload.display_name.strip()
+    email = payload.email.strip()
     if not name:
         raise HTTPException(status_code=400, detail="display_name required")
 
     result = kassa_payments.create_recipient_account(
         display_name=name,
         email=email,
-        country=payload.get("country", "us"),
+        country=payload.country,
     )
     if result.get("error"):
         raise HTTPException(status_code=503, detail=result["error"])
@@ -325,22 +346,22 @@ async def connect_account_status(account_id: str) -> dict:
 # ── Stripe Connect: Products ───────────────────────────────────────────────
 
 @router.post("/api/connect/products")
-async def create_connect_product(payload: dict) -> dict:
+async def create_connect_product(payload: ConnectProductPayload) -> dict:
     """Create a product at the platform level, mapped to a connected account.
 
     Body: { "name": "...", "description": "...", "price_cents": 4900,
             "currency": "usd", "connected_account_id": "acct_..." }
     """
-    name = (payload.get("name") or "").strip()
+    name = payload.name.strip()
     if not name:
         raise HTTPException(status_code=400, detail="name required")
 
     result = kassa_payments.create_product(
         name=name,
-        description=payload.get("description", ""),
-        price_cents=int(payload.get("price_cents", 0)),
-        currency=payload.get("currency", "usd"),
-        connected_account_id=payload.get("connected_account_id", ""),
+        description=payload.description,
+        price_cents=payload.price_cents,
+        currency=payload.currency,
+        connected_account_id=payload.connected_account_id,
     )
     if result.get("error"):
         raise HTTPException(status_code=503, detail=result["error"])

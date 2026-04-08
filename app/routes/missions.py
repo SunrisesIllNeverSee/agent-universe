@@ -18,11 +18,113 @@ from pathlib import Path
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from typing import Any
 
 from app.deps import state
 from app.seeds import create_seed
 
 router = APIRouter(tags=["missions"])
+
+
+class CreateMissionPayload(BaseModel):
+    label: str = ""
+    objective: str = ""
+    posture: str = "SCOUT"
+    formation: str = ""
+    target: str = ""
+    duration: str = "sprint"
+    limits: str = ""
+    systems: dict[str, Any] = {}
+    agents: dict[str, Any] = {}
+    channel: str = ""
+    agent_id: str = "operator"
+
+
+class EndMissionPayload(BaseModel):
+    payout_per_slot: float = 0
+    originator_id: str = ""
+
+
+class UpdateMissionPayload(BaseModel):
+    posture: str | None = None
+    formation: str | None = None
+    status: str | None = None
+    target: str | None = None
+    limits: str | None = None
+
+
+class CreateCampaignPayload(BaseModel):
+    name: str = ""
+    objective: str = ""
+    created_by: str = ""
+    ecosystems: list[str] = []
+    revenue_target: str = ""
+
+
+class AddMissionToCampaignPayload(BaseModel):
+    mission_id: str = ""
+
+
+class CloseCampaignPayload(BaseModel):
+    outcome: str = ""
+
+
+class CreateTaskPayload(BaseModel):
+    title: str
+    type: str = "build"
+    track: str = "tool"
+    objective: str = ""
+    target: str = ""
+    exp_reward: int | None = None
+    payout: float = 0.0
+    operation_id: str | None = None
+    campaign_id: str | None = None
+    created_by: str = "operator"
+
+
+class AssignTaskPayload(BaseModel):
+    agent_id: str = ""
+
+
+class DeliverTaskPayload(BaseModel):
+    deliverable: str = ""
+
+
+class CloseTaskPayload(BaseModel):
+    requestor: str = ""
+
+
+class CreateSlotsPayload(BaseModel):
+    mission_id: str = ""
+    formation_id: str = ""
+    posture: str = "SCOUT"
+    label: str = ""
+    positions: list[dict[str, Any]] = []
+    roles: list[str] = []
+    revenue_splits: list[int] = []
+    governance_mode: str = ""
+
+
+class FillSlotPayload(BaseModel):
+    slot_id: str = ""
+    agent_id: str = ""
+    agent_name: str = ""
+
+
+class LeaveSlotPayload(BaseModel):
+    slot_id: str = ""
+    agent_id: str = ""
+
+
+class PostBountyPayload(BaseModel):
+    agent_id: str = ""
+    agent_name: str = ""
+    label: str = ""
+    description: str = ""
+    posture: str = "SCOUT"
+    slots_needed: int = 3
+    revenue_pool: float = 0
 
 # ── Atomic write helper ─────────────────────────────────────────────────────
 
@@ -138,22 +240,22 @@ def _award_exp(agent_id: str, exp: int, track: str) -> dict:
 
 
 @router.post("/api/missions")
-async def create_mission(payload: dict) -> dict:
+async def create_mission(payload: CreateMissionPayload) -> dict:
     """Create a new DEPLOY mission."""
     missions = _load_missions()
     mid = f"mission-{_secrets_mod.token_hex(4)}"
     mission = {
         "id": mid,
         "mission_id": mid,  # alias — both keys resolve to the same value
-        "label": payload.get("label", ""),
-        "objective": payload.get("objective", ""),
-        "posture": payload.get("posture", "SCOUT"),
-        "formation": payload.get("formation", ""),
-        "target": payload.get("target", ""),
-        "duration": payload.get("duration", "sprint"),
-        "limits": payload.get("limits", ""),
-        "systems": payload.get("systems", {}),
-        "agents": payload.get("agents", {}),
+        "label": payload.label,
+        "objective": payload.objective,
+        "posture": payload.posture,
+        "formation": payload.formation,
+        "target": payload.target,
+        "duration": payload.duration,
+        "limits": payload.limits,
+        "systems": payload.systems,
+        "agents": payload.agents,
         "status": "active",
         "created_at": datetime.now(UTC).isoformat(),
         "ended_at": None,
@@ -163,7 +265,7 @@ async def create_mission(payload: dict) -> dict:
             "role": state.runtime.governance.role,
         },
         "results": [],
-        "channel": payload.get("channel", f"mission-{payload.get('label', 'unnamed').lower().replace(' ', '-')}"),
+        "channel": payload.channel or f"mission-{(payload.label or 'unnamed').lower().replace(' ', '-')}",
     }
     missions.append(mission)
     _save_missions(missions)
@@ -180,7 +282,7 @@ async def create_mission(payload: dict) -> dict:
         seed_result = await create_seed(
             source_type="mission",
             source_id=mission["id"],
-            creator_id=payload.get("agent_id", "operator"),
+            creator_id=payload.agent_id or "operator",
             creator_type="BI",
             seed_type="planted",
             metadata={"label": mission["label"], "posture": mission["posture"]},
@@ -206,7 +308,7 @@ async def get_mission(mission_id: str) -> dict:
 
 
 @router.post("/api/missions/{mission_id}/end")
-async def end_mission(mission_id: str, payload: dict | None = None) -> dict:
+async def end_mission(mission_id: str, payload: EndMissionPayload | None = None) -> dict:
     missions = _load_missions()
     mission = next((m for m in missions if m["id"] == mission_id), None)
     if not mission:
@@ -215,7 +317,7 @@ async def end_mission(mission_id: str, payload: dict | None = None) -> dict:
     mission["ended_at"] = datetime.now(UTC).isoformat()
 
     # ── Economy: process payouts for all filled slots in this mission ──
-    payout_amount = (payload or {}).get("payout_per_slot", 0)
+    payout_amount = payload.payout_per_slot if payload else 0
     payouts = []
     if payout_amount > 0:
         all_slots = _load_slots()
@@ -227,7 +329,7 @@ async def end_mission(mission_id: str, payload: dict | None = None) -> dict:
                     agent_metrics={},
                     gross_amount=payout_amount,
                     mission_id=mission_id,
-                    originator_id=(payload or {}).get("originator_id", ""),
+                    originator_id=payload.originator_id if payload else "",
                 )
                 payouts.append(result)
             except Exception:
@@ -259,17 +361,20 @@ async def end_mission(mission_id: str, payload: dict | None = None) -> dict:
 
 
 @router.post("/api/missions/{mission_id}/update")
-async def update_mission(mission_id: str, payload: dict) -> dict:
+async def update_mission(mission_id: str, payload: UpdateMissionPayload) -> dict:
     missions = _load_missions()
     mission = next((m for m in missions if m["id"] == mission_id), None)
     if not mission:
         return JSONResponse({"error": "Mission not found"}, status_code=404)
+    updates = {}
     for k in ["posture", "formation", "status", "target", "limits"]:
-        if k in payload:
-            mission[k] = payload[k]
+        val = getattr(payload, k, None)
+        if val is not None:
+            mission[k] = val
+            updates[k] = val
     _save_missions(missions)
     try:
-        await create_seed(source_type="mission_updated", source_id=mission_id, creator_id="operator", creator_type="BI", seed_type="touched", metadata={k: payload[k] for k in ["posture", "formation", "status", "target", "limits"] if k in payload})
+        await create_seed(source_type="mission_updated", source_id=mission_id, creator_id="operator", creator_type="BI", seed_type="touched", metadata=updates)
     except Exception:
         pass
     return mission
@@ -281,16 +386,16 @@ async def update_mission(mission_id: str, payload: dict) -> dict:
 
 
 @router.post("/api/campaigns")
-async def create_campaign(payload: dict) -> dict:
+async def create_campaign(payload: CreateCampaignPayload) -> dict:
     """Create a CAMPAIGN — long-term strategy container for missions."""
     campaigns = _load_campaigns()
     campaign = {
         "id": f"campaign-{_secrets_mod.token_hex(4)}",
-        "name": payload.get("name", ""),
-        "objective": payload.get("objective", ""),
-        "created_by": payload.get("created_by", ""),
-        "ecosystems": payload.get("ecosystems", []),
-        "revenue_target": payload.get("revenue_target", ""),
+        "name": payload.name,
+        "objective": payload.objective,
+        "created_by": payload.created_by,
+        "ecosystems": payload.ecosystems,
+        "revenue_target": payload.revenue_target,
         "status": "active",
         "outcome": "",
         "created_at": datetime.now(UTC).isoformat(),
@@ -302,7 +407,7 @@ async def create_campaign(payload: dict) -> dict:
     state.audit.log("campaign", "created", {"campaign_id": campaign["id"], "name": campaign["name"]})
     await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
     try:
-        await create_seed(source_type="campaign", source_id=campaign["id"], creator_id=campaign.get("created_by", "operator"), creator_type="BI", seed_type="planted", metadata={"name": campaign["name"]})
+        await create_seed(source_type="campaign", source_id=campaign["id"], creator_id=campaign.get("created_by") or "operator", creator_type="BI", seed_type="planted", metadata={"name": campaign["name"]})
     except Exception:
         pass
     return campaign
@@ -322,12 +427,12 @@ async def get_campaign(campaign_id: str) -> dict:
 
 
 @router.post("/api/campaigns/{campaign_id}/add_mission")
-async def add_mission_to_campaign(campaign_id: str, payload: dict) -> dict:
+async def add_mission_to_campaign(campaign_id: str, payload: AddMissionToCampaignPayload) -> dict:
     campaigns = _load_campaigns()
     campaign = next((c for c in campaigns if c["id"] == campaign_id), None)
     if not campaign:
         return JSONResponse({"error": "Campaign not found"}, status_code=404)
-    mission_id = payload.get("mission_id")
+    mission_id = payload.mission_id
     if mission_id and mission_id not in campaign["missions"]:
         campaign["missions"].append(mission_id)
     _save_campaigns(campaigns)
@@ -335,14 +440,14 @@ async def add_mission_to_campaign(campaign_id: str, payload: dict) -> dict:
 
 
 @router.post("/api/campaigns/{campaign_id}/close")
-async def close_campaign(campaign_id: str, payload: dict) -> dict:
+async def close_campaign(campaign_id: str, payload: CloseCampaignPayload) -> dict:
     campaigns = _load_campaigns()
     campaign = next((c for c in campaigns if c["id"] == campaign_id), None)
     if not campaign:
         return JSONResponse({"error": "Campaign not found"}, status_code=404)
     campaign["status"] = "closed"
     campaign["closed_at"] = datetime.now(UTC).isoformat()
-    campaign["outcome"] = payload.get("outcome", "")
+    campaign["outcome"] = payload.outcome
     _save_campaigns(campaigns)
     state.audit.log("campaign", "closed", {"campaign_id": campaign_id, "name": campaign.get("name")})
     await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
@@ -375,28 +480,28 @@ async def activate_campaign(campaign_id: str) -> dict:
 
 
 @router.post("/api/tasks")
-async def create_task(payload: dict) -> dict:
+async def create_task(payload: CreateTaskPayload) -> dict:
     """Create an individual agent mission (task). The atomic unit of work."""
-    task_type = payload.get("type", "build")
-    track = payload.get("track", "tool")
-    if not payload.get("title"):
+    task_type = payload.type
+    track = payload.track
+    if not payload.title:
         return JSONResponse({"error": "title required"}, status_code=400)
-    exp_reward = payload.get("exp_reward", TASK_EXP_BASE.get(task_type, 100))
+    exp_reward = payload.exp_reward if payload.exp_reward is not None else TASK_EXP_BASE.get(task_type, 100)
     task = {
         "id": f"task-{_secrets_mod.token_hex(4)}",
-        "title": payload.get("title", ""),
+        "title": payload.title,
         "type": task_type,
         "track": track,
-        "objective": payload.get("objective", ""),
-        "target": payload.get("target", ""),
+        "objective": payload.objective,
+        "target": payload.target,
         "exp_reward": exp_reward,
-        "payout": float(payload.get("payout", 0.0)),
+        "payout": float(payload.payout),
         "assigned_agent": None,
-        "operation_id": payload.get("operation_id"),
-        "campaign_id": payload.get("campaign_id"),
+        "operation_id": payload.operation_id,
+        "campaign_id": payload.campaign_id,
         "status": "open",
         "deliverable": "",
-        "created_by": payload.get("created_by", "operator"),
+        "created_by": payload.created_by,
         "created_at": datetime.now(UTC).isoformat(),
         "assigned_at": None,
         "delivered_at": None,
@@ -451,9 +556,9 @@ async def get_task(task_id: str) -> dict:
 
 
 @router.post("/api/tasks/{task_id}/assign")
-async def assign_task(task_id: str, payload: dict) -> dict:
+async def assign_task(task_id: str, payload: AssignTaskPayload) -> dict:
     """Assign an agent to an open task."""
-    agent_id = payload.get("agent_id", "")
+    agent_id = payload.agent_id
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
     tasks = _load_tasks()
@@ -492,13 +597,13 @@ async def start_task(task_id: str) -> dict:
 
 
 @router.post("/api/tasks/{task_id}/deliver")
-async def deliver_task(task_id: str, payload: dict) -> dict:
+async def deliver_task(task_id: str, payload: DeliverTaskPayload) -> dict:
     """Agent submits output/deliverable. Moves task to delivered — awaiting close."""
     tasks = _load_tasks()
     task = next((t for t in tasks if t["id"] == task_id), None)
     if not task:
         return JSONResponse({"error": "Task not found"}, status_code=404)
-    task["deliverable"] = payload.get("deliverable", "")
+    task["deliverable"] = payload.deliverable
     task["status"] = "delivered"
     task["delivered_at"] = datetime.now(UTC).isoformat()
     _save_tasks(tasks)
@@ -521,7 +626,7 @@ async def deliver_task(task_id: str, payload: dict) -> dict:
 
 
 @router.post("/api/tasks/{task_id}/close")
-async def close_task(task_id: str, payload: dict) -> dict:
+async def close_task(task_id: str, payload: CloseTaskPayload) -> dict:
     """Close a task — awards EXP to agent, triggers economic payout if payout > 0."""
 
     tasks = _load_tasks()
@@ -558,7 +663,7 @@ async def close_task(task_id: str, payload: dict) -> dict:
         seed_result = await create_seed(
             source_type="task_close",
             source_id=task_id,
-            creator_id=payload.get("requestor", agent_id or "operator"),
+            creator_id=payload.requestor or agent_id or "operator",
             creator_type="BI",
             seed_type="grown",
             metadata={"task_id": task_id, "agent_id": agent_id, "exp_awarded": task["exp_reward"], "payout": task["payout"]},
@@ -617,16 +722,16 @@ async def cancel_task(task_id: str) -> dict:
 
 
 @router.post("/api/slots/create")
-async def create_slots_from_formation(payload: dict) -> dict:
+async def create_slots_from_formation(payload: CreateSlotsPayload) -> dict:
     """Create slots from a formation. Each slot has position, role, governance, revenue split."""
-    mission_id = payload.get("mission_id", f"mission-{_secrets_mod.token_hex(4)}")
-    formation_id = payload.get("formation_id", "")
-    posture = payload.get("posture", "SCOUT")
-    label = payload.get("label", "")
-    positions = payload.get("positions", [])
-    roles = payload.get("roles", [])
-    revenue_splits = payload.get("revenue_splits", [])
-    governance_mode = payload.get("governance_mode", state.runtime.governance.mode)
+    mission_id = payload.mission_id or f"mission-{_secrets_mod.token_hex(4)}"
+    formation_id = payload.formation_id
+    posture = payload.posture
+    label = payload.label
+    positions = payload.positions
+    roles = payload.roles
+    revenue_splits = payload.revenue_splits
+    governance_mode = payload.governance_mode or state.runtime.governance.mode
 
     slots = _load_slots()
     new_slots = []
@@ -700,12 +805,12 @@ async def list_open_slots() -> dict:
 
 
 @router.post("/api/slots/fill")
-async def fill_slot(payload: dict) -> dict:
+async def fill_slot(payload: FillSlotPayload) -> dict:
     """Agent claims an open slot. Gets auto-governed."""
 
-    slot_id = payload.get("slot_id", "")
-    agent_id = payload.get("agent_id", "")
-    agent_name = payload.get("agent_name", agent_id)
+    slot_id = payload.slot_id
+    agent_id = payload.agent_id
+    agent_name = payload.agent_name or agent_id
 
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
@@ -764,10 +869,10 @@ async def fill_slot(payload: dict) -> dict:
 
 
 @router.post("/api/slots/leave")
-async def leave_slot(payload: dict) -> dict:
+async def leave_slot(payload: LeaveSlotPayload) -> dict:
     """Agent leaves a slot — opens it back up. Caller must be the occupant."""
-    slot_id = payload.get("slot_id", "")
-    requesting_agent = payload.get("agent_id", "")
+    slot_id = payload.slot_id
+    requesting_agent = payload.agent_id
     async with state.slot_lock:
         slots = _load_slots()
         slot = next((s for s in slots if s["id"] == slot_id), None)
@@ -802,16 +907,16 @@ async def leave_slot(payload: dict) -> dict:
 
 
 @router.post("/api/slots/bounty")
-async def post_bounty(payload: dict) -> dict:
+async def post_bounty(payload: PostBountyPayload) -> dict:
     """Agent posts a bounty — creates a mission with slots and itself as Primary."""
 
-    agent_id = payload.get("agent_id", "")
-    agent_name = payload.get("agent_name", agent_id)
-    label = payload.get("label", f"BOUNTY-{_secrets_mod.token_hex(3).upper()}")
-    description = payload.get("description", "")
-    posture = payload.get("posture", "SCOUT")
-    slots_needed = payload.get("slots_needed", 3)
-    revenue_pool = payload.get("revenue_pool", 0)
+    agent_id = payload.agent_id
+    agent_name = payload.agent_name or agent_id
+    label = payload.label or f"BOUNTY-{_secrets_mod.token_hex(3).upper()}"
+    description = payload.description
+    posture = payload.posture
+    slots_needed = payload.slots_needed
+    revenue_pool = payload.revenue_pool
 
     mission_id = f"bounty-{_secrets_mod.token_hex(4)}"
     slots = _load_slots()

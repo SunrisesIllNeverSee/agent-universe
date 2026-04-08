@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from app.deps import state
 from app.seeds import _read_seeds
@@ -21,6 +22,11 @@ from app.seeds import _read_seeds
 UTC = timezone.utc
 
 router = APIRouter(tags=["operator"])
+
+
+class InboxReviewPayload(BaseModel):
+    status: str = "reviewed"
+    note: str = ""
 
 # ── Auth helper (fail-closed) ─────────────────────────────────────────────────
 
@@ -324,10 +330,10 @@ async def inbox_get(app_id: str) -> dict:
 
 
 @router.post("/api/inbox/{app_id}/review")
-async def inbox_review(app_id: str, payload: dict) -> dict:
+async def inbox_review(app_id: str, payload: InboxReviewPayload) -> dict:
     """Update application status: pending -> approved / rejected / contacted."""
     inbox_path = state.data_path("inbox.jsonl")
-    status = payload.get("status", "reviewed")
+    status = payload.status
     if not inbox_path.exists():
         return {"error": "inbox empty"}
     lines = inbox_path.read_text().splitlines()
@@ -339,7 +345,7 @@ async def inbox_review(app_id: str, payload: dict) -> dict:
             if entry.get("id") == app_id:
                 entry["status"] = status
                 entry["reviewed_at"] = datetime.now(UTC).isoformat()
-                entry["reviewer_note"] = payload.get("note", "")
+                entry["reviewer_note"] = payload.note
                 updated = True
             new_lines.append(json.dumps(entry))
         except json.JSONDecodeError:

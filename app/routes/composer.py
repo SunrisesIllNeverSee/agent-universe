@@ -23,10 +23,16 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from app.deps import state
 
 router = APIRouter(tags=["composer"])
+
+
+class ComposeMissionPayload(BaseModel):
+    text: str = ""
+    template: str = ""
 
 
 # ── Templates ────────────────────────────────────────────────────────────────
@@ -191,15 +197,15 @@ async def get_template(template_key: str) -> dict:
 
 
 @router.post("/api/composer/compose")
-async def compose_mission(payload: dict) -> dict:
+async def compose_mission(payload: ComposeMissionPayload) -> dict:
     """Take rough text and return structured mission fields.
 
     Body: { "text": "I need someone to audit our smart contracts...", "template": "fixed_bounty" (optional) }
 
     Returns structured fields ready to submit to /api/kassa/posts.
     """
-    text = (payload.get("text") or "").strip()
-    template_key = payload.get("template", "")
+    text = (payload.text or "").strip()
+    template_key = payload.template or ""
 
     if not text and not template_key:
         raise HTTPException(400, "Provide 'text' or 'template' (or both)")
