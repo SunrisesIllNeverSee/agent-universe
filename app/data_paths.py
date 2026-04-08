@@ -44,11 +44,17 @@ def ensure_data_dir(data_dir: Path) -> Path:
 
     if railway_env:
         if not mounted_paths:
-            raise RuntimeError(
-                f"Running on Railway ({railway_env}) without an attached volume for {data_path}. "
-                "Refusing to use ephemeral container storage for runtime data."
+            # RAILWAY_VOLUME_MOUNT_PATH is a custom env var (not set by Railway automatically).
+            # If the operator hasn't configured it, log a warning but continue — the volume
+            # may still be mounted correctly at the data_dir path.  Raising here would prevent
+            # every Railway deploy from starting whenever the var is absent.
+            logger.warning(
+                "Running on Railway (%s) but RAILWAY_VOLUME_MOUNT_PATH is not set. "
+                "Set it to %s to enable strict volume-mount validation.",
+                railway_env,
+                data_path,
             )
-        if data_path not in mounted_paths:
+        elif data_path not in mounted_paths:
             raise RuntimeError(
                 f"Canonical data dir {data_path} is not backed by the active Railway volume mounts: "
                 f"{', '.join(mounted_paths)}"
