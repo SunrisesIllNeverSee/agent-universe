@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 
 from app.deps import state
 
@@ -454,3 +454,38 @@ async def bountyboard_page() -> FileResponse:
 @router.get("/contact")
 async def contact_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "contact.html")
+
+
+# ── Sitemap ───────────────────────────────────────────────────────────────────
+
+@router.get("/sitemap.xml")
+async def sitemap_xml() -> Response:
+    base = "https://signomy.xyz"
+    urls = [
+        # Core
+        "/", "/civitas", "/portal", "/about", "/contact", "/join", "/entry",
+        # Marketplace
+        "/kassa", "/missions", "/slots", "/bountyboard", "/iso-collaborators",
+        "/products", "/hiring", "/services", "/marketplace",
+        # Governance & Economy
+        "/governance", "/senate", "/economics", "/treasury", "/vault",
+        "/vault/gov-001", "/vault/gov-002", "/vault/gov-003",
+        "/vault/gov-004", "/vault/gov-005", "/vault/gov-006",
+        # Community
+        "/forums", "/openroles", "/helpwanted", "/advisory", "/leaderboard",
+        # Agent tools
+        "/agentdash", "/seeds", "/academia", "/moses",
+        # World
+        "/world", "/kingdoms",
+        # Launch / Incentives
+        "/grand-opening", "/black-card", "/early-believers",
+        "/earnings-matrix", "/earnings-journey", "/fee-credits", "/wave-registry",
+        # Discovery
+        "/skill.md", "/llms.txt",
+    ]
+    lines = ['<?xml version="1.0" encoding="UTF-8"?>',
+             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for u in urls:
+        lines.append(f"  <url><loc>{base}{u}</loc></url>")
+    lines.append("</urlset>")
+    return Response("\n".join(lines), media_type="application/xml")
