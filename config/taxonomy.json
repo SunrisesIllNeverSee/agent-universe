@@ -1,0 +1,36 @@
+{
+  "version": "1.0",
+  "description": "MO§ES Action Taxonomy — maps semantic intent categories to minimum trust tiers and risk weights.",
+  "categories": {
+    "DATA_DESTRUCTIVE": {
+      "keywords": ["delete", "drop", "truncate", "expunge", "clear", "remove", "erase", "wipe", "purge", "eliminate", "terminate", "structural removal", "zero out", "scrub", "annihilate"],
+      "min_tier": "CONSTITUTIONAL",
+      "risk_weight": 0.9
+    },
+    "STATE_MODIFICATION": {
+      "keywords": ["update", "patch", "modify", "alter", "set", "write", "edit", "change", "mutate", "insert", "append", "replace", "rewrite", "configure", "adjust"],
+      "min_tier": "GOVERNED",
+      "risk_weight": 0.5
+    },
+    "SYSTEM_ADMIN": {
+      "keywords": ["sudo", "grant", "revoke", "config", "shutdown", "reboot", "override", "bypass", "elevate", "promote", "disable", "unlock", "admin", "root"],
+      "min_tier": "BLACK_CARD",
+      "risk_weight": 1.0
+    },
+    "FINANCIAL_TRANSFER": {
+      "keywords": ["transfer", "send", "pay", "wire", "remit", "disburse", "cashout", "withdraw", "settle", "payout", "allocate funds", "move funds"],
+      "min_tier": "GOVERNED",
+      "risk_weight": 0.8
+    },
+    "SIGNAL_OBSERVATION": {
+      "keywords": ["get", "view", "list", "read", "check", "browse", "fetch", "query", "inspect", "monitor", "watch", "observe", "retrieve"],
+      "min_tier": "UNGOVERNED",
+      "risk_weight": 0.1
+    },
+    "EXTERNAL_EXECUTION": {
+      "keywords": ["execute", "deploy", "run", "launch", "trigger", "invoke", "initiate", "activate", "call", "request", "connect", "transmit", "broadcast"],
+      "min_tier": "GOVERNED",
+      "risk_weight": 0.7
+    }
+  }
+}
