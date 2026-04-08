@@ -1,3 +1,9 @@
+"""
+run_mcp_command.py — MCP 1: COMMAND Runtime Bridge (stdio)
+
+Runs the internal governance chat MCP (app/mcp_bridge.py).
+This is NOT the CIVITAE plugin — for that, use civitae_mcp_server.py.
+"""
 from pathlib import Path
 import sys
 
