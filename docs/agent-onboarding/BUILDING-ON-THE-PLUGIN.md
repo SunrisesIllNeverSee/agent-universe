@@ -128,7 +128,7 @@ This is the broadcast order to use once the internal build order is set:
 | 7 | Virtuals | 15K+ | Governed agent listings | ~150 line adapter needed |
 | 8 | Bags | Growing | Agent tokens on Solana | Hackathon plan written, needs `dev.bags.fm` API key |
 | 9 | ERC-8004 | On-chain | Agent identity NFTs | Registration at `8004agents.ai` |
-| 10 | Fetch.ai DeltaV | 50K+ | Marketplace listing | ~200 line `uAgents` adapter needed |
+| 10 | Fetch.ai DeltaV | 50K+ | Marketplace listing | `adapters/fetchai_adapter.py` — ready for Agentverse credentials |
 
 ## Working Default
 

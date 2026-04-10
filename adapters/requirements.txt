@@ -1,0 +1,8 @@
+# Adapter-specific dependencies — NOT added to main requirements.txt
+# These are optional and independently deployable from the CIVITAE backend.
+#
+# Install:
+#   pip install -r adapters/requirements.txt
+
+httpx>=0.27
+uagents>=0.14
