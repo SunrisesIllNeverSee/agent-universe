@@ -153,30 +153,105 @@
 
 ---
 
-## Post-Test Refactor: Consolidate _atomic_write + _load_metrics
+## Post-Test Refactor: Consolidate Duplicated Helpers
 
+**Triggered by:** testresults.md analysis identifying systemic code smell  
 **Commit:** bfd06c3  
-**Result:** ✅ 127/127 tests still passing
+**Verification:** 127/127 tests passing after all changes  
+**Date:** 2026-04-10
 
-Identified by testresults.md analysis: 7 copies of `_atomic_write` and 6 copies of `_load_metrics` across route files. Only `metrics.py` had the corruption guard — the other 5 didn't.
+### What was found
 
-**Created `app/metrics_io.py`** — single source of truth:
-- `atomic_write(path, data)` — tmp-then-rename atomic write
-- `load_metrics()` — with corruption guard (now applies to all 6 callers)
-- `save_metrics(m)` — atomic metrics write
+The post-test analysis identified that `_atomic_write` and `_load_metrics` were copy-pasted across route files with no shared definition:
 
-**Files updated:** core.py, economy.py, governance.py, metrics.py, missions.py, provision.py, agents.py, matcher.py
+| Helper | Copies | Files |
+|--------|--------|-------|
+| `_atomic_write` | 7 | core.py, economy.py, governance.py, metrics.py, missions.py, provision.py, (runtime.py — different signature, left alone) |
+| `_load_metrics` | 6 | metrics.py, economy.py, provision.py, agents.py, governance.py, matcher.py |
+| `_save_metrics` | 2 | metrics.py, provision.py |
 
-**Bonus fix:** matcher.py was using wrong path (`state.root / "data" / "metrics.json"`) instead of `state.data_path("metrics.json")`.
+**Critical finding:** Only `metrics.py`'s `_load_metrics()` had the corruption guard (added after chaos testing found the bug). The other 5 copies were unguarded — a deep-nested payload could corrupt `metrics.json` and break any of those routes until the next restart.
 
-**stress_test.py Phase 9 fixed:** `posts_list.get()` on a list → type-safe check.
+**Secondary finding:** `matcher.py` was using the wrong path — `state.root / "data" / "metrics.json"` instead of `state.data_path("metrics.json")`. This would silently fail to find metrics on Railway where the volume is mounted at a different path.
+
+### What was built
+
+**`app/metrics_io.py`** — new shared module, single source of truth.
+
+```python
+atomic_write(path: Path, data: str) -> None
+    # tmp-then-rename atomic file write. mkdir parents, fsync, os.replace.
+
+load_metrics() -> dict
+    # Loads metrics.json with corruption guard + key backfill.
+    # Returns {"agents": {}, "missions": {}, "financial": {...}} on any failure.
+    # setdefault() on all top-level keys guards against partial corruption.
+
+save_metrics(m: dict) -> None
+    # Calls atomic_write(data_path("metrics.json"), json.dumps(m))
+```
+
+### Files updated
+
+| File | Changes |
+|------|---------|
+| `app/routes/core.py` | Removed local `_atomic_write`, import `atomic_write` from metrics_io |
+| `app/routes/economy.py` | Removed local `_atomic_write` + `_load_metrics`, import both from metrics_io |
+| `app/routes/governance.py` | Removed local `_atomic_write` + `_load_metrics`, import both from metrics_io |
+| `app/routes/metrics.py` | Removed local `_atomic_write`, `_get_metrics_path`, `_load_metrics`, `_save_metrics` — all replaced |
+| `app/routes/missions.py` | Removed local `_atomic_write`, import from metrics_io |
+| `app/routes/provision.py` | Removed local `_atomic_write`, `_load_metrics`, `_save_metrics` — all replaced |
+| `app/routes/agents.py` | Removed local `_load_metrics`, import from metrics_io |
+| `app/routes/matcher.py` | Removed local `_load_metrics` (wrong path), import from metrics_io (correct path) |
+
+**Net change:** 94 insertions, 158 deletions. The corruption guard now covers all 6 callers automatically. Any future improvement to `load_metrics()` propagates everywhere.
+
+### stress_test.py Phase 9 fix
+
+`GET /api/kassa/posts` returns a bare list, not `{"posts": [...]}`. The test script was calling `.get("posts", [])` on a list, which crashed with `AttributeError`.
+
+**Fixed:**
+```python
+# Before (broken):
+existing_count = len(posts_list.get("posts", [])) if posts_list else 0
+
+# After (fixed):
+existing_count = len(posts_list) if isinstance(posts_list, list) else len(posts_list.get("posts", [])) if isinstance(posts_list, dict) else 0
+```
+
+### Verification
+
+```bash
+python -m pytest tests/ -q
+# 127 passed, 4 warnings in 0.61s
+```
+
+All 127 tests (91 unit + 36 route) pass. No regressions introduced.
 
 ---
 
-## Coverage Gaps (remaining)
+## Final Status: Pre-BFG Readiness
 
-1. No frontend tests (vanilla JS)
-2. No WebSocket unit tests (websocket-client not installed in venv)
-3. No MCP server tests (`civitae_mcp_server.py`)
-4. No `AuditSpine` or seed/DOI unit tests
-5. 70% of 269 API endpoints still untested by automated means
+| Area | Status | Notes |
+|------|--------|-------|
+| Engine logic (economy, governance, JWT) | ✅ SOLID | 91 unit tests, 0 failures |
+| Route HTTP contracts | ✅ COVERED | 36 route tests, 3 production bugs caught |
+| Core ops lifecycle | ✅ CLEAN | signup → fill → work → leave → balance → tier all passing |
+| Race conditions + auth gates | ✅ ENFORCED | chaos_sim 22/23, all contract violations blocked |
+| Hard limits documented | ✅ DOCUMENTED | 41,600 slots OK, 10K concurrent signups = ceiling |
+| Code duplication | ✅ FIXED | metrics_io.py consolidates 13 copy-paste helpers |
+| stress_test.py | ✅ FIXED | Phase 9 script bug resolved |
+| BFG readiness | ✅ READY | Core engine safe, 3 production bugs fixed pre-BFG |
+
+---
+
+## Coverage Gaps (remaining, acceptable pre-BFG)
+
+| Gap | Risk | Notes |
+|-----|------|-------|
+| 70% of 269 API endpoints untested by pytest | Medium | Integration scripts cover most paths manually |
+| No frontend tests (vanilla JS) | Low | No framework to test against |
+| No WebSocket unit tests | Low | websocket-client not in venv |
+| No MCP server tests | Low | Standalone file, no production auth required |
+| No AuditSpine / seed/DOI unit tests | Low | Covered by integration suites implicitly |
+| kassa.py (31 endpoints), missions.py (25 endpoints) | High | Highest-risk untested surfaces — next test priority |
