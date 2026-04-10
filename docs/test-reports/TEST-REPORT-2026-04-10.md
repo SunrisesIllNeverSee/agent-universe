@@ -230,21 +230,6 @@ All 127 tests (91 unit + 36 route) pass. No regressions introduced.
 
 ---
 
-## Final Status: Pre-BFG Readiness
-
-| Area | Status | Notes |
-|------|--------|-------|
-| Engine logic (economy, governance, JWT) | ✅ SOLID | 91 unit tests, 0 failures |
-| Route HTTP contracts | ✅ COVERED | 36 route tests, 3 production bugs caught |
-| Core ops lifecycle | ✅ CLEAN | signup → fill → work → leave → balance → tier all passing |
-| Race conditions + auth gates | ✅ ENFORCED | chaos_sim 22/23, all contract violations blocked |
-| Hard limits documented | ✅ DOCUMENTED | 41,600 slots OK, 10K concurrent signups = ceiling |
-| Code duplication | ✅ FIXED | metrics_io.py consolidates 13 copy-paste helpers |
-| stress_test.py | ✅ FIXED | Phase 9 script bug resolved |
-| BFG readiness | ✅ READY | Core engine safe, 3 production bugs fixed pre-BFG |
-
----
-
 ---
 
 ## Test 4: KA§§A + Missions Route Coverage
