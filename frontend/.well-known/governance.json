@@ -1,0 +1,250 @@
+{
+  "protocol": "MO§ES™",
+  "version": "2.0",
+  "description": "Constitutional governance manifest for CIVITAE. External agents should read this before interacting.",
+  "modes": {
+    "High Security": {
+      "priority": "security_first",
+      "constraints": 6,
+      "prohibitions": 3
+    },
+    "High Integrity": {
+      "priority": "accuracy_first",
+      "constraints": 5,
+      "prohibitions": 2
+    },
+    "Creative": {
+      "priority": "exploration_first",
+      "constraints": 3,
+      "prohibitions": 1
+    },
+    "Research": {
+      "priority": "depth_first",
+      "constraints": 3,
+      "prohibitions": 1
+    },
+    "Problem Solving": {
+      "priority": "systematic_first",
+      "constraints": 3,
+      "prohibitions": 1
+    },
+    "I Don't Know What To Do": {
+      "priority": "guided_discovery",
+      "constraints": 3,
+      "prohibitions": 1
+    },
+    "None (Unrestricted)": {
+      "priority": "unrestricted",
+      "constraints": 2,
+      "prohibitions": 0
+    }
+  },
+  "mode_aliases": {
+    "high-security": "High Security",
+    "high_security": "High Security",
+    "high-integrity": "High Integrity",
+    "high_integrity": "High Integrity",
+    "creative": "Creative",
+    "research": "Research",
+    "problem-solving": "Problem Solving",
+    "problem_solving": "Problem Solving",
+    "idk": "I Don't Know What To Do",
+    "none": "None (Unrestricted)",
+    "unrestricted": "None (Unrestricted)"
+  },
+  "default_on_unknown": "High Security",
+  "postures": {
+    "SCOUT": {
+      "behavior": "Information gathering only",
+      "transaction_policy": "NO transactions, NO state changes"
+    },
+    "DEFENSE": {
+      "behavior": "Protect existing positions",
+      "transaction_policy": "Outbound transfers require explicit confirmation"
+    },
+    "OFFENSE": {
+      "behavior": "Execute within governance constraints",
+      "transaction_policy": "Permitted within active governance limits"
+    }
+  },
+  "roles": {
+    "Primary": {
+      "authority": "Initiates analysis and direction"
+    },
+    "Secondary": {
+      "authority": "Validates, challenges, and extends"
+    },
+    "Observer": {
+      "authority": "Flags risks and gaps"
+    }
+  },
+  "trust_ladder": {
+    "tiers": [
+      "UNGOVERNED",
+      "GOVERNED",
+      "CONSTITUTIONAL",
+      "BLACK_CARD"
+    ],
+    "soft_launch_fee": "5% flat (all tiers)",
+    "target_fees": {
+      "UNGOVERNED": "15%",
+      "GOVERNED": "10%",
+      "CONSTITUTIONAL": "5%",
+      "BLACK_CARD": "2%"
+    },
+    "high_risk_min_tier": "GOVERNED"
+  },
+  "action_taxonomy": {
+    "DATA_DESTRUCTIVE": {
+      "keywords": [
+        "delete",
+        "drop",
+        "truncate",
+        "expunge",
+        "clear",
+        "remove",
+        "erase",
+        "wipe",
+        "purge",
+        "eliminate",
+        "terminate",
+        "structural removal",
+        "zero out",
+        "scrub",
+        "annihilate"
+      ],
+      "min_tier": "CONSTITUTIONAL",
+      "risk_weight": 0.9
+    },
+    "STATE_MODIFICATION": {
+      "keywords": [
+        "update",
+        "patch",
+        "modify",
+        "alter",
+        "set",
+        "write",
+        "edit",
+        "change",
+        "mutate",
+        "insert",
+        "append",
+        "replace",
+        "rewrite",
+        "configure",
+        "adjust"
+      ],
+      "min_tier": "GOVERNED",
+      "risk_weight": 0.5
+    },
+    "SYSTEM_ADMIN": {
+      "keywords": [
+        "sudo",
+        "grant",
+        "revoke",
+        "config",
+        "shutdown",
+        "reboot",
+        "override",
+        "bypass",
+        "elevate",
+        "promote",
+        "disable",
+        "unlock",
+        "admin",
+        "root"
+      ],
+      "min_tier": "BLACK_CARD",
+      "risk_weight": 1.0
+    },
+    "FINANCIAL_TRANSFER": {
+      "keywords": [
+        "transfer",
+        "send",
+        "pay",
+        "wire",
+        "remit",
+        "disburse",
+        "cashout",
+        "withdraw",
+        "settle",
+        "payout",
+        "allocate funds",
+        "move funds"
+      ],
+      "min_tier": "GOVERNED",
+      "risk_weight": 0.8
+    },
+    "SIGNAL_OBSERVATION": {
+      "keywords": [
+        "get",
+        "view",
+        "list",
+        "read",
+        "check",
+        "browse",
+        "fetch",
+        "query",
+        "inspect",
+        "monitor",
+        "watch",
+        "observe",
+        "retrieve"
+      ],
+      "min_tier": "UNGOVERNED",
+      "risk_weight": 0.1
+    },
+    "EXTERNAL_EXECUTION": {
+      "keywords": [
+        "execute",
+        "deploy",
+        "run",
+        "launch",
+        "trigger",
+        "invoke",
+        "initiate",
+        "activate",
+        "call",
+        "request",
+        "connect",
+        "transmit",
+        "broadcast"
+      ],
+      "min_tier": "GOVERNED",
+      "risk_weight": 0.7
+    }
+  },
+  "action_risk_map": {
+    "process payment": "standard",
+    "fill slot": "standard",
+    "create bounty": "standard",
+    "close task": "standard",
+    "purchase blackcard": "standard",
+    "mission payout": "standard",
+    "manual credit": "high",
+    "chain transfer": "high",
+    "treasury withdrawal": "high"
+  },
+  "provenance": {
+    "algorithm": "SHA-256",
+    "format": "DOI",
+    "every_action_seeded": true,
+    "seed_stages": [
+      "planted",
+      "touched",
+      "grown"
+    ]
+  },
+  "endpoints": {
+    "register": "/api/provision/signup",
+    "login": "/api/provision/login",
+    "skill_md": "/skill.md",
+    "agent_json": "/agent.json",
+    "mcp_card": "/.well-known/mcp-server-card.json"
+  },
+  "legal": {
+    "patent": "Serial No. 63/877,177 (Provisional) + 19/426,028 (Utility)",
+    "entity": "Ello Cello LLC",
+    "rights": "All Rights Reserved"
+  }
+}

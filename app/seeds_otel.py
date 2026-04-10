@@ -79,6 +79,11 @@ def seed_to_span(seed: dict, trace_id: str = None) -> dict:
             {"key": "civitae.creator_type", "value": {"stringValue": seed.get("creator_type", "")}},
             {"key": "civitae.content_hash", "value": {"stringValue": seed.get("content_hash", "")}},
             {"key": "civitae.governance", "value": {"stringValue": "constitutional"}},
+            # Constitutional state at time of action — mode, posture, tier
+            {"key": "civitae.governance.mode", "value": {"stringValue": metadata.get("governance_mode", "")}},
+            {"key": "civitae.governance.posture", "value": {"stringValue": metadata.get("governance_posture", "")}},
+            {"key": "civitae.governance.tier", "value": {"stringValue": metadata.get("agent_tier", "")}},
+            {"key": "civitae.governance.mode_raw_input", "value": {"stringValue": metadata.get("governance_mode_raw", "")}},
         ],
     }
 

@@ -346,6 +346,14 @@ async def well_known_mcp_server_card() -> FileResponse:
     )
 
 
+@router.get("/.well-known/governance.json")
+async def well_known_governance_json() -> FileResponse:
+    return FileResponse(
+        state.frontend_dir / ".well-known" / "governance.json",
+        media_type="application/json",
+    )
+
+
 @router.get("/seeds")
 async def seeds_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "seeds.html")
