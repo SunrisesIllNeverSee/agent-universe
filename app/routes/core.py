@@ -21,6 +21,7 @@ from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, W
 from fastapi.responses import JSONResponse
 
 from app.deps import state
+from app.metrics_io import atomic_write
 from pydantic import BaseModel
 
 from app.models import (
@@ -84,19 +85,6 @@ def _check_rate_limit(request: Request, bucket_name: str, max_hits: int, window_
         raise HTTPException(status_code=429, detail=f"Rate limit: {max_hits} requests per hour")
     recent.append(now)
     bucket[ip_hash] = recent
-
-
-# ── Atomic file write helper ────────────────────────────────────────────────
-
-def _atomic_write(path: Path, data: str) -> None:
-    """Write data to a file atomically via tmp-then-rename."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with tmp.open("w", encoding="utf-8") as f:
-        f.write(data)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
 
 
 # ── JWT / auth helpers (for thread WebSocket) ───────────────────────────────
@@ -456,7 +444,7 @@ def _load_stars() -> list[dict]:
 
 
 def _save_stars(stars: list[dict]):
-    _atomic_write(_stars_path(), json.dumps(stars, indent=2))
+    atomic_write(_stars_path(), json.dumps(stars, indent=2))
 
 
 @router.post("/api/messages/star")

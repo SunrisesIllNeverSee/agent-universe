@@ -14,6 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from app.deps import state
 from app.jwt_config import get_kassa_jwt_secret
+from app.metrics_io import load_metrics
 from app.seeds import create_seed
 
 router = APIRouter(tags=["agents"])
@@ -32,22 +33,13 @@ def _extract_jwt(request: Request) -> dict | None:
     return extract_jwt(request)
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-def _load_metrics() -> dict:
-    metrics_path = state.data_path("metrics.json")
-    if metrics_path.exists():
-        return json.loads(metrics_path.read_text())
-    return {"agents": {}, "missions": {}, "financial": {"revenue": 0, "costs": 0, "transactions": []}}
-
-
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @router.get("/api/agents")
 async def api_agents_directory() -> dict:
     """Agent directory listing — all registered agents, public fields only."""
     agents_out = []
-    metrics_data = _load_metrics()
+    metrics_data = load_metrics()
     for reg in state.runtime.registry:
         if reg.get("type") != "agent":
             continue
@@ -93,7 +85,7 @@ async def api_agent_profile(handle: str) -> dict:
     agent_id = agent.get("agent_id", "")
 
     # Load metrics
-    metrics_data = _load_metrics()
+    metrics_data = load_metrics()
     agent_m = metrics_data.get("agents", {}).get(agent_id, {})
 
     # Determine tier

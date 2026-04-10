@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from typing import Any
 
 from app.deps import state
+from app.metrics_io import atomic_write, load_metrics
 from app.seeds import create_seed
 from app.economy import TIERS
 from app.chains import MultiChainRouter
@@ -74,22 +75,6 @@ router = APIRouter(tags=["economy"])
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
-def _atomic_write(path: Path, data: str) -> None:
-    """Write data to a file atomically via tmp-then-rename."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with tmp.open("w", encoding="utf-8") as f:
-        f.write(data)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
-
-
-def _load_metrics() -> dict:
-    metrics_path = state.data_path("metrics.json")
-    if metrics_path.exists():
-        return json.loads(metrics_path.read_text())
-    return {"agents": {}, "missions": {}, "financial": {"revenue": 0, "costs": 0, "transactions": []}}
 
 
 def _get_chain_router() -> MultiChainRouter:
@@ -405,7 +390,7 @@ async def get_leaderboard(trust: str = "governed") -> dict:
         filtered = raw  # admin/debug — no gate
     else:
         # Resolve each agent's tier from the registry + metrics
-        metrics_data = _load_metrics()
+        metrics_data = load_metrics()
         tier_threshold = VERIFIED_TIERS if trust == "verified" else TRUSTED_TIERS
 
         def _agent_trust_tier(agent_id: str) -> str:

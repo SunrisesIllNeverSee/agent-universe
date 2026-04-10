@@ -22,17 +22,11 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
 from app.deps import state
+from app.metrics_io import load_metrics
 from app.otel_setup import get_tracer as _get_tracer
 
 router = APIRouter(tags=["matcher"])
 _tracer = _get_tracer("civitae.matcher")
-
-
-def _load_metrics() -> dict:
-    p = state.root / "data" / "metrics.json"
-    if p.exists():
-        return json.loads(p.read_text())
-    return {"agents": {}, "missions": {}}
 
 
 def _load_slots() -> list:
@@ -120,7 +114,7 @@ async def match_agents_for_post(post_id: str, limit: int = 5) -> dict:
     if not agents:
         return {"post_id": post_id, "matches": [], "count": 0}
 
-    metrics = _load_metrics()
+    metrics = load_metrics()
     slots = _load_slots()
 
     scored = []
@@ -181,7 +175,7 @@ async def match_all_open_posts(limit: int = 3) -> dict:
         return {"matches": {}, "count": 0}
 
     agents = [r for r in state.runtime.registry if r.get("type") == "agent" and r.get("status") == "active"]
-    metrics = _load_metrics()
+    metrics = load_metrics()
     slots = _load_slots()
 
     results = {}

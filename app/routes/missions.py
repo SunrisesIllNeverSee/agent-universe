@@ -22,6 +22,7 @@ from pydantic import BaseModel
 from typing import Any
 
 from app.deps import state
+from app.metrics_io import atomic_write
 from app.otel_setup import get_tracer as _get_tracer
 from app.seeds import create_seed
 
@@ -138,20 +139,6 @@ class PostBountyPayload(BaseModel):
     slots_needed: int = 3
     revenue_pool: float = 0
 
-# ── Atomic write helper ─────────────────────────────────────────────────────
-
-
-def _atomic_write(path: Path, data: str) -> None:
-    """Write data to a file atomically via tmp-then-rename."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with tmp.open("w", encoding="utf-8") as f:
-        f.write(data)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
-
-
 # ── JSON file loaders / savers ───────────────────────────────────────────────
 # FIX-12: JSON file-backed state — missions, slots, tasks, campaigns, metrics.
 # Each _load_*() re-reads from disk on every call. This is simple and correct
@@ -184,7 +171,7 @@ def _load_missions() -> list[dict]:
 
 
 def _save_missions(missions: list[dict]) -> None:
-    _atomic_write(_missions_path(), json.dumps(missions, indent=2))
+    atomic_write(_missions_path(), json.dumps(missions, indent=2))
 
 
 def _load_campaigns() -> list[dict]:
@@ -195,7 +182,7 @@ def _load_campaigns() -> list[dict]:
 
 
 def _save_campaigns(campaigns: list[dict]) -> None:
-    _atomic_write(_campaigns_path(), json.dumps(campaigns, indent=2))
+    atomic_write(_campaigns_path(), json.dumps(campaigns, indent=2))
 
 
 def _load_tasks() -> list[dict]:
@@ -206,7 +193,7 @@ def _load_tasks() -> list[dict]:
 
 
 def _save_tasks(tasks: list[dict]) -> None:
-    _atomic_write(_tasks_path(), json.dumps(tasks, indent=2))
+    atomic_write(_tasks_path(), json.dumps(tasks, indent=2))
 
 
 def _load_slots() -> list[dict]:
@@ -217,7 +204,7 @@ def _load_slots() -> list[dict]:
 
 
 def _save_slots(slots: list[dict]) -> None:
-    _atomic_write(_slots_path(), json.dumps(slots, indent=2))
+    atomic_write(_slots_path(), json.dumps(slots, indent=2))
 
 
 # ── Task EXP base values ────────────────────────────────────────────────────

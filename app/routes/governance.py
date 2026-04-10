@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.deps import state
+from app.metrics_io import atomic_write, load_metrics
 from app.otel_setup import get_tracer as _get_tracer
 from app.sanitize import sanitize_text, sanitize_name
 from app.seeds import create_seed, _read_seeds
@@ -63,17 +64,6 @@ class AdjournMeetingPayload(BaseModel):
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
 
-def _atomic_write(path: Path, data: str) -> None:
-    """Write data to a file atomically via tmp-then-rename."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with tmp.open("w", encoding="utf-8") as f:
-        f.write(data)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
-
-
 def _load_meetings() -> list[dict]:
     meetings_path = state.data_path("meetings.json")
     if meetings_path.exists():
@@ -83,14 +73,7 @@ def _load_meetings() -> list[dict]:
 
 def _save_meetings(ms: list[dict]) -> None:
     meetings_path = state.data_path("meetings.json")
-    _atomic_write(meetings_path, json.dumps(ms, indent=2))
-
-
-def _load_metrics() -> dict:
-    metrics_path = state.data_path("metrics.json")
-    if metrics_path.exists():
-        return json.loads(metrics_path.read_text())
-    return {"agents": {}, "missions": {}, "financial": {"revenue": 0, "costs": 0, "transactions": []}}
+    atomic_write(meetings_path, json.dumps(ms, indent=2))
 
 
 # ── Governance Sessions ─────────────────────────────────────────────────────
@@ -401,7 +384,7 @@ async def flame_review(agent_id: str) -> dict:
         return JSONResponse({"error": "Agent not found"}, status_code=404)
 
     aid = agent.get("agent_id", agent_id)
-    metrics_data = _load_metrics()
+    metrics_data = load_metrics()
     agent_m = metrics_data.get("agents", {}).get(aid, {})
     gov_active = bool(agent.get("governance") and agent.get("governance") != "none_(unrestricted)")
     compliance = agent.get("compliance_score", agent_m.get("compliance_score", 0))

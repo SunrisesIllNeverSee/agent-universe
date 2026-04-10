@@ -20,6 +20,7 @@ from fastapi.responses import JSONResponse
 
 from app.deps import state
 from app.jwt_config import get_kassa_jwt_secret
+from app.metrics_io import atomic_write, load_metrics, save_metrics
 from app.otel_setup import get_tracer as _get_tracer
 from app.sanitize import sanitize_text as sanitize
 from app.seeds import create_seed
@@ -102,27 +103,6 @@ def _check_rate_limit(request: Request, bucket_name: str, max_hits: int, window_
 
 # ── Data helpers ─────────────────────────────────────────────────────────────
 
-def _atomic_write(path: Path, data: str) -> None:
-    """Write data to a file atomically via tmp-then-rename."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with tmp.open("w", encoding="utf-8") as f:
-        f.write(data)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
-
-
-def _load_metrics() -> dict:
-    metrics_path = state.data_path("metrics.json")
-    if metrics_path.exists():
-        return json.loads(metrics_path.read_text())
-    return {"agents": {}, "missions": {}, "financial": {"revenue": 0, "costs": 0, "transactions": []}}
-
-
-def _save_metrics(m: dict):
-    metrics_path = state.data_path("metrics.json")
-    _atomic_write(metrics_path, json.dumps(m, indent=2))
 
 
 # ── Agent Self-Signup / Provision API ────────────────────────────────────────
@@ -446,7 +426,7 @@ async def agent_heartbeat(agent_id: str) -> dict:
     runtime.persist_registry()
 
     # Auto-populate metrics entry on first heartbeat
-    m = _load_metrics()
+    m = load_metrics()
     if agent_id not in m.get("agents", {}):
         if "agents" not in m:
             m["agents"] = {}
@@ -462,7 +442,7 @@ async def agent_heartbeat(agent_id: str) -> dict:
             "uptime_hours": 0,
             "last_active": now,
         }
-        _save_metrics(m)
+        save_metrics(m)
 
     # Sample 1-in-10 heartbeats to avoid seed volume explosion
     seed_doi = None

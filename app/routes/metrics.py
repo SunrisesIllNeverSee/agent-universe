@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from typing import Any
 
 from app.deps import state
+from app.metrics_io import atomic_write, load_metrics, save_metrics
 from app.seeds import create_seed
 
 router = APIRouter(tags=["metrics"])
@@ -45,46 +46,6 @@ class MissionMetricPayload(BaseModel):
 # ── Atomic write helper ─────────────────────────────────────────────────────
 
 
-def _atomic_write(path: Path, data: str) -> None:
-    """Write data to a file atomically via tmp-then-rename."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with tmp.open("w", encoding="utf-8") as f:
-        f.write(data)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
-
-
-# ── Metrics helpers ──────────────────────────────────────────────────────────
-
-_metrics_path: Path | None = None
-
-
-def _get_metrics_path() -> Path:
-    global _metrics_path
-    if _metrics_path is None:
-        _metrics_path = state.data_path("metrics.json")
-    return _metrics_path
-
-
-def _load_metrics() -> dict:
-    _default = {"agents": {}, "missions": {}, "financial": {"revenue": 0, "costs": 0, "transactions": []}}
-    p = _get_metrics_path()
-    if p.exists():
-        try:
-            m = json.loads(p.read_text())
-            # Ensure required top-level keys exist — guards against corruption
-            for key, val in _default.items():
-                m.setdefault(key, val)
-            return m
-        except (json.JSONDecodeError, Exception):
-            return _default
-    return _default
-
-
-def _save_metrics(m: dict) -> None:
-    _atomic_write(_get_metrics_path(), json.dumps(m, indent=2))
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
@@ -93,7 +54,7 @@ def _save_metrics(m: dict) -> None:
 @router.post("/api/metrics/agent")
 async def log_agent_metric(payload: AgentMetricPayload) -> dict:
     """Log a metric for an agent — mission result, compliance event, revenue."""
-    m = _load_metrics()
+    m = load_metrics()
     agent_id = payload.agent_id
     if agent_id not in m["agents"]:
         m["agents"][agent_id] = {
@@ -146,7 +107,7 @@ async def log_agent_metric(payload: AgentMetricPayload) -> dict:
         })
 
     agent["last_active"] = datetime.now(UTC).isoformat()
-    _save_metrics(m)
+    save_metrics(m)
     # Seed only significant events — skip high-volume message_sent/cost/revenue
     seed_doi = None
     if event in ("mission_complete", "mission_failed", "governance_check", "governance_violation"):
@@ -168,7 +129,7 @@ async def log_agent_metric(payload: AgentMetricPayload) -> dict:
 @router.get("/api/metrics")
 async def get_metrics() -> dict:
     """Full metrics dashboard data."""
-    m = _load_metrics()
+    m = load_metrics()
 
     # Compute scores
     scoreboard = []
@@ -213,7 +174,7 @@ async def get_metrics() -> dict:
 @router.post("/api/metrics/mission")
 async def log_mission_metric(payload: MissionMetricPayload) -> dict:
     """Log mission-level metrics."""
-    m = _load_metrics()
+    m = load_metrics()
     mission_id = payload.mission_id
     if mission_id not in m["missions"]:
         m["missions"][mission_id] = {
@@ -245,7 +206,7 @@ async def log_mission_metric(payload: MissionMetricPayload) -> dict:
     elif event == "cost":
         mission["costs"] += payload.amount
 
-    _save_metrics(m)
+    save_metrics(m)
     seed_doi = None
     if event == "ended":
         try:

@@ -342,7 +342,7 @@ phase("PHASE 9 — KA§§A MARKETPLACE  (post, list, upvote, threads)")
 # List existing posts
 posts_list = req("GET", "/api/kassa/posts", label="kassa-list-posts")
 ok("KA§§A posts list", posts_list is not None)
-existing_count = len(posts_list.get("posts", [])) if posts_list else 0
+existing_count = len(posts_list) if isinstance(posts_list, list) else len(posts_list.get("posts", [])) if isinstance(posts_list, dict) else 0
 log("📊", f"Existing KA§§A posts: {existing_count}")
 
 # Create 3 posts across categories
