@@ -14,6 +14,9 @@ Environment variables:
     CIVITAE_JWT       — agent JWT (set after civitae_register)
     KASSA_ADMIN_KEY   — operator admin key (for op_ tools only)
 """
+# SPDX-License-Identifier: MIT
+# This file is a standalone API client for CIVITAE, licensed under MIT.
+# See packages/civitae-mcp/LICENSE. The agent-universe repository is All Rights Reserved.
 
 import os
 import httpx

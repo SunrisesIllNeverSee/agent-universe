@@ -40,3 +40,9 @@ software — including proprietary system architecture or terminology —
 is strictly prohibited and may result in legal action.
 
 For licensing inquiries: operator@signomy.xyz
+
+
+EXCEPTION
+
+civitae_mcp_server.py and its PyPI distribution (civitae-mcp) are licensed
+under the MIT License. See packages/civitae-mcp/LICENSE for terms.
