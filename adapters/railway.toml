@@ -1,0 +1,8 @@
+[build]
+builder = "nixpacks"
+buildCommand = "pip install -r adapters/requirements.txt"
+
+[deploy]
+startCommand = "python adapters/fetchai_adapter.py"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

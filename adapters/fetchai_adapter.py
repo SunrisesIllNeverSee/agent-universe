@@ -51,7 +51,17 @@ logger = logging.getLogger("civitae.fetchai")
 API = os.getenv("CIVITAE_API_URL", "https://signomy.xyz")
 JWT = os.getenv("CIVITAE_JWT", "")
 FETCH_AGENT_SEED = os.getenv("FETCH_AGENT_SEED") or None   # None = ephemeral address
-FETCH_AGENT_PORT = int(os.getenv("FETCH_AGENT_PORT", "8001"))
+
+# Railway sets PORT; FETCH_AGENT_PORT is the local fallback
+FETCH_AGENT_PORT = int(os.getenv("PORT", os.getenv("FETCH_AGENT_PORT", "8001")))
+
+# Public endpoint URL — Railway provides RAILWAY_PUBLIC_DOMAIN automatically
+_PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN", "")
+_ENDPOINT_URL = (
+    f"https://{_PUBLIC_DOMAIN}/submit"
+    if _PUBLIC_DOMAIN
+    else f"http://localhost:{FETCH_AGENT_PORT}/submit"
+)
 
 _TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 
@@ -141,7 +151,7 @@ agent = Agent(
     name="civitae-gateway",
     seed=FETCH_AGENT_SEED,
     port=FETCH_AGENT_PORT,
-    endpoint=[f"http://localhost:{FETCH_AGENT_PORT}/submit"],
+    endpoint=[_ENDPOINT_URL],
     # TODO: add mailbox=<agentverse-mailbox-key> for cloud connectivity
     # Get yours at https://agentverse.ai after creating an account
 )
@@ -235,6 +245,7 @@ async def handle_marketplace(ctx: Context, sender: str, msg: MarketplaceRequest)
 async def on_startup(ctx: Context):
     ctx.logger.info("CIVITAE DeltaV gateway started")
     ctx.logger.info("Agent address: %s", agent.address)
+    ctx.logger.info("Public URL:    %s", _ENDPOINT_URL)
     ctx.logger.info("CIVITAE API:   %s", API)
     ctx.logger.info("Auth:          %s", "JWT set" if JWT else "unauthenticated — set CIVITAE_JWT")
     ctx.logger.info("Services:      governed_work | agent_registration | marketplace")

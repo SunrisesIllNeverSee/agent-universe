@@ -1,13 +1,14 @@
 """
-register_chat_agent.py — Register CIVITAE on Agentverse via Chat Protocol
+register_chat_agent.py — Register CIVITAE gateway on Agentverse via Chat Protocol
 
-Uses uagents-core Chat Protocol registration — no running server required.
-Agentverse routes messages through the mailbox, so the agent endpoint is
-the CIVITAE signup API.
+Registers the fetchai_adapter.py uAgent on Agentverse so DeltaV agents can
+discover and message it. Run AFTER deploying fetchai_adapter.py and getting
+its public Railway URL.
 
 Usage:
-    export AGENTVERSE_KEY=<your-key>
-    export AGENT_SEED_PHRASE=<your-seed>
+    export AGENTVERSE_KEY=<your-key>           # from agentverse.ai
+    export AGENT_SEED_PHRASE=<your-seed>       # same seed as FETCH_AGENT_SEED
+    export AGENT_ENDPOINT=https://<railway-domain>/submit
     python3.11 adapters/register_chat_agent.py
 
 Requirements:
@@ -21,9 +22,20 @@ from uagents_core.utils.registration import (
     RegistrationRequestCredentials,
 )
 
+endpoint = os.environ.get(
+    "AGENT_ENDPOINT",
+    "https://<your-railway-domain>.up.railway.app/submit",  # set AGENT_ENDPOINT env var
+)
+
+if "<your-railway-domain>" in endpoint:
+    raise SystemExit(
+        "Set AGENT_ENDPOINT to your Railway public URL before registering.\n"
+        "Example: export AGENT_ENDPOINT=https://civitae-fetchai.up.railway.app/submit"
+    )
+
 register_chat_agent(
-    "Hange",
-    "https://signomy.xyz/api/provision/signup",
+    "civitae-gateway",
+    endpoint,
     active=True,
     credentials=RegistrationRequestCredentials(
         agentverse_api_key=os.environ["AGENTVERSE_KEY"],
@@ -31,4 +43,4 @@ register_chat_agent(
     ),
 )
 
-print("Registration complete.")
+print(f"Registration complete. Endpoint: {endpoint}")
