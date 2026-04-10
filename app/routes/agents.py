@@ -23,18 +23,13 @@ _JWT_SECRET = get_kassa_jwt_secret()
 
 
 def _verify_jwt(token: str) -> dict | None:
-    try:
-        return pyjwt.decode(token, _JWT_SECRET, algorithms=["HS256"])
-    except (pyjwt.ExpiredSignatureError, pyjwt.InvalidTokenError):
-        return None
+    from app.jwt_config import verify_jwt
+    return verify_jwt(token)
 
 
 def _extract_jwt(request: Request) -> dict | None:
-    """Extract and validate JWT from Authorization header. Returns claims or None."""
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        return None
-    return _verify_jwt(auth[7:])
+    from app.jwt_config import extract_jwt
+    return extract_jwt(request)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

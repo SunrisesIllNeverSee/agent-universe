@@ -35,10 +35,8 @@ def _require_admin(request: Request):
 
 
 def _verify_jwt(token: str) -> dict | None:
-    try:
-        return pyjwt.decode(token, state.jwt_secret, algorithms=["HS256"])
-    except (pyjwt.ExpiredSignatureError, pyjwt.InvalidTokenError):
-        return None
+    from app.jwt_config import verify_jwt
+    return verify_jwt(token)
 
 
 def _get_agent_from_token(request: Request) -> dict:

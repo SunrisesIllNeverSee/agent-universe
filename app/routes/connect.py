@@ -84,15 +84,8 @@ async def mpp_pay(request: Request, payload: dict) -> dict:
     Requires JWT — caller must be the agent being debited.
     """
     # JWT verification — caller must match agent_id
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="JWT required — include Authorization: Bearer <token>")
-    import jwt as pyjwt
-    from app.jwt_config import get_jwt_secret
-    try:
-        claims = pyjwt.decode(auth[7:], get_jwt_secret(), algorithms=["HS256"])
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid or expired JWT")
+    from app.jwt_config import require_jwt
+    claims = require_jwt(request)
 
     challenge_id = (payload.get("challenge_id") or "").strip()
     agent_id = (payload.get("agent_id") or "").strip()
@@ -684,19 +677,13 @@ async def cashout(request: Request):
 
     The flow: treasury.debit(agent) → stripe.Transfer → seed created.
     """
-    import jwt as pyjwt
     from app.seeds import create_seed
+    from app.jwt_config import extract_jwt
 
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
+    payload = extract_jwt(request)
+    if not payload:
         return JSONResponse({"error": "JWT required"}, status_code=401)
-    token = auth[7:]
-    try:
-        payload = pyjwt.decode(token, state.jwt_secret, algorithms=["HS256"])
-        agent_id = payload.get("agent_id") or payload.get("sub", "")
-    except Exception:
-        return JSONResponse({"error": "Invalid token"}, status_code=401)
-
+    agent_id = payload.get("agent_id") or payload.get("sub", "")
     if not agent_id:
         return JSONResponse({"error": "No agent_id in token"}, status_code=401)
 

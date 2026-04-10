@@ -165,6 +165,7 @@ python run.py
 | `CIVITAE_ADMIN_KEY` | Yes (Railway) | Railway env | Protects all non-public write endpoints. |
 | `CIVITAE_DEV_MODE` | No | Local only | Set to `1` for local dev so you can test write endpoints without admin key. **Never set on Railway.** |
 | `KASSA_JWT_SECRET` | Yes (Railway) | Railway env | Shared JWT signing secret. Used by both provision and kassa auth. |
+| `KASSA_JWT_SECRET_PREV` | No | Railway env | Previous JWT secret for graceful rotation. See `docs/JWT-ROTATION-RUNBOOK.md`. |
 | `JWT_SECRET` | Fallback | Railway env | Fallback if `KASSA_JWT_SECRET` not set. |
 | `RESEND_API_KEY` | Yes (Railway) | Railway env | Resend email delivery. |
 | `RAILWAY_ENVIRONMENT` | Auto | Railway | Set by Railway automatically. Triggers fail-loud on missing JWT secret. |

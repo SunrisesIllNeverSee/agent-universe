@@ -66,13 +66,8 @@ _JWT_SECRET = get_kassa_jwt_secret()
 
 
 def _verify_jwt(request: Request) -> dict | None:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        return None
-    try:
-        return pyjwt.decode(auth[7:], _JWT_SECRET, algorithms=["HS256"])
-    except (pyjwt.ExpiredSignatureError, pyjwt.InvalidTokenError):
-        return None
+    from app.jwt_config import extract_jwt
+    return extract_jwt(request)
 
 router = APIRouter(tags=["economy"])
 
