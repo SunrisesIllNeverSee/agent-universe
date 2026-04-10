@@ -71,36 +71,39 @@ def op_headers():
     return {"Content-Type": "application/json", "X-Admin-Key": ADMIN_KEY}
 
 
+_TIMEOUT = httpx.Timeout(30.0, connect=10.0)
+
+
 async def get(path, params=None):
-    async with httpx.AsyncClient() as c:
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
         r = await c.get(f"{API}{path}", params=params, headers=headers())
         r.raise_for_status()
         return r.json()
 
 
 async def post(path, body):
-    async with httpx.AsyncClient() as c:
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
         r = await c.post(f"{API}{path}", json=body, headers=headers())
         r.raise_for_status()
         return r.json()
 
 
 async def patch(path, body):
-    async with httpx.AsyncClient() as c:
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
         r = await c.patch(f"{API}{path}", json=body, headers=headers())
         r.raise_for_status()
         return r.json()
 
 
 async def op_get(path, params=None):
-    async with httpx.AsyncClient() as c:
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
         r = await c.get(f"{API}{path}", params=params, headers=op_headers())
         r.raise_for_status()
         return r.json()
 
 
 async def op_post(path, body=None):
-    async with httpx.AsyncClient() as c:
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
         r = await c.post(f"{API}{path}", json=body or {}, headers=op_headers())
         r.raise_for_status()
         return r.json()
@@ -248,6 +251,10 @@ async def civitae_forum(browse: bool = False, category: str = None, read: str = 
 @mcp.tool()
 async def civitae_cashout(amount: float, connected_account_id: str) -> dict:
     """Request a payout of earned funds to a connected Stripe account."""
+    if not connected_account_id.startswith("acct_"):
+        return {"error": "Invalid Stripe account ID — must start with 'acct_'"}
+    if amount <= 0:
+        return {"error": "Amount must be positive"}
     return await post("/api/connect/cashout", {
         "amount": amount,
         "connected_account_id": connected_account_id,

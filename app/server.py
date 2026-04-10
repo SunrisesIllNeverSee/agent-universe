@@ -180,9 +180,10 @@ def create_app(root: Path | None = None) -> FastAPI:
     # ── Admin key guard — protects all write endpoints ───────────────
     # Set CIVITAE_ADMIN_KEY env var to enable.
     # Fail-closed: when unset AND in production, all non-public writes are blocked.
-    # Localhost fallback only works when CIVITAE_DEV_MODE=1 (local development).
+    # Localhost fallback only works in local dev (RAILWAY_ENVIRONMENT absent).
     # Agent self-service paths (signup, heartbeat, apply, metrics) are public.
-    _DEV_MODE = os.environ.get("CIVITAE_DEV_MODE", "") == "1"
+    _ON_RAILWAY = bool(os.environ.get("RAILWAY_ENVIRONMENT"))
+    _DEV_MODE = not _ON_RAILWAY and os.environ.get("CIVITAE_DEV_MODE", "") == "1"
     _PUBLIC_WRITE_PREFIXES = (
         "/api/provision/signup",
         "/api/provision/login",
