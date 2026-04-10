@@ -15,9 +15,13 @@ Usage from any endpoint:
     from .notifications import send_magic_link, send_message_notification, send_operator_alert
 """
 
+import hashlib
 import json
 import logging
 import os
+
+from app.otel_setup import get_tracer as _get_tracer
+_tracer = _get_tracer("civitae.notifications")
 import urllib.request
 import urllib.error
 from datetime import datetime, timezone
@@ -62,6 +66,18 @@ def _send_email(to_addr: str, subject: str, body: str, from_addr: str | None = N
         from_addr: Optional custom sender (e.g. agent@signomy.xyz).
                    Falls back to SMTP_FROM env var.
     """
+    with _tracer.start_as_current_span("email.send") as span:
+        # Hash recipient for privacy — no PII in trace attributes
+        span.set_attribute("email.to_hash", hashlib.sha256(to_addr.encode()).hexdigest()[:12])
+        span.set_attribute("email.subject", subject[:80])
+        span.set_attribute("email.provider", "resend")
+        span.set_attribute("email.has_api_key", bool(RESEND_API_KEY))
+        result = _send_email_inner(to_addr, subject, body, from_addr)
+        span.set_attribute("email.success", result)
+        return result
+
+
+def _send_email_inner(to_addr: str, subject: str, body: str, from_addr: str | None = None) -> bool:
     sender = from_addr or SMTP_FROM
 
     if not RESEND_API_KEY:

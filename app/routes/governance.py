@@ -17,10 +17,23 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.deps import state
+from app.otel_setup import get_tracer as _get_tracer
 from app.sanitize import sanitize_text, sanitize_name
 from app.seeds import create_seed, _read_seeds
 
 router = APIRouter(tags=["governance"])
+_tracer = _get_tracer("civitae.governance")
+
+
+def _tag_span(**attrs) -> None:
+    """Add civitae.governance.* attributes to the current request span."""
+    try:
+        from opentelemetry import trace
+        span = trace.get_current_span()
+        for k, v in attrs.items():
+            span.set_attribute(f"civitae.governance.{k}", str(v)[:200])
+    except Exception:
+        pass
 
 
 class CallMeetingPayload(BaseModel):
@@ -133,6 +146,8 @@ async def call_meeting(payload: CallMeetingPayload) -> dict:
             "posture": state.runtime.governance.posture,
         },
     }
+    _tag_span(action="call_meeting", meeting_id=meeting["id"], caller=caller,
+              quorum=quorum, mode=state.runtime.governance.mode, posture=state.runtime.governance.posture)
     meetings.append(meeting)
     _save_meetings(meetings)
     state.audit.log("governance", "meeting_called", {"meeting_id": meeting["id"], "caller": caller, "subject": subject})
@@ -188,6 +203,8 @@ async def join_meeting(meeting_id: str, payload: JoinMeetingPayload) -> dict:
     })
     _save_meetings(meetings)
     has_quorum = len(meeting["attendees"]) >= meeting["quorum"]
+    _tag_span(action="join_meeting", meeting_id=meeting_id, agent_id=agent_id,
+              attendees=len(meeting["attendees"]), has_quorum=has_quorum)
     await state.emit("meeting_joined", {"meeting_id": meeting_id, "agent_id": agent_id, "has_quorum": has_quorum})
     seed_doi = None
     try:
@@ -238,6 +255,7 @@ async def propose_motion(meeting_id: str, payload: ProposeMotionPayload) -> dict
         "timestamp": datetime.now(UTC).isoformat(),
     })
     _save_meetings(meetings)
+    _tag_span(action="propose_motion", meeting_id=meeting_id, motion_id=motion["id"], proposer=proposer)
     state.audit.log("governance", "motion_proposed", {"meeting_id": meeting_id, "motion_id": motion["id"], "proposer": proposer})
     await state.emit("motion_proposed", {"meeting_id": meeting_id, "motion_id": motion["id"], "motion": motion_text})
 
@@ -292,12 +310,18 @@ async def cast_vote(meeting_id: str, payload: CastVotePayload) -> dict:
             "result": motion["status"], "yeas": yeas, "nays": nays,
             "timestamp": datetime.now(UTC).isoformat(),
         })
+        _tag_span(action="cast_vote", meeting_id=meeting_id, motion_id=motion_id,
+                  voter=voter, vote=vote, auto_resolved=True,
+                  result=motion["status"], yeas=yeas, nays=nays)
         state.audit.log("governance", "motion_resolved", {
             "meeting_id": meeting_id, "motion_id": motion_id,
             "result": motion["status"], "yeas": yeas, "nays": nays,
         })
         await state.emit("motion_resolved", {"meeting_id": meeting_id, "motion_id": motion_id, "result": motion["status"]})
     _save_meetings(meetings)
+    _tag_span(action="cast_vote", meeting_id=meeting_id, motion_id=motion_id,
+              voter=voter, vote=vote, votes_cast=len(motion["votes"]),
+              total_voters=len(meeting["attendees"]))
 
     try:
         await create_seed(
@@ -330,6 +354,11 @@ async def adjourn_meeting(meeting_id: str, payload: AdjournMeetingPayload | None
         "timestamp": datetime.now(UTC).isoformat(),
     })
     _save_meetings(meetings)
+    motions_total = len(meeting.get("motions", []))
+    motions_passed = sum(1 for m in meeting.get("motions", []) if m.get("status") == "passed")
+    _tag_span(action="adjourn_meeting", meeting_id=meeting_id,
+              attendees=len(meeting.get("attendees", [])),
+              motions_total=motions_total, motions_passed=motions_passed)
     state.audit.log("governance", "meeting_adjourned", {"meeting_id": meeting_id})
     await state.emit("meeting_adjourned", {"meeting_id": meeting_id})
     try:

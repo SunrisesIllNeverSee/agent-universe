@@ -20,8 +20,22 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
 from app.deps import state
+from app.otel_setup import get_tracer as _get_tracer
 from app.seeds import create_seed
 from app import kassa_payments
+
+_tracer = _get_tracer("civitae.payments")
+
+
+def _tag_payment_span(**attrs) -> None:
+    """Enrich the current request span with payment attributes."""
+    try:
+        from opentelemetry import trace
+        span = trace.get_current_span()
+        for k, v in attrs.items():
+            span.set_attribute(f"civitae.payment.{k}", str(v)[:200])
+    except Exception:
+        pass
 
 router = APIRouter(tags=["connect"])
 
@@ -197,6 +211,9 @@ async def initiate_payment(post_id: str, request: Request) -> dict:
     success_url = params.get("success_url", "")
     cancel_url = params.get("cancel_url", "")
 
+    _tag_payment_span(action="initiate", post_id=post_id, amount_usd=amount,
+                      rail=rail, is_agent=is_agent)
+
     try:
         result = kassa_payments.create_payment(
             post_id=post_id,
@@ -213,6 +230,7 @@ async def initiate_payment(post_id: str, request: Request) -> dict:
 
     if result.get("status") == 402:
         # MPP challenge — return as HTTP 402
+        _tag_payment_span(rail_resolved="mpp", status="challenge_issued")
         state.audit.log("kassa", "mpp_challenge_issued", {"post_id": post_id, "amount": amount})
         return JSONResponse(result, status_code=402)
 
@@ -526,6 +544,9 @@ async def stripe_webhook_v1(request: Request) -> dict:
         post_id = metadata.get("post_id", "")
         _stripe_amount = ((getattr(data, "amount_total", 0) if not isinstance(data, dict) else data.get("amount_total", 0)) or 0) / 100
         _session_id = getattr(data, "id", None) if not isinstance(data, dict) else data.get("id")
+        _tag_payment_span(action="webhook_completed", post_id=post_id,
+                          amount_usd=_stripe_amount, session_id=_session_id or "",
+                          payment_type=metadata.get("type", "bounty"))
 
         # Fee credit pack purchase — credit the agent's fee credit balance
         if metadata.get("type") == "fee_credit_pack":
