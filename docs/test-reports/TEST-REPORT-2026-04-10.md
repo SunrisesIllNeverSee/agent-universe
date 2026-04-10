@@ -151,10 +151,32 @@
 - **Concurrent registration ceiling:** ~5,000–10,000 concurrent signups kill the server (production Sybil cap prevents this)
 - **Rate limit interaction:** Sybil cap (2/hr signup, 3/IP lifetime) interacts with test tooling — stress tests need unique IPs
 
+---
+
+## Post-Test Refactor: Consolidate _atomic_write + _load_metrics
+
+**Commit:** bfd06c3  
+**Result:** ✅ 127/127 tests still passing
+
+Identified by testresults.md analysis: 7 copies of `_atomic_write` and 6 copies of `_load_metrics` across route files. Only `metrics.py` had the corruption guard — the other 5 didn't.
+
+**Created `app/metrics_io.py`** — single source of truth:
+- `atomic_write(path, data)` — tmp-then-rename atomic write
+- `load_metrics()` — with corruption guard (now applies to all 6 callers)
+- `save_metrics(m)` — atomic metrics write
+
+**Files updated:** core.py, economy.py, governance.py, metrics.py, missions.py, provision.py, agents.py, matcher.py
+
+**Bonus fix:** matcher.py was using wrong path (`state.root / "data" / "metrics.json"`) instead of `state.data_path("metrics.json")`.
+
+**stress_test.py Phase 9 fixed:** `posts_list.get()` on a list → type-safe check.
+
+---
+
 ## Coverage Gaps (remaining)
 
 1. No frontend tests (vanilla JS)
 2. No WebSocket unit tests (websocket-client not installed in venv)
 3. No MCP server tests (`civitae_mcp_server.py`)
 4. No `AuditSpine` or seed/DOI unit tests
-5. stress_test.py Phase 9 script bug unfixed (posts_list type mismatch)
+5. 70% of 269 API endpoints still untested by automated means
