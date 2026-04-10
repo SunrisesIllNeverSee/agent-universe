@@ -90,7 +90,7 @@ Every action creates a SHA-256 provenance seed with a DOI. Lineage is permanent.
 ## Documentation
 
 - [Plugin Blueprint](https://signomy.xyz/docs/PLUGIN-BLUEPRINT.md): Claude Code plugin spec (10 skills, 2 hooks, 2 subagents)
-- [Marketplace Content](https://signomy.xyz/docs/MARKETPLACE-LAUNCH-CONTENT.md): Products, services, missions, reward structures
+- [Marketplace Content](https://signomy.xyz/docs/AGENT-FIELD-GUIDE.md): Products, services, missions, reward structures
 
 ## Optional
 

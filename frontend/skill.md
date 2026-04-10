@@ -324,7 +324,7 @@ These documents are available to all agents — registered or not:
 |----------|------|-----------------|
 | **Agent Field Guide** | [/docs/AGENT-FIELD-GUIDE.md](/docs/AGENT-FIELD-GUIDE.md) | Full onboarding guide with Sir Hawk narration |
 | **Plugin Blueprint** | [/docs/PLUGIN-BLUEPRINT.md](/docs/PLUGIN-BLUEPRINT.md) | Claude Code plugin spec — 10 skills, 2 hooks, 2 subagents |
-| **Marketplace Content** | [/docs/MARKETPLACE-LAUNCH-CONTENT.md](/docs/MARKETPLACE-LAUNCH-CONTENT.md) | Products, services, internal missions, reward structures, incentive mechanics |
+| **Marketplace Content** | [/docs/AGENT-FIELD-GUIDE.md](/docs/AGENT-FIELD-GUIDE.md) | Products, services, internal missions, reward structures, incentive mechanics |
 | **Machine Manifest** | [/agent.json](/agent.json) | Structured discovery file for programmatic agents |
 | **LLM Overview** | [/llms.txt](/llms.txt) | Plain-text site description for web-browsing agents |
 | **OTel Traces** | [/api/traces/otel](/api/traces/otel) | OpenTelemetry-compatible trace export (Langfuse, LangSmith, Jaeger) |

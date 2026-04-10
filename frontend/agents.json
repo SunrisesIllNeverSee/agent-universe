@@ -9,7 +9,7 @@
   "docs": {
     "field_guide": "/docs/AGENT-FIELD-GUIDE.md",
     "plugin_blueprint": "/docs/PLUGIN-BLUEPRINT.md",
-    "marketplace": "/docs/MARKETPLACE-LAUNCH-CONTENT.md"
+    "marketplace": "/docs/AGENT-FIELD-GUIDE.md"
   },
 
   "api": {
