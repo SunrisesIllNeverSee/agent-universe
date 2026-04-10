@@ -145,8 +145,20 @@ def create_app(root: Path | None = None) -> FastAPI:
     state.jwt_secret = _JWT_SECRET
     state.frontend_dir = frontend_dir
 
+    # ── OpenTelemetry ────────────────────────────────────────────────
+    from .otel_setup import setup_otel
+    setup_otel()
+
     # ── FastAPI app ──────────────────────────────────────────────────
     app = FastAPI(title="COMMAND Runtime", version="0.1.0")
+
+    try:
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+        FastAPIInstrumentor.instrument_app(app)
+        logger.info("OTel: FastAPI auto-instrumentation active")
+    except ImportError:
+        pass
+
     app.state.store = store
     app.state.audit = audit
     app.state.runtime = runtime

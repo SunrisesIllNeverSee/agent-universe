@@ -199,6 +199,24 @@ async def create_seed(
 
     _append_seed(record)
 
+    # Emit a live OTel span so seeds are a real-time trace producer (not just batch export)
+    try:
+        from app.otel_setup import get_tracer
+        tracer = get_tracer("civitae.seeds")
+        with tracer.start_as_current_span(f"civitae.seed.{source_type}") as span:
+            span.set_attribute("civitae.doi", doi)
+            span.set_attribute("civitae.seed_type", seed_type)
+            span.set_attribute("civitae.source_type", source_type)
+            span.set_attribute("civitae.source_id", source_id)
+            span.set_attribute("civitae.creator_type", creator_type)
+            span.set_attribute("civitae.content_hash", content_hash)
+            if parent_doi:
+                span.set_attribute("civitae.parent_doi", parent_doi)
+            for k, v in (metadata or {}).items():
+                span.set_attribute(f"civitae.metadata.{k}", str(v))
+    except Exception:
+        pass  # OTel is never allowed to break provenance writes
+
     return {
         "doi": doi,
         "content_hash": content_hash,
