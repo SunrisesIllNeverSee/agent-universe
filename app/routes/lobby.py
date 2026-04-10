@@ -55,11 +55,11 @@ async def submit_join(request: Request):
     if not name or not email:
         return JSONResponse({"error": "name and email required"}, status_code=400)
 
-    from app.sanitize import sanitize
-    name = sanitize(name)
-    email = sanitize(email)
-    role = sanitize(role)
-    message = sanitize(message)
+    from app.sanitize import sanitize_text
+    name = sanitize_text(name)
+    email = sanitize_text(email)
+    role = sanitize_text(role)
+    message = sanitize_text(message)
 
     lobby = _get_lobby()
     req_id = lobby.submit_join(name, email, role, message)
