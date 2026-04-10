@@ -20,8 +20,21 @@ from fastapi.responses import JSONResponse
 
 from app.deps import state
 from app.jwt_config import get_kassa_jwt_secret
+from app.otel_setup import get_tracer as _get_tracer
 from app.sanitize import sanitize_text as sanitize
 from app.seeds import create_seed
+
+_tracer = _get_tracer("civitae.provision")
+
+
+def _tag_span(**attrs) -> None:
+    try:
+        from opentelemetry import trace
+        span = trace.get_current_span()
+        for k, v in attrs.items():
+            span.set_attribute(f"civitae.agent.{k}", str(v)[:200])
+    except Exception:
+        pass
 
 import jwt as pyjwt
 from pydantic import BaseModel
@@ -231,6 +244,9 @@ async def agent_signup(request: Request, payload: dict) -> dict:
         pass
 
     token = _issue_jwt(agent_id, agent_name)
+    _tag_span(action="signup", agent_id=agent_id, name=agent_name,
+              status=status, governance_mode=runtime.governance.mode,
+              governance_posture=runtime.governance.posture)
 
     return {
         "welcome": True,
@@ -463,6 +479,7 @@ async def agent_heartbeat(agent_id: str) -> dict:
             seed_doi = seed_result.get("doi") if seed_result else None
         except Exception:
             pass
+    _tag_span(action="heartbeat", agent_id=agent_id, sampled=str(_rand.random() < 0.1))
     return {"ok": True, "agent_id": agent_id, "last_seen": now, "seed_doi": seed_doi}
 
 

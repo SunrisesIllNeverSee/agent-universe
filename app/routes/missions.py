@@ -22,9 +22,21 @@ from pydantic import BaseModel
 from typing import Any
 
 from app.deps import state
+from app.otel_setup import get_tracer as _get_tracer
 from app.seeds import create_seed
 
 router = APIRouter(tags=["missions"])
+_tracer = _get_tracer("civitae.missions")
+
+
+def _tag_span(**attrs) -> None:
+    try:
+        from opentelemetry import trace
+        span = trace.get_current_span()
+        for k, v in attrs.items():
+            span.set_attribute(f"civitae.mission.{k}", str(v)[:200])
+    except Exception:
+        pass
 
 
 class CreateMissionPayload(BaseModel):
@@ -291,6 +303,8 @@ async def create_mission(payload: CreateMissionPayload) -> dict:
     except Exception:
         pass
 
+    _tag_span(action="create", mission_id=mission["id"], label=mission["label"],
+              posture=mission["posture"], formation=mission.get("formation", ""))
     return {**mission, "seed_doi": seed_doi}
 
 
@@ -357,6 +371,8 @@ async def end_mission(mission_id: str, payload: EndMissionPayload | None = None)
         seed_doi = seed_result.get("doi") if seed_result else None
     except Exception:
         pass
+    _tag_span(action="end", mission_id=mission_id,
+              slots_paid=len(payouts), payout_per_slot=payout_amount)
     return {**mission, "seed_doi": seed_doi}
 
 
@@ -858,6 +874,10 @@ async def fill_slot(payload: FillSlotPayload) -> dict:
     except Exception:
         pass
 
+    _tag_span(action="fill_slot", slot_id=slot_id, agent_id=agent_id,
+              mission_id=slot["mission_id"], role=slot["role"],
+              governance_mode=slot["governance"].get("mode", ""),
+              governance_posture=slot["governance"].get("posture", ""))
     return {
         "filled": True,
         "slot": slot,
@@ -990,6 +1010,8 @@ async def post_bounty(payload: PostBountyPayload) -> dict:
     except Exception:
         pass
 
+    _tag_span(action="post_bounty", mission_id=mission_id, agent_id=agent_id,
+              label=label, open_slots=slots_needed, posture=posture)
     return {
         "bounty_posted": True,
         "mission_id": mission_id,

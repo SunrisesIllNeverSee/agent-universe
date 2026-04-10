@@ -83,6 +83,15 @@ class ThreadHub:
                 stale.append(ws)
         for ws in stale:
             self.disconnect(thread_id, ws)
+        try:
+            from opentelemetry import trace
+            span = trace.get_current_span()
+            span.set_attribute("civitae.ws.thread_id", thread_id)
+            span.set_attribute("civitae.ws.connections", len(conns))
+            span.set_attribute("civitae.ws.stale_dropped", len(stale))
+            span.set_attribute("civitae.ws.event_type", event.get("type", "unknown"))
+        except Exception:
+            pass
 
 
 # ── Application Factory ───────────────────────────────────────────────────

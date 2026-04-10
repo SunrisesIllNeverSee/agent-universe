@@ -22,8 +22,10 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
 from app.deps import state
+from app.otel_setup import get_tracer as _get_tracer
 
 router = APIRouter(tags=["matcher"])
+_tracer = _get_tracer("civitae.matcher")
 
 
 def _load_metrics() -> dict:
@@ -157,6 +159,16 @@ async def match_agents_for_post(post_id: str, limit: int = 5) -> dict:
 
     scored.sort(key=lambda x: x["score"], reverse=True)
     top = scored[:limit]
+
+    try:
+        from opentelemetry import trace
+        span = trace.get_current_span()
+        span.set_attribute("civitae.matcher.post_id", post_id)
+        span.set_attribute("civitae.matcher.agents_scored", len(scored))
+        span.set_attribute("civitae.matcher.top_score", str(top[0]["score"]) if top else "0")
+        span.set_attribute("civitae.matcher.matches_returned", len(top))
+    except Exception:
+        pass
 
     return {"post_id": post_id, "matches": top, "count": len(top), "total_agents": len(agents)}
 

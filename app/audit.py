@@ -24,6 +24,16 @@ class AuditSpine:
             role=governance.get("role", ""),
             agent=(detail or {}).get("agent", ""),
         )
+        try:
+            from app.otel_setup import get_tracer
+            from opentelemetry import trace
+            span = trace.get_current_span()
+            span.set_attribute("civitae.audit.component", component)
+            span.set_attribute("civitae.audit.action", action)
+            if entry.get("hash"):
+                span.set_attribute("civitae.audit.hash", str(entry["hash"])[:32])
+        except Exception:
+            pass
         return self._to_event(entry)
 
     def recent(self, limit: int = 200) -> list[AuditEvent]:

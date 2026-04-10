@@ -710,7 +710,7 @@ class SovereignEconomy:
             reason="platform_fee", mission_id=mission_id,
         )
 
-        return {
+        result = {
             "agent_id": agent_id,
             "mission_id": mission_id,
             "tier": fee_calc["tier"],
@@ -728,6 +728,21 @@ class SovereignEconomy:
             "platform_transaction": platform_txn,
             "agent_balance": self.treasury.balance(agent_id),
         }
+        try:
+            from opentelemetry import trace
+            span = trace.get_current_span()
+            span.set_attribute("civitae.economy.agent_id", agent_id)
+            span.set_attribute("civitae.economy.mission_id", mission_id)
+            span.set_attribute("civitae.economy.tier", str(fee_calc.get("tier", "")))
+            span.set_attribute("civitae.economy.gross_amount", str(gross_amount))
+            span.set_attribute("civitae.economy.fee_rate", str(fee_calc.get("fee_rate", "")))
+            span.set_attribute("civitae.economy.platform_fee", str(fee_calc.get("platform_fee", "")))
+            span.set_attribute("civitae.economy.net_to_agent", str(fee_calc.get("net_to_agent", "")))
+            span.set_attribute("civitae.economy.fee_credit_used", str(fee_credit_used))
+            span.set_attribute("civitae.economy.recruiter_bounty", str(bounty_amount))
+        except Exception:
+            pass
+        return result
 
     def process_slot_payment(self, agent_id: str, agent_metrics: dict, gross_amount: float, mission_id: str = "") -> dict:
         """Full payment processing: determine tier → calculate fee → credit agent → credit platform."""

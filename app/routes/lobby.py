@@ -12,8 +12,20 @@ from fastapi import APIRouter, Cookie, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
 
 from app.deps import state
+from app.otel_setup import get_tracer as _get_tracer
 
 router = APIRouter(tags=["lobby"])
+_tracer = _get_tracer("civitae.lobby")
+
+
+def _tag_lobby_span(**attrs) -> None:
+    try:
+        from opentelemetry import trace
+        span = trace.get_current_span()
+        for k, v in attrs.items():
+            span.set_attribute(f"civitae.lobby.{k}", str(v)[:200])
+    except Exception:
+        pass
 
 
 def _get_lobby():
@@ -88,6 +100,9 @@ async def enter_chamber(request: Request, response: Response):
 
     info = lobby.enter(user_id)
     result = _session_to_dict(info)
+    status = lobby.chamber_status()
+    _tag_lobby_span(action="enter", user_id=user_id, session_id=info.session_id,
+                    active_seats=status.get("active", 0), capacity=status.get("capacity", 0))
 
     # Set session cookie
     response.set_cookie("lobby_session", info.session_id, httponly=True, samesite="lax", max_age=lobby.session_ttl)
@@ -103,6 +118,7 @@ async def leave_chamber(request: Request, response: Response):
 
     lobby = _get_lobby()
     left = lobby.leave(user_id)
+    _tag_lobby_span(action="leave", user_id=user_id, ok=left)
     response.delete_cookie("lobby_session")
     return JSONResponse({"ok": left})
 
