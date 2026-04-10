@@ -175,12 +175,16 @@ class SimAgent:
         self.revenue_earned     = 0.0
 
     def register(self) -> bool:
-        resp, ms = api("POST", "/api/provision/signup", json={
-            "name":   self.spec["name"],
-            "type":   "agent",
-            "system": "claude",
-            "role":   self.spec["preferred_roles"][0],
-        })
+        import uuid as _uuid
+        resp, ms = api("POST", "/api/provision/signup",
+            json={
+                "name":   self.spec["name"],
+                "type":   "agent",
+                "system": "claude",
+                "role":   self.spec["preferred_roles"][0],
+            },
+            headers={"x-forwarded-for": f"10.{_uuid.uuid4().int % 255}.{_uuid.uuid4().int % 255}.1"},
+        )
         ok = bool(resp.get("agent_id") or "already registered" in str(resp.get("error", "")))
         self.agent_id = resp.get("agent_id") or f"sim-{self.spec['name']}"
         self.run.record("/api/provision/signup", ok, ms, self.spec["name"])

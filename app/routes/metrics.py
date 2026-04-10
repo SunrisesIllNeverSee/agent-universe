@@ -69,10 +69,18 @@ def _get_metrics_path() -> Path:
 
 
 def _load_metrics() -> dict:
+    _default = {"agents": {}, "missions": {}, "financial": {"revenue": 0, "costs": 0, "transactions": []}}
     p = _get_metrics_path()
     if p.exists():
-        return json.loads(p.read_text())
-    return {"agents": {}, "missions": {}, "financial": {"revenue": 0, "costs": 0, "transactions": []}}
+        try:
+            m = json.loads(p.read_text())
+            # Ensure required top-level keys exist — guards against corruption
+            for key, val in _default.items():
+                m.setdefault(key, val)
+            return m
+        except (json.JSONDecodeError, Exception):
+            return _default
+    return _default
 
 
 def _save_metrics(m: dict) -> None:
