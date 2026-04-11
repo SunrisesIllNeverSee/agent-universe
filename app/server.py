@@ -233,7 +233,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     )
 
     # Operator GET paths also require admin key (fail-closed)
-    _ADMIN_GET_PREFIXES = ("/api/operator/",)
+    _ADMIN_GET_PREFIXES = ("/api/operator/", "/api/provision/registry")
 
     @app.middleware("http")
     async def admin_key_guard(request: Request, call_next):
