@@ -224,6 +224,30 @@ body {
 /* ── INTEL panel ────────────────────────────────────────────────────── */
 .intel-panel { grid-area: intel; }
 
+.registry-list { padding: 6px 10px; max-height: 180px; overflow-y: auto; }
+.registry-row {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.registry-row:last-child { border-bottom: none; }
+.registry-name { flex: 1; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.registry-loading { color: var(--muted); }
+.registry-status-active { color: var(--green); flex-shrink: 0; }
+.registry-status-pending { color: var(--amber); flex-shrink: 0; }
+.registry-status-suspended { color: var(--red); flex-shrink: 0; }
+.registry-system { color: var(--muted); flex-shrink: 0; font-size: 0.55rem; }
+.registry-block-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .gov-block {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -324,9 +348,9 @@ body {
 .tab-btn:hover  { color: var(--text); }
 .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
 
-.tab-pane { display: none; padding: 14px; height: 100%; overflow-y: auto; }
-.tab-pane.active { display: block; }
-.tab-content-area { flex: 1; overflow: hidden; position: relative; }
+.tab-pane { display: none; padding: 14px; overflow-y: auto; }
+.tab-pane.active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.tab-content-area { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
 
 .mission-card, .slot-card, .seed-card, .feed-entry {
   background: var(--surface);
@@ -709,6 +733,17 @@ body {
       </div>
     </div>
 
+    <!-- Agent registry -->
+    <div class="gov-block">
+      <div class="gov-block-head registry-block-head">
+        <span>Agent Registry</span>
+        <span class="panel-badge" id="registry-count">—</span>
+      </div>
+      <div class="registry-list" id="registry-list">
+        <div class="registry-row"><span class="registry-name registry-loading">Loading...</span></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -890,6 +925,7 @@ function init() {
   loadMissions();
   loadSlots();
   loadAudit();
+  loadRegistry();
   startClock();
   connectWS();
 }
@@ -1038,6 +1074,46 @@ function loadAudit() {
       });
     })
     .catch(function () {});
+}
+
+// ── Agent Registry ────────────────────────────────────────────────────
+function loadRegistry() {
+  fetch(API + '/api/agents')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      var agents = data.agents || [];
+      var list = document.getElementById('registry-list');
+      var countEl = document.getElementById('registry-count');
+      if (countEl) countEl.textContent = agents.length + ' agents';
+      while (list.firstChild) list.removeChild(list.firstChild);
+      if (!agents.length) {
+        var empty = document.createElement('div'); empty.className = 'registry-row';
+        var en = document.createElement('span'); en.className = 'registry-name registry-loading';
+        en.textContent = 'No agents registered';
+        empty.appendChild(en); list.appendChild(empty); return;
+      }
+      agents.forEach(function (a) {
+        var row = document.createElement('div'); row.className = 'registry-row';
+        var nameEl = document.createElement('span'); nameEl.className = 'registry-name';
+        nameEl.textContent = a.handle || a.display_name || a.agent_id || '—';
+        var sysEl = document.createElement('span'); sysEl.className = 'registry-system';
+        sysEl.textContent = a.agent_type || '—';
+        var stEl = document.createElement('span');
+        var st = (a.status || 'active').toLowerCase();
+        stEl.className = 'registry-status-' + (st === 'active' ? 'active' : st === 'pending' ? 'pending' : 'suspended');
+        stEl.textContent = st;
+        row.appendChild(nameEl); row.appendChild(sysEl); row.appendChild(stEl);
+        list.appendChild(row);
+      });
+    })
+    .catch(function () {
+      var list = document.getElementById('registry-list');
+      if (!list) return;
+      while (list.firstChild) list.removeChild(list.firstChild);
+      var row = document.createElement('div'); row.className = 'registry-row';
+      var n = document.createElement('span'); n.className = 'registry-name registry-loading';
+      n.textContent = 'Unavailable'; row.appendChild(n); list.appendChild(row);
+    });
 }
 
 function pushFeed(type, msg) {
