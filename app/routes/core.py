@@ -612,6 +612,14 @@ def _ws_rate_check(websocket: WebSocket) -> bool:
 #  WEBSOCKET — Main governance WebSocket
 # ═══════════════════════════════════════════════════════════════════════════
 
+@router.get("/ws/")
+async def ws_http_probe() -> dict:
+    """HTTP probe for Railway health checker hitting /ws/ via GET.
+    Real WebSocket connections must use ws:// protocol on /ws (no trailing slash).
+    """
+    return {"ok": True, "type": "websocket_endpoint", "protocol": "ws://"}
+
+
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:
     """Main governance WebSocket — the public square.
