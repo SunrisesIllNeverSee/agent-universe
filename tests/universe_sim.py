@@ -171,6 +171,7 @@ class SimAgent:
         self.spec     = spec
         self.run      = run
         self.agent_id: str | None = None
+        self.token: str | None = None
         self.missions_completed = 0
         self.revenue_earned     = 0.0
 
@@ -187,6 +188,7 @@ class SimAgent:
         )
         ok = bool(resp.get("agent_id") or "already registered" in str(resp.get("error", "")))
         self.agent_id = resp.get("agent_id") or f"sim-{self.spec['name']}"
+        self.token = resp.get("token")  # store JWT for authenticated calls
         self.run.record("/api/provision/signup", ok, ms, self.spec["name"])
         return ok
 
@@ -251,16 +253,20 @@ class SimAgent:
     def get_paid(self, slot: dict) -> float:
         """Request payment for completed slot work."""
         gross = random.uniform(10, 250)
-        resp, ms = api("POST", "/api/economy/pay", json={
-            "agent_id":      self.agent_id,
-            "agent_metrics": {
-                "governance_active": True,
-                "compliance_score":  0.88,
-                "missions_completed": self.missions_completed + 1,
+        auth_headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+        resp, ms = api("POST", "/api/economy/pay",
+            json={
+                "agent_id":      self.agent_id,
+                "agent_metrics": {
+                    "governance_active": True,
+                    "compliance_score":  0.88,
+                    "missions_completed": self.missions_completed + 1,
+                },
+                "amount":        round(gross, 2),
+                "mission_id":   slot.get("mission_id", ""),
             },
-            "amount":        round(gross, 2),
-            "mission_id":   slot.get("mission_id", ""),
-        })
+            headers=auth_headers,
+        )
         ok  = "_error" not in resp
         net = resp.get("fee_breakdown", {}).get("net_to_agent", 0)
         self.run.record("/api/economy/pay", ok, ms, f"${round(gross,2)} gross → ${round(net,2)} net")
