@@ -41,3 +41,4 @@ reports/
 .vercel
 .vscode/
 uagents_core.log
+data/provision.json.lock
