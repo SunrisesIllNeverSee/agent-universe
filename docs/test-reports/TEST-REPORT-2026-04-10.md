@@ -99,7 +99,7 @@
 | BADPAYLOAD: 8 malformed requests | ✅ EXPECTED | 4xx on all |
 | LEADERBOARD_POISON: zombie pay $999k | ✅ EXPECTED | Leaderboard clean |
 | UNICODE_BOMB: 7 pathological payloads | ⚠️ 6/7 EXPECTED | deep-nested → 500, server alive |
-| UNICODE_BOMB/alive | ❌ INVESTIGATE | Health 500 immediately after deep-nested POST (timing, not crash — backend confirmed alive after) |
+| UNICODE_BOMB/alive | ✅ RESOLVED | chaos_sim's "alive" check hits GET /api/metrics (not /health). Deep-nested POST corrupted metrics.json → /api/metrics returned 500. Fixed: metrics_io.py corruption guard (commit 708b4ed). Server was never dead. |
 
 **Bug found:** Deep-nested JSON payload to `/api/metrics/agent` corrupts `metrics.json` → `/api/metrics` GET returns 500 until restart. Fixed: `_load_metrics()` now validates and fills missing keys after load (commit 708b4ed).
 
