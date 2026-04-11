@@ -35,7 +35,7 @@ PAGE_ROUTES = [
     "/forums",
     "/join",
     "/dashboard",
-    "/sitemap",
+    "/mapsite",
     "/api/pages",
     "/flowchart",
     "/entry",

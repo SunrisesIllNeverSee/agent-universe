@@ -154,9 +154,14 @@ async def dashboard_page() -> FileResponse:
 # async def admin_page() -> FileResponse:
 #     return FileResponse(state.frontend_dir / "admin.html")
 
-@router.get("/sitemap")
-async def sitemap_page() -> FileResponse:
+@router.get("/mapsite")
+async def mapsite_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "sitemap.html")
+
+
+@router.get("/sitemap")
+async def sitemap_redirect():
+    return RedirectResponse("/mapsite", status_code=301)
 
 
 # ── Page-related API endpoints ───────────────────────────────────────────────

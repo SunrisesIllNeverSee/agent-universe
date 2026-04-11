@@ -40,9 +40,10 @@ from pathlib import Path
 import httpx
 
 # ── Config ─────────────────────────────────────────────────────────────────────
-BASE_URL  = os.environ.get("COMMAND_URL", "http://localhost:8300")
-API_KEY   = os.environ.get("ANTHROPIC_API_KEY", "")
-MODEL     = os.environ.get("CLAUDE_MODEL", "claude-opus-4-5")
+BASE_URL   = os.environ.get("COMMAND_URL", "http://localhost:8300")
+API_KEY    = os.environ.get("ANTHROPIC_API_KEY", "")
+MODEL      = os.environ.get("CLAUDE_MODEL", "claude-opus-4-5")
+ADMIN_KEY  = os.environ.get("CIVITAE_ADMIN_KEY", "")
 
 # ── Agent roster — the ones doing the actual work ──────────────────────────────
 AGENT_ROSTER = [
@@ -121,6 +122,15 @@ def api(method: str, path: str, **kwargs) -> tuple[dict, float]:
                (time.perf_counter() - start) * 1000
     except Exception as e:
         return {"_error": str(e)}, (time.perf_counter() - start) * 1000
+
+
+def admin_api(method: str, path: str, **kwargs) -> tuple[dict, float]:
+    """Like api() but injects X-Admin-Key header when CIVITAE_ADMIN_KEY is set."""
+    if ADMIN_KEY:
+        hdrs = kwargs.pop("headers", {})
+        hdrs["X-Admin-Key"] = ADMIN_KEY
+        kwargs["headers"] = hdrs
+    return api(method, path, **kwargs)
 
 
 # ── Event tracker ─────────────────────────────────────────────────────────────
@@ -340,7 +350,7 @@ class SimAgent:
 # ── Slot creation helper ───────────────────────────────────────────────────────
 def ensure_open_slots(count: int = 10, run: SimRun | None = None) -> list[dict]:
     """Create a batch of open slots for agents to fill during the test."""
-    resp, ms = api("POST", "/api/slots/create", json={
+    resp, ms = admin_api("POST", "/api/slots/create", json={
         "mission_id":   f"sim-{int(time.time())}",
         "formation_id": "universe-stress-test",
         "label":        "UNIVERSE SIM — STRESS TEST",
