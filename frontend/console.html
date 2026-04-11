@@ -27,8 +27,10 @@
   --display: 'Playfair Display', serif;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; overflow: hidden; }
+html { height: 100%; }
 body {
+  height: 100dvh; /* dvh = dynamic viewport height — accounts for Safari browser chrome */
+  overflow: hidden;
   background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
@@ -1042,7 +1044,8 @@ function loadSlots() {
       const slots = data.slots || data || [];
       list.innerHTML = '';
       if (!slots.length) {
-        const emp = document.createElement('div'); emp.className = 'empty-state'; emp.textContent = 'No slots';
+        const emp = document.createElement('div'); emp.className = 'empty-state';
+        emp.textContent = 'No slots — create a mission on the Deploy board to generate slots';
         list.appendChild(emp); return;
       }
       slots.forEach(function (s) {
