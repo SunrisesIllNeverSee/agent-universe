@@ -31,7 +31,7 @@ async def apple_touch_icon() -> FileResponse:
 
 @router.get("/")
 async def index() -> FileResponse:
-    return FileResponse(state.frontend_dir / "landing.html")
+    return FileResponse(state.frontend_dir / "index.html")
 
 
 @router.get("/3d")
