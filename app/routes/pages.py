@@ -31,7 +31,7 @@ async def apple_touch_icon() -> FileResponse:
 
 @router.get("/")
 async def index() -> FileResponse:
-    return FileResponse(state.frontend_dir / "kingdoms.html")
+    return FileResponse(state.frontend_dir / "landing.html")
 
 
 @router.get("/3d")
@@ -130,8 +130,8 @@ async def forums_page() -> FileResponse:
 
 
 @router.get("/join")
-async def join_page() -> FileResponse:
-    return FileResponse(state.frontend_dir / "join.html")
+async def join_redirect():
+    return RedirectResponse("/#collaborate", status_code=301)
 
 
 # STASHED — restore post-launch
@@ -494,7 +494,8 @@ async def sitemap_xml() -> Response:
         "/grand-opening", "/black-card", "/early-believers",
         "/earnings-matrix", "/earnings-journey", "/fee-credits", "/wave-registry",
         # Discovery
-        "/skill.md", "/llms.txt",
+        "/skill.md", "/llms.txt", "/agent.json",
+        "/.well-known/agent.json", "/.well-known/mcp-server-card.json",
     ]
     lines = ['<?xml version="1.0" encoding="UTF-8"?>',
              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']

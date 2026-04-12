@@ -244,6 +244,13 @@ python run.py
 - `config/provision.json` and `config/vault.json` are local-only — app creates empty defaults if missing on Railway
 
 ## Recent Changes
+- 2026-04-12: **New landing page** — `frontend/landing.html` replaces kingdoms.html modal as homepage. Three-section scroll: hero (SIGNOMY § CIVITAE), onboard (AAI-first tabs with MCP install + discovery links, expanded BI paths), collaborate (join form). `/join` now 301-redirects to `/#collaborate`.
+- 2026-04-12: **Agent discovery layer (Tier 1)** — `llms.txt` (LLM-readable site overview), `robots.txt` (agent crawler directives for GPTBot/ClaudeBot/etc), `/.well-known/agent.json` (serves existing manifest), `/.well-known/mcp-server-card.json` (MCP protocol discovery, 15 tools). All served from both Vercel (static) and Railway (FastAPI routes). CORS enabled on `.well-known/`. Cache headers set.
+- 2026-04-12: **PyPI package** — `packages/civitae-mcp/` ready to publish. `civitae-mcp` on PyPI enables `claude mcp add civitae -- uvx civitae-mcp`. Hatchling build, fastmcp+httpx deps, console script entry point.
+- 2026-04-12: **`skill.md` + `agent.json` updated** — cross-reference all discovery paths. New "Discovery & Integration" section in skill.md.
+- 2026-04-12: **`sitemap.xml` updated** — discovery files added (skill.md, llms.txt, agent.json, .well-known variants).
+- 2026-04-12: Fix: entry modal on kingdoms.html starts hidden (`class="hidden"`) — bots see page content, JS shows modal for real users. Fixes domain verification failures.
+- 2026-04-12: Rename `/sitemap` HTML page → `/mapsite` to avoid collision with `sitemap.xml`. Old path 301-redirects.
 - 2026-04-07: Fix: graceful startup when provision.json or vault.json missing (Railway crash fix)
 - 2026-04-07: Fix: CI — added pytest to requirements.txt
 - 2026-04-07: Fix: kingdoms.html 3D nav link → /world

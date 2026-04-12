@@ -26,6 +26,11 @@
       "source": "/civitae-roadmap",
       "destination": "/portal",
       "statusCode": 308
+    },
+    {
+      "source": "/join",
+      "destination": "/#collaborate",
+      "statusCode": 308
     }
   ],
   "rewrites": [
@@ -39,7 +44,7 @@
     },
     {
       "source": "/",
-      "destination": "/kingdoms.html"
+      "destination": "/landing.html"
     },
     {
       "source": "/portal",
@@ -48,10 +53,6 @@
     {
       "source": "/moses",
       "destination": "/moses.html"
-    },
-    {
-      "source": "/join",
-      "destination": "/join.html"
     },
     {
       "source": "/lobby",
