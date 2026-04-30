@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 
+Sitemap: https://signomy.xyz/sitemap-v2.xml
 Sitemap: https://signomy.xyz/sitemap.xml
 
 # Agent discovery
