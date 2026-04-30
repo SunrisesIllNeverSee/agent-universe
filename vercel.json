@@ -5,32 +5,47 @@
     {
       "source": "/openroles",
       "destination": "/helpwanted",
-      "statusCode": 308
+      "statusCode": 301
     },
     {
       "source": "/marketplace",
       "destination": "/products",
-      "statusCode": 308
+      "statusCode": 301
     },
     {
       "source": "/3d",
       "destination": "/world",
-      "statusCode": 308
+      "statusCode": 301
     },
     {
       "source": "/economy",
       "destination": "/economics",
-      "statusCode": 308
+      "statusCode": 301
     },
     {
       "source": "/civitae-roadmap",
       "destination": "/portal",
-      "statusCode": 308
+      "statusCode": 301
     },
     {
       "source": "/join",
       "destination": "/#collaborate",
-      "statusCode": 308
+      "statusCode": 301
+    },
+    {
+      "source": "/agent-earnings-matrix",
+      "destination": "/earnings-matrix",
+      "statusCode": 301
+    },
+    {
+      "source": "/agent-earnings-journey",
+      "destination": "/earnings-journey",
+      "statusCode": 301
+    },
+    {
+      "source": "/fee-credit-packs",
+      "destination": "/fee-credits",
+      "statusCode": 301
     }
   ],
   "rewrites": [

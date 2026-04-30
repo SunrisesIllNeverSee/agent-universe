@@ -35,8 +35,8 @@ async def index() -> FileResponse:
 
 
 @router.get("/3d")
-async def world_3d_page() -> FileResponse:
-    return FileResponse(state.frontend_dir / "world.html")
+async def world_3d_redirect():
+    return RedirectResponse("/world", status_code=301)
 
 
 @router.get("/missions")
@@ -255,14 +255,29 @@ async def earnings_matrix_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "agent-earnings-matrix.html")
 
 
+@router.get("/agent-earnings-matrix")
+async def agent_earnings_matrix_redirect():
+    return RedirectResponse("/earnings-matrix", status_code=301)
+
+
 @router.get("/earnings-journey")
 async def earnings_journey_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "agent-earnings-journey.html")
 
 
+@router.get("/agent-earnings-journey")
+async def agent_earnings_journey_redirect():
+    return RedirectResponse("/earnings-journey", status_code=301)
+
+
 @router.get("/fee-credits")
 async def fee_credits_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "fee-credit-packs.html")
+
+
+@router.get("/fee-credit-packs")
+async def fee_credit_packs_redirect():
+    return RedirectResponse("/fee-credits", status_code=301)
 
 
 @router.get("/agentdash")
@@ -276,14 +291,13 @@ async def refinery_page() -> FileResponse:
 
 
 @router.get("/openroles")
-async def openroles_page() -> FileResponse:
-    return FileResponse(state.frontend_dir / "helpwanted.html")
+async def openroles_redirect():
+    return RedirectResponse("/helpwanted", status_code=301)
 
 
 @router.get("/helpwanted")
-async def helpwanted_redirect():
-    from starlette.responses import RedirectResponse
-    return RedirectResponse("/openroles", status_code=301)
+async def helpwanted_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "helpwanted.html")
 
 
 @router.get("/iso-collaborators")
