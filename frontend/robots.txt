@@ -19,9 +19,8 @@ Allow: /advisory
 Allow: /treasury
 Allow: /vault
 Allow: /missions
-Allow: /openroles
+Allow: /helpwanted
 Allow: /contact
-Allow: /join
 Allow: /about
 Allow: /docs/
 
