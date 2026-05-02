@@ -148,11 +148,6 @@ async def session_status(request: Request):
 
 # ── Page serves ──────────────────────────────────────────────────────────────
 
-@router.get("/join")
-async def join_page():
-    return FileResponse(state.frontend_dir / "join.html")
-
-
 @router.get("/lobby")
 async def lobby_page():
     return FileResponse(state.frontend_dir / "lobby.html")
