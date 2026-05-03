@@ -19,6 +19,13 @@ CLAUDE.local.md
 IDENTITY.md
 config/provision.json
 config/vault.json
+
+# MCP registry publishing — private keys must never be committed
+# (the public auth file at frontend/.well-known/mcp-registry-auth IS safe to commit)
+*.pem
+key.pem
+.mcp-private-key.local
+*.local
 roster/
 grandopening/
 specs/
