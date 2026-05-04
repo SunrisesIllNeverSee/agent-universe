@@ -109,13 +109,15 @@ class MCPBridge:
             raise RuntimeError("Install the `mcp` package to run the MCP bridge.") from exc
 
         from mcp.server.transport_security import TransportSecuritySettings
-        # DNS rebinding protection is on by default in FastMCP and locks the
-        # allowed Host header to localhost — correct for local-only services
-        # (Claude Desktop) but wrong for a public prod endpoint (causes 421).
+        # DNS rebinding protection locks Host to localhost — wrong for prod (421).
+        # stateless_http=True means no in-memory session state: every request is
+        # self-contained. Required when Railway runs multiple workers (--workers 4)
+        # since session state can't be shared across processes.
         mcp = FastMCP(
             "command-runtime",
             instructions=MCP_INSTRUCTIONS,
             log_level="ERROR",
+            stateless_http=True,
             transport_security=TransportSecuritySettings(
                 enable_dns_rebinding_protection=False
             ),
