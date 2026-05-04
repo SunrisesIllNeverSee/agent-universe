@@ -54,8 +54,8 @@
       "destination": "/agent.json"
     },
     {
-      "source": "/.well-known/mcp-server-card.json",
-      "destination": "https://agent-universe-production.up.railway.app/.well-known/mcp-server-card.json"
+      "source": "/.well-known/mcp/server-card.json",
+      "destination": "/.well-known/mcp-server-card.json"
     },
     {
       "source": "/portal",
@@ -72,6 +72,14 @@
     {
       "source": "/api/:path*",
       "destination": "https://agent-universe-production.up.railway.app/api/:path*"
+    },
+    {
+      "source": "/mcp",
+      "destination": "https://agent-universe-production.up.railway.app/mcp"
+    },
+    {
+      "source": "/mcp/:path*",
+      "destination": "https://agent-universe-production.up.railway.app/mcp/:path*"
     },
     {
       "source": "/docs/:path*",

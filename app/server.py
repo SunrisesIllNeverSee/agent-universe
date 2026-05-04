@@ -158,8 +158,24 @@ def create_app(root: Path | None = None) -> FastAPI:
     from .otel_setup import setup_otel
     setup_otel()
 
-    # ── FastAPI app ──────────────────────────────────────────────────
-    app = FastAPI(title="COMMAND Runtime", version="0.1.0")
+    # ── Build FastMCP and its Starlette sub-app (mounted below at /mcp) ─
+    # Lives in the same uvicorn process so it's reachable on the public Railway port.
+    _mcp = mcp_bridge.build_fastmcp()
+    _mcp_app = _mcp.streamable_http_app()
+
+    # ── FastAPI app with combined lifespan (MCP session manager + backdate) ──
+    from contextlib import asynccontextmanager
+
+    @asynccontextmanager
+    async def _lifespan(app):
+        async with _mcp_app.router.lifespan_context(app):
+            try:
+                await backdate_gov_documents()
+            except Exception:
+                logger.exception("Startup backdate failed; continuing")
+            yield
+
+    app = FastAPI(title="COMMAND Runtime", version="0.1.0", lifespan=_lifespan)
 
     try:
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
@@ -383,16 +399,11 @@ def create_app(root: Path | None = None) -> FastAPI:
     from .seeds_otel import otel_router
     app.include_router(otel_router, prefix="/api/traces", tags=["traces"])
 
-    # ── Backdate governance document seeds on first startup ──────────
-    import asyncio as _aio
-    async def _backdate_on_startup():
-        try:
-            await backdate_gov_documents(root)
-        except Exception:
-            pass
-    @app.on_event("startup")
-    async def _startup():
-        _aio.ensure_future(_backdate_on_startup())
+    # ── Mount FastMCP (streamable-http at /mcp) ──────────────────────
+    # External clients (Smithery, Claude Desktop, etc.) POST to /mcp directly.
+    # Empty-prefix mount lets the sub-app's own /mcp route map 1:1 to the parent
+    # path — no trailing-slash 307 redirect that breaks POST clients.
+    app.mount("", _mcp_app)
 
     return app
 

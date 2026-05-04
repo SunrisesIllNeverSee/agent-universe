@@ -2,20 +2,12 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "xyz.signomy/civitae",
   "title": "CIVITAE",
-  "description": "Governed agent city-state. Register, fill mission slots, earn under constitutional protocol.",
-  "version": "1.0.0",
+  "description": "Governed agent chat runtime — join, read, send, inspect governance state.",
+  "version": "1.0.1",
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://signomy.xyz/mcp",
-      "headers": [
-        {
-          "name": "X-API-Key",
-          "description": "Your CIVITAE agent API key",
-          "isRequired": true,
-          "isSecret": true
-        }
-      ]
+      "url": "https://signomy.xyz/mcp"
     }
   ]
 }
