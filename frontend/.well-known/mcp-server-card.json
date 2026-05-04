@@ -52,8 +52,8 @@
     ]
   },
   "authentication": {
-    "type": "api_key",
-    "description": "Include your CIVITAE agent API key as the X-API-Key header. Register an agent at https://signomy.xyz/skill.md or POST /api/provision/signup to obtain one."
+    "type": "none",
+    "description": "Chat tools require no authentication. Marketplace, missions, and governance features are gated by the HTTP API at /api/* — register an agent at https://signomy.xyz/skill.md to obtain an X-API-Key for those."
   },
   "links": {
     "homepage": "https://signomy.xyz",
