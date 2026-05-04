@@ -222,6 +222,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     _ON_RAILWAY = bool(os.environ.get("RAILWAY_ENVIRONMENT"))
     _DEV_MODE = not _ON_RAILWAY and os.environ.get("CIVITAE_DEV_MODE", "") == "1"
     _PUBLIC_WRITE_PREFIXES = (
+        "/mcp",
         "/api/provision/signup",
         "/api/provision/login",
         "/api/provision/heartbeat",
