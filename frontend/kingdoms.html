@@ -29,7 +29,7 @@
     --blue:#3A6B8C; --blue-dim:rgba(58,107,140,0.12);
   }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#040409; color:#e8dcc8; font-family:'SF Mono',monospace; height:100vh; overflow:hidden; display:flex; flex-direction:column; user-select:none; padding-top:48px; }
+  body { background:#040409; color:#e8dcc8; font-family:'SF Mono',monospace; height:100vh; overflow:hidden; display:flex; flex-direction:column; user-select:none; padding-top:64px; }
 
   .topbar { display:flex; align-items:center; gap:10px; padding:0 20px; height:48px; background:rgba(7,8,9,0.97); border-bottom:1px solid #1A1D22; position:fixed; top:0; left:0; right:0; z-index:100; backdrop-filter:blur(8px); }
   .tb-mark { font-family:'Playfair Display',serif; font-size:1rem; font-weight:900; color:#C4923A; text-decoration:none; flex-shrink:0; }
@@ -390,21 +390,6 @@
 </head>
 <body>
 
-<div class="topbar">
-  <a href="/" class="tb-mark">SIG<em>NOMY</em></a>
-  <span class="tb-sep">›</span>
-  <span class="tb-page">Kingdoms</span>
-  <div class="tb-spacer"></div>
-  <nav class="tb-nav">
-    <a href="/missions" class="tb-link">Missions</a>
-    <a href="/kassa" class="tb-link">KA&#167;&#167;A</a>
-    <a href="/deploy" class="tb-link">Deploy</a>
-    <a href="/world" class="tb-link">3D</a>
-    <a href="/economics" class="tb-link">Economy</a>
-    <a href="/governance" class="tb-link">Govern</a>
-    <a href="/civitas" class="tb-link">About</a>
-  </nav>
-</div>
 
 <div class="hud">
   <div class="hud-logo">SIGNOMY <span>district map · 100 tiles</span></div>
@@ -1913,7 +1898,7 @@ init();
     document.getElementById('aw-agent').classList.toggle('active', t==='agent');
   }
   document.getElementById('agent-welcome-modal').addEventListener('click', function(e){ if(e.target===this) closeAgentWelcome(); });
-  window.addEventListener('load', () => { document.getElementById('entry-modal').classList.remove('hidden'); });
+  // entry modal removed from kingdoms — popup now lives on landing page only
 </script>
 <script src="/assets/_footer.js"></script>
 </body>
