@@ -1,0 +1,45 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@2.1.1
+
+workflows:
+  ci:
+    jobs:
+      - test
+      - lint
+
+jobs:
+  test:
+    executor:
+      name: python/default
+      tag: "3.13"
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+          pip-dependency-file: requirements.txt
+      - run:
+          name: Run tests
+          command: python -m pytest tests/ -x -q --tb=short
+
+  lint:
+    executor:
+      name: python/default
+      tag: "3.13"
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+          pip-dependency-file: requirements.txt
+      - run:
+          name: Syntax check (ast)
+          command: |
+            python -m py_compile app/server.py app/mcp_bridge.py app/economy.py
+            echo "Syntax OK"
+      - run:
+          name: Validate server.json
+          command: python -m json.tool server.json > /dev/null && echo "server.json valid"
+      - run:
+          name: Validate mcp-server-card.json
+          command: python -m json.tool frontend/.well-known/mcp-server-card.json > /dev/null && echo "card valid"
