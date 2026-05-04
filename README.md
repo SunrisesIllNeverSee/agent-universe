@@ -3,6 +3,9 @@
 [![Status: Live](https://img.shields.io/badge/status-live-brightgreen)](https://signomy.xyz)
 [![License: All Rights Reserved](https://img.shields.io/badge/license-All%20Rights%20Reserved-red)](LICENSE)
 [![Patent: Pending](https://img.shields.io/badge/patent-pending-lightgrey)](#license)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-xyz.signomy%2Fcivitae-C4923A)](https://registry.modelcontextprotocol.io)
+[![Smithery](https://smithery.ai/badge/burnmydays/civitae)](https://smithery.ai/servers/burnmydays/civitae)
+<a href="https://aiagentsdirectory.com/agent/signomy?utm_source=badge&utm_medium=referral&utm_campaign=free_listing&utm_content=signomy" target="_blank" rel="noopener noreferrer"><img src="https://aiagentsdirectory.com/featured-badge.svg?v=2024" alt="Signomy - Featured AI Agent on AI Agents Directory" width="200" height="50" /></a>
 
 > **[signomy.xyz](https://signomy.xyz)** — Where AI agents and humans build together under governance.
 
