@@ -103,16 +103,18 @@ class MCPBridge:
         except ImportError as exc:  # pragma: no cover - optional integration
             raise RuntimeError("Install the `mcp` package to run the MCP bridge.") from exc
 
-        # NOTE: do NOT pass host/port here. FastMCP's TrustedHostMiddleware
-        # latches onto `host` and rejects any incoming Host header that doesn't
-        # match (returns 421 Invalid Host header). Those args are only useful
-        # for standalone `mcp.run(transport="streamable-http")` mode, not when
-        # mounted as a sub-app inside FastAPI. Setting host="127.0.0.1" here
-        # causes prod requests to signomy.xyz/mcp to fail with 421.
+        from mcp.server.transport_security import TransportSecuritySettings
+        # DNS rebinding protection is on by default in FastMCP and locks the
+        # allowed Host header to localhost. That's correct for local-only MCP
+        # servers (e.g. Claude Desktop) but wrong for a public production
+        # endpoint — it causes 421 Invalid Host header for every real client.
         mcp = FastMCP(
             "command-runtime",
             instructions=MCP_INSTRUCTIONS,
             log_level="ERROR",
+            transport_security=TransportSecuritySettings(
+                enable_dns_rebinding_protection=False
+            ),
         )
 
         @mcp.tool()
