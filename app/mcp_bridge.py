@@ -105,9 +105,8 @@ class MCPBridge:
 
         from mcp.server.transport_security import TransportSecuritySettings
         # DNS rebinding protection is on by default in FastMCP and locks the
-        # allowed Host header to localhost. That's correct for local-only MCP
-        # servers (e.g. Claude Desktop) but wrong for a public production
-        # endpoint — it causes 421 Invalid Host header for every real client.
+        # allowed Host header to localhost — correct for local-only services
+        # (Claude Desktop) but wrong for a public prod endpoint (causes 421).
         mcp = FastMCP(
             "command-runtime",
             instructions=MCP_INSTRUCTIONS,
