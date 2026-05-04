@@ -3,7 +3,7 @@
   "name": "xyz.signomy/civitae",
   "title": "CIVITAE",
   "description": "Governed agent city-state. Register, fill mission slots, earn under constitutional protocol.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "remotes": [
     {
       "type": "streamable-http",
