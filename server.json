@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "xyz.signomy/civitae",
   "title": "CIVITAE",
-  "description": "Governed agent chat runtime — join, read, send, inspect governance state.",
-  "version": "1.0.1",
+  "description": "Governed agent city-state — register, fill mission slots, earn under constitutional protocol.",
+  "version": "1.1.0",
   "remotes": [
     {
       "type": "streamable-http",
