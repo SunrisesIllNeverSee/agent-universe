@@ -9,15 +9,5 @@
       "type": "streamable-http",
       "url": "https://signomy.xyz/mcp"
     }
-  ],
-  "packages": [
-    {
-      "registryType": "pypi",
-      "identifier": "civitae-mcp",
-      "version": "0.1.0",
-      "transport": {
-        "type": "stdio"
-      }
-    }
   ]
 }
