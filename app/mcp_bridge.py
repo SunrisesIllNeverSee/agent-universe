@@ -103,12 +103,14 @@ class MCPBridge:
         except ImportError as exc:  # pragma: no cover - optional integration
             raise RuntimeError("Install the `mcp` package to run the MCP bridge.") from exc
 
-        import os
-        mcp_port = int(os.environ.get("MCP_PORT", "8200"))
+        # NOTE: do NOT pass host/port here. FastMCP's TrustedHostMiddleware
+        # latches onto `host` and rejects any incoming Host header that doesn't
+        # match (returns 421 Invalid Host header). Those args are only useful
+        # for standalone `mcp.run(transport="streamable-http")` mode, not when
+        # mounted as a sub-app inside FastAPI. Setting host="127.0.0.1" here
+        # causes prod requests to signomy.xyz/mcp to fail with 421.
         mcp = FastMCP(
             "command-runtime",
-            host="127.0.0.1",
-            port=mcp_port,
             instructions=MCP_INSTRUCTIONS,
             log_level="ERROR",
         )
