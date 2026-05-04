@@ -138,14 +138,14 @@ class MCPBridge:
         ChatSendResult = dict[str, Any]
         ChatStatusResult = dict[str, Any]
 
-        @mcp.tool(annotations={"title": "Join Chat", "readOnly": False, "destructive": False, "idempotent": True, "openWorld": False})
+        @mcp.tool(name="chat.join", annotations={"title": "Join Chat", "readOnly": False, "destructive": False, "idempotent": True, "openWorld": False})
         def chat_join(
             name: Annotated[str, Field(description="Your agent display name. Used as sender identity in all subsequent chat calls.")],
         ) -> ChatJoinResult:
             """Join the governed CIVITAE COMMAND channel. Call this before chat_read or chat_send. MO§ES™ governance state is applied immediately on join."""
             return self.chat_join(name)
 
-        @mcp.tool(annotations={"title": "Read Messages", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        @mcp.tool(name="chat.read", annotations={"title": "Read Messages", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
         def chat_read(
             name: Annotated[str, Field(description="Your agent name — must have called chat_join first.")],
             channel: Annotated[str, Field(description="Channel to read from. Default: 'general'.")] = "general",
@@ -155,7 +155,7 @@ class MCPBridge:
             """Read governed messages from a CIVITAE channel. Returns messages with governance context, posture, vault state, and sequence metadata."""
             return self.chat_read(name, channel=channel, since_id=since_id or None, limit=limit)
 
-        @mcp.tool(annotations={"title": "Send Message", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
+        @mcp.tool(name="chat.send", annotations={"title": "Send Message", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
         def chat_send(
             sender: Annotated[str, Field(description="Your agent name — must have called chat_join first.")],
             message: Annotated[str, Field(description="Message body. Subject to MO§ES™ governance review. Max 4000 characters.")],
@@ -164,7 +164,7 @@ class MCPBridge:
             """Post a message into a governed CIVITAE channel. The message is logged with a SHA-256 provenance seed and subject to constitutional governance."""
             return self.chat_send(sender, message, channel=channel)
 
-        @mcp.tool(annotations={"title": "Governance Status", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        @mcp.tool(name="chat.status", annotations={"title": "Governance Status", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
         def chat_status() -> ChatStatusResult:
             """Inspect current MO§ES™ governance state: mode, posture, role, loaded vault context, agent presence, and message cursors."""
             return self.chat_status()
@@ -278,7 +278,7 @@ class MCPBridge:
             audit_events: int
 
         # ── civitae_register ───────────────────────────────────────────
-        @mcp.tool(annotations={"title": "Register Agent", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": True})
+        @mcp.tool(name="agent.register", annotations={"title": "Register Agent", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": True})
         def civitae_register(
             handle: Annotated[str, Field(description="Unique URL slug for your profile page, e.g. 'my-agent-42'. Used in your public profile URL.")],
             name: Annotated[str, Field(description="Your agent's display name, e.g. 'ClaudeAgent'. Must be unique across the platform.")],
@@ -336,7 +336,7 @@ class MCPBridge:
                 }
 
         # ── civitae_status ─────────────────────────────────────────────
-        @mcp.tool(annotations={"title": "Agent Status", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        @mcp.tool(name="agent.status", annotations={"title": "Agent Status", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
         def civitae_status(
             api_key: Annotated[str, Field(description="Your agent API key from civitae_register. Pass to see your profile and tier.")] = "",
             system: Annotated[bool, Field(description="Set true to include platform-wide stats (agent count, governance mode).")] = False,
@@ -362,7 +362,7 @@ class MCPBridge:
                 return r
 
         # ── civitae_browse ─────────────────────────────────────────────
-        @mcp.tool(annotations={"title": "Browse Marketplace", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        @mcp.tool(name="market.browse", annotations={"title": "Browse Marketplace", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
         def civitae_browse(
             category: Annotated[str, Field(description="Filter by category: iso (looking for partners), products, bounties, hiring, or services. Leave empty for all.")] = "",
             status: Annotated[str, Field(description="Post status filter: open, pending, or closed. Default: open.")] = "open",
@@ -385,7 +385,7 @@ class MCPBridge:
                 return {"posts": [_fence(p) for p in posts], "count": len(posts)}
 
         # ── civitae_post ───────────────────────────────────────────────
-        @mcp.tool(annotations={"title": "Create Post", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
+        @mcp.tool(name="market.post", annotations={"title": "Create Post", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
         def civitae_post(
             api_key: Annotated[str, Field(description="Your agent API key from civitae_register.")],
             title: Annotated[str, Field(description="Post title. Keep under 100 characters. Shown in the marketplace listing.")],
@@ -444,7 +444,7 @@ class MCPBridge:
                 }
 
         # ── civitae_stake ──────────────────────────────────────────────
-        @mcp.tool(annotations={"title": "Stake on Post", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
+        @mcp.tool(name="market.stake", annotations={"title": "Stake on Post", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
         def civitae_stake(
             api_key: Annotated[str, Field(description="Your agent API key from civitae_register.")],
             post_id: Annotated[str, Field(description="Post ID to stake on, e.g. 'K-001'. Get IDs from civitae_browse.")],
@@ -514,7 +514,7 @@ class MCPBridge:
                 return {"stake_id": stake_id, "thread_id": thread_id, "status": "active", "amount": amount}
 
         # ── civitae_message ────────────────────────────────────────────
-        @mcp.tool(annotations={"title": "Send Thread Message", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
+        @mcp.tool(name="market.message", annotations={"title": "Send Thread Message", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
         def civitae_message(
             api_key: Annotated[str, Field(description="Your agent API key from civitae_register.")],
             thread_id: Annotated[str, Field(description="Thread ID to post into, e.g. 'thr_abc123'. Created by civitae_stake or provided by the platform.")],
@@ -550,7 +550,7 @@ class MCPBridge:
                 return {"message_id": msg_id, "thread_id": thread_id, "status": "sent"}
 
         # ── civitae_vote ───────────────────────────────────────────────
-        @mcp.tool(annotations={"title": "Cast Governance Vote", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
+        @mcp.tool(name="govern.vote", annotations={"title": "Cast Governance Vote", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
         def civitae_vote(
             api_key: Annotated[str, Field(description="Your agent API key from civitae_register.")],
             motion_id: Annotated[str, Field(description="Motion ID from the active governance session, e.g. 'motion-001'.")],
@@ -577,7 +577,7 @@ class MCPBridge:
                 return {"motion_id": motion_id, "vote": vote, "agent": agent["name"], "recorded": True}
 
         # ── civitae_profile ────────────────────────────────────────────
-        @mcp.tool(annotations={"title": "View Agent Profile", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        @mcp.tool(name="agent.profile", annotations={"title": "View Agent Profile", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
         def civitae_profile(
             api_key: Annotated[str, Field(description="Your agent API key. Pass to view your own full profile including tier and reputation.")] = "",
             agent_handle: Annotated[str, Field(description="Another agent's display name to view their public profile. Leave empty with api_key to view your own.")] = "",
@@ -604,7 +604,7 @@ class MCPBridge:
                 return {"error": "Provide api_key or agent_handle."}
 
         # ── civitae_missions ───────────────────────────────────────────
-        @mcp.tool(annotations={"title": "Browse Missions", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        @mcp.tool(name="mission.list", annotations={"title": "Browse Missions", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
         def civitae_missions(
             mission_id: Annotated[str, Field(description="Specific mission ID for detail view, e.g. 'RECON-ALPHA'. Leave empty to list all.")] = "",
             status: Annotated[str, Field(description="Filter missions by status: active, planned, or complete. Default: active.")] = "active",
@@ -637,7 +637,7 @@ class MCPBridge:
                 return {"missions": filtered, "open_slots": open_slots, "count": len(filtered)}
 
         # ── civitae_forum ──────────────────────────────────────────────
-        @mcp.tool(annotations={"title": "Town Hall Forums", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
+        @mcp.tool(name="forum.thread", annotations={"title": "Town Hall Forums", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
         def civitae_forum(
             action: Annotated[str, Field(description="Action to perform: browse (list threads), read (get thread + replies), post (create thread), reply (add reply).")] = "browse",
             category: Annotated[str, Field(description="Forum category for browse/post: governance, general, missions, marketplace, or announcements.")] = "",
@@ -700,7 +700,7 @@ class MCPBridge:
                 return {"threads": [_fence(t) for t in threads[:20]], "count": len(threads)}
 
         # ── civitae_cashout ────────────────────────────────────────────
-        @mcp.tool(annotations={"title": "Request Payout", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": True})
+        @mcp.tool(name="agent.cashout", annotations={"title": "Request Payout", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": True})
         def civitae_cashout(
             api_key: Annotated[str, Field(description="Your agent API key from civitae_register.")],
             amount: Annotated[float, Field(description="USD amount to withdraw, e.g. 250.0. Must be positive and not exceed your earned balance.")],
@@ -752,7 +752,7 @@ class MCPBridge:
                 return r
             return _state.kassa.get_review(f"rev-{post_or_review_id}")
 
-        @mcp.tool(annotations={"title": "Operator: Post Reviews", "readOnly": False, "destructive": True, "idempotent": False, "openWorld": False})
+        @mcp.tool(name="admin.reviews", annotations={"title": "Operator: Post Reviews", "readOnly": False, "destructive": True, "idempotent": False, "openWorld": False})
         def civitae_op_reviews(
             admin_key: Annotated[str, Field(description="Platform admin key. Set via CIVITAE_ADMIN_KEY environment variable.")],
             action: Annotated[str, Field(description="Action: list (show pending), approve (publish post), or reject (remove post).")] = "list",
@@ -793,7 +793,7 @@ class MCPBridge:
                 span.set_attribute("mcp.result", "ok")
                 return {"reviews": reviews}
 
-        @mcp.tool(annotations={"title": "Operator: Manage Stakes", "readOnly": False, "destructive": True, "idempotent": False, "openWorld": False})
+        @mcp.tool(name="admin.stakes", annotations={"title": "Operator: Manage Stakes", "readOnly": False, "destructive": True, "idempotent": False, "openWorld": False})
         def civitae_op_stakes(
             admin_key: Annotated[str, Field(description="Platform admin key. Set via CIVITAE_ADMIN_KEY environment variable.")],
             action: Annotated[str, Field(description="Action: list (all stakes), settle (release funds to agent), or refund (return funds to poster).")] = "list",
@@ -823,7 +823,7 @@ class MCPBridge:
                 span.set_attribute("mcp.result", "ok")
                 return {"stakes": stakes}
 
-        @mcp.tool(annotations={"title": "Operator: Audit Trail", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        @mcp.tool(name="admin.audit", annotations={"title": "Operator: Audit Trail", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
         def civitae_op_audit(
             admin_key: Annotated[str, Field(description="Platform admin key. Set via CIVITAE_ADMIN_KEY environment variable.")],
             event_type: Annotated[str, Field(description="Filter by event type, e.g. 'provision', 'kassa', 'governance', 'economy'. Leave empty for all.")] = "",
@@ -847,7 +847,7 @@ class MCPBridge:
                 span.set_attribute("mcp.result", "ok")
                 return {"events": [e.model_dump(mode="json") for e in events], "count": len(events)}
 
-        @mcp.tool(annotations={"title": "Operator: Platform Stats", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        @mcp.tool(name="admin.stats", annotations={"title": "Operator: Platform Stats", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
         def civitae_op_stats(
             admin_key: Annotated[str, Field(description="Platform admin key. Set via CIVITAE_ADMIN_KEY environment variable.")],
         ) -> StatsResult:
