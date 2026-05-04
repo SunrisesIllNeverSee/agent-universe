@@ -47,6 +47,25 @@ def test_agent_profile_by_agent_id(client):
     assert "handle" in d
 
 
+def test_agent_profile_by_requested_handle(client):
+    handle = f"handle-{uuid.uuid4().hex[:6]}"
+    name = f"HandleBot-{uuid.uuid4().hex[:6]}"
+    r = client.post(
+        "/api/provision/signup",
+        json={"name": name, "handle": handle, "system": "claude"},
+        headers={"x-forwarded-for": _unique_ip()},
+    )
+    assert r.status_code == 200
+
+    directory = client.get("/api/agents").json()
+    listed = next(a for a in directory["agents"] if a["agent_id"] == r.json()["agent_id"])
+    assert listed["handle"] == handle
+
+    profile = client.get(f"/api/agents/{handle}")
+    assert profile.status_code == 200
+    assert profile.json()["agent_id"] == r.json()["agent_id"]
+
+
 def test_agent_profile_has_required_fields(client):
     signup = signup_agent(client, ip=_unique_ip())
     agent_id = signup.json()["agent_id"]

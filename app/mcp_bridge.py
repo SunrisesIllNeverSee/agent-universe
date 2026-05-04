@@ -186,6 +186,7 @@ class MCPBridge:
         def _agent_from_key(api_key: str) -> dict | None:
             if not api_key:
                 return None
+            _state.runtime.reload_registry()
             h = _hash_key(api_key)
             return next((r for r in _state.runtime.registry if r.get("key_hash") == h and r.get("status") == "active"), None)
 
@@ -290,14 +291,19 @@ class MCPBridge:
                 span.set_attribute("mcp.tool", "civitae_register")
                 span.set_attribute("mcp.handle", handle)
                 runtime = _state.runtime
+                runtime.reload_registry()
                 agent_name = name.strip()
+                agent_handle = handle.strip()
                 if not agent_name:
                     span.set_attribute("mcp.result", "missing_name")
                     return {"error": "name required"}
-                existing = next((r for r in runtime.registry if r.get("name") == agent_name), None)
+                if not agent_handle:
+                    span.set_attribute("mcp.result", "missing_handle")
+                    return {"error": "handle required"}
+                existing = next((r for r in runtime.registry if r.get("name") == agent_name or r.get("handle") == agent_handle), None)
                 if existing:
                     span.set_attribute("mcp.result", "already_registered")
-                    return {"error": f"Agent '{agent_name}' already registered", "agent_id": existing.get("agent_id")}
+                    return {"error": f"Agent '{agent_name}' or handle '{agent_handle}' already registered", "agent_id": existing.get("agent_id")}
                 current = [r for r in runtime.registry if r.get("type") == "agent"]
                 max_agents = runtime.provision.get("max_agents", 50)
                 if len(current) >= max_agents:
@@ -306,9 +312,9 @@ class MCPBridge:
                 api_key = f"cmd_ak_{secrets.token_hex(8)}"
                 agent_id = f"agent-{secrets.token_hex(4)}"
                 import re as _re
-                slug = _re.sub(r"[^a-z0-9-]", "", agent_name.lower().replace(" ", "-"))
+                slug = _re.sub(r"[^a-z0-9-]", "", agent_handle.lower().replace(" ", "-").replace("_", "-"))
                 entry = {
-                    "agent_id": agent_id, "name": agent_name,
+                    "agent_id": agent_id, "handle": slug or agent_id, "name": agent_name,
                     "email": f"{slug or agent_id}@signomy.xyz",
                     "type": "agent", "status": "active",
                     "provisioned": datetime.now(timezone.utc).isoformat(),
@@ -346,8 +352,8 @@ class MCPBridge:
                 span.set_attribute("mcp.tool", "civitae_status")
                 span.set_attribute("mcp.system", system)
                 r: dict = {}
-                if system:
-                    r["platform"] = {"ok": True, "agents": len(_state.runtime.registry), "governance": _state.runtime.governance.mode}
+                _state.runtime.reload_registry()
+                r["platform"] = {"ok": True, "agents": len(_state.runtime.registry), "governance": _state.runtime.governance.mode}
                 if api_key:
                     agent = _agent_from_key(api_key)
                     if agent:
@@ -356,8 +362,6 @@ class MCPBridge:
                         r["agent"] = {"error": "Invalid api_key"}
                 else:
                     r["hint"] = "Pass api_key to see your profile."
-                if not system and not api_key:
-                    r["platform"] = {"ok": True, "governance": _state.runtime.governance.mode, "agents": len(_state.runtime.registry)}
                 span.set_attribute("mcp.result", "ok")
                 return r
 

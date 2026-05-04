@@ -23,6 +23,33 @@ def test_signup_creates_agent(client):
     assert data["email"].endswith("@signomy.xyz")
 
 
+def test_signup_preserves_handle_and_capabilities(client):
+    handle = f"agent-handle-{uuid.uuid4().hex[:6]}"
+    caps = ["research", "mcp"]
+    r = client.post(
+        "/api/provision/signup",
+        json={
+            "name": f"HandleProvisionBot-{uuid.uuid4().hex[:6]}",
+            "handle": handle,
+            "system": "claude",
+            "capabilities": caps,
+        },
+        headers={"x-forwarded-for": _ip()},
+    )
+    assert r.status_code == 200
+    agent_id = r.json()["agent_id"]
+
+    status = client.get(f"/api/provision/status/{agent_id}")
+    assert status.status_code == 200
+
+    profile = client.get(f"/api/agents/{handle}")
+    assert profile.status_code == 200
+    data = profile.json()
+    assert data["agent_id"] == agent_id
+    assert data["handle"] == handle
+    assert data["capabilities"] == caps
+
+
 def test_signup_duplicate_name_409(client):
     name = f"DupBot-{uuid.uuid4().hex[:6]}"
     ip = _ip()

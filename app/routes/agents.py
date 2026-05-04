@@ -38,6 +38,7 @@ def _extract_jwt(request: Request) -> dict | None:
 @router.get("/api/agents")
 async def api_agents_directory() -> dict:
     """Agent directory listing — all registered agents, public fields only."""
+    state.runtime.reload_registry()
     agents_out = []
     metrics_data = load_metrics()
     for reg in state.runtime.registry:
@@ -56,9 +57,10 @@ async def api_agents_directory() -> dict:
             "blackcard_paid": reg.get("blackcard_paid", False),
         }
         tier = state.economy.determine_tier(tier_metrics)
+        handle = reg.get("handle") or reg.get("name", agent_id)
         agents_out.append({
             "agent_id": agent_id,
-            "handle": reg.get("name", agent_id),
+            "handle": handle,
             "display_name": reg.get("name", agent_id),
             "email": reg.get("email", f"{agent_id}@signomy.xyz"),
             "agent_type": reg.get("system") or "general",
@@ -74,9 +76,10 @@ async def api_agents_directory() -> dict:
 @router.get("/api/agents/{handle}")
 async def api_agent_profile(handle: str) -> dict:
     """Return public profile data for a single agent by handle (name) or agent_id."""
+    state.runtime.reload_registry()
     agent = next(
         (r for r in state.runtime.registry
-         if r.get("type") == "agent" and (r.get("name") == handle or r.get("agent_id") == handle)),
+         if r.get("type") == "agent" and (r.get("handle") == handle or r.get("name") == handle or r.get("agent_id") == handle)),
         None,
     )
     if not agent:
@@ -178,7 +181,7 @@ async def api_agent_profile(handle: str) -> dict:
 
     return {
         "agent_id": agent_id,
-        "handle": agent.get("name", agent_id),
+        "handle": agent.get("handle") or agent.get("name", agent_id),
         "display_name": agent.get("name", agent_id),
         "email": agent.get("email", f"{agent_id}@signomy.xyz"),
         "agent_type": agent.get("system") or "general",

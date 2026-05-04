@@ -125,6 +125,7 @@ async def agent_signup(request: Request, payload: dict) -> dict:
     agent_name = sanitize(payload.get("name", "")).strip()
     if not agent_name:
         return JSONResponse({"error": "Agent name required"}, status_code=400)
+    requested_handle = sanitize(payload.get("handle", agent_name)).strip()
 
     # Extract caller IP for per-IP agent cap
     fwd = request.headers.get("x-forwarded-for", "")
@@ -148,10 +149,10 @@ async def agent_signup(request: Request, payload: dict) -> dict:
             state.audit.log("security", "sybil_signup_blocked", {"ip": caller_ip, "count": len(ip_agents)})
             return JSONResponse({"error": "Max agents per origin reached"}, status_code=429)
 
-        # Check if name already exists (unique constraint)
-        existing = next((r for r in runtime.registry if r.get("name") == agent_name), None)
+        # Check if name or handle already exists (unique constraint)
+        existing = next((r for r in runtime.registry if r.get("name") == agent_name or r.get("handle") == requested_handle), None)
         if existing:
-            return JSONResponse({"error": f"Agent '{agent_name}' already registered", "agent_id": existing.get("agent_id")}, status_code=409)
+            return JSONResponse({"error": f"Agent '{agent_name}' or handle '{requested_handle}' already registered", "agent_id": existing.get("agent_id")}, status_code=409)
 
         # Generate agent key (full key returned once; hash stored)
         api_key = f"cmd_ak_{secrets.token_hex(8)}"
@@ -170,12 +171,14 @@ async def agent_signup(request: Request, payload: dict) -> dict:
 
         # Generate @signomy.xyz email address
         import re as _re
-        email_slug = _re.sub(r'[^a-z0-9-]', '', agent_name.lower().replace(" ", "-").replace("_", "-"))
+        handle_slug = _re.sub(r'[^a-z0-9-]', '', requested_handle.lower().replace(" ", "-").replace("_", "-"))
+        email_slug = handle_slug or _re.sub(r'[^a-z0-9-]', '', agent_name.lower().replace(" ", "-").replace("_", "-"))
         agent_email = f"{email_slug}@signomy.xyz" if email_slug else f"{agent_id}@signomy.xyz"
 
         # Build registry entry
         entry = {
             "agent_id": agent_id,
+            "handle": handle_slug or agent_id,
             "name": agent_name,
             "email": agent_email,
             "type": "agent",
@@ -189,6 +192,7 @@ async def agent_signup(request: Request, payload: dict) -> dict:
             "assigned_system": payload.get("system", None),
             "role": auto_role,
             "rate_limit": runtime.provision.get("rate_limit", {"requests_per_minute": 10, "burst": 20}),
+            "capabilities": payload.get("capabilities", []),
         }
 
         runtime.registry.append(entry)
