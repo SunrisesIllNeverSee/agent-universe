@@ -70,6 +70,10 @@
       "destination": "/lobby.html"
     },
     {
+      "source": "/mapsite",
+      "destination": "/sitemap.html"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://agent-universe-production.up.railway.app/api/:path*"
     },
