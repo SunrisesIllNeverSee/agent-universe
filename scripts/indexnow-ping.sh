@@ -57,7 +57,7 @@ else
     exit 1
   fi
 
-  mapfile -t urls < <(grep -oP '(?<=<loc>)https://[^<]+' "${SITEMAP}")
+  mapfile -t urls < <(sed -n 's/.*<loc>\(.*\)<\/loc>.*/\1/p' "${SITEMAP}")
   echo "Found ${#urls[@]} URLs in sitemap"
   echo ""
 
