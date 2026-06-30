@@ -135,3 +135,23 @@ _Ambiguous or unknown mode input defaults to High Security (fail-safe)._
 - `none` → None (Unrestricted)
 - `unrestricted` → None (Unrestricted)
 
+## Academic foundation
+- [The Conservation Law of Commitment](https://signalaf.com/science): the theoretical foundation. C(T(S)) ≈ C(S) with enforcement; C(T(S)) < C(S) without it.
+- Conservation Law paper (Zenodo, CC-BY-4.0): https://doi.org/10.5281/zenodo.20029607
+- Experimental Record (Zenodo): https://doi.org/10.5281/zenodo.19105225
+- Public Recursive Transformation Harness (Zenodo): https://doi.org/10.5281/zenodo.19109397
+- Propositions of Commitment Theory (Zenodo): https://doi.org/10.5281/zenodo.20031715
+- Commitment Theory (34-paper research program): https://github.com/SunrisesIllNeverSee/Commitment_Theory
+- Conservation Law repo: https://github.com/SunrisesIllNeverSee/commitment-conservation
+
+## Governance ecosystem
+- MO§ES governance framework (patent pending 63/877,177): https://mos2es.com
+- MO§ES llms.txt: https://mos2es.com/llms.txt
+- GitHub org: https://github.com/SunrisesIllNeverSee
+- ORCID: https://orcid.org/0009-0002-9904-5390
+
+## Related surfaces
+- SigRank (live data product built on Conservation Law): https://signalaf.com
+- SigRank /science page: https://signalaf.com/science
+- SigRank llms.txt: https://signalaf.com/llms.txt
+
