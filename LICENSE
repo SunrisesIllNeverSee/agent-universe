@@ -44,5 +44,8 @@ For licensing inquiries: operator@signomy.xyz
 
 EXCEPTION
 
-civitae_mcp_server.py and its PyPI distribution (civitae-mcp) are licensed
-under the MIT License. See packages/civitae-mcp/LICENSE for terms.
+The MCP server surface of this repository — including the Dockerfile,
+packages/civitae-mcp/, and the civitae-mcp PyPI distribution — is licensed
+under the MIT License. See LICENSE-MCP for terms. This enables registry
+listing (Glama, MCP Registry, Smithery) and client installation while the
+core platform remains All Rights Reserved.
