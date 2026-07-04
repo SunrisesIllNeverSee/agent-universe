@@ -1,0 +1,9 @@
+.git
+.github
+data/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+incoming/
+governance-cache/
