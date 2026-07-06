@@ -140,6 +140,44 @@ Once branches are cleaned up, the repo should have:
 
 This is the ideal state for installing multi-agent-coord v2 — a clean branch tree means `lanes.sh` and `status.sh` give clear signal instead of noise from 18 stale branches.
 
+---
+
+## Cleanup executed — 2026-07-06
+
+**Result:** 21 remote branches → 2 (`main` + 1 preserved feature branch)
+
+### Deleted: 4 merged branches (safe, lost nothing)
+- `origin/001-civitae-full-build` — merged via a31b2f2
+- `origin/claude/fix-mcp-admin-guard` — merged via PR #10
+- `origin/copilot/build-mcp-for-github` — merged
+- `origin/railway/code-change-N8Csif` — merged via PR #4
+
+### Deleted: 17 unmerged branches (all superseded by work on main)
+Each was diffed against main. The work each branch attempted is already present on main via other PRs or direct commits:
+
+| Branch | What it did | Why superseded |
+|--------|-------------|----------------|
+| `claude/badge-and-packages` | AI Agents Directory badge + PyPI entry | README evolved on main |
+| `claude/circleci` | Add CircleCI config | `.circleci/config.yml` exists on main |
+| `claude/favicon-and-configschema` | Add favicon | `frontend/favicon.ico` exists on main (289 bytes) |
+| `claude/icon-and-naming` | Dot-notation MCP tools + brand icon | Dot-notation (`chat.join`, `agent.register`, etc.) on main |
+| `claude/mcp-fix-annotations` | Remove `from __future__ import annotations` | Already removed on main |
+| `claude/mcp-quality-score` | Add parameter descriptions to MCP tools | Descriptions on main |
+| `claude/mcp-stateless` | Fix stateless HTTP for Railway | `stateless_http` on main (2 hits) |
+| `claude/mcp-wire-all-tools` | Wire all 15 MCP tools | All tools wired on main |
+| `devin/update-skills-1778405824` | Add testing-local-server skill | Skill exists on main |
+| `devin/update-skills-1778428819` | Add testing-seo skill | Skill exists on main |
+| `devin/update-skills-1780394899` | Update testing-seo with IndexNow | Skill exists on main |
+| `claude/fix-kingdoms` | Kingdoms nav fix | `_nav.js` has kingdoms on main |
+| `claude/fix-mcp-dns-rebinding` | DNS rebinding fix | `enable_dns_rebinding_protection` on main |
+| `claude/fix-mcp-endpoint` | MCP endpoint resolution | server.json on main is v1.1.2 (branch had v1.0.1) |
+| `claude/fix-seo-audit-5f33q` | SEO audit + sitemap-v2 + docs | `sitemap-v2.xml` + docs (`MCP-REGISTRY-PUBLISH.md`, `DOC-001`) on main |
+| `devin/1778427797-seo-sitemap-fixes` | SEO sitemap fixes | `vercel.json` + sitemap evolved on main |
+| `copilot/open-positions-for-agents` | Help wanted apply modal | Apply modal on main (3 hits) |
+
+### Preserved: 1 branch with unique work
+- `origin/devin/1775076305-seed-card-loyalty-system` — **953 lines of unique seed card loyalty system code** (`app/seed_card.py`, `app/routes/seed_card.py`, `config/seed_card_rates.json`, frontend updates). Not on main. Worth cherry-picking or merging in a future session.
+
 ## Connection to multi-agent-coord v2
 
 The branch cleanup is a prerequisite for clean coordination. With 18 stale branches:
