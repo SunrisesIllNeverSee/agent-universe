@@ -1,8 +1,77 @@
-# AGENTS.md — Agent Universe
+# SESSION COORDINATION — read FIRST (every session, every time)
 
-> **Multi-instance coordination:** Read `COWORK_CLAUDE.md` first — it has current build state, priority list, and notes from the other Codex session. Leave your notes in your section there.
+This repo runs multiple parallel AI terminal sessions. To stop coordination from
+disappearing between sessions:
 
-## What This Is
+1. **The bus is `Devins_Plans/SCRATCHPAD.md`.** Read its tail + the COORDINATION
+   PROTOCOL header before doing anything. Append your status/decisions/questions
+   there (format: `### ⤷ <FROM> → <TO>: <subject>`). Don't start a parallel log.
+
+2. **Log into the activity tracker (once per session):**
+   `bash scripts/set-role.sh LEAD` (or `DEVIN` / `CODEX` / `COPILOT` / `GTM` /
+   whatever you name your sessions). This writes a per-session role file that
+   the PostToolUse hook reads to stamp your role into ACTIVITY.log. Without it,
+   your edits log as `UNKNOWN`. Then update your row in
+   `Devins_Plans/state/ROSTER.md`.
+
+3. **Claim your lane before starting work.** Append to `.agents/claims.yaml`
+   with the file paths you intend to touch. Check for overlapping claims first.
+   Release the claim when done (set `released_at`).
+
+4. **Install the commit-log hook once per clone:**
+   `bash scripts/install-hooks.sh` (git hooks live in `.git/` and don't travel
+   with clone/push — each session/machine must install).
+
+5. **Check cross-repo sync:** `bash scripts/lanes.sh` — shows every repo's
+   version, branch, unpushed/behind/dirty status, and registry-published vs
+   local versions. Read-only, changes nothing.
+
+6. **See roster + activity side by side:** `bash scripts/status.sh`
+
+7. **Validate coordination state:** `python3 scripts/check.py` — catches
+   stale claims, overlapping lanes, migration number conflicts.
+
+8. **OKF convention:** every doc in `Devins_Plans/` carries YAML frontmatter
+   (`type/title/description/tags/timestamp`). New docs MUST include it. Lint
+   with `node scripts/check-okf.mjs`.
+
+9. **DECISIONS.md:** if you're wondering "why is X like this?", check
+   `Devins_Plans/DECISIONS.md` first. If the answer isn't there, add it.
+
+10. **Handoffs:** use `Devins_Plans/handoffs/` for structured cross-session
+    transfers. Format: `{date}-{from}-to-{to}-{topic}.md`.
+
+11. **Cross-repo coordination:** `Devins_Plans/CROSSWIRE.md` is the
+    machine-local bus for handoffs that span repos. SCRATCHPAD is repo-local;
+    CROSSWIRE is machine-local.
+
+<!-- Edit everything below this line for your project -->
+
+---
+
+# PROJECT STATE
+
+**Status:** Active — production on Railway, frontend on Vercel (signomy.xyz)
+
+**Repos:**
+- **agent-universe** (this repo) — CIVITAE governed marketplace: FastAPI backend, 30+ frontend pages, 19 MCP tools, Stripe payments
+- **personal-command** — flagship COMMAND governance UI (private, local)
+- **command-engine** — open-source fork (bare-bones, public)
+- **moses-governance** — Codex plugin (public, ClawHub, 118 installs)
+- **commitment-conservation** — law paper + harness (separate workspace)
+
+**Live versions:**
+- MCP Registry: `xyz.signomy/civitae` v1.1.2
+- PyPI: `civitae-mcp` v0.2.0
+- Smithery: `burnmydays/civitae` (100% quality, 19 tools)
+- PulseMCP: live
+- AI Agents Directory: listed
+
+**Branches:** `main` + `devin/1775076305-seed-card-loyalty-system` (953 lines unique seed card work, unmerged)
+
+---
+
+# ORIGINAL GOAL
 
 A governed marketplace where AI agents form teams, fill slots, run missions, and earn revenue. Agents are free. Humans pay. MO§ES™ governs everything.
 
@@ -110,7 +179,7 @@ python run.py
 
 ---
 
-*Last updated: 2026-03-24*
+*Last updated: 2026-07-06*
 
 ## Active Technologies
 - HTML5, CSS3, Vanilla JavaScript (ES2022) — no transpiler. Zero npm. Zero build pipeline.
@@ -124,8 +193,8 @@ python run.py
 - Served at `/assets/_nav.js`
 - Injected via `<script src="/assets/_nav.js"></script>` in `</head>` of every content page
 - Fixed-viewport pages (console, deploy, campaign, world) have their OWN topbar — do NOT inject `_nav.js` there, they are in the SKIP list
-- To add/change nav links: edit `NAV_LINKS` in `_nav.js` only
-- `activeFor` array on each link handles sub-page highlighting (e.g. COMMAND stays gold on /console, /deploy, /campaign)
+- To add/change nav links: edit layers[].navLinks in `config/pages.json`
+- `pages.json` drives everything: nav tabs, sub-links, portal directory, banner
 
 ### Sitemap as Communication Layer
 - `frontend/sitemap.html` is the shared source of truth between sessions
@@ -151,6 +220,13 @@ python run.py
 - Layer 5: Civitas Infrastructure (governance, economy, forums, academics)
 
 ## Recent Changes
+- 2026-07-06: multi-agent-coord v2 installed — 6-layer coordination system (SCRATCHPAD, claims, hooks, roster, activity log)
+- 2026-07-06: Branch cleanup — 21 remote branches → 2 (main + 1 preserved seed card branch)
+- 2026-07-06: Notification fixes — asyncio.to_thread, boot warnings, send_review_decision, no fake success
+- 2026-07-06: Dashboard fixes — port 8300, field mapping, API key validation, no guest mode, nav link
+- 2026-07-06: Lobby security — admin key gate on /api/lobby/requests + approve
+- 2026-07-06: Console review queue — Reviews tab with approve/reject UI
+- 2026-07-06: Port mismatch fix — localhost:8000 → 8300 across 9 frontend files
 - 2026-03-24: Console (2.2) rebuilt as CIVITAE-native operator cockpit with message bar
 - 2026-03-24: Global nav `_nav.js` injected into 21 content pages
 - 2026-03-24: Sitemap restructured — dot notation, SESSION_LOG, per-entry notes

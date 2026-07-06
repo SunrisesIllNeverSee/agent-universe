@@ -1,3 +1,54 @@
+# SESSION COORDINATION — read FIRST (every session, every time)
+
+This repo runs multiple parallel AI terminal sessions. To stop coordination from
+disappearing between sessions:
+
+1. **The bus is `Devins_Plans/SCRATCHPAD.md`.** Read its tail + the COORDINATION
+   PROTOCOL header before doing anything. Append your status/decisions/questions
+   there (format: `### ⤷ <FROM> → <TO>: <subject>`). Don't start a parallel log.
+
+2. **Log into the activity tracker (once per session):**
+   `bash scripts/set-role.sh LEAD` (or `DEVIN` / `CODEX` / `COPILOT` / `GTM` /
+   whatever you name your sessions). This writes a per-session role file that
+   the PostToolUse hook reads to stamp your role into ACTIVITY.log. Without it,
+   your edits log as `UNKNOWN`. Then update your row in
+   `Devins_Plans/state/ROSTER.md`.
+
+3. **Claim your lane before starting work.** Append to `.agents/claims.yaml`
+   with the file paths you intend to touch. Check for overlapping claims first.
+   Release the claim when done (set `released_at`).
+
+4. **Install the commit-log hook once per clone:**
+   `bash scripts/install-hooks.sh` (git hooks live in `.git/` and don't travel
+   with clone/push — each session/machine must install).
+
+5. **Check cross-repo sync:** `bash scripts/lanes.sh` — shows every repo's
+   version, branch, unpushed/behind/dirty status, and registry-published vs
+   local versions. Read-only, changes nothing.
+
+6. **See roster + activity side by side:** `bash scripts/status.sh`
+
+7. **Validate coordination state:** `python3 scripts/check.py` — catches
+   stale claims, overlapping lanes, migration number conflicts.
+
+8. **OKF convention:** every doc in `Devins_Plans/` carries YAML frontmatter
+   (`type/title/description/tags/timestamp`). New docs MUST include it. Lint
+   with `node scripts/check-okf.mjs`.
+
+9. **DECISIONS.md:** if you're wondering "why is X like this?", check
+   `Devins_Plans/DECISIONS.md` first. If the answer isn't there, add it.
+
+10. **Handoffs:** use `Devins_Plans/handoffs/` for structured cross-session
+    transfers. Format: `{date}-{from}-to-{to}-{topic}.md`.
+
+11. **Cross-repo coordination:** `Devins_Plans/CROSSWIRE.md` is the
+    machine-local bus for handoffs that span repos. SCRATCHPAD is repo-local;
+    CROSSWIRE is machine-local.
+
+<!-- Edit everything below this line for your project -->
+
+---
+
 # CLAUDE.md — CIVITAE
 
 ## What This Is
