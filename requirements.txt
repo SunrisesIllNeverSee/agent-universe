@@ -1,0 +1,24 @@
+# requirements.txt — pinned deps for Railway/NIXPACKS reproducible installs.
+# Auto-generated from pyproject.toml [project].dependencies.
+# Do NOT edit manually — update pyproject.toml and regenerate.
+# Glama uses the Dockerfile (not this file) for its build surface.
+
+# MCP server surface
+civitae-mcp>=0.2.0
+fastmcp>=3.2.0
+# Full platform (pinned for reproducible Railway deploys)
+pytest==8.3.5
+fastapi==0.136.1
+uvicorn[standard]==0.46.0
+pydantic==2.13.4
+httpx==0.28.1
+python-multipart==0.0.27
+aiofiles==25.1.0
+stripe==15.1.0
+PyJWT==2.12.1
+websockets==16.0
+starlette==1.0.0
+opentelemetry-api==1.41.1
+opentelemetry-sdk==1.41.1
+opentelemetry-instrumentation-fastapi==0.62b1
+opentelemetry-instrumentation-asgi==0.62b1

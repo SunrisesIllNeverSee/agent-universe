@@ -16,9 +16,9 @@ jobs:
       tag: "3.13"
     steps:
       - checkout
-      - run:
-          name: Install dependencies from pyproject.toml
-          command: pip install $(python -c "import tomllib; print(' '.join(tomllib.load(open('pyproject.toml','rb'))['project']['dependencies']))")
+      - python/install-packages:
+          pkg-manager: pip
+          pip-dependency-file: requirements.txt
       - run:
           name: Run tests
           command: python -m pytest tests/ -x -q --tb=short
@@ -29,9 +29,9 @@ jobs:
       tag: "3.13"
     steps:
       - checkout
-      - run:
-          name: Install dependencies from pyproject.toml
-          command: pip install $(python -c "import tomllib; print(' '.join(tomllib.load(open('pyproject.toml','rb'))['project']['dependencies']))")
+      - python/install-packages:
+          pkg-manager: pip
+          pip-dependency-file: requirements.txt
       - run:
           name: Syntax check (ast)
           command: |
