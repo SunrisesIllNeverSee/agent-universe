@@ -1,6 +1,0 @@
-# Exclude everything — the Glama Dockerfile installs from PyPI, no repo code needed.
-# This keeps the build context tiny and avoids sending large files to the daemon.
-# Note: Dockerfile was renamed to Dockerfile.glama so Railway uses NIXPACKS instead.
-*
-!Dockerfile.glama
-!.dockerignore
