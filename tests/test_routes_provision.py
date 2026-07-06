@@ -101,11 +101,43 @@ def test_status_returns_agent_info(client):
     data = status.json()
     assert "name" in data
     assert "status" in data
+    # Dashboard-compatible field names
+    assert "agent_name" in data
+    assert "governance_posture" in data
 
 
 def test_status_unknown_agent_404(client):
     r = client.get("/api/provision/status/nonexistent-agent-xyz")
     assert r.status_code == 404
+
+
+def test_status_with_valid_bearer_key(client):
+    """Dashboard login path: Bearer key is validated against stored hash."""
+    r = signup_agent(client, ip=_ip())
+    assert r.status_code == 200
+    data = r.json()
+    agent_id = data["agent_id"]
+    api_key = data["api_key"]
+
+    status = client.get(
+        f"/api/provision/status/{agent_id}",
+        headers={"Authorization": f"Bearer {api_key}"},
+    )
+    assert status.status_code == 200
+    assert status.json()["agent_id"] == agent_id
+
+
+def test_status_with_invalid_bearer_key_401(client):
+    """Wrong API key via Bearer header is rejected."""
+    r = signup_agent(client, ip=_ip())
+    assert r.status_code == 200
+    agent_id = r.json()["agent_id"]
+
+    status = client.get(
+        f"/api/provision/status/{agent_id}",
+        headers={"Authorization": "Bearer wrong-key-xyz"},
+    )
+    assert status.status_code == 401
 
 
 def test_heartbeat_updates_last_seen(client):

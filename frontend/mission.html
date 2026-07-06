@@ -458,7 +458,7 @@ if (location.hash === '#team') switchView('team');
 /* DETAIL VIEW JS */
 (function() {
   'use strict';
-  var BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:8000' : '';
+  var BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:8300' : '';
   var tasks = [], filterTrack = 'all', filterType = '', activeTask = null;
   var overlay = document.getElementById('overlay');
   var toast = document.getElementById('toast');
@@ -776,7 +776,7 @@ async function launchOp() {
   var label = prompt('Operation label:') || 'OP-' + Date.now().toString(36).toUpperCase();
   var systems = {}, agents = {};
   slots.forEach(function(s) { if (s.system) { if (s.system.type==='agent') agents[s.system.id]=true; else systems[s.system.id]=true; } });
-  var base = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? 'http://localhost:8000' : '';
+  var base = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? 'http://localhost:8300' : '';
   await fetch(base + '/api/missions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ label, objective:'Slot-configured operation', posture:'DEFENSE', systems, agents, duration:'sprint' }) });
   alert('Launched: ' + label);
 }
@@ -786,7 +786,7 @@ renderDrawer();
 
 (async function() {
   try {
-    var base = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? 'http://localhost:8000' : '';
+    var base = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? 'http://localhost:8300' : '';
     var res = await fetch(base + '/api/provision/registry', { signal: AbortSignal.timeout(5000) });
     if (!res.ok) return;
     var data = await res.json();

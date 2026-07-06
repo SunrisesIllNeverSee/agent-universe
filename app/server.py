@@ -250,7 +250,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     )
 
     # Operator GET paths also require admin key (fail-closed)
-    _ADMIN_GET_PREFIXES = ("/api/operator/", "/api/provision/registry")
+    _ADMIN_GET_PREFIXES = ("/api/operator/", "/api/provision/registry", "/api/lobby/requests")
 
     @app.middleware("http")
     async def admin_key_guard(request: Request, call_next):
@@ -286,7 +286,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     # Reading pages are public. Doing pages require an active lobby session.
     _GATED_PREFIXES = (
         "/kassa", "/missions", "/forums", "/deploy", "/campaign",
-        "/console", "/command", "/agentdash", "/dashboard", "/slots",
+        "/console", "/command", "/agentdash", "/slots",
         "/advisory", "/openroles", "/seeds", "/mission",
     )
     # API paths that correspond to gated features — let the frontend handle the gate

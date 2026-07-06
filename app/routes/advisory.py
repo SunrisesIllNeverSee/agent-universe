@@ -6,7 +6,9 @@ and per-seat discussion threads. Data persists to data/council.json.
 """
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
 import os
 import secrets
 from datetime import UTC, datetime
@@ -20,6 +22,7 @@ from app.deps import state
 from app.seeds import create_seed
 
 router = APIRouter(tags=["advisory"])
+logger = logging.getLogger("civitae.advisory")
 
 
 class SeatApplicationPayload(BaseModel):
@@ -138,15 +141,16 @@ async def apply_for_seat(payload: SeatApplicationPayload) -> dict:
     except Exception:
         pass
 
-    # Email operator (fire-and-forget)
+    # Email operator (fire-and-forget — don't block the response)
     try:
         from app.notifications import send_operator_alert
-        send_operator_alert(
+        await asyncio.to_thread(
+            send_operator_alert,
             subject=f"Advisory Board Application: {seat_id} — {name}",
             body=f"Seat: {seat_id}\nName: {name}\nEmail: {email}\nType: {agent_type}\n\n{message}",
         )
     except Exception:
-        pass
+        logger.warning("Failed to send operator alert for advisory application %s", app_id, exc_info=True)
 
     return {"ok": True, "app_id": app_id, "seat_id": seat_id, "seed_doi": seed_doi}
 

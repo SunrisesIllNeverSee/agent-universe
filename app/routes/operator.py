@@ -6,8 +6,10 @@ public inbox apply endpoint (rate-limited instead).
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
+import logging
 import secrets
 import time as _time
 from datetime import datetime, timezone
@@ -22,6 +24,7 @@ from app.seeds import _read_seeds
 UTC = timezone.utc
 
 router = APIRouter(tags=["operator"])
+logger = logging.getLogger("civitae.operator")
 
 
 class InboxReviewPayload(BaseModel):
@@ -253,16 +256,15 @@ async def public_contact(request: Request, payload: dict) -> dict:
         pass
 
     # Email operator (fire-and-forget — don't block the response)
-    import asyncio
     try:
         from app.notifications import send_operator_alert
-        asyncio.get_event_loop().run_in_executor(
-            None, send_operator_alert,
-            f"Contact: {subject} — from {name}",
-            f"Name: {name}\nEmail: {email}\nSubject: {subject}\n\n{message}",
+        await asyncio.to_thread(
+            send_operator_alert,
+            subject=f"Contact: {subject} — from {name}",
+            body=f"Name: {name}\nEmail: {email}\nSubject: {subject}\n\n{message}",
         )
     except Exception:
-        pass
+        logger.warning("Failed to send operator alert for contact %s", contact_id, exc_info=True)
 
     return {"ok": True, "id": contact_id}
 

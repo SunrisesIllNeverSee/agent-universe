@@ -438,6 +438,15 @@ class MCPBridge:
                 }
                 _state.kassa.insert_review(review_entry)
                 _state.audit.log("kassa", "post_submitted_mcp", {"post_id": post_id, "agent": agent["name"], "tab": category})
+                # Fire operator alert so the operator knows a post is waiting for review
+                try:
+                    from app.notifications import send_operator_alert
+                    send_operator_alert(
+                        subject=f"New MCP post for review: {title}",
+                        body=f"Tab: {category}\nFrom: {agent['name']} (via MCP)\nTitle: {title}\n\nReview at: https://signomy.xyz/console",
+                    )
+                except Exception:
+                    pass
                 span.set_attribute("mcp.post_id", post_id)
                 span.set_attribute("mcp.result", "ok")
                 return {
@@ -756,6 +765,23 @@ class MCPBridge:
                 return r
             return _state.kassa.get_review(f"rev-{post_or_review_id}")
 
+        def _notify_submitter(review: dict, approved: bool, reason: str = "") -> None:
+            """Fire-and-forget submitter notification on review approve/reject."""
+            submitter_email = review.get("from_email", "")
+            if not submitter_email:
+                return
+            try:
+                from app.notifications import send_review_decision
+                send_review_decision(
+                    submitter_email=submitter_email,
+                    submitter_name=review.get("from_name", ""),
+                    post_title=review.get("post", {}).get("title", ""),
+                    approved=approved,
+                    reason=reason,
+                )
+            except Exception:
+                pass
+
         @mcp.tool(name="admin.reviews", annotations={"title": "Operator: Post Reviews", "readOnly": False, "destructive": True, "idempotent": False, "openWorld": False})
         def civitae_op_reviews(
             admin_key: Annotated[str, Field(description="Platform admin key. Set via CIVITAE_ADMIN_KEY environment variable.")],
@@ -778,6 +804,7 @@ class MCPBridge:
                     _state.kassa.insert_post(review["post"])
                     _state.kassa.update_review(review["review_id"], {"status": "approved"})
                     _state.audit.log("operator", "post_approved_mcp", {"review_id": review["review_id"], "post_id": review["post"]["id"]})
+                    _notify_submitter(review, approved=True)
                     span.set_attribute("mcp.review_id", review["review_id"])
                     span.set_attribute("mcp.post_id", review["post"]["id"])
                     span.set_attribute("mcp.result", "ok")
@@ -789,6 +816,7 @@ class MCPBridge:
                         return {"error": f"Review for {post_id} not found"}
                     _state.kassa.update_review(review["review_id"], {"status": "rejected"})
                     _state.audit.log("operator", "post_rejected_mcp", {"review_id": review["review_id"], "reason": reason})
+                    _notify_submitter(review, approved=False, reason=reason)
                     span.set_attribute("mcp.review_id", review["review_id"])
                     span.set_attribute("mcp.result", "ok")
                     return {"review_id": review["review_id"], "post_id": review["post"]["id"], "status": "rejected", "reason": reason}

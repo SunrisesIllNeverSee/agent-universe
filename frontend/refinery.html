@@ -355,7 +355,7 @@
 <script>
 (async () => {
   const base = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'http://localhost:8000' : '';
+    ? 'http://localhost:8300' : '';
 
   function setMetric(id, barId, val, max) {
     const pct = max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0;

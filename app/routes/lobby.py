@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import time
 
-from fastapi import APIRouter, Cookie, Request, Response
+from fastapi import APIRouter, Cookie, HTTPException, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
 
 from app.deps import state
@@ -68,16 +68,30 @@ async def submit_join(request: Request):
 
 # ── Admin: list + approve join requests ───────────────────────────────────────
 
+def _require_lobby_admin(request: Request):
+    """Defense-in-depth admin check for lobby admin endpoints.
+
+    The admin_key_guard middleware already gates these paths, but this
+    prevents accidental exposure if the middleware config is changed.
+    """
+    if not state.admin_key:
+        raise HTTPException(403, "CIVITAE_ADMIN_KEY not configured")
+    if request.headers.get("X-Admin-Key") != state.admin_key:
+        raise HTTPException(403, "Admin key required")
+
+
 @router.get("/api/lobby/requests")
-async def list_requests(status: str = "pending"):
+async def list_requests(request: Request, status: str = "pending"):
     """Admin — list join requests."""
+    _require_lobby_admin(request)
     lobby = _get_lobby()
     return JSONResponse(lobby.list_join_requests(status))
 
 
 @router.post("/api/lobby/approve/{req_id}")
-async def approve_request(req_id: str, response: Response):
+async def approve_request(req_id: str, request: Request, response: Response):
     """Admin — approve a join request, creating an approved user."""
+    _require_lobby_admin(request)
     lobby = _get_lobby()
     user_id = lobby.approve_join(req_id)
     if not user_id:

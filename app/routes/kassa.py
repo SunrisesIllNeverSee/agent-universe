@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 import os
 import secrets
 import time as _time
@@ -32,11 +33,17 @@ from app.deps import state
 from app.jwt_config import get_kassa_jwt_secret
 from app.sanitize import sanitize_text, sanitize_name, detect_prompt_injection
 from app.seeds import create_seed
-from app.notifications import send_magic_link, send_message_notification, send_operator_alert
+from app.notifications import (
+    send_magic_link,
+    send_message_notification,
+    send_operator_alert,
+    send_review_decision,
+)
 from app.models import KassaContact, KassaPostCreate
 from pydantic import BaseModel
 
 router = APIRouter(tags=["kassa"])
+logger = logging.getLogger("civitae.kassa")
 
 
 class KassaRegisterPayload(BaseModel):
@@ -818,16 +825,14 @@ async def submit_kassa_post(request: Request) -> dict:
         # User posts enter the review queue and trigger an operator alert
         state.kassa.insert_review(review_entry)
         state.audit.log("kassa", "post_submitted", {"id": kid, "tab": tab, "from_email": from_email})
-        import asyncio
         try:
-            from app.notifications import send_operator_alert
-            asyncio.get_event_loop().run_in_executor(
-                None, send_operator_alert,
-                f"New post for review: {title}",
-                f"Tab: {tab}\nFrom: {from_name} <{from_email}>\nTitle: {title}\n\nReview at: https://signomy.xyz/console",
+            await asyncio.to_thread(
+                send_operator_alert,
+                subject=f"New post for review: {title}",
+                body=f"Tab: {tab}\nFrom: {from_name} <{from_email}>\nTitle: {title}\n\nReview at: https://signomy.xyz/console",
             )
         except Exception:
-            pass
+            logger.warning("Failed to send operator alert for new post %s", kid, exc_info=True)
 
     await state.emit("kassa_post_submitted", {"id": kid, "tab": tab})
 
@@ -926,6 +931,23 @@ async def update_review(review_id: str, action: str, request: Request) -> dict:
             pass
     else:
         raise HTTPException(status_code=400, detail="action must be 'approve' or 'reject'")
+
+    # Notify the original submitter of the decision (fire-and-forget)
+    submitter_email = r.get("from_email", "")
+    submitter_name = r.get("from_name", "")
+    post_title = r.get("post", {}).get("title", "")
+    if submitter_email:
+        try:
+            await asyncio.to_thread(
+                send_review_decision,
+                submitter_email=submitter_email,
+                submitter_name=submitter_name,
+                post_title=post_title,
+                approved=(action == "approve"),
+            )
+        except Exception:
+            logger.warning("Failed to send review decision email for %s", review_id, exc_info=True)
+
     await state.emit("review_updated", {"review_id": review_id, "status": r["status"]})
     r["seed_doi"] = seed_doi
     return r

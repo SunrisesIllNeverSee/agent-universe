@@ -499,7 +499,7 @@ renderDrawer();
 (async () => {
   try {
     const base = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      ? 'http://localhost:8000' : '';
+      ? 'http://localhost:8300' : '';
     const res = await fetch(base + '/api/provision/registry', { signal: AbortSignal.timeout(5000) });
     if (!res.ok) return;
     const data = await res.json();

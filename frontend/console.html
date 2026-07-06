@@ -383,6 +383,56 @@ body {
   letter-spacing: 0.06em;
 }
 
+/* ── Review queue ───────────────────────────────────────────────────── */
+.review-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+}
+.review-card:hover { border-color: var(--border2); }
+.review-from { font-family: var(--mono); font-size: 0.62rem; color: var(--muted); margin-top: 3px; }
+.review-body { font-size: 0.75rem; color: var(--text); margin-top: 6px; line-height: 1.5; }
+.review-actions { display: flex; gap: 8px; margin-top: 10px; }
+.review-btn {
+  font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.08em;
+  padding: 5px 12px; border: 1px solid var(--border); border-radius: 3px;
+  background: var(--surface); color: var(--muted); cursor: pointer;
+  text-transform: uppercase; transition: all 0.15s;
+}
+.review-btn:hover { color: var(--text); border-color: var(--border2); }
+.review-btn.approve { color: var(--green); border-color: rgba(61,170,106,0.3); }
+.review-btn.approve:hover { background: rgba(61,170,106,0.1); }
+.review-btn.reject { color: var(--warn); border-color: rgba(196,91,63,0.3); }
+.review-btn.reject:hover { background: rgba(196,91,63,0.1); }
+.review-badge {
+  display: inline-block; font-family: var(--mono); font-size: 0.55rem;
+  letter-spacing: 0.08em; padding: 2px 6px; border-radius: 2px;
+  background: rgba(196,146,58,0.12); color: var(--gold);
+  text-transform: uppercase; margin-left: 8px;
+}
+.admin-key-bar {
+  display: flex; align-items: center; gap: 8px; padding: 8px 14px;
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 0.62rem; color: var(--muted);
+}
+.admin-key-input {
+  font-family: var(--mono); font-size: 0.65rem; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 3px;
+  padding: 4px 8px; width: 180px;
+}
+.admin-key-input:focus { outline: none; border-color: var(--gold); }
+.admin-key-btn {
+  font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.08em;
+  padding: 4px 10px; border: 1px solid var(--border); border-radius: 3px;
+  background: var(--surface); color: var(--gold); cursor: pointer;
+}
+.admin-key-btn:hover { background: rgba(196,146,58,0.08); }
+.admin-key-status { color: var(--green); }
+.admin-key-status.unset { color: var(--muted); }
+
 /* ── Stats grid ──────────────────────────────────────────────── */
 .stats-grid {
   display: grid;
@@ -760,6 +810,7 @@ body {
   <div class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('missions')">Missions</button>
     <button class="tab-btn"        onclick="switchTab('slots')">Slots</button>
+    <button class="tab-btn"        onclick="switchTab('reviews')">Reviews</button>
     <button class="tab-btn"        onclick="switchTab('seeds')">Seeds</button>
     <button class="tab-btn"        onclick="switchTab('feed')">Live Feed</button>
   </div>
@@ -770,6 +821,15 @@ body {
     </div>
     <div class="tab-pane" id="tab-slots" style="flex:1;overflow-y:auto;">
       <div id="slots-list"><div class="empty-state">Loading slots...</div></div>
+    </div>
+    <div class="tab-pane" id="tab-reviews" style="flex:1;overflow-y:auto;">
+      <div class="admin-key-bar">
+        <span>ADMIN KEY</span>
+        <input type="password" class="admin-key-input" id="admin-key-input" placeholder="Enter admin key..." autocomplete="off">
+        <button class="admin-key-btn" onclick="setAdminKey()">Set</button>
+        <span class="admin-key-status unset" id="admin-key-status">not set</span>
+      </div>
+      <div id="reviews-list" style="padding:14px;"><div class="empty-state">Enter admin key to load pending reviews</div></div>
     </div>
     <div class="tab-pane" id="tab-seeds" style="flex:1;overflow-y:auto;">
       <div id="seeds-list"><div class="empty-state">Seeds coming soon — Phase 1</div></div>
@@ -1205,10 +1265,144 @@ function logAction(msg, state) {
   });
 }
 
+// ── Review queue ──────────────────────────────────────────────────────
+let adminKey = '';
+
+function setAdminKey() {
+  const input = document.getElementById('admin-key-input');
+  const status = document.getElementById('admin-key-status');
+  adminKey = (input.value || '').trim();
+  if (adminKey) {
+    status.textContent = 'set';
+    status.classList.remove('unset');
+    loadReviews();
+  } else {
+    status.textContent = 'not set';
+    status.classList.add('unset');
+  }
+}
+
+function loadReviews() {
+  const list = document.getElementById('reviews-list');
+  if (!adminKey) {
+    list.innerHTML = '';
+    const emp = document.createElement('div');
+    emp.className = 'empty-state';
+    emp.textContent = 'Enter admin key to load pending reviews';
+    list.appendChild(emp);
+    return;
+  }
+  fetch(API + '/api/operator/reviews?status=pending', {
+    headers: { 'X-Admin-Key': adminKey },
+  })
+    .then(function (r) {
+      if (r.status === 403) {
+        list.innerHTML = '';
+        const emp = document.createElement('div');
+        emp.className = 'empty-state';
+        emp.textContent = 'Invalid admin key';
+        list.appendChild(emp);
+        return null;
+      }
+      return r.json();
+    })
+    .then(function (reviews) {
+      if (reviews === null) return;
+      list.innerHTML = '';
+      if (!reviews.length) {
+        const emp = document.createElement('div');
+        emp.className = 'empty-state';
+        emp.textContent = 'No pending reviews';
+        list.appendChild(emp);
+        return;
+      }
+      reviews.forEach(function (rv) {
+        const post = rv.post || {};
+        const card = document.createElement('div');
+        card.className = 'review-card';
+
+        const idEl = document.createElement('div');
+        idEl.className = 'card-id';
+        idEl.textContent = rv.review_id || post.id || '—';
+        card.appendChild(idEl);
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'card-title';
+        titleEl.textContent = post.title || '—';
+        const badge = document.createElement('span');
+        badge.className = 'review-badge';
+        badge.textContent = post.tab || '—';
+        titleEl.appendChild(badge);
+        card.appendChild(titleEl);
+
+        const fromEl = document.createElement('div');
+        fromEl.className = 'review-from';
+        fromEl.textContent = 'From: ' + (rv.from_name || '—') + ' <' + (rv.from_email || '—') + '>';
+        card.appendChild(fromEl);
+
+        if (post.body) {
+          const bodyEl = document.createElement('div');
+          bodyEl.className = 'review-body';
+          bodyEl.textContent = post.body.slice(0, 200);
+          card.appendChild(bodyEl);
+        }
+
+        const actions = document.createElement('div');
+        actions.className = 'review-actions';
+
+        const approveBtn = document.createElement('button');
+        approveBtn.className = 'review-btn approve';
+        approveBtn.textContent = 'Approve';
+        approveBtn.onclick = function () { reviewAction(rv.review_id, 'approve', card); };
+        actions.appendChild(approveBtn);
+
+        const rejectBtn = document.createElement('button');
+        rejectBtn.className = 'review-btn reject';
+        rejectBtn.textContent = 'Reject';
+        rejectBtn.onclick = function () { reviewAction(rv.review_id, 'reject', card); };
+        actions.appendChild(rejectBtn);
+
+        card.appendChild(actions);
+        list.appendChild(card);
+      });
+    })
+    .catch(function () {
+      list.innerHTML = '';
+      const emp = document.createElement('div');
+      emp.className = 'empty-state';
+      emp.textContent = 'Backend offline';
+      list.appendChild(emp);
+    });
+}
+
+function reviewAction(reviewId, action, cardEl) {
+  fetch(API + '/api/operator/reviews/' + encodeURIComponent(reviewId) + '?action=' + action, {
+    method: 'PATCH',
+    headers: { 'X-Admin-Key': adminKey },
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d.status === 'approved' || d.status === 'rejected') {
+        cardEl.style.opacity = '0.4';
+        cardEl.style.pointerEvents = 'none';
+        const note = document.createElement('div');
+        note.className = 'card-meta';
+        note.style.color = action === 'approve' ? 'var(--green)' : 'var(--warn)';
+        note.textContent = action === 'approve' ? '✓ Approved — post is now live' : '✗ Rejected';
+        cardEl.appendChild(note);
+        logAction('Review ' + reviewId + ' ' + action + 'ed', action === 'approve' ? 'ok' : 'err');
+        pushFeed('review_' + action, reviewId);
+      }
+    })
+    .catch(function () {
+      logAction('Review action failed: ' + reviewId, 'err');
+    });
+}
+
 // ── Tab switch ────────────────────────────────────────────────────────
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(function (b, i) {
-    const names = ['missions','slots','seeds','feed'];
+    const names = ['missions','slots','reviews','seeds','feed'];
     b.classList.toggle('active', names[i] === name);
   });
   document.querySelectorAll('.tab-pane').forEach(function (p) {
@@ -1216,6 +1410,7 @@ function switchTab(name) {
   });
   const pane = document.getElementById('tab-' + name);
   if (pane) pane.classList.add('active');
+  if (name === 'reviews') loadReviews();
 }
 
 // ── Clock ─────────────────────────────────────────────────────────────

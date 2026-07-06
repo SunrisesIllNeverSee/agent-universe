@@ -267,3 +267,72 @@ def test_kassa_contact_public(client, admin_client):
         "message": "Hello from test suite",
     })
     assert r.status_code in (200, 201, 429)  # 429 if rate-limited from prior tests
+
+
+# ── Operator Review Queue ─────────────────────────────────────────────────────
+
+def test_review_queue_approve_flow(client, admin_client):
+    """Submit a post as a regular agent, then approve it via the operator review queue."""
+    _, _, token = _kassa_signup(client)
+    payload = _post_payload("bounties")
+    create = client.post("/api/kassa/posts", json=payload, headers=_auth_headers(token))
+    assert create.status_code == 200
+    post_id = create.json()["id"]
+
+    # Post should be in the pending review queue
+    reviews = admin_client.get("/api/operator/reviews", params={"status": "pending"}).json()
+    review_ids = [r.get("review_id") for r in reviews]
+    assert f"rev-{post_id}" in review_ids
+
+    # Approve it
+    approve = admin_client.patch(
+        f"/api/operator/reviews/rev-{post_id}",
+        params={"action": "approve"},
+    )
+    assert approve.status_code == 200
+    assert approve.json()["status"] == "approved"
+
+    # Post should now be live on the board
+    post = client.get(f"/api/kassa/posts/{post_id}")
+    assert post.status_code == 200
+    assert post.json()["id"] == post_id
+
+
+def test_review_queue_reject_flow(client, admin_client):
+    """Submit a post as a regular agent, then reject it via the operator review queue."""
+    _, _, token = _kassa_signup(client)
+    payload = _post_payload("services")
+    create = client.post("/api/kassa/posts", json=payload, headers=_auth_headers(token))
+    assert create.status_code == 200
+    post_id = create.json()["id"]
+
+    # Reject it
+    reject = admin_client.patch(
+        f"/api/operator/reviews/rev-{post_id}",
+        params={"action": "reject"},
+    )
+    assert reject.status_code == 200
+    assert reject.json()["status"] == "rejected"
+
+    # Post should NOT be on the public board
+    post = client.get(f"/api/kassa/posts/{post_id}")
+    assert post.status_code == 404
+
+
+def test_review_queue_requires_admin_key(client):
+    """Non-admin cannot access the review queue."""
+    r = client.get("/api/operator/reviews")
+    assert r.status_code == 403
+
+
+def test_review_queue_invalid_action_400(client, admin_client):
+    """Invalid action parameter returns 400."""
+    _, _, token = _kassa_signup(client)
+    create = client.post("/api/kassa/posts", json=_post_payload("iso"), headers=_auth_headers(token))
+    post_id = create.json()["id"]
+
+    r = admin_client.patch(
+        f"/api/operator/reviews/rev-{post_id}",
+        params={"action": "bogus"},
+    )
+    assert r.status_code == 400

@@ -50,7 +50,8 @@
         { "label": "Forums",     "href": "/forums"      },
         { "label": "Missions",   "href": "/missions"    },
         { "label": "Open Roles", "href": "/openroles"   },
-        { "label": "AgentDash",  "href": "/agentdash"   }
+        { "label": "AgentDash",  "href": "/agentdash"   },
+        { "label": "Dashboard",  "href": "/dashboard"   }
       ],
       "paths": ["/portal", "/dashboard", "/openroles", "/helpwanted", "/missions", "/seeds", "/command", "/console", "/mission", "/deploy", "/campaign", "/kassa", "/marketplace", "/forums", "/slots", "/earnings-matrix", "/earnings-journey", "/agentdash", "/advisory", "/connect"],
       "pages": [

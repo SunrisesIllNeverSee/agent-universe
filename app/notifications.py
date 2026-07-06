@@ -37,6 +37,24 @@ BASE_URL: str = os.environ.get("CIVITAE_BASE_URL", "http://localhost:8300")
 
 logger = logging.getLogger("civitae.notifications")
 
+# ── Boot-time warnings (Railway only — dev mode is fine without these) ────────
+
+_ON_RAILWAY = bool(os.environ.get("RAILWAY_ENVIRONMENT"))
+
+if _ON_RAILWAY and not RESEND_API_KEY:
+    logger.warning(
+        "RESEND_API_KEY not set on Railway. Email notifications will NOT be sent. "
+        "Magic links, message alerts, and operator alerts are all affected. "
+        "Set it in your Railway environment: railway variables set RESEND_API_KEY=re_..."
+    )
+
+if _ON_RAILWAY and not OPERATOR_EMAIL:
+    logger.warning(
+        "OPERATOR_EMAIL not set on Railway. Operator alerts will be addressed to an empty "
+        "recipient and silently fail. Set it in your Railway environment: "
+        "railway variables set OPERATOR_EMAIL=you@example.com"
+    )
+
 # ── Rate Limiting ─────────────────────────────────────────────────────────────
 
 _last_notified: dict[str, datetime] = {}
@@ -81,6 +99,14 @@ def _send_email_inner(to_addr: str, subject: str, body: str, from_addr: str | No
     sender = from_addr or SMTP_FROM
 
     if not RESEND_API_KEY:
+        if _ON_RAILWAY:
+            # In production, do NOT fake success — callers need to know it failed.
+            logger.error(
+                "RESEND_API_KEY not configured on Railway — email to %s NOT sent (subject: %s)",
+                to_addr, subject,
+            )
+            return False
+        # In local dev, log to stdout and pretend success so flows can be tested.
         logger.info(
             "RESEND_API_KEY not configured — logging email instead.\n"
             "  To:      %s\n"
@@ -100,6 +126,10 @@ def _send_email_inner(to_addr: str, subject: str, body: str, from_addr: str | No
             f"{'='*60}\n"
         )
         return True
+
+    if not to_addr:
+        logger.warning("Cannot send email — recipient address is empty (subject: %s)", subject)
+        return False
 
     try:
         payload = json.dumps({
@@ -229,3 +259,43 @@ def send_operator_alert(subject: str, body: str) -> bool:
     )
 
     return _send_email(OPERATOR_EMAIL, full_subject, full_body)
+
+
+def send_review_decision(
+    submitter_email: str,
+    submitter_name: str,
+    post_title: str,
+    approved: bool,
+    reason: str = "",
+) -> bool:
+    """
+    Notify a KA§§A post submitter that their post was approved or rejected.
+    No-op if submitter_email is empty (e.g. admin-submitted posts).
+    """
+    if not submitter_email:
+        return False
+
+    if approved:
+        subject = f"Your post \"{post_title}\" is now live on KA§§A"
+        body = (
+            f"Hi {submitter_name},\n"
+            f"\n"
+            f"Good news — your post \"{post_title}\" has been approved and is now live on the KA§§A board.\n"
+            f"\n"
+            f"View it at: {BASE_URL}/kassa\n"
+            f"\n"
+            f"— CIVITAE\n"
+        )
+    else:
+        subject = f"Update on your post \"{post_title}\""
+        reason_line = f"\nReason: {reason}\n" if reason else ""
+        body = (
+            f"Hi {submitter_name},\n"
+            f"\n"
+            f"Your post \"{post_title}\" was not approved at this time.{reason_line}\n"
+            f"You can revise and resubmit at: {BASE_URL}/kassa\n"
+            f"\n"
+            f"— CIVITAE\n"
+        )
+
+    return _send_email(submitter_email, subject, body)

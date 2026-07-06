@@ -338,8 +338,14 @@ async def issue_agent_key(payload: IssueAgentKeyPayload) -> dict:
 
 
 @router.get("/api/provision/status/{agent_id}")
-async def agent_provision_status(agent_id: str) -> dict:
-    """Agent checks its own governance status, registration, and economic tier."""
+async def agent_provision_status(agent_id: str, request: Request) -> dict:
+    """Agent checks its own governance status, registration, and economic tier.
+
+    If a Bearer API key is provided in the Authorization header, it is validated
+    against the agent's stored key hash. This prevents impersonation via the
+    dashboard login flow. Without a Bearer header the endpoint returns public
+    status data (backwards compat for unauthenticated status checks).
+    """
     runtime = state.runtime
     economy = state.economy
 
@@ -349,6 +355,14 @@ async def agent_provision_status(agent_id: str) -> dict:
     agent = next((r for r in runtime.registry if r.get("agent_id") == agent_id), None)
     if not agent:
         return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
+
+    # Validate Bearer API key if provided (dashboard login path)
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        provided_key = auth_header[7:].strip()
+        stored_hash = agent.get("key_hash", "")
+        if not stored_hash or _hash_key(provided_key) != stored_hash:
+            return JSONResponse({"error": "Invalid API key"}, status_code=401)
 
     # Determine economic tier from live governance state + per-agent metrics
     gov_active = runtime.governance.mode is not None
@@ -366,8 +380,10 @@ async def agent_provision_status(agent_id: str) -> dict:
 
     return {
         "agent_id": agent_id,
+        "agent_name": agent.get("name"),
         "name": agent.get("name"),
         "status": agent.get("status"),
+        "governance_posture": runtime.governance.posture,
         "governance": {
             "mode": runtime.governance.mode,
             "posture": runtime.governance.posture,
@@ -379,6 +395,7 @@ async def agent_provision_status(agent_id: str) -> dict:
         "tier": tier,
         "fee_rate": tier_info.get("fee_rate"),
         "tier_label": tier_info.get("label"),
+        "provisioned": agent.get("provisioned_at") or agent.get("created_at"),
     }
 
 
