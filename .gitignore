@@ -49,3 +49,8 @@ reports/
 .vscode/
 uagents_core.log
 data/provision.json.lock
+
+# ── multi-agent-coord v2: per-session state (not shared) ──────────────────────
+Devins_Plans/state/.session-current
+Devins_Plans/state/.role-*
+.agents/session-id

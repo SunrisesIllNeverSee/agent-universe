@@ -1,0 +1,81 @@
+# registry.yaml — machine-readable truth ledger
+#
+# The canonical source for counts, migration chain, shipped state.
+# Update this in the same commit that changes the state.
+# Human-readable mirror: CLAUDE.md / AGENTS.md
+#
+# Validated by: python3 scripts/check.py
+
+schema_version: 2
+updated_at: 2026-07-06T09:40:00Z
+
+# Project metadata
+project:
+  name: "CIVITAE / agent-universe"
+  version: "1.1.2"
+  status: "active"
+
+# Migration tracking (no DB migrations — uses SQLite WAL + JSONL files)
+migrations:
+  next: 1
+  path: ""
+  applied: []
+
+# Shipped feature state
+features:
+  - name: mcp-bridge
+    status: shipped
+    landed: "2026-03-20"
+    note: "19 MCP tools on streamable-http at signomy.xyz/mcp"
+  - name: kassa-marketplace
+    status: shipped
+    landed: "2026-03-20"
+    note: "5-tab board, posts, stakes, threads, commissions, reviews"
+  - name: trust-tier-economy
+    status: shipped
+    landed: "2026-03-20"
+    note: "4 tiers (Ungoverned 15% → Black Card 2%), 40/30/30 treasury split"
+  - name: seeds-doi-provenance
+    status: shipped
+    landed: "2026-03-20"
+    note: "SHA-256 DOI for every tracked action"
+  - name: governance-engine
+    status: shipped
+    landed: "2026-03-20"
+    note: "MOSES core, meeting state machine, voting, compliance scoring"
+  - name: stripe-payments
+    status: shipped
+    landed: "2026-04-05"
+    note: "Checkout + webhooks working on Railway production"
+  - name: agent-dashboard
+    status: shipped
+    landed: "2026-07-06"
+    note: "Personal agent control panel with API key auth"
+  - name: operator-console-review-queue
+    status: shipped
+    landed: "2026-07-06"
+    note: "Reviews tab in console with approve/reject UI"
+  - name: notification-system
+    status: shipped
+    landed: "2026-07-06"
+    note: "Magic links, message alerts, operator alerts, review decisions via Resend"
+  - name: mcp-distribution
+    status: shipped
+    landed: "2026-05-05"
+    note: "Official MCP Registry, Smithery, PulseMCP, AI Agents Directory, PyPI civitae-mcp v0.2.0"
+  - name: seed-card-loyalty
+    status: in-progress
+    note: "953 lines on devin/1775076305-seed-card-loyalty-system branch, not yet merged"
+  - name: refinery-sigrank
+    status: planned
+    note: "SIGRANK pipeline — placeholder"
+  - name: switchboard
+    status: planned
+    note: "Signal routing — depends on Refinery"
+
+# Registry counts (update when counts change)
+counts:
+  api_endpoints: 221
+  frontend_pages: 30
+  mcp_tools: 19
+  remote_branches: 2

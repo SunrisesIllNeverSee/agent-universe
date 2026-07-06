@@ -1,0 +1,12 @@
+{
+  "_comment": "File locks with expiry. Advisory by default; enforced by PreToolUse hook on Claude Code. Locks expire after 2 hours of inactivity to prevent dead-session locks from blocking work. Check before editing any file. Release locks when done.",
+  "_format": {
+    "path": {
+      "claimed_by": "SESSION-ID",
+      "claimed_at": "2026-01-01T00:00:00Z",
+      "expires_at": "2026-01-01T02:00:00Z",
+      "reason": "what you're doing"
+    }
+  },
+  "locks": {}
+}
