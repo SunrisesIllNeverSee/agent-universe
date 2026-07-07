@@ -10,7 +10,7 @@ CIVITAE API calls via httpx — no server internals imported, independently depl
 
 Architecture:
     DeltaV agent → uAgent message → handler → httpx → CIVITAE public API
-    (same external client pattern as civitae_mcp_server.py)
+    (same external client pattern as packages/civitae-mcp/civitae_mcp_server.py)
 
 Three services exposed on DeltaV:
     1. governed_work     — fill a CIVITAE mission slot
@@ -66,7 +66,7 @@ _ENDPOINT_URL = (
 _TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 
 
-# ── CIVITAE httpx helpers (mirror civitae_mcp_server.py) ──────────────────────
+# ── CIVITAE httpx helpers (mirror packages/civitae-mcp/civitae_mcp_server.py) ─
 
 def _auth_headers() -> dict:
     h = {"Content-Type": "application/json"}

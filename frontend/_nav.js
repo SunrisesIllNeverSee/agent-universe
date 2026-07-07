@@ -63,7 +63,7 @@
     if (cached) {
       try { return Promise.resolve(JSON.parse(cached)); } catch(e) {}
     }
-    return fetch('/assets/pages.json').then(function(r) { return r.json(); }).then(function(d) {
+    return fetch('/api/pages').then(function(r) { return r.json(); }).then(function(d) {
       try { sessionStorage.setItem('_nav_pages', JSON.stringify(d)); } catch(e) {}
       return d;
     });

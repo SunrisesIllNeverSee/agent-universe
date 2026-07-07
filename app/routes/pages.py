@@ -168,7 +168,7 @@ async def sitemap_redirect():
 
 @router.get("/api/pages")
 async def get_pages() -> JSONResponse:
-    pages_file = Path(__file__).parent.parent / "config" / "pages.json"
+    pages_file = Path(__file__).parent.parent.parent / "config" / "pages.json"
     data = json.loads(pages_file.read_text())
     return JSONResponse(data)
 

@@ -1707,7 +1707,7 @@ const LAYER_ACCENTS = {
 function buildSidebar() {
   const dir = document.getElementById('layer-directory');
 
-  fetch('/pages.json')
+  fetch('/api/pages')
     .then(r => r.json())
     .then(data => {
       // ── Tile Zero block ────────────────────────────────────────────────────

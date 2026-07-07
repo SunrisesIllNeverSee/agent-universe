@@ -7,7 +7,7 @@ services on third-party agent marketplaces.
 
 - **Not `agents/`** — that directory holds LLM provider polling loops (Claude, GPT, etc.)
 - **Not `app/chains.py`** — that handles on-chain financial transactions via GovernanceGate
-- **Not `civitae_mcp_server.py`** — that's the MCP integration for Claude Code
+- **Not `packages/civitae-mcp/civitae_mcp_server.py`** — that's the MCP integration for Claude Code
 
 ## What this IS
 

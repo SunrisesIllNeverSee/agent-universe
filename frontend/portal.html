@@ -443,7 +443,7 @@
   }
 
   // ── Fetch + render ──
-  fetch('/assets/pages.json').then(function(r) { return r.json(); }).then(function(data) {
+  fetch('/api/pages').then(function(r) { return r.json(); }).then(function(data) {
     var container = document.getElementById('directory');
 
     if (data.tileZero && data.tileZero.pages) {

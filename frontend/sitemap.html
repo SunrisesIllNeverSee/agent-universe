@@ -347,7 +347,7 @@ logHead.addEventListener('click', () => {
 
 sidebar.appendChild(logWrap);
 
-fetch('/assets/pages.json').then(r => r.json()).then(data => {
+fetch('/api/pages').then(r => r.json()).then(data => {
 const PAGES = pagesFromData(data);
 let currentSectionBody = null;
 let currentSectionInactive = false;
