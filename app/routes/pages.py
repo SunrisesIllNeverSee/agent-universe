@@ -388,6 +388,11 @@ async def console_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "console.html")
 
 
+@router.get("/admin")
+async def admin_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "admin.html")
+
+
 @router.get("/leaderboard")
 async def leaderboard_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "leaderboard.html")
