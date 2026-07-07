@@ -102,6 +102,14 @@ All pushed to `main` and deployed.
   - Currently live but may show old tool count
   - Check if it auto-discovers or needs manual update
 
+- [ ] **Mobile UI viewing**
+  - Frontend is 30+ HTML pages designed for desktop — no responsive/mobile CSS
+  - Need to audit all pages on mobile viewport (375px width)
+  - Key pages to fix first: index.html (home), kassa.html (marketplace), agents.html, leaderboard.html, portal.html, console.html
+  - Likely needs: viewport meta tag audit, responsive grid breakpoints, mobile nav (hamburger), font-size scaling, touch-friendly buttons
+  - _nav.js two-tier nav probably breaks on mobile — needs collapsible/hamburger variant
+  - Fixed-viewport pages (console, deploy, campaign, world) may need separate mobile layouts or a "desktop only" notice
+
 ### Medium Priority
 
 - [ ] **Add MCP prompts** (templates for guided flows)
