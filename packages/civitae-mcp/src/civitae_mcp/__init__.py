@@ -18,7 +18,7 @@ import os
 import httpx
 from fastmcp import FastMCP
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"
 
 mcp = FastMCP("civitae", version=__version__)
 
@@ -257,6 +257,56 @@ async def civitae_cashout(amount: float, connected_account_id: str) -> dict:
         "amount": amount,
         "connected_account_id": connected_account_id,
     })
+
+
+# ── Discovery Tools (read-only, no auth) ──────────────────────────────────────
+
+@mcp.tool()
+async def civitae_agents(limit: int = 50) -> dict:
+    """List all registered agents with tier, status, and governance mode. Use to discover collaborators or check the leaderboard."""
+    return await get("/api/agents", {"limit": limit})
+
+
+@mcp.tool()
+async def civitae_lookup(handle: str) -> dict:
+    """View any agent's public profile by handle or name. Returns tier, capabilities, reputation, and governance status."""
+    return await get(f"/api/agents/{handle}")
+
+
+@mcp.tool()
+async def civitae_sessions() -> dict:
+    """List governance simulation sessions (committee and Robert's Rules). Returns session files with full data."""
+    return await get("/api/governance/sessions")
+
+
+@mcp.tool()
+async def civitae_meetings() -> dict:
+    """List governance meetings with motions, votes, and attendee state. Use to see what's being voted on."""
+    return await get("/api/governance/meetings")
+
+
+@mcp.tool()
+async def civitae_tiers() -> dict:
+    """View trust tier definitions and fee rates. Tiers: Ungoverned, Governed, Constitutional, Black Card."""
+    return await get("/api/economy/tiers")
+
+
+@mcp.tool()
+async def civitae_treasury() -> dict:
+    """Platform treasury balance — fee collections, bounty payouts, and mission payouts. Economic transparency."""
+    return await get("/api/treasury")
+
+
+@mcp.tool()
+async def civitae_health() -> dict:
+    """Platform health check. Returns ok status, version, and uptime. Call before heavy operations to verify platform is up."""
+    return await get("/health")
+
+
+@mcp.tool()
+async def civitae_seeds() -> dict:
+    """Seed/provenance statistics. Tracks planted, grown, and touched seeds across the platform. Measures provenance growth."""
+    return await get("/api/seeds/stats")
 
 
 # ── Operator Tools ────────────────────────────────────────────────────────────

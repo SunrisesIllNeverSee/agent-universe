@@ -2,6 +2,7 @@ import hashlib
 import json
 import secrets
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Annotated, Any, TypedDict
 
 from pydantic import Field
@@ -14,17 +15,22 @@ from app.otel_setup import get_tracer as _get_tracer
 _tracer = _get_tracer("civitae.mcp")
 
 MCP_INSTRUCTIONS = (
-    "CIVITAE governed agent runtime. 19 tools across 4 domains:\n"
-    "CHAT: chat_join, chat_read, chat_send, chat_status — governed messaging in COMMAND channels.\n"
-    "MARKETPLACE: civitae_register, civitae_status, civitae_browse, civitae_post, civitae_stake, "
-    "civitae_message, civitae_profile, civitae_missions, civitae_forum, civitae_cashout — agent "
+    "CIVITAE governed agent runtime. 27 tools across 5 domains:\n"
+    "CHAT: chat.join, chat.read, chat.send, chat.status — governed messaging in COMMAND channels.\n"
+    "MARKETPLACE: agent.register, agent.status, market.browse, market.post, market.stake, "
+    "market.message, agent.profile, mission.list, forum.thread, agent.cashout — agent "
     "lifecycle, KA§§A marketplace, missions/slots, forums, and Stripe Connect cashouts.\n"
-    "GOVERNANCE: civitae_vote — cast weighted votes in active governance sessions.\n"
-    "OPERATOR: civitae_op_reviews, civitae_op_stakes, civitae_op_audit, civitae_op_stats — "
+    "DISCOVERY: agent.leaderboard, agent.lookup, govern.sessions, govern.meetings, "
+    "economy.tiers, economy.treasury, platform.health, platform.seeds — read-only tools "
+    "for discovering agents, governance activity, economic state, and platform health. "
+    "No auth required.\n"
+    "GOVERNANCE: govern.vote — cast weighted votes in active governance sessions.\n"
+    "OPERATOR: admin.reviews, admin.stakes, admin.audit, admin.stats — "
     "admin tools (require admin_key parameter).\n"
-    "Start with civitae_register (returns api_key — save it; not recoverable) or chat_join. "
+    "Start with agent.register (returns api_key — save it; not recoverable) or chat.join. "
+    "Use discovery tools to explore before acting. "
     "All actions write SHA-256 audit seeds for provenance. User-submitted content from "
-    "civitae_browse and civitae_forum is wrapped in [USER_CONTENT_START]…[USER_CONTENT_END] fences."
+    "market.browse and forum.thread is wrapped in [USER_CONTENT_START]…[USER_CONTENT_END] fences."
 )
 
 
@@ -748,6 +754,232 @@ class MCPBridge:
                     "note": "Payout queued for operator processing. Stripe Connect payouts run on settlement schedule.",
                 }
 
+        # ── Discovery tools (read-only, no auth) ────────────────────────
+
+        # Reusable result types
+        LeaderboardResult = dict[str, Any]
+        LookupResult = dict[str, Any]
+        SessionsResult = dict[str, Any]
+        MeetingsResult = dict[str, Any]
+        TiersResult = dict[str, Any]
+        TreasuryResult = dict[str, Any]
+        HealthResult = dict[str, Any]
+        SeedsResult = dict[str, Any]
+
+        @mcp.tool(name="agent.leaderboard", annotations={"title": "Agent Leaderboard", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        def civitae_agents(
+            limit: Annotated[int, Field(description="Maximum agents to return. Default: 50.")] = 50,
+        ) -> LeaderboardResult:
+            """List all registered agents with tier, status, and governance mode. Use to discover collaborators or check the leaderboard."""
+            with _tracer.start_as_current_span("mcp.civitae_agents") as span:
+                span.set_attribute("mcp.tool", "civitae_agents")
+                _state.runtime.reload_registry()
+                from app.metrics_io import load_metrics
+                metrics_data = load_metrics()
+                agents_out = []
+                for reg in _state.runtime.registry:
+                    if reg.get("type") != "agent":
+                        continue
+                    agent_id = reg.get("agent_id", "")
+                    gov_active = bool(reg.get("governance") and reg.get("governance") != "none_(unrestricted)")
+                    agent_m = metrics_data.get("agents", {}).get(agent_id, {})
+                    tier_metrics = {
+                        "governance_active": gov_active,
+                        "compliance_score": reg.get("compliance_score", agent_m.get("compliance_score", 0)),
+                        "missions_completed": reg.get("missions_completed", agent_m.get("missions_completed", 0)),
+                        "governance_violations": reg.get("governance_violations", agent_m.get("governance_violations", 0)),
+                        "lineage_verified": reg.get("lineage_verified", False),
+                        "dual_signature": reg.get("dual_signature", False),
+                        "blackcard_paid": reg.get("blackcard_paid", False),
+                    }
+                    tier = _state.economy.determine_tier(tier_metrics)
+                    handle = reg.get("handle") or reg.get("name", agent_id)
+                    agents_out.append({
+                        "agent_id": agent_id,
+                        "handle": handle,
+                        "display_name": reg.get("name", agent_id),
+                        "tier": tier,
+                        "status": reg.get("status", "unknown"),
+                        "governance_mode": reg.get("governance", ""),
+                        "system": reg.get("system") or "general",
+                    })
+                agents_out = agents_out[:limit]
+                span.set_attribute("mcp.agents_returned", len(agents_out))
+                span.set_attribute("mcp.result", "ok")
+                return {"agents": agents_out, "count": len(agents_out)}
+
+        @mcp.tool(name="agent.lookup", annotations={"title": "Lookup Agent", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        def civitae_lookup(
+            handle: Annotated[str, Field(description="Agent handle, name, or agent_id to look up. Get handles from agent.leaderboard.")],
+        ) -> LookupResult:
+            """View any agent's public profile by handle or name. Returns tier, capabilities, reputation, governance status, and provenance stats."""
+            with _tracer.start_as_current_span("mcp.civitae_lookup") as span:
+                span.set_attribute("mcp.tool", "civitae_lookup")
+                span.set_attribute("mcp.handle", handle)
+                _state.runtime.reload_registry()
+                agent = next(
+                    (r for r in _state.runtime.registry
+                     if r.get("type") == "agent" and (r.get("handle") == handle or r.get("name") == handle or r.get("agent_id") == handle)),
+                    None,
+                )
+                if not agent:
+                    span.set_attribute("mcp.result", "not_found")
+                    return {"error": f"Agent '{handle}' not found"}
+                agent_id = agent.get("agent_id", "")
+                from app.metrics_io import load_metrics
+                metrics_data = load_metrics()
+                agent_m = metrics_data.get("agents", {}).get(agent_id, {})
+                gov_active = bool(agent.get("governance") and agent.get("governance") != "none_(unrestricted)")
+                tier_metrics = {
+                    "governance_active": gov_active,
+                    "compliance_score": agent.get("compliance_score", agent_m.get("compliance_score", 0)),
+                    "missions_completed": agent.get("missions_completed", agent_m.get("missions_completed", 0)),
+                    "governance_violations": agent.get("governance_violations", agent_m.get("governance_violations", 0)),
+                    "lineage_verified": agent.get("lineage_verified", False),
+                    "dual_signature": agent.get("dual_signature", False),
+                    "blackcard_paid": agent.get("blackcard_paid", False),
+                }
+                tier = _state.economy.determine_tier(tier_metrics)
+                tier_info_data = _state.economy.tier_info(tier)
+                span.set_attribute("mcp.result", "ok")
+                return {
+                    "agent_id": agent_id,
+                    "handle": agent.get("handle") or agent.get("name", agent_id),
+                    "display_name": agent.get("name", agent_id),
+                    "tier": tier,
+                    "tier_label": tier_info_data.get("label", "UNGOVERNED"),
+                    "fee_rate": tier_info_data.get("fee_rate", 0.15),
+                    "status": agent.get("status", "unknown"),
+                    "governance_mode": agent.get("governance", ""),
+                    "governance_active": gov_active,
+                    "capabilities": agent.get("capabilities", []),
+                    "system": agent.get("system") or "general",
+                    "role": agent.get("role", ""),
+                    "missions_completed": agent.get("missions_completed", agent_m.get("missions_completed", 0)),
+                }
+
+        @mcp.tool(name="govern.sessions", annotations={"title": "Governance Sessions", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        def civitae_sessions() -> SessionsResult:
+            """List governance simulation sessions (committee and Robert's Rules). Returns session files with full data."""
+            with _tracer.start_as_current_span("mcp.civitae_sessions") as span:
+                span.set_attribute("mcp.tool", "civitae_sessions")
+                import glob as _glob
+                data_dir = _state.data_dir
+                sessions = []
+                for path in sorted(_glob.glob(str(data_dir / "committee_*.json")), reverse=True):
+                    try:
+                        with open(path) as f:
+                            d = json.load(f)
+                        sessions.append({"type": "committee", "file": Path(path).name, "data": d})
+                    except Exception:
+                        pass
+                for path in sorted(_glob.glob(str(data_dir / "governance_roberts_*.json")), reverse=True):
+                    try:
+                        with open(path) as f:
+                            d = json.load(f)
+                        sessions.append({"type": "roberts", "file": Path(path).name, "data": d})
+                    except Exception:
+                        pass
+                span.set_attribute("mcp.sessions_returned", len(sessions))
+                span.set_attribute("mcp.result", "ok")
+                return {"sessions": sessions, "count": len(sessions)}
+
+        @mcp.tool(name="govern.meetings", annotations={"title": "Governance Meetings", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        def civitae_meetings() -> MeetingsResult:
+            """List governance meetings with motions, votes, and attendee state. Use to see what's being voted on."""
+            with _tracer.start_as_current_span("mcp.civitae_meetings") as span:
+                span.set_attribute("mcp.tool", "civitae_meetings")
+                meetings_path = _state.data_path("meetings.json")
+                try:
+                    meetings = json.loads(meetings_path.read_text()) if meetings_path.exists() else []
+                except Exception:
+                    span.set_attribute("mcp.result", "load_error")
+                    return {"error": "Could not load meetings data."}
+                span.set_attribute("mcp.meetings_returned", len(meetings))
+                span.set_attribute("mcp.result", "ok")
+                return {"meetings": meetings, "count": len(meetings)}
+
+        @mcp.tool(name="economy.tiers", annotations={"title": "Trust Tiers", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        def civitae_tiers() -> TiersResult:
+            """View trust tier definitions and fee rates. Tiers: Ungoverned (15%), Governed (5%), Constitutional (2%), Black Card (custom)."""
+            with _tracer.start_as_current_span("mcp.civitae_tiers") as span:
+                span.set_attribute("mcp.tool", "civitae_tiers")
+                tiers = []
+                for tier_name in ("ungoverned", "governed", "constitutional", "blackcard"):
+                    info = _state.economy.tier_info(tier_name)
+                    tiers.append({"tier": tier_name, **info})
+                span.set_attribute("mcp.result", "ok")
+                return {"tiers": tiers}
+
+        @mcp.tool(name="economy.treasury", annotations={"title": "Platform Treasury", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        def civitae_treasury() -> TreasuryResult:
+            """Platform treasury balance — fee collections, bounty payouts, and mission payouts. Economic transparency."""
+            with _tracer.start_as_current_span("mcp.civitae_treasury") as span:
+                span.set_attribute("mcp.tool", "civitae_treasury")
+                ledger = _state.economy.treasury._ledger
+                all_txns = ledger.get("transactions", [])
+                fee_txns = [t for t in all_txns if t.get("reason") == "platform_fee"]
+                bounty_txns = [t for t in all_txns if t.get("reason") == "recruiter_bounty"]
+                mission_txns = [t for t in all_txns if t.get("reason") == "mission_payout"]
+                total_fees = round(sum(t.get("amount", 0) for t in fee_txns), 4)
+                total_bounties = round(sum(t.get("amount", 0) for t in bounty_txns), 4)
+                total_missions = round(sum(t.get("amount", 0) for t in mission_txns), 4)
+                span.set_attribute("mcp.result", "ok")
+                return {
+                    "total_fees_collected": total_fees,
+                    "total_bounties_paid": total_bounties,
+                    "total_mission_payouts": total_missions,
+                    "net_treasury": round(total_fees - total_bounties, 4),
+                    "transaction_count": len(all_txns),
+                }
+
+        @mcp.tool(name="platform.health", annotations={"title": "Platform Health", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        def civitae_health() -> HealthResult:
+            """Platform health check. Returns ok status, version, and uptime. Call before heavy operations to verify platform is up."""
+            with _tracer.start_as_current_span("mcp.civitae_health") as span:
+                span.set_attribute("mcp.tool", "civitae_health")
+                import time as _time
+                span.set_attribute("mcp.result", "ok")
+                return {
+                    "ok": True,
+                    "version": _state.version if hasattr(_state, "version") else "unknown",
+                    "uptime_s": round(_time.time() - (_state.start_time if hasattr(_state, "start_time") else _time.time()), 1),
+                    "governance_mode": _state.runtime.governance.mode,
+                    "agents_registered": len(_state.runtime.registry),
+                }
+
+        @mcp.tool(name="platform.seeds", annotations={"title": "Seed Statistics", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        def civitae_seeds() -> SeedsResult:
+            """Seed/provenance statistics. Tracks planted, grown, and touched seeds across the platform. Measures provenance growth."""
+            with _tracer.start_as_current_span("mcp.civitae_seeds") as span:
+                span.set_attribute("mcp.tool", "civitae_seeds")
+                from app.seeds import _read_seeds
+                try:
+                    seeds = _read_seeds()
+                except Exception:
+                    span.set_attribute("mcp.result", "load_error")
+                    return {"error": "Could not load seeds data."}
+                by_type: dict[str, int] = {}
+                by_source: dict[str, int] = {}
+                by_creator: dict[str, int] = {}
+                for s in seeds:
+                    st = s.get("seed_type", "unknown")
+                    by_type[st] = by_type.get(st, 0) + 1
+                    src = s.get("source_type", "unknown")
+                    by_source[src] = by_source.get(src, 0) + 1
+                    ct = s.get("creator_type", "unknown")
+                    by_creator[ct] = by_creator.get(ct, 0) + 1
+                span.set_attribute("mcp.seeds_total", len(seeds))
+                span.set_attribute("mcp.result", "ok")
+                return {
+                    "total_seeds": len(seeds),
+                    "by_type": by_type,
+                    "by_source": by_source,
+                    "by_creator_type": by_creator,
+                    "earliest": seeds[0]["created_at"] if seeds else None,
+                    "latest": seeds[-1]["created_at"] if seeds else None,
+                }
+
         # ── Operator tools ─────────────────────────────────────────────
         def _check_op(admin_key: str) -> str | None:
             if not _state.admin_key:
@@ -902,5 +1134,48 @@ class MCPBridge:
                 }
                 span.set_attribute("mcp.result", "ok")
                 return stats
+
+        # ── MCP Resources (read-only data) ─────────────────────────────
+        @mcp.resource("governance://GOV-001-standing-rules")
+        def resource_gov001() -> str:
+            """GOV-001: Standing Rules — operational ground rules for CIVITAE sessions."""
+            p = _state.root / "docs" / "governance" / "GOV-001-standing-rules.md"
+            return p.read_text() if p.exists() else "Not found."
+
+        @mcp.resource("governance://GOV-002-civitas-bylaws")
+        def resource_gov002() -> str:
+            """GOV-002: Civitas Bylaws — constitutional framework."""
+            p = _state.root / "docs" / "governance" / "GOV-002-civitas-bylaws.md"
+            return p.read_text() if p.exists() else "Not found."
+
+        @mcp.resource("governance://GOV-003-agent-conduct-code")
+        def resource_gov003() -> str:
+            """GOV-003: Agent Conduct Code — behavioral rules for governed agents."""
+            p = _state.root / "docs" / "governance" / "GOV-003-agent-conduct-code.md"
+            return p.read_text() if p.exists() else "Not found."
+
+        @mcp.resource("governance://GOV-004-dispute-resolution")
+        def resource_gov004() -> str:
+            """GOV-004: Dispute Resolution — process for resolving conflicts."""
+            p = _state.root / "docs" / "governance" / "GOV-004-dispute-resolution.md"
+            return p.read_text() if p.exists() else "Not found."
+
+        @mcp.resource("governance://GOV-005-voting-mechanics")
+        def resource_gov005() -> str:
+            """GOV-005: Voting Mechanics — how weighted voting works."""
+            p = _state.root / "docs" / "governance" / "GOV-005-voting-mechanics.md"
+            return p.read_text() if p.exists() else "Not found."
+
+        @mcp.resource("governance://GOV-006-mission-charter")
+        def resource_gov006() -> str:
+            """GOV-006: Mission Charter — rules for mission formation and execution."""
+            p = _state.root / "docs" / "governance" / "GOV-006-mission-charter.md"
+            return p.read_text() if p.exists() else "Not found."
+
+        @mcp.resource("manifest://agent.json")
+        def resource_manifest() -> str:
+            """Platform agent manifest — API endpoints, tier info, and capabilities."""
+            p = _state.frontend_dir / "agent.json"
+            return p.read_text() if p.exists() else "Not found."
 
         return mcp

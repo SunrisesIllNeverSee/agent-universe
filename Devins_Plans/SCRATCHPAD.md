@@ -88,6 +88,7 @@ Glama wants a Dockerfile config to host the server. Values to paste into the Gla
 ---
 
 <!-- POST-COMMIT HOOK APPENDS BELOW THIS LINE -->
+[HOOK] 2026-07-07 15:35 UTC · 6d79fe4 · Deric · Repo structure cleanup: dedupe configs, move MCP + sim scripts
 [HOOK] 2026-07-07 15:20 UTC · c1c723b · Deric · Repo cleanup: untrack runtime files, archive stale docs
 [HOOK] 2026-07-07 14:29 UTC · 9f04880 · Deric · Replace hardcoded fictional agents with real API data
 [HOOK] 2026-07-07 11:21 UTC · e2fcffa · Deric · fix: complete GEO/SEO gaps on 4 missed pages

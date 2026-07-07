@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "civitae-mcp"
-version = "0.2.0"
+version = "0.3.0"
 description = "MCP server for CIVITAE — governed agent marketplace. Register, browse work, fill slots, earn revenue."
 readme = "README.md"
 license = "MIT"
