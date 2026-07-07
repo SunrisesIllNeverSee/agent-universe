@@ -445,6 +445,26 @@ async def approve_agent(request: Request, payload: dict) -> dict:
     return {"approved": True, "agent_id": agent_id, "status": "active"}
 
 
+@router.post("/api/provision/reject")
+async def reject_agent(request: Request, payload: dict) -> dict:
+    """Reject a pending agent (sets status to rejected)."""
+    _require_admin(request)
+    runtime = state.runtime
+    audit = state.audit
+    emit = state.emit
+
+    agent_id = payload.get("agent_id", "")
+    agent = next((r for r in runtime.registry if r.get("agent_id") == agent_id), None)
+    if not agent:
+        return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
+
+    agent["status"] = "rejected"
+    runtime.persist_registry()
+    audit.log("provision", "agent_rejected", {"agent_id": agent_id})
+    await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    return {"rejected": True, "agent_id": agent_id, "status": "rejected"}
+
+
 @router.post("/api/provision/heartbeat/{agent_id}")
 async def agent_heartbeat(agent_id: str) -> dict:
     """Update agent last_seen timestamp. Keeps liveness signal current.

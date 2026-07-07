@@ -112,6 +112,17 @@ async def approve_request(req_id: str, request: Request, response: Response):
     return JSONResponse({"ok": True, "user_id": user_id})
 
 
+@router.post("/api/lobby/reject/{req_id}")
+async def reject_request(req_id: str, request: Request):
+    """Admin — reject a join request."""
+    _require_lobby_admin(request)
+    lobby = _get_lobby()
+    ok = lobby.reject_join(req_id)
+    if not ok:
+        return JSONResponse({"error": "request not found"}, status_code=404)
+    return JSONResponse({"ok": True})
+
+
 # ── Session: enter / leave / status ───────────────────────────────────────────
 
 @router.post("/api/lobby/enter")

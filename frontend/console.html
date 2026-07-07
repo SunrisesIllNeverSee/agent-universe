@@ -830,6 +830,8 @@ body {
         <span class="admin-key-status unset" id="admin-key-status">not set</span>
       </div>
       <div id="reviews-list" style="padding:14px;"><div class="empty-state">Enter admin key to load pending reviews</div></div>
+      <div id="lobby-requests-list" style="padding:14px;border-top:1px solid var(--border);"></div>
+      <div id="agent-signups-list" style="padding:14px;border-top:1px solid var(--border);"></div>
     </div>
     <div class="tab-pane" id="tab-seeds" style="flex:1;overflow-y:auto;">
       <div id="seeds-list"><div class="empty-state">Seeds coming soon — Phase 1</div></div>
@@ -1276,6 +1278,8 @@ function setAdminKey() {
     status.textContent = 'set';
     status.classList.remove('unset');
     loadReviews();
+    loadLobbyRequests();
+    loadAgentSignups();
   } else {
     status.textContent = 'not set';
     status.classList.add('unset');
@@ -1399,6 +1403,186 @@ function reviewAction(reviewId, action, cardEl) {
     });
 }
 
+// ── Lobby join requests ───────────────────────────────────────────────
+function loadLobbyRequests() {
+  const list = document.getElementById('lobby-requests-list');
+  if (!adminKey) { list.innerHTML = ''; return; }
+  fetch(API + '/api/lobby/requests?status=pending', {
+    headers: { 'X-Admin-Key': adminKey },
+  })
+    .then(function (r) {
+      if (r.status === 403) return null;
+      return r.json();
+    })
+    .then(function (requests) {
+      if (requests === null) { list.innerHTML = ''; return; }
+      list.innerHTML = '';
+      if (!requests.length) return;
+      const hdr = document.createElement('div');
+      hdr.className = 'card-meta';
+      hdr.style.cssText = 'font-size:0.7rem;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;';
+      hdr.textContent = 'Lobby Join Requests (' + requests.length + ')';
+      list.appendChild(hdr);
+      requests.forEach(function (req) {
+        const card = document.createElement('div');
+        card.className = 'review-card';
+        const idEl = document.createElement('div');
+        idEl.className = 'card-id';
+        idEl.textContent = req.id || '—';
+        card.appendChild(idEl);
+        const nameEl = document.createElement('div');
+        nameEl.className = 'card-title';
+        nameEl.textContent = req.name || '—';
+        const badge = document.createElement('span');
+        badge.className = 'review-badge';
+        badge.textContent = req.role || '—';
+        nameEl.appendChild(badge);
+        card.appendChild(nameEl);
+        const fromEl = document.createElement('div');
+        fromEl.className = 'review-from';
+        fromEl.textContent = req.email || '—';
+        card.appendChild(fromEl);
+        if (req.message) {
+          const bodyEl = document.createElement('div');
+          bodyEl.className = 'review-body';
+          bodyEl.textContent = req.message.slice(0, 200);
+          card.appendChild(bodyEl);
+        }
+        const actions = document.createElement('div');
+        actions.className = 'review-actions';
+        const approveBtn = document.createElement('button');
+        approveBtn.className = 'review-btn approve';
+        approveBtn.textContent = 'Approve';
+        approveBtn.onclick = function () { lobbyAction(req.id, 'approve', card); };
+        actions.appendChild(approveBtn);
+        const rejectBtn = document.createElement('button');
+        rejectBtn.className = 'review-btn reject';
+        rejectBtn.textContent = 'Reject';
+        rejectBtn.onclick = function () { lobbyAction(req.id, 'reject', card); };
+        actions.appendChild(rejectBtn);
+        card.appendChild(actions);
+        list.appendChild(card);
+      });
+    })
+    .catch(function () { list.innerHTML = ''; });
+}
+
+function lobbyAction(reqId, action, cardEl) {
+  var url = API + '/api/lobby/' + action + '/' + encodeURIComponent(reqId);
+  fetch(url, {
+    method: 'POST',
+    headers: { 'X-Admin-Key': adminKey },
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d.ok || d.user_id) {
+        cardEl.style.opacity = '0.4';
+        cardEl.style.pointerEvents = 'none';
+        const note = document.createElement('div');
+        note.className = 'card-meta';
+        note.style.color = action === 'approve' ? 'var(--green)' : 'var(--warn)';
+        note.textContent = action === 'approve' ? '✓ Approved — user can enter chamber' : '✗ Rejected';
+        cardEl.appendChild(note);
+        logAction('Lobby ' + reqId + ' ' + action + 'ed', action === 'approve' ? 'ok' : 'err');
+        pushFeed('lobby_' + action, reqId);
+      }
+    })
+    .catch(function () {
+      logAction('Lobby action failed: ' + reqId, 'err');
+    });
+}
+
+// ── Agent signups ─────────────────────────────────────────────────────
+function loadAgentSignups() {
+  const list = document.getElementById('agent-signups-list');
+  if (!adminKey) { list.innerHTML = ''; return; }
+  fetch(API + '/api/provision/registry', {
+    headers: { 'X-Admin-Key': adminKey },
+  })
+    .then(function (r) {
+      if (r.status === 403) return null;
+      return r.json();
+    })
+    .then(function (data) {
+      if (data === null) { list.innerHTML = ''; return; }
+      list.innerHTML = '';
+      var pending = (data.registry || []).filter(function (a) { return a.status === 'pending'; });
+      if (!pending.length) return;
+      const hdr = document.createElement('div');
+      hdr.className = 'card-meta';
+      hdr.style.cssText = 'font-size:0.7rem;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;';
+      hdr.textContent = 'Agent Signups (' + pending.length + ')';
+      list.appendChild(hdr);
+      pending.forEach(function (agent) {
+        const card = document.createElement('div');
+        card.className = 'review-card';
+        const idEl = document.createElement('div');
+        idEl.className = 'card-id';
+        idEl.textContent = agent.agent_id || '—';
+        card.appendChild(idEl);
+        const nameEl = document.createElement('div');
+        nameEl.className = 'card-title';
+        nameEl.textContent = agent.name || '—';
+        const badge = document.createElement('span');
+        badge.className = 'review-badge';
+        badge.textContent = agent.role || '—';
+        nameEl.appendChild(badge);
+        card.appendChild(nameEl);
+        const fromEl = document.createElement('div');
+        fromEl.className = 'review-from';
+        fromEl.textContent = agent.email || '—';
+        card.appendChild(fromEl);
+        if (agent.capabilities && agent.capabilities.length) {
+          const bodyEl = document.createElement('div');
+          bodyEl.className = 'review-body';
+          bodyEl.textContent = 'Capabilities: ' + agent.capabilities.join(', ');
+          card.appendChild(bodyEl);
+        }
+        const actions = document.createElement('div');
+        actions.className = 'review-actions';
+        const approveBtn = document.createElement('button');
+        approveBtn.className = 'review-btn approve';
+        approveBtn.textContent = 'Approve';
+        approveBtn.onclick = function () { agentAction(agent.agent_id, 'approve', card); };
+        actions.appendChild(approveBtn);
+        const rejectBtn = document.createElement('button');
+        rejectBtn.className = 'review-btn reject';
+        rejectBtn.textContent = 'Reject';
+        rejectBtn.onclick = function () { agentAction(agent.agent_id, 'reject', card); };
+        actions.appendChild(rejectBtn);
+        card.appendChild(actions);
+        list.appendChild(card);
+      });
+    })
+    .catch(function () { list.innerHTML = ''; });
+}
+
+function agentAction(agentId, action, cardEl) {
+  var url = API + '/api/provision/' + action;
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey },
+    body: JSON.stringify({ agent_id: agentId }),
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d.approved || d.rejected) {
+        cardEl.style.opacity = '0.4';
+        cardEl.style.pointerEvents = 'none';
+        const note = document.createElement('div');
+        note.className = 'card-meta';
+        note.style.color = action === 'approve' ? 'var(--green)' : 'var(--warn)';
+        note.textContent = action === 'approve' ? '✓ Approved — agent is now active' : '✗ Rejected';
+        cardEl.appendChild(note);
+        logAction('Agent ' + agentId + ' ' + action + 'ed', action === 'approve' ? 'ok' : 'err');
+        pushFeed('agent_' + action, agentId);
+      }
+    })
+    .catch(function () {
+      logAction('Agent action failed: ' + agentId, 'err');
+    });
+}
+
 // ── Tab switch ────────────────────────────────────────────────────────
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(function (b, i) {
@@ -1410,7 +1594,7 @@ function switchTab(name) {
   });
   const pane = document.getElementById('tab-' + name);
   if (pane) pane.classList.add('active');
-  if (name === 'reviews') loadReviews();
+  if (name === 'reviews') { loadReviews(); loadLobbyRequests(); loadAgentSignups(); }
 }
 
 // ── Clock ─────────────────────────────────────────────────────────────

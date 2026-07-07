@@ -117,6 +117,15 @@ class LobbyStore:
             conn.execute("UPDATE join_requests SET status='approved' WHERE id=?", (req_id,))
         return user_id
 
+    def reject_join(self, req_id: str) -> bool:
+        """Reject a join request. Returns True if found."""
+        with self._lock, self._connect() as conn:
+            row = conn.execute("SELECT 1 FROM join_requests WHERE id=?", (req_id,)).fetchone()
+            if not row:
+                return False
+            conn.execute("UPDATE join_requests SET status='rejected' WHERE id=?", (req_id,))
+        return True
+
     # ── Approved users ────────────────────────────────────────────────────
 
     def is_approved(self, user_id: str) -> bool:
