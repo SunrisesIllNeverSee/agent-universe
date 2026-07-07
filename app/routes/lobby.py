@@ -63,6 +63,19 @@ async def submit_join(request: Request):
 
     lobby = _get_lobby()
     req_id = lobby.submit_join(name, email, role, message)
+
+    # Notify operator of new join request
+    try:
+        import asyncio
+        from app.notifications import send_operator_alert
+        await asyncio.to_thread(
+            send_operator_alert,
+            subject=f"New lobby join request: {name}",
+            body=f"Name: {name}\nEmail: {email}\nRole: {role}\nMessage: {message}\n\nApprove at: https://signomy.xyz/console",
+        )
+    except Exception:
+        pass
+
     return JSONResponse({"ok": True, "request_id": req_id})
 
 

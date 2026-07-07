@@ -227,6 +227,18 @@ async def agent_signup(request: Request, payload: dict) -> dict:
     except Exception:
         pass
 
+    # Notify operator of new agent signup
+    try:
+        import asyncio
+        from app.notifications import send_operator_alert
+        await asyncio.to_thread(
+            send_operator_alert,
+            subject=f"New agent signup: {agent_name}",
+            body=f"Agent: {agent_name}\nHandle: {handle}\nAgent ID: {agent_id}\nEmail: {agent_email}\nRole: {auto_role}\nGovernance: {gov_mode}\nStatus: {status}\nCapabilities: {capabilities}\n\nReview at: https://signomy.xyz/console",
+        )
+    except Exception:
+        pass
+
     token = _issue_jwt(agent_id, agent_name)
     _tag_span(action="signup", agent_id=agent_id, name=agent_name,
               status=status, governance_mode=runtime.governance.mode,
