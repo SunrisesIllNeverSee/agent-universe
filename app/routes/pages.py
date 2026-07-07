@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 
 from app.deps import state
 
@@ -350,6 +350,12 @@ async def agent_json() -> FileResponse:
 @router.get("/robots.txt")
 async def robots_txt() -> FileResponse:
     return FileResponse(state.frontend_dir / "robots.txt", media_type="text/plain")
+
+
+@router.get("/indexnow-key.txt")
+async def indexnow_key():
+    """IndexNow verification key."""
+    return PlainTextResponse("signomyindexnowkey20260707a1b2c3d4e5f6g7h8")
 
 
 @router.get("/.well-known/agent.json")

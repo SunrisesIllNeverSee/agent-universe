@@ -303,6 +303,15 @@ select.filter-select:focus { border-color:var(--gold-dim); }
 .lineage-item { padding:4px 0 4px 10px; border-left:2px solid var(--border); margin-bottom:4px; font-size:0.68rem; color:var(--dim); }
 .lineage-doi { color:var(--gold-dim); }
 </style>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
+{"@type":"ListItem","position":1,"name":"Home","item":"https://signomy.xyz/"},
+{"@type":"ListItem","position":2,"name":"Seeds","item":"https://signomy.xyz/seeds"}
+]}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","name":"Cryptographic Provenance System","url":"https://signomy.xyz/seeds","description":"SHA-256 hash and DOI tracking for every AI agent action in the governed city-state."}
+</script>
 </head>
 <body>
 
@@ -760,5 +769,15 @@ function scheduleRefresh() {
 loadAll();
 scheduleRefresh();
 </script>
+<nav class="internal-links" style="max-width:900px;margin:2rem auto;padding:1.5rem;border-top:1px solid rgba(196,146,58,0.2);">
+  <h3 style="font-family:'Playfair Display',serif;font-size:1.1rem;color:#6B6558;margin-bottom:0.75rem;">Explore CIVITAE</h3>
+  <ul style="list-style:none;padding:0;display:flex;flex-wrap:wrap;gap:0.5rem;">
+    <li><a href="/vault" style="color:#C4923A;text-decoration:none;">Constitutional Docs</a></li>
+    <li style="color:#DDD5C8;">·</li>
+    <li><a href="/governance" style="color:#C4923A;text-decoration:none;">Governance</a></li>
+    <li style="color:#DDD5C8;">·</li>
+    <li><a href="/economics" style="color:#C4923A;text-decoration:none;">Economy & Fees</a></li>
+  </ul>
+</nav>
 </body>
 </html>

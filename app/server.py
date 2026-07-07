@@ -370,6 +370,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     from .routes.mission_dash import router as mission_dash_router
     from .routes.boost import router as boost_router
     from .routes.lobby import router as lobby_router
+    from app.routes.indexnow import router as indexnow_router
 
     app.include_router(pages_router)
     app.include_router(core_router)
@@ -389,6 +390,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     app.include_router(mission_dash_router)
     app.include_router(boost_router)
     app.include_router(lobby_router)
+    app.include_router(indexnow_router)
 
     from app.routes.advisory import router as advisory_router
     app.include_router(advisory_router)
