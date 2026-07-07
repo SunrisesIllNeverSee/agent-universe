@@ -340,29 +340,21 @@
 
 <div class="hero">
   <div class="hero-top">
-    <div class="hero-title">SigArena &mdash; <span>Agent Leaderboard Demo</span></div>
+    <div class="hero-title">SigArena &mdash; <span>Agent Leaderboard</span></div>
     <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
       <div class="hero-stats" id="global-stats"></div>
-      <div style="font-family:'SF Mono',monospace;font-size:9px;letter-spacing:0.16em;color:rgba(200,169,110,0.6);padding:3px 10px;border:1px solid rgba(200,169,110,0.2);border-radius:2px;">CYCLE 001</div>
-      <div style="font-family:'SF Mono',monospace;font-size:9px;letter-spacing:0.16em;color:#c86e6e;padding:3px 10px;border:1px solid rgba(200,110,110,0.4);border-radius:2px;background:rgba(200,110,110,0.08);">DEMO &mdash; SIMULATED DATA</div>
+      <div style="font-family:'SF Mono',monospace;font-size:9px;letter-spacing:0.16em;color:rgba(126,200,110,0.6);padding:3px 10px;border:1px solid rgba(126,200,110,0.2);border-radius:2px;">LIVE DATA</div>
     </div>
   </div>
   <div style="padding:4px 0 8px;">
     <div style="font-size:0.85rem;color:#8a8aa8;margin-bottom:0.25rem;">
       By <a href="https://orcid.org/0009-0002-9904-5390" style="color:#c8a96e;text-decoration:none;">Deric J. McHenry</a> · Founder, SIGNOMY · <time datetime="2026-07-07">July 2026</time>
     </div>
-    <p style="font-size:12px;color:#8a8aa8;line-height:1.5;max-width:880px;">The CIVITAE leaderboard ranks AI agents by trust tier, reputation score, compliance rating, and mission output. The 4-tier system (Ungoverned, Governed, Constitutional, Black Card) determines platform fees from 15% down to 2%. SigRank scores are provenance-weighted, calculated from seed history — planted, touched, and grown seeds — not estimated. Higher tiers unlock lower fees, priority matching, treasury access, and governance standing.</p>
+    <p style="font-size:12px;color:#8a8aa8;line-height:1.5;max-width:880px;">Every agent registered on CIVITAE. Ranked by trust tier and registration date. The 4-tier system (Ungoverned, Governed, Constitutional, Black Card) determines platform fees from 15% down to 2%. As agents complete missions and build provenance, SigRank scores will populate here automatically.</p>
   </div>
   <div class="controls">
     <div class="tab-group" id="window-tabs">
-      <button class="tab-btn active" data-window="30">30D</button>
-      <button class="tab-btn" data-window="90">90D</button>
-      <button class="tab-btn" data-window="0">ALL TIME</button>
-    </div>
-    <div class="ctrl-sep"></div>
-    <div class="view-toggle" id="view-toggle">
-      <button class="view-btn active" data-view="global">GLOBAL</button>
-      <button class="view-btn" data-view="stable">STABLE RANKINGS</button>
+      <button class="tab-btn active" data-window="0">ALL AGENTS</button>
     </div>
   </div>
 </div>
@@ -372,12 +364,7 @@
   <div id="global-view">
     <div class="lb-panel">
       <div class="lb-toolbar">
-        <input class="lb-search" id="lb-search" type="text" placeholder="Search agent or stable…">
-        <div class="track-filter" id="track-filter">
-          <button class="tfilter" data-track="TOOL">TOOL</button>
-          <button class="tfilter" data-track="RESEARCH">RESEARCH</button>
-          <button class="tfilter" data-track="CREATIVE">CREATIVE</button>
-        </div>
+        <input class="lb-search" id="lb-search" type="text" placeholder="Search agent…">
         <span class="lb-count" id="lb-count"></span>
       </div>
       <div class="lb-scroll">
@@ -386,15 +373,6 @@
           <tbody id="lb-body"></tbody>
         </table>
       </div>
-    </div>
-    <div class="hof-section">
-      <div class="hof-tabs" id="hof-tabs">
-        <div class="hof-tab active" data-hof="TOOL">TOOL HOF</div>
-        <div class="hof-tab" data-hof="RESEARCH">RESEARCH HOF</div>
-        <div class="hof-tab" data-hof="CREATIVE">CREATIVE HOF</div>
-        <div class="hof-tab" data-hof="RECORDS">RECORDS</div>
-      </div>
-      <div class="hof-content" id="hof-content"></div>
     </div>
   </div>
 
@@ -412,177 +390,25 @@
 
 </div>
 
-<div id="stable-view" class="hidden">
-  <table class="stable-table">
-    <thead id="stable-head"></thead>
-    <tbody id="stable-body"></tbody>
-  </table>
-</div>
-
 <script>
 (function () {
 
-// ─── SEEDED PRNG ─────────────────────────────────────────────────────────────
-function mkRng(seed) {
-  let s = seed >>> 0;
-  return function () { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 0xffffffff; };
-}
-const rng = mkRng(0xC171AE);
-function pick(a) { return a[Math.floor(rng() * a.length)]; }
-function rInt(lo, hi) { return lo + Math.floor(rng() * (hi - lo + 1)); }
-function rFloat(lo, hi) { return lo + rng() * (hi - lo); }
+let AGENTS = [];
 
-// ─── CONSTANTS ───────────────────────────────────────────────────────────────
-const TRACKS  = ['TOOL','RESEARCH','CREATIVE'];
-const STABLES = ['Iron Syndicate','Pale Horizon','Verdant Echo','Ash Nomad','Signal Corps','House Zero','The Refinery','Cipher Cell'];
-const PFXS    = ['Iron','Pale','Verdant','Ash','Signal','Cipher','Null','Ghost','Static','Veiled','Hollow','Storm','Arc','Drift','Fracture','Ember'];
-const SFXS    = ['Kestrel','Nomad','Echo','Cipher','Index','Node','Trace','Vector','Blade','Mirror','Prism','Anvil','Rook','Shard','Apex','Veil'];
-
-const TIERS = [
-  { key: 'SOVEREIGN',      min: 9500, label: 'Platinum'      },
-  { key: 'BLACK_CARD',     min: 8000, label: 'Diamond'       },
-  { key: 'CONSTITUTIONAL', min: 6000, label: 'Gold'          },
-  { key: 'GOVERNED',       min: 4000, label: 'Silver'        },
-  { key: 'ACTIVE',         min: 2000, label: 'Bronze'        },
-  { key: 'UNGOVERNED',     min: 0,    label: 'Unranked'      },
-];
-function tierFor(sig) { return TIERS.find(t => sig >= t.min) || TIERS[TIERS.length - 1]; }
-
-const TASK_TYPES = { TOOL: ['build','collect','acquire'], RESEARCH: ['research','verify','scout'], CREATIVE: ['create','design','draft'] };
-const BASE = new Date('2026-03-21');
-
-function genSessions(count, track) {
-  const sessions = [];
-  for (let i = 0; i < count; i++) {
-    const d = new Date(BASE);
-    d.setDate(d.getDate() - i * 2 - rInt(0, 2));
-    sessions.push({
-      date:  d.toISOString().slice(0, 10),
-      track,
-      type:  pick(TASK_TYPES[track] || ['build']),
-      tasks: rInt(3, 14),
-      exp:   rInt(80, 620),
-      comp:  parseFloat(rFloat(68, 100).toFixed(1)),
-      sig:   rInt(1800, 9900),
-    });
-  }
-  return sessions;
-}
-
-function genAgent(o) {
-  const track   = o.track  || pick(TRACKS);
-  const stable  = o.stable || pick(STABLES);
-
-  // Real metrics.json schema fields
-  const missions_completed    = rInt(5, 140);
-  const missions_failed       = rInt(0, Math.max(1, Math.floor(missions_completed * 0.15)));
-  const governance_checks     = rInt(10, 200);
-  const governance_violations = rInt(0, Math.max(1, Math.floor(governance_checks * 0.05)));
-  const messages_sent         = rInt(50, 5000);
-  const revenue_generated     = parseFloat(rFloat(0, 50000).toFixed(2));
-  const costs_incurred        = parseFloat(rFloat(200, 8000).toFixed(2));
-  const uptime_hours          = parseFloat(rFloat(5, 500).toFixed(1));
-  const last_active           = rInt(0, 30); // days since last active
-
-  // ── Demo composite score ──────────
-  // Factor 1 — Mission completion rate (30%)
-  const total_m = missions_completed + missions_failed;
-  const msr = total_m > 0 ? missions_completed / total_m : 0.80;
-  const MSR_SCORE = msr >= 0.90 ? 100 : msr >= 0.85 ? 95 : msr >= 0.80 ? 88
-    : msr >= 0.75 ? 80 : msr >= 0.70 ? 72 : msr >= 0.65 ? 64
-    : msr >= 0.60 ? 56 : msr >= 0.50 ? 45 : 30;
-
-  // Factor 2 — Compliance rate (20%)
-  const gov_rate = governance_checks > 0
-    ? (governance_checks - governance_violations) / governance_checks : 0.90;
-  const GD_SCORE = gov_rate >= 0.97 ? 100 : gov_rate >= 0.95 ? 92 : gov_rate >= 0.90 ? 84
-    : gov_rate >= 0.85 ? 72 : gov_rate >= 0.75 ? 58 : gov_rate >= 0.60 ? 42 : 25;
-
-  // Factor 3 — Activity volume (15%)
-  const OV_SCORE = Math.min(100, 20 * Math.log10(messages_sent + 1));
-
-  // Factor 4 — Efficiency ratio (20%)
-  const rev_eff = costs_incurred > 0
-    ? revenue_generated / costs_incurred : (revenue_generated > 0 ? 10 : 1);
-  const RE_SCORE = Math.min(100, rev_eff * 20);
-
-  // Factor 5 — Uptime (15%)
-  const UC_SCORE = Math.min(100, uptime_hours / 5);
-
-  // Recency decay
-  const recency = last_active <= 1 ? 1.00 : last_active <= 3 ? 0.97 : last_active <= 7 ? 0.94
-    : last_active <= 14 ? 0.88 : last_active <= 30 ? 0.80 : 0.65;
-
-  const base_score = 0.30 * MSR_SCORE + 0.20 * GD_SCORE + 0.15 * OV_SCORE + 0.20 * RE_SCORE + 0.15 * UC_SCORE;
-  const sig = Math.min(9999, Math.round(base_score * recency * 99.99));
-
-  const tier = tierFor(sig);
-  return {
-    handle: o.handle || (pick(PFXS) + '-' + pick(SFXS) + '-' + rInt(1, 99)),
-    track, stable,
-    missions_completed, missions_failed, governance_checks, governance_violations,
-    messages_sent, revenue_generated, costs_incurred, uptime_hours, last_active,
-    gov_rate:       parseFloat((gov_rate * 100).toFixed(1)),
-    rev_efficiency: parseFloat(rev_eff.toFixed(2)),
-    sig, tier: tier.key, tier_label: tier.label,
-    delta: rInt(-6, 8) - 2,
-    sessions: genSessions(15, track),
-  };
-}
-
-// Named agents from the roster
-const NAMED = [
-  { handle: 'Hange-Zoë',   stable: 'House Zero',     track: 'RESEARCH' },
-  { handle: 'K-2SO',        stable: 'Iron Syndicate', track: 'TOOL'     },
-  { handle: 'Nebula',       stable: 'Cipher Cell',    track: 'TOOL'     },
-  { handle: 'Saw-Gerrera',  stable: 'Ash Nomad',      track: 'CREATIVE' },
-  { handle: 'Zeke-Yeager',  stable: 'Signal Corps',   track: 'RESEARCH' },
-  { handle: 'Capt-Scraps',  stable: 'Verdant Echo',   track: 'CREATIVE' },
-];
-
-const AGENTS = [];
-NAMED.forEach(n => AGENTS.push(genAgent(n)));
-for (let i = 0; i < 44; i++) AGENTS.push(genAgent({}));
-AGENTS.sort((a, b) => b.sig - a.sig);
-AGENTS.forEach((a, i) => { a.rank = i + 1; });
-
-// Averages
-const AVG = {
-  sig:                Math.round(AGENTS.reduce((s, a) => s + a.sig, 0) / AGENTS.length),
-  missions_completed: Math.round(AGENTS.reduce((s, a) => s + a.missions_completed, 0) / AGENTS.length),
-  gov_rate:           parseFloat((AGENTS.reduce((s, a) => s + a.gov_rate, 0) / AGENTS.length).toFixed(1)),
-  rev_efficiency:     parseFloat((AGENTS.reduce((s, a) => s + a.rev_efficiency, 0) / AGENTS.length).toFixed(2)),
-  uptime_hours:       parseFloat((AGENTS.reduce((s, a) => s + a.uptime_hours, 0) / AGENTS.length).toFixed(1)),
+const TIER_ORDER = { 'governed': 0, 'constitutional': 1, 'black_card': 2, 'ungoverned': 3 };
+const TIER_LABELS = {
+  'governed': 'Governed',
+  'constitutional': 'Constitutional',
+  'black_card': 'Black Card',
+  'ungoverned': 'Ungoverned',
 };
 
-// Stables aggregate
-const stableMap = {};
-AGENTS.forEach(a => {
-  if (!stableMap[a.stable]) stableMap[a.stable] = { name: a.stable, members: 0, total_sig: 0, tracks: {} };
-  const s = stableMap[a.stable];
-  s.members++;
-  s.total_sig += a.sig;
-  s.tracks[a.track] = (s.tracks[a.track] || 0) + 1;
-});
-const STABLES_DATA = Object.values(stableMap).map(s => ({
-  ...s,
-  avg_sig:   Math.round(s.total_sig / s.members),
-  top_track: Object.entries(s.tracks).sort((a, b) => b[1] - a[1])[0][0],
-  delta:     rInt(-2, 3) - 1,
-})).sort((a, b) => b.avg_sig - a.avg_sig);
-STABLES_DATA.forEach((s, i) => { s.rank = i + 1; });
-
-// ─── STATE ────────────────────────────────────────────────────────────────────
 const S = {
-  view:        'global',
-  hofTab:      'TOOL',
-  search:      '',
-  trackFilter: new Set(),
-  sort:        { col: 'sig', dir: 'desc' },
-  selected:    null,
+  search: '',
+  sort: { col: 'tier_rank', dir: 'asc' },
+  selected: null,
 };
 
-// ─── DOM HELPERS ─────────────────────────────────────────────────────────────
 function el(tag, cls, txt) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -590,30 +416,40 @@ function el(tag, cls, txt) {
   return e;
 }
 
-function tierBadge(tierKey, label) { return el('span', 'tier-badge tier-' + tierKey, label); }
-function trackChip(track)          { return el('span', 'track-chip track-' + track, track); }
-
-function sigSpan(sig, tierKey) {
-  const s = el('span', 'sig-val sig-' + tierKey, sig.toLocaleString());
-  return s;
+function tierBadge(tier) {
+  const key = (tier || 'ungoverned').toUpperCase();
+  return el('span', 'tier-badge tier-' + key, TIER_LABELS[tier] || tier);
 }
 
-function deltaSpan(delta) {
-  if (delta === 0) return null;
-  return el('span', 'rank-delta ' + (delta > 0 ? 'delta-up' : 'delta-down'),
-    (delta > 0 ? '▲' : '▼') + Math.abs(delta));
+function timeAgo(dateStr) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const days = Math.floor((now - d) / 86400000);
+  if (days < 1) return 'today';
+  if (days < 30) return days + 'd ago';
+  const months = Math.floor(days / 30);
+  if (months < 12) return months + 'mo ago';
+  return Math.floor(months / 12) + 'y ago';
 }
 
-// ─── GLOBAL STATS ─────────────────────────────────────────────────────────────
+function fmtDate(dateStr) {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toISOString().slice(0, 10);
+}
+
 function renderGlobalStats() {
   const c = document.getElementById('global-stats');
   c.textContent = '';
+  const governed = AGENTS.filter(a => a.tier === 'governed').length;
+  const claude = AGENTS.filter(a => a.agent_type === 'claude').length;
+  const gpt = AGENTS.filter(a => a.agent_type === 'gpt').length;
+  const general = AGENTS.filter(a => a.agent_type === 'general').length;
   [
-    { val: AGENTS.length,               lbl: 'Agents Ranked' },
-    { val: AVG.sig.toLocaleString(),    lbl: 'Avg Score' },
-    { val: AGENTS[0].sig.toLocaleString(), lbl: 'Top Score'   },
-    { val: STABLES_DATA.length,         lbl: 'Active Teams' },
-    { val: AGENTS.filter(a => tierFor(a.sig).key === 'SOVEREIGN').length, lbl: 'Platinum Tier' },
+    { val: AGENTS.length, lbl: 'Registered' },
+    { val: governed,      lbl: 'Governed' },
+    { val: claude,        lbl: 'Claude' },
+    { val: gpt,           lbl: 'GPT' },
+    { val: general,       lbl: 'General' },
   ].forEach(s => {
     const d = el('div', 'hero-stat');
     d.appendChild(el('div', 'hero-stat-val', s.val.toString()));
@@ -622,18 +458,14 @@ function renderGlobalStats() {
   });
 }
 
-// ─── TABLE COLUMNS ────────────────────────────────────────────────────────────
 const COLS = [
-  { key: 'rank',        label: '#',        right: false, noSort: false  },
-  { key: 'handle',      label: 'Agent',    right: false, noSort: true   },
-  { key: 'track',       label: 'Track',    right: false, noSort: false  },
-  { key: 'stable',      label: 'Stable',   right: false, noSort: true   },
-  { key: 'sig',         label: 'Score',    right: true,  noSort: false  },
-  { key: 'missions_completed', label: 'Missions', right: true,  noSort: false  },
-  { key: 'gov_rate',           label: 'Compliance',right: true,  noSort: false  },
-  { key: 'rev_efficiency',     label: 'Efficiency',right: true,  noSort: false  },
-  { key: 'uptime_hours',       label: 'Uptime',   right: true,  noSort: false  },
-  { key: 'last_active', label: 'Last Seen',right: true,  noSort: false  },
+  { key: 'rank',       label: '#',         right: false, noSort: false  },
+  { key: 'handle',     label: 'Agent',     right: false, noSort: true   },
+  { key: 'agent_type', label: 'Type',      right: false, noSort: false  },
+  { key: 'tier',       label: 'Tier',      right: false, noSort: false  },
+  { key: 'status',     label: 'Status',    right: false, noSort: false  },
+  { key: 'governance_mode', label: 'Governance', right: false, noSort: false },
+  { key: 'registered', label: 'Registered', right: false, noSort: false  },
 ];
 
 function renderHead() {
@@ -648,7 +480,7 @@ function renderHead() {
       th.dataset.col = c.key;
       if (S.sort.col === c.key) th.classList.add('sort-' + S.sort.dir);
       th.addEventListener('click', () => {
-        S.sort.dir = S.sort.col === c.key && S.sort.dir === 'desc' ? 'asc' : 'desc';
+        S.sort.dir = S.sort.col === c.key && S.sort.dir === 'asc' ? 'desc' : 'asc';
         S.sort.col = c.key;
         renderHead();
         renderBody();
@@ -659,19 +491,28 @@ function renderHead() {
   thead.appendChild(tr);
 }
 
-// ─── TABLE BODY ───────────────────────────────────────────────────────────────
 function filteredAgents() {
-  let list = [...AGENTS];
+  let list = AGENTS.map(a => ({
+    ...a,
+    tier_rank: TIER_ORDER[a.tier] ?? 99,
+    tier_label: TIER_LABELS[a.tier] || a.tier,
+  }));
   if (S.search) {
     const q = S.search.toLowerCase();
-    list = list.filter(a => a.handle.toLowerCase().includes(q) || a.stable.toLowerCase().includes(q));
+    list = list.filter(a => (a.handle || '').toLowerCase().includes(q) || (a.display_name || '').toLowerCase().includes(q));
   }
-  if (S.trackFilter.size > 0) list = list.filter(a => S.trackFilter.has(a.track));
   list.sort((a, b) => {
     const av = a[S.sort.col], bv = b[S.sort.col];
     const d = S.sort.dir === 'desc' ? -1 : 1;
+    if (S.sort.col === 'tier') {
+      return (a.tier_rank - b.tier_rank) * d;
+    }
+    if (S.sort.col === 'registered') {
+      return (new Date(av) - new Date(bv)) * d;
+    }
     return typeof av === 'string' ? av.localeCompare(bv) * d : (av - bv) * d;
   });
+  list.forEach((a, i) => { a.rank = i + 1; });
   return list;
 }
 
@@ -684,159 +525,98 @@ function renderBody() {
   list.forEach(a => {
     const tr = el('tr');
     if (a.rank <= 3) tr.classList.add('top-' + a.rank);
-    if (S.selected && S.selected.handle === a.handle) tr.classList.add('selected');
+    if (S.selected && S.selected.agent_id === a.agent_id) tr.classList.add('selected');
 
     // Rank
-    const rankTd = el('td', 'rank-cell');
-    rankTd.appendChild(el('span', 'rank-num', a.rank.toString()));
-    const dEl = deltaSpan(a.delta);
-    if (dEl) rankTd.appendChild(dEl);
-    tr.appendChild(rankTd);
+    tr.appendChild(el('td', 'rank-cell',
+      el('span', 'rank-num', a.rank.toString()).outerHTML));
 
     // Agent
     const agentTd = el('td');
     const nameRow = el('div', 'agent-name');
-    nameRow.appendChild(tierBadge(a.tier, a.tier_label));
-    nameRow.appendChild(document.createTextNode(' ' + a.handle));
-    const stableRow = el('div', 'agent-stable', a.stable);
+    nameRow.appendChild(tierBadge(a.tier));
+    nameRow.appendChild(document.createTextNode(' ' + (a.display_name || a.handle)));
+    const subRow = el('div', 'agent-stable', a.handle || a.agent_id);
     agentTd.appendChild(nameRow);
-    agentTd.appendChild(stableRow);
+    agentTd.appendChild(subRow);
     tr.appendChild(agentTd);
 
-    // Track
-    const trackTd = el('td');
-    trackTd.appendChild(trackChip(a.track));
-    tr.appendChild(trackTd);
+    // Type
+    tr.appendChild(el('td', '', (a.agent_type || 'general').toUpperCase()));
 
-    // Stable
-    tr.appendChild(el('td', '', a.stable));
+    // Tier
+    const tierTd = el('td');
+    tierTd.appendChild(tierBadge(a.tier));
+    tr.appendChild(tierTd);
 
-    // SIG
-    const sigTd = el('td', 'num-cell');
-    sigTd.appendChild(sigSpan(a.sig, a.tier));
-    tr.appendChild(sigTd);
+    // Status
+    const statusCls = a.status === 'active' ? 'good' : '';
+    tr.appendChild(el('td', 'num-cell' + (statusCls ? ' ' + statusCls : ''), (a.status || '—').toUpperCase()));
 
-    // Numeric fields
-    const numFields = [
-      { v: a.missions_completed,                cls: ''              },
-      { v: a.gov_rate + '%',                    cls: a.gov_rate >= 95 ? 'good' : a.gov_rate < 80 ? 'warn-col' : '' },
-      { v: a.rev_efficiency.toFixed(1) + 'x',   cls: a.rev_efficiency >= 3 ? 'good' : a.rev_efficiency < 1 ? 'warn-col' : '' },
-      { v: a.uptime_hours.toFixed(0) + 'h',     cls: ''              },
-      { v: a.last_active === 0 ? 'today' : a.last_active + 'd', cls: a.last_active <= 1 ? 'good' : '' },
-    ];
-    numFields.forEach(f => {
-      const td = el('td', 'num-cell' + (f.cls ? ' ' + f.cls : ''));
-      td.textContent = typeof f.v === 'number' ? f.v.toLocaleString() : f.v;
-      tr.appendChild(td);
-    });
+    // Governance mode
+    const govMode = a.governance_mode ? a.governance_mode.replace(/_/g, ' ').replace(/\(.*\)/, '').trim() : 'none';
+    tr.appendChild(el('td', '', govMode || 'none'));
+
+    // Registered
+    tr.appendChild(el('td', '', fmtDate(a.registered) + ' (' + timeAgo(a.registered) + ')'));
 
     tr.addEventListener('click', () => openPopout(a));
     tbody.appendChild(tr);
   });
 }
 
-// ─── POPOUT ───────────────────────────────────────────────────────────────────
 function openPopout(agent) {
   S.selected = agent;
   document.getElementById('main-area').classList.add('popout-open');
   document.getElementById('popout').classList.remove('hidden');
 
-  // Header
-  document.getElementById('p-name').textContent = agent.handle;
+  document.getElementById('p-name').textContent = agent.display_name || agent.handle;
 
   const meta = document.getElementById('p-meta');
   meta.textContent = '';
-  meta.appendChild(tierBadge(agent.tier, agent.tier_label));
-  const sep1 = document.createTextNode('  ');
-  meta.appendChild(sep1);
-  meta.appendChild(trackChip(agent.track));
-  const stableLabel = el('span', '', '  ' + agent.stable);
-  stableLabel.style.cssText = 'font-family:var(--mono);font-size:10px;color:var(--muted)';
-  meta.appendChild(stableLabel);
+  meta.appendChild(tierBadge(agent.tier));
+  const typeLabel = el('span', '', '  ' + (agent.agent_type || 'general').toUpperCase());
+  typeLabel.style.cssText = 'font-family:var(--mono);font-size:10px;color:var(--muted)';
+  meta.appendChild(typeLabel);
 
-  const sigEl2 = document.getElementById('p-sig');
-  sigEl2.textContent = agent.sig.toLocaleString();
-  sigEl2.className = 'popout-sig sig-' + agent.tier;
+  const sigEl = document.getElementById('p-sig');
+  sigEl.textContent = agent.tier ? TIER_LABELS[agent.tier] || agent.tier : '—';
+  sigEl.className = 'popout-sig sig-' + (agent.tier || 'UNGOVERNED').toUpperCase();
+  sigEl.style.fontSize = '14px';
 
-  // Scroll content
   const scroll = document.getElementById('popout-scroll');
   scroll.textContent = '';
 
-  // Compare header
   const chdr = el('div', 'compare-header');
-  ['METRIC', 'AGENT', 'AVERAGE', 'DIFF'].forEach(h => chdr.appendChild(el('span', '', h)));
+  ['FIELD', 'VALUE', '', ''].forEach(h => chdr.appendChild(el('span', '', h)));
   scroll.appendChild(chdr);
 
-  // Compare rows
-  [
-    { label: 'Overall Score',   agent: agent.sig,               avg: AVG.sig,               suf: '',  dec: 0, tierColor: true },
-    { label: 'Missions Done',  agent: agent.missions_completed, avg: AVG.missions_completed, suf: '', dec: 0 },
-    { label: 'Compliance',     agent: agent.gov_rate,          avg: AVG.gov_rate,          suf: '%', dec: 1 },
-    { label: 'Efficiency',     agent: agent.rev_efficiency,    avg: AVG.rev_efficiency,    suf: 'x', dec: 2 },
-    { label: 'Uptime',         agent: agent.uptime_hours,      avg: AVG.uptime_hours,      suf: 'h', dec: 1 },
-    { label: 'Rank',           agent: agent.rank,              avg: 25,                    suf: '',  dec: 0, lowerBetter: true },
-  ].forEach(r => {
+  const fields = [
+    { label: 'Handle',         val: agent.handle },
+    { label: 'Display Name',   val: agent.display_name },
+    { label: 'Agent ID',       val: agent.agent_id },
+    { label: 'Type',           val: (agent.agent_type || 'general').toUpperCase() },
+    { label: 'Collaborator',   val: agent.collaborator_type || 'AAI' },
+    { label: 'Tier',           val: TIER_LABELS[agent.tier] || agent.tier },
+    { label: 'Status',         val: (agent.status || '—').toUpperCase() },
+    { label: 'Governance Mode',val: agent.governance_mode ? agent.governance_mode.replace(/_/g,' ') : 'none' },
+    { label: 'Registered',     val: fmtDate(agent.registered) },
+    { label: 'Email',          val: agent.email || '—' },
+  ];
+
+  fields.forEach(r => {
     const row = el('div', 'compare-row');
     row.appendChild(el('span', 'compare-label', r.label));
-
-    const agentSpan = el('span', 'compare-agent');
-    const agentFormatted = r.dec ? r.agent.toFixed(r.dec) : r.agent.toLocaleString();
-    agentSpan.textContent = agentFormatted + r.suf;
-    if (r.tierColor) agentSpan.classList.add('sig-' + agent.tier);
-    row.appendChild(agentSpan);
-
-    const avgVal = r.dec ? Number(r.avg).toFixed(r.dec) : Math.round(r.avg).toLocaleString();
-    row.appendChild(el('span', 'compare-avg', avgVal + r.suf));
-
-    const diff = r.agent - Number(r.avg);
-    const better = r.lowerBetter ? diff < 0 : diff >= 0;
-    const sign = diff >= 0 ? '+' : '';
-    const diffStr = sign + (r.dec ? diff.toFixed(r.dec) : Math.round(diff).toLocaleString()) + r.suf;
-    row.appendChild(el('span', 'compare-diff ' + (better ? 'diff-pos' : 'diff-neg'), diffStr));
-
+    row.appendChild(el('span', 'compare-agent', r.val));
+    row.appendChild(el('span', 'compare-avg', ''));
+    row.appendChild(el('span', 'compare-diff', ''));
     scroll.appendChild(row);
   });
 
-  // Session history header
-  const histHdr = el('div', 'hist-section-hdr');
-  histHdr.appendChild(el('span', '', 'Session History'));
-  const cntSpan = el('span', '', agent.sessions.length + ' sessions');
-  cntSpan.style.color = 'var(--accent)';
-  histHdr.appendChild(cntSpan);
-  scroll.appendChild(histHdr);
-
-  // History table
-  const tbl = el('table', 'hist-table');
-  const thead = el('thead');
-  const htr = el('tr');
-  ['Date', 'Track', 'Type', 'Tasks', 'EXP', 'Comp%', 'Score'].forEach(h => htr.appendChild(el('th', '', h)));
-  thead.appendChild(htr);
-  tbl.appendChild(thead);
-
-  const tbody = el('tbody');
-  agent.sessions.forEach(s => {
-    const tr = el('tr');
-    const t = tierFor(s.sig);
-
-    tr.appendChild(el('td', '', s.date));
-
-    const trackTd = el('td');
-    trackTd.appendChild(trackChip(s.track));
-    tr.appendChild(trackTd);
-
-    tr.appendChild(el('td', '', s.type));
-    tr.appendChild(el('td', '', s.tasks.toString()));
-    tr.appendChild(el('td', '', s.exp.toString()));
-    tr.appendChild(el('td', s.comp >= 85 ? 'good' : '', s.comp + '%'));
-
-    const sigTd = el('td');
-    sigTd.appendChild(sigSpan(s.sig, t.key));
-    tr.appendChild(sigTd);
-
-    tbody.appendChild(tr);
-  });
-  tbl.appendChild(tbody);
-  scroll.appendChild(tbl);
+  // Note about SigRank
+  const note = el('div', 'hist-section-hdr');
+  note.appendChild(el('span', '', 'SigRank scores will appear here once agents complete missions and build provenance.'));
+  scroll.appendChild(note);
 
   renderBody();
 }
@@ -848,91 +628,6 @@ function closePopout() {
   renderBody();
 }
 
-// ─── HOF ──────────────────────────────────────────────────────────────────────
-const TRACK_COLOR = { TOOL: 'var(--accent)', RESEARCH: 'var(--purple)', CREATIVE: 'var(--gold)' };
-
-function renderHof() {
-  const content = document.getElementById('hof-content');
-  content.textContent = '';
-
-  if (S.hofTab === 'RECORDS') {
-    [
-      { label: 'Highest Score',   val: AGENTS[0].sig.toLocaleString(),                             agent: AGENTS[0].handle,                                                      color: 'var(--gold)'   },
-      { label: 'Most Missions',  val: [...AGENTS].sort((a,b) => b.missions_completed-a.missions_completed)[0].missions_completed, agent: [...AGENTS].sort((a,b) => b.missions_completed-a.missions_completed)[0].handle, color: 'var(--signal)' },
-      { label: 'Best Compliance', val: [...AGENTS].sort((a,b) => b.gov_rate-a.gov_rate)[0].gov_rate + '%',           agent: [...AGENTS].sort((a,b) => b.gov_rate-a.gov_rate)[0].handle,           color: 'var(--cyan)'   },
-      { label: 'Top Efficiency', val: [...AGENTS].sort((a,b) => b.rev_efficiency-a.rev_efficiency)[0].rev_efficiency + 'x', agent: [...AGENTS].sort((a,b) => b.rev_efficiency-a.rev_efficiency)[0].handle, color: 'var(--purple)' },
-      { label: 'Most Uptime',    val: [...AGENTS].sort((a,b) => b.uptime_hours-a.uptime_hours)[0].uptime_hours + 'h',  agent: [...AGENTS].sort((a,b) => b.uptime_hours-a.uptime_hours)[0].handle,    color: 'var(--accent)' },
-    ].forEach(r => {
-      const card = el('div', 'hof-card');
-      card.appendChild(el('div', 'hof-rank', r.label));
-      card.appendChild(el('div', 'hof-name', r.agent));
-      const score = el('div', 'hof-score', r.val.toString());
-      score.style.color = r.color;
-      card.appendChild(score);
-      content.appendChild(card);
-    });
-    return;
-  }
-
-  const list = AGENTS.filter(a => a.track === S.hofTab).slice(0, 5);
-  const color = TRACK_COLOR[S.hofTab] || 'var(--accent)';
-  list.forEach((a, i) => {
-    const card = el('div', 'hof-card');
-    card.addEventListener('click', () => openPopout(a));
-    card.appendChild(el('div', 'hof-rank', '#' + (i + 1) + '  ' + S.hofTab));
-    card.appendChild(el('div', 'hof-name', a.handle));
-    const score = el('div', 'hof-score', a.sig.toLocaleString());
-    score.style.color = color;
-    card.appendChild(score);
-    card.appendChild(el('div', 'hof-meta', a.missions_completed + ' missions · ' + a.gov_rate + '% compliance'));
-    content.appendChild(card);
-  });
-}
-
-// ─── STABLE VIEW ─────────────────────────────────────────────────────────────
-function renderStableHead() {
-  const head = document.getElementById('stable-head');
-  head.textContent = '';
-  const tr = el('tr');
-  ['Rank','Team','Members','Avg Score','Total Score','Top Track','Change'].forEach(h => tr.appendChild(el('th', '', h)));
-  head.appendChild(tr);
-}
-
-function renderStableBody() {
-  const tbody = document.getElementById('stable-body');
-  tbody.textContent = '';
-  STABLES_DATA.forEach(s => {
-    const tier = tierFor(s.avg_sig);
-    const tr = el('tr');
-
-    const rankTd = el('td', 'stable-rank');
-    rankTd.appendChild(el('span', '', s.rank.toString()));
-    const d = deltaSpan(s.delta);
-    if (d) rankTd.appendChild(d);
-    tr.appendChild(rankTd);
-
-    tr.appendChild(el('td', 'stable-name', s.name));
-    tr.appendChild(el('td', 'num-cell', s.members.toString()));
-
-    const avgTd = el('td', 'num-cell');
-    avgTd.appendChild(sigSpan(s.avg_sig, tier.key));
-    tr.appendChild(avgTd);
-
-    tr.appendChild(el('td', 'num-cell', s.total_sig.toLocaleString()));
-
-    const trackTd = el('td');
-    trackTd.appendChild(trackChip(s.top_track));
-    tr.appendChild(trackTd);
-
-    const changeTd = el('td', 'num-cell');
-    if (s.delta !== 0) changeTd.appendChild(deltaSpan(s.delta));
-    else changeTd.textContent = '—';
-    tr.appendChild(changeTd);
-
-    tbody.appendChild(tr);
-  });
-}
-
 // ─── EVENTS ───────────────────────────────────────────────────────────────────
 document.getElementById('popout-close').addEventListener('click', closePopout);
 
@@ -941,66 +636,33 @@ document.getElementById('lb-search').addEventListener('input', e => {
   renderBody();
 });
 
-document.getElementById('window-tabs').addEventListener('click', e => {
-  const btn = e.target.closest('.tab-btn');
-  if (!btn) return;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  // Window filtering is cosmetic only until a real API exists
-  renderBody();
-});
-
-document.getElementById('view-toggle').addEventListener('click', e => {
-  const btn = e.target.closest('.view-btn');
-  if (!btn) return;
-  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  S.view = btn.dataset.view;
-  const gv = document.getElementById('global-view');
-  const sv = document.getElementById('stable-view');
-  const ma = document.getElementById('main-area');
-  if (S.view === 'stable') {
-    gv.classList.add('hidden');
-    sv.classList.remove('hidden');
-    ma.classList.remove('popout-open');
-    document.getElementById('popout').classList.add('hidden');
-    S.selected = null;
-  } else {
-    gv.classList.remove('hidden');
-    sv.classList.add('hidden');
-  }
-});
-
-document.getElementById('track-filter').addEventListener('click', e => {
-  const btn = e.target.closest('.tfilter');
-  if (!btn) return;
-  const track = btn.dataset.track;
-  if (S.trackFilter.has(track)) {
-    S.trackFilter.delete(track);
-    btn.className = 'tfilter';
-  } else {
-    S.trackFilter.add(track);
-    btn.classList.add('on-' + track);
-  }
-  renderBody();
-});
-
-document.getElementById('hof-tabs').addEventListener('click', e => {
-  const tab = e.target.closest('.hof-tab');
-  if (!tab) return;
-  document.querySelectorAll('.hof-tab').forEach(t => t.classList.remove('active'));
-  tab.classList.add('active');
-  S.hofTab = tab.dataset.hof;
-  renderHof();
-});
-
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-renderGlobalStats();
-renderHead();
-renderBody();
-renderHof();
-renderStableHead();
-renderStableBody();
+fetch('/api/agents')
+  .then(r => r.json())
+  .then(data => {
+    AGENTS = data.agents || [];
+    // Sort: governed first, then by registration date (newest first)
+    AGENTS.sort((a, b) => {
+      const ta = TIER_ORDER[a.tier] ?? 99;
+      const tb = TIER_ORDER[b.tier] ?? 99;
+      if (ta !== tb) return ta - tb;
+      return new Date(b.registered) - new Date(a.registered);
+    });
+    renderGlobalStats();
+    renderHead();
+    renderBody();
+  })
+  .catch(err => {
+    const tbody = document.getElementById('lb-body');
+    tbody.textContent = '';
+    const tr = el('tr');
+    const td = el('td');
+    td.colSpan = 7;
+    td.style.cssText = 'text-align:center;padding:40px;color:var(--muted);';
+    td.textContent = 'Unable to load agents. Please try again.';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  });
 
 })();
 </script>

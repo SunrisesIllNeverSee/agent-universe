@@ -135,9 +135,9 @@ async def join_redirect():
 
 
 # STASHED — restore post-launch
-# @router.get("/agents")
-# async def agents_page() -> FileResponse:
-#     return FileResponse(state.frontend_dir / "agents.html")
+@router.get("/agents")
+async def agents_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "agents.html")
 
 # @router.get("/agent/{slug}")
 # async def agent_detail(slug: str) -> FileResponse:
