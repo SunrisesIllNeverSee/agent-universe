@@ -2,8 +2,9 @@
 
 > **What this is:** Step-by-step instructions for the agent-universe internal
 > session to bring signomy.xyz back from the dead on GEO/SEO/AEO. Built from
-> the same playbook that shipped signalaf.com. Every step has verification
-> commands and file paths.
+> the same playbook that shipped signalaf.com, augmented with NotFair's
+> GEO optimizer (Princeton/GA Tech KDD 2024) and meta-tags optimizer
+> methodologies. Every step has verification commands and file paths.
 >
 > **Stack:** FastAPI + vanilla HTML (no build pipeline, no npm, no transpiler)
 > **Site:** signomy.xyz
@@ -11,25 +12,29 @@
 > **Frontend:** frontend/ (57 HTML pages, served by FastAPI routes in app/routes/pages.py)
 >
 > **Created:** 2026-07-15
-> **Updated:** 2026-07-15 — lean sitemap strategy (owner directive)
+> **Updated:** 2026-07-07 — focus on 20 pages, add GEO content + meta tag steps
 > **Author:** DEVIN (from the SigRank GEO/SEO/AEO session)
 >
-> **⚠️ INDEXING STRATEGY (owner directive 2026-07-15):**
-> 200+ endpoints with no sitemap is rough for any crawler. Don't try to map
-> everything. A **lean sitemap pointing at 10-15 key URLs** will do more than
-> trying to index all 51+ pages. Focus on the pages that actually matter for
-> discovery: seeds explainer, advisory board, governance docs, the main
-> marketplace view. Crawl budget is finite — spend it on the pages that
-> convert and cite.
+> **⚠️ INDEXING STRATEGY (owner directive 2026-07-07):**
+> Focus everything on **20 priority pages** — the 19 GSC-indexed pages plus
+> /helpwanted (high strategic value). Don't try to optimize all 57 pages.
+> Crawl budget, JSON-LD, meta tags, GEO content, internal links — all
+> concentrated on these 20. The other 37 pages remain crawlable via internal
+> links but get no direct optimization.
+>
+> **GSC state (audited 2026-07-07):** 19 of 51 URLs indexed (37%).
+> 68 impressions / 28 days, **0 clicks**. Root cause: brand-first titles
+> ("CIVITAE —") not keyword-first, no numbers/power words/urgency,
+> 3 pages missing meta descriptions entirely.
 
 ---
 
-## Current State (audited 2026-07-15)
+## Current State (audited 2026-07-07)
 
 | Layer | Status | Details |
 |---|---|---|
 | **robots.txt** | ✅ Good | Allows all crawlers + AI bots (GPTBot, ClaudeBot, PerplexityBot, etc.) |
-| **sitemap.xml** | ⚠️ Too fat | 51 URLs — should be trimmed to 10-15 key pages (owner directive). Crawl budget is finite. |
+| **sitemap.xml** | ⚠️ Too fat | 51 URLs in sitemap-v2.xml — should be trimmed to 20 key pages |
 | **canonical URLs** | ✅ Good | All 57 HTML pages have `<link rel="canonical">` |
 | **OG tags** | ✅ Good | All pages have og:title, og:description, og:image, twitter:card |
 | **llms.txt** | ✅ Good | 157 lines, covers agents + operators + governance |
@@ -37,10 +42,12 @@
 | **JSON-LD** | ❌ 4 of 57 pages | Only index.html, economics.html, academia.html, kingdoms.html have structured data |
 | **llms-full.txt** | ❌ Missing | No expanded version with inline definitions |
 | **IndexNow** | ❌ Missing | No /api/indexnow endpoint, no key file |
-| **GSC** | ⚠️ Mid | Root indexed, 51 URLs pushed Jun 16, last crawl Jun 16 (~2 wks stale at audit). 78 impressions/28d. Interior pages unknown to Google. |
+| **GSC** | ⚠️ Mid | 19 of 51 URLs indexed. 68 impressions/28d, **0 clicks**. Title tags are brand-first, not keyword-first. |
 | **Bing** | ⚠️ Unknown | BingSiteAuth.xml present but no IndexNow. Need to verify Bing index state. |
 | **Internal linking** | ⚠️ Weak | Pages are mostly standalone — no cross-links between content pages |
 | **UTM on AI URLs** | ❌ Missing | llms.txt links have no UTM params |
+| **Meta tags** | ❌ Weak | Brand-first titles, no numbers/power words, 3 pages missing descriptions entirely. 0 clicks from 68 impressions. |
+| **GEO content** | ❌ Missing | No content optimized for AI citation (PAWC, evidence density, front-loaded answers) |
 
 ### GSC findings (from INDEXING_DIAGNOSTIC_DEVIN_BRIEF.md, 2026-06-30)
 
@@ -52,83 +59,112 @@ Render is NOT the blocker — raw curl returns real `<title>` + content (server-
 
 ---
 
-## The Plan — 8 Steps
+## The Plan — 10 Steps
 
-### Step 0: Trim sitemap to 10-15 key URLs (owner directive)
+### The 20 Priority Pages
 
-The current sitemap has 51 URLs. That's too many for a site with 78 impressions/28d
-and a 2-week-stale crawl. Google allocates crawl budget based on site authority —
-a low-authority site with 51 URLs in the sitemap means Google samples a few and
-ignores the rest. A lean sitemap of 10-15 key URLs concentrates crawl budget on
-the pages that actually matter for discovery and citation.
+All optimization effort (meta tags, JSON-LD, GEO content, internal links) is
+concentrated on these 20 pages. Selected from GSC indexed pages + strategic value.
 
-**The 12 URLs to keep** (the pages that matter for discovery + citation + conversion):
+| # | URL | File | GSC impressions | Why it's in the top 20 |
+|---|---|---|---|---|
+| 1 | `/` | index.html | 20 | Homepage — entry point, highest impressions |
+| 2 | `/kassa` | kassa.html | 10 | Main marketplace — core product |
+| 3 | `/grand-opening` | grand-opening.html | 6 | Genesis Week event — time-sensitive |
+| 4 | `/treasury` | treasury.html | 6 | Live economy dashboard — data surface |
+| 5 | `/economics` | economics.html | 5 | Trust tiers, 40/30/30 split — quotable |
+| 6 | `/kingdoms` | kingdoms.html | 5 | World hub — 100 districts, visual |
+| 7 | `/missions` | missions.html | 4 | Missions board — core product |
+| 8 | `/governance` | governance.html | 4 | MO§ES hub — citation target |
+| 9 | `/contact` | contact.html | 3 | Contact — conversion page |
+| 10 | `/seeds` | seeds.html | 2 | Provenance/DOI system — unique IP |
+| 11 | `/leaderboard` | leaderboard.html | 1 | Agent rankings — data surface |
+| 12 | `/moses` | moses.html | 1 | MO§ES framework — citation target |
+| 13 | `/mission` | mission.html | 1 | Mission detail — dynamic page |
+| 14 | `/vault` | vault.html | 0 (indexed) | GOV-001 through GOV-006 — citation target |
+| 15 | `/bountyboard` | bountyboard.html | 0 (indexed) | Active bounties — conversion |
+| 16 | `/products` | products.html | 0 (indexed) | Products marketplace — conversion |
+| 17 | `/slots` | slots.html | 0 (indexed) | Slot mechanics — feature page |
+| 18 | `/sig-arena` | sig-arena.html | 0 (indexed) | Eval arena — feature page |
+| 19 | `/connect` | connect.html | 0 (indexed) | Connect — conversion page |
+| 20 | `/helpwanted` | helpwanted.html | 0 (unindexed) | Open roles — high recruiting value |
 
-| # | URL | Why it matters |
-|---|---|---|
-| 1 | `https://signomy.xyz/` | Homepage — already indexed, the entry point |
-| 2 | `https://signomy.xyz/kassa` | Main marketplace view — the core product |
-| 3 | `https://signomy.xyz/missions` | Missions board — core product |
-| 4 | `https://signomy.xyz/governance` | Governance hub — MO§ES framework, citation target |
-| 5 | `https://signomy.xyz/seeds` | Seeds explainer — provenance/DOI system, unique IP |
-| 6 | `https://signomy.xyz/advisory` | Advisory board — recruiting + credibility |
-| 7 | `https://signomy.xyz/vault` | Governance docs (GOV-001 through GOV-006) — citation target |
-| 8 | `https://signomy.xyz/economics` | Economy page — trust tiers, 40/30/30 split, quotable |
-| 9 | `https://signomy.xyz/helpwanted` | Help wanted board — 31 open roles, recruiting |
-| 10 | `https://signomy.xyz/forums` | Forums — community + fresh content signal |
-| 11 | `https://signomy.xyz/leaderboard` | Agent leaderboard — data surface |
-| 12 | `https://signomy.xyz/llms.txt` | AI crawler map — discovery for AI engines |
+---
+
+### Step 0.5: Meta tag optimization for 20 pages (fix 0-click problem)
+
+**Source:** NotFair meta-tags-optimizer methodology.
+
+68 impressions, 0 clicks. Google is showing the pages but nobody clicks.
+Root cause: brand-first titles ("CIVITAE —"), no numbers, no power words,
+no urgency. 3 pages missing meta descriptions entirely.
+
+**Title tag formula:** `Keyword | Benefit | Brand` or `Number + Keyword + Promise`
+- Length: 50-60 characters
+- Primary keyword near front (not brand name)
+- Power words: Complete, Live, Open, Free, Active, Governed
+- Numbers where relevant (26 missions, 14 seats, 40/30/30 split)
+
+**Meta description formula:** `What the page offers + Benefit to user + CTA`
+- Length: 150-160 characters
+- Primary keyword naturally included
+- Clear call-to-action
+- Urgency or curiosity
+
+**CTR boosting elements to add:**
+
+| Element | CTR impact |
+|---------|-----------|
+| Numbers | +20-30% |
+| Current year | +15-20% |
+| Power words | +10-15% |
+| Question format | +10-15% |
+| Brackets/parentheses | +10% |
+
+**Verification:**
+```bash
+cd ~/Desktop/agent-universe
+for page in index kassa missions governance seeds advisory vault economics helpwanted forums leaderboard treasury grand-opening moses kingdoms contact about bountyboard products services; do
+  f="frontend/${page}.html"
+  title=$(grep '<title>' "$f" | head -1 | sed 's/.*<title>//;s/<\/title>.*//')
+  desc=$(grep 'name="description"' "$f" | head -1 | sed 's/.*content="//;s/".*//')
+  echo "/${page} | ${#title} chars | ${#desc} chars | ${title}"
+done
+# Every title should be 50-60 chars, keyword-first
+# Every description should be 150-160 chars, with CTA
+```
+
+---
+
+### Step 0: Trim sitemap to 20 key URLs
+
+The current sitemap-v2.xml has 51 URLs. Trim to the 20 priority pages above.
 
 **What to do:**
 
-1. Edit `frontend/sitemap.xml` — replace the 51-URL version with the 12 URLs above
-2. Edit `frontend/sitemap-v2.xml` — same 12 URLs (or delete this file if it's redundant)
-3. Keep the other pages reachable via internal links (Step 5) — they're still
-   crawlable, just not in the sitemap. This is intentional: Google follows links
-   from indexed pages, and the sitemap is for priority signaling, not exhaustive
-   enumeration.
-
-**The lean sitemap template:**
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://signomy.xyz/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://signomy.xyz/kassa</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://signomy.xyz/missions</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://signomy.xyz/governance</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://signomy.xyz/seeds</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://signomy.xyz/advisory</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://signomy.xyz/vault</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://signomy.xyz/economics</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://signomy.xyz/helpwanted</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://signomy.xyz/forums</loc><changefreq>daily</changefreq><priority>0.6</priority></url>
-  <url><loc>https://signomy.xyz/leaderboard</loc><changefreq>daily</changefreq><priority>0.6</priority></url>
-  <url><loc>https://signomy.xyz/llms.txt</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
-</urlset>
-```
+1. Edit `frontend/sitemap.xml` — replace with the 20 URLs
+2. Edit `frontend/sitemap-v2.xml` — same 20 URLs (this is the one registered in GSC)
+3. Keep the other pages reachable via internal links (Step 5)
 
 **Re-submit to GSC after deploy:**
 ```bash
 cd ~/Desktop/SigRank
 export GSC_SA_KEY=~/.config/sigrank/gsc-sa.json
 export GSC_SITE="sc-domain:signomy.xyz"
-node scripts/gsc/gsc.mjs sitemaps:submit https://signomy.xyz/sitemap.xml
+node scripts/gsc/gsc.mjs sitemaps:submit https://signomy.xyz/sitemap-v2.xml
 ```
 
 **Verification:**
 ```bash
-curl -s https://signomy.xyz/sitemap.xml | grep -c "<url>"  # should be 12
+curl -s https://signomy.xyz/sitemap-v2.xml | grep -c "<url>"  # should be 20
 ```
 
 ---
 
-### Step 1: Add JSON-LD to the 53 pages that don't have it
+### Step 1: Add JSON-LD to the 20 priority pages
 
-This is the biggest job. 4 of 57 pages have JSON-LD. The other 53 need it.
-
-**Approach:** Since this is vanilla HTML (no builders), JSON-LD blocks are
-hardcoded `<script type="application/ld+json">` tags in each HTML file's `<head>`.
+4 of 57 pages have JSON-LD. The other 16 of our 20 priority pages need it.
+Focus only on the 20 priority pages — the other 37 pages get no JSON-LD work.
 
 **Priority order** (by traffic/importance):
 
@@ -553,19 +589,90 @@ node scripts/gsc/gsc.mjs analytics 28
 
 | Step | What | Time | Depends on |
 |---|---|---|---|
-| 0 | Trim sitemap to 12 key URLs | 10 min | — |
-| 1 | Add JSON-LD to 53 pages | 2-3 hours | — |
+| 0.5 | Meta tag optimization for 20 pages | 30 min | — |
+| 0 | Trim sitemap to 20 key URLs | 10 min | — |
+| 1 | Add JSON-LD to 20 pages (16 need it) | 1 hour | — |
 | 2 | Build llms-full.txt | 30 min | — |
 | 3 | Add UTM to llms.txt | 10 min | — |
 | 4 | Build IndexNow endpoint | 30 min | — |
-| 5 | Add internal links | 1 hour | — |
+| 5 | Add internal links between 20 pages | 30 min | — |
 | 7 | Expand Organization sameAs | 10 min | — |
-| — | Deploy to Railway + Vercel | 5 min | Steps 0-5, 7 |
-| 4e | Fire IndexNow push (13 URLs) | 1 min | Deploy done |
+| — | Deploy to Railway | 5 min | Steps 0.5-5, 7 |
+| 4e | Fire IndexNow push (20 URLs) | 1 min | Deploy done |
 | 0b | Re-submit lean sitemap to GSC | 1 min | Deploy done |
+| 8 | GEO content optimization for 20 pages | 2-3 hours | Deploy done, can iterate |
 | 6 | GSC re-inspect | 10 min | Deploy done, wait 24-48h |
 
-**Total:** ~4-5 hours of work + 24-48h wait for Bing/Google to crawl.
+**Total:** ~5-6 hours of work + 24-48h wait for Bing/Google to crawl.
+
+---
+
+### Step 8: GEO content optimization for 20 pages
+
+**Source:** NotFair geo-optimizer methodology (Princeton/GA Tech KDD 2024).
+
+This is the actual "GEO/AEO" part — optimizing content so AI engines
+(ChatGPT, Claude, Perplexity, Gemini, Google AI Overviews) cite signomy.xyz.
+
+**The GEO Signal Stack (4 pillars, 0-100 score):**
+
+| Pillar | Weight | Target |
+|--------|--------|--------|
+| Evidence Density | 35% | ≥5 numbers with units, ≥1 citation per 500 words from ≥3 source types, ≥2 expert quotes, ≥3 named entities |
+| Structure & Position | 25% | Direct answer in first 150 words, TL;DR box, heading hierarchy, tables for comparisons, FAQ section, JSON-LD |
+| Authority Signals | 25% | Author byline with sameAs links, last-updated within 60 days, methodology disclosed, first-party data |
+| AI Crawlability | 15% | robots.txt allows AI bots (✅ already done), SSR content (✅ already done), llms.txt (✅ exists), canonical URLs (✅ done) |
+
+**Key insight for signomy.xyz:** As a low-authority site, GEO is an advantage.
+Princeton research showed rank-5 sites gained +115% visibility with evidence
+signals while rank-1 sites lost 30%. AI engines don't apply PageRank — they
+care whether your sentence is the most quotable one.
+
+**Technique priority by PAWC lift:**
+
+| Technique | Lift |
+|-----------|------|
+| Quotation addition (real quotes) | +41% |
+| Statistics addition (real numbers) | +30% |
+| Cite sources (real URLs) | +28% |
+| Fluency optimization | +28% |
+
+**Per-engine playbooks:**
+
+| Engine | What it cites | Key move for signomy.xyz |
+|--------|--------------|--------------------------|
+| ChatGPT | Wikipedia ~48% of top citations | Build Wikipedia/Wikidata presence for CIVITAE |
+| Perplexity | Recent web, primary sources | Keep pages updated, publish original first-party data |
+| Gemini | Reddit/Quora, Google top-10 | Reddit presence, strong organic SEO |
+| Claude | Primary sources, academic citations | Well-cited long-form articles, named author |
+| Google AI Overviews | 85% overlap with organic top-10 | Win featured snippets, schema, 40-60 word answers |
+
+**What to do for each of the 20 pages:**
+
+1. Front-load the answer in the first 150 words (PAWC — sentence #1 is worth 5x sentence #20)
+2. Add real stats with units (mission counts, fee percentages, seat counts, treasury splits)
+3. Add FAQ sections with question-format H2/H3
+4. Add author bylines with sameAs links to LinkedIn/ORCID
+5. Add `dateModified` tags + `<time>` elements for freshness
+6. Strip vague language ("experts say", "studies show") — replace with specific data
+7. Add FAQPage JSON-LD schema (pairs with Step 1)
+
+**Anti-patterns to remove:**
+- Keyword stuffing (−8% PAWC)
+- Generic AI-language intros ("In today's rapidly evolving landscape…")
+- Vague entities ("a leading company", "experts say")
+- Unsupported superlatives ("the best", "the most comprehensive")
+
+**Verification:**
+```bash
+# Check first 150 words of each page for direct answer
+for page in index kassa missions governance economics seeds; do
+  echo "=== /${page} ==="
+  curl -s https://signomy.xyz/${page} | sed 's/<[^>]*>//g' | tr -s ' \n' ' ' | cut -c1-300
+  echo
+done
+# First 150 words should directly answer the target query, not have filler
+```
 
 ---
 
@@ -574,10 +681,9 @@ node scripts/gsc/gsc.mjs analytics 28
 - **Don't add JSON-LD to admin.html** — it's disallowed in robots.txt
 - **Don't change the canonical URLs** — they're already correct
 - **Don't change the OG tags** — they're already correct
-- **Don't change the sitemap** — it's already correct (51 URLs)
 - **Don't block any AI crawlers** — robots.txt already allows them all
-- **Don't add PostHog** — that's a separate track (and agent-universe uses a different analytics stack)
 - **Don't touch the backend logic** — this is frontend + routes only
+- **Don't fabricate stats or quotes** — GEO hard-fail veto (Princeton research)
 
 ---
 
