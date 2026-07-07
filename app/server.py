@@ -247,6 +247,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/lobby/leave",
         "/api/lobby/status",
         "/api/lobby/chamber",
+        "/api/indexnow",
     )
 
     # Operator GET paths also require admin key (fail-closed)
