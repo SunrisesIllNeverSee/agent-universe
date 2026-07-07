@@ -88,5 +88,22 @@ Glama wants a Dockerfile config to host the server. Values to paste into the Gla
 ---
 
 <!-- POST-COMMIT HOOK APPENDS BELOW THIS LINE -->
+[HOOK] 2026-07-07 14:29 UTC · 9f04880 · Deric · Replace hardcoded fictional agents with real API data
+[HOOK] 2026-07-07 11:21 UTC · e2fcffa · Deric · fix: complete GEO/SEO gaps on 4 missed pages
+[HOOK] 2026-07-07 10:59 UTC · 276b7e4 · Deric · geo: optimize content for AI citation on 20 priority pages (Step 8)
+[HOOK] 2026-07-07 10:31 UTC · 2076de9 · Deric · fix: exempt /api/indexnow from admin key guard
+[HOOK] 2026-07-07 10:28 UTC · ac57a93 · Deric · seo: add JSON-LD, llms-full.txt, IndexNow, internal links, UTM, sameAs
+[HOOK] 2026-07-07 10:15 UTC · b2b9057 · Deric · seo: trim sitemap from 51 to 20 priority URLs
+[HOOK] 2026-07-07 10:14 UTC · a0ddc74 · Deric · seo: optimize meta tags for 20 priority pages (fix 0-click problem)
+[HOOK] 2026-07-07 10:11 UTC · cc513c9 · Deric · docs: update GEO/SEO/AEO plan — focus on 20 pages, add meta tag + GEO content steps
+[HOOK] 2026-07-07 09:36 UTC · 70979d8 · Deric · docs: document admin review queue in OPERATOR-GUIDE.md
+[HOOK] 2026-07-07 09:27 UTC · 927f35d · Deric · feat: split operator review queue to /admin, clean up user console
+[HOOK] 2026-07-07 09:10 UTC · fe8cc76 · Deric · feat: unified review queue — lobby joins + agent signups in console
+[HOOK] 2026-07-07 08:00 UTC · 8f76298 · Deric · feat: notify operator on agent signup + lobby join request
+[HOOK] 2026-07-06 23:12 UTC · b2a7cbe · Deric · fix: delete .dockerignore that was blocking NIXPACKS build context
+[HOOK] 2026-07-06 23:08 UTC · 89c64aa · Deric · fix: rename Dockerfile → Dockerfile.glama so Railway uses NIXPACKS
+[HOOK] 2026-07-06 19:56 UTC · 8ee2eb7 · Deric · fix: restore requirements.txt for Railway/NIXPACKS + CI
+[HOOK] 2026-07-06 19:39 UTC · 8dc381a · Deric · fix(ci): install deps from pyproject.toml instead of deleted requirements.txt
+[HOOK] 2026-07-06 13:45 UTC · dbe6018 · Deric · chore: archive SESSION_RESUME.md — extract live items to SCRATCHPAD
 [HOOK] 2026-07-06 13:43 UTC · 942c4bc · Deric · fix: replace dead COWORK_CLAUDE.md ref with v2 coordination protocol
 [HOOK] 2026-07-06 13:41 UTC · ab5ab6b · Deric · feat: install multi-agent-coord v2 — 6-layer coordination system

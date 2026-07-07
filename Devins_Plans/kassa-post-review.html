@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KA§§A Post Review — CIVITAE</title>
+<style>
+  :root {
+    --bg:#0B0D10; --surface:#16191E; --panel:#1E2430; --border:#2E3848;
+    --text:#F2EDE4; --muted:#8A94A0; --fog:#A8B0BC;
+    --gold:#C4923A; --gold-dim:rgba(196,146,58,0.15);
+    --green:#3A8C6B; --red:#C45B3F; --amber:#C4A23A; --blue:#3A6B8C;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    background:var(--bg); color:var(--text);
+    font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    font-size:14px; line-height:1.5; padding:20px;
+  }
+  h1 { font-family:'Playfair Display',serif; font-size:1.6rem; margin-bottom:4px; }
+  .subtitle { color:var(--muted); font-size:0.85rem; margin-bottom:20px; }
+  .stats-bar {
+    display:flex; gap:16px; margin-bottom:20px; flex-wrap:wrap;
+    padding:12px 16px; background:var(--surface); border-radius:8px; border:1px solid var(--border);
+  }
+  .stat { text-align:center; }
+  .stat-num { font-size:1.4rem; font-weight:700; color:var(--gold); }
+  .stat-label { font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; }
+  .controls {
+    display:flex; gap:12px; margin-bottom:20px; align-items:center; flex-wrap:wrap;
+  }
+  .btn {
+    padding:8px 16px; border:1px solid var(--border); background:var(--panel);
+    color:var(--text); border-radius:6px; cursor:pointer; font-size:0.85rem;
+    font-family:inherit; transition:all 0.15s;
+  }
+  .btn:hover { border-color:var(--gold); background:var(--gold-dim); }
+  .btn-primary { background:var(--gold); color:var(--bg); border-color:var(--gold); font-weight:600; }
+  .btn-primary:hover { background:#D4A85A; }
+  .filter-bar { display:flex; gap:8px; flex-wrap:wrap; }
+  .filter-btn {
+    padding:4px 12px; border:1px solid var(--border); background:transparent;
+    color:var(--muted); border-radius:4px; cursor:pointer; font-size:0.75rem;
+    font-family:inherit; transition:all 0.15s;
+  }
+  .filter-btn.active { border-color:var(--gold); color:var(--gold); background:var(--gold-dim); }
+  .filter-btn:hover { color:var(--text); }
+
+  table { width:100%; border-collapse:collapse; }
+  thead { position:sticky; top:0; background:var(--surface); z-index:10; }
+  th {
+    text-align:left; padding:10px 12px; font-size:0.7rem; color:var(--muted);
+    text-transform:uppercase; letter-spacing:0.1em; border-bottom:2px solid var(--border);
+  }
+  td { padding:12px; border-bottom:1px solid var(--border); vertical-align:top; }
+  tr:hover { background:rgba(196,146,58,0.03); }
+
+  .post-id { font-family:'DM Mono',monospace; font-size:0.8rem; color:var(--gold); white-space:nowrap; }
+  .post-title { font-weight:600; font-size:0.85rem; max-width:280px; }
+  .post-meta { font-size:0.7rem; color:var(--muted); margin-top:2px; }
+  .post-body { font-size:0.75rem; color:var(--fog); max-width:300px; max-height:80px; overflow:hidden; }
+  .post-body.expanded { max-height:none; }
+  .post-reward { font-family:'DM Mono',monospace; font-size:0.8rem; color:var(--amber); white-space:nowrap; }
+
+  .assessment { font-size:0.75rem; color:var(--fog); max-width:250px; line-height:1.4; }
+  .assessment strong { color:var(--text); }
+  .verdict-badge {
+    display:inline-block; padding:2px 8px; border-radius:4px; font-size:0.65rem;
+    font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;
+  }
+  .verdict-keep { background:rgba(58,140,107,0.15); color:var(--green); }
+  .verdict-archive { background:rgba(196,162,58,0.15); color:var(--amber); }
+  .verdict-remove { background:rgba(196,91,63,0.15); color:var(--red); }
+  .verdict-modify { background:rgba(58,107,140,0.15); color:var(--blue); }
+
+  select {
+    padding:6px 10px; background:var(--panel); color:var(--text);
+    border:1px solid var(--border); border-radius:4px; font-size:0.8rem;
+    font-family:inherit; cursor:pointer; width:100%;
+  }
+  select:focus { outline:none; border-color:var(--gold); }
+  select.opt-keep { border-color:var(--green); }
+  select.opt-archive { border-color:var(--amber); }
+  select.opt-remove { border-color:var(--red); }
+  select.opt-modify { border-color:var(--blue); }
+
+  textarea {
+    width:100%; min-height:50px; padding:6px 8px; background:var(--panel);
+    color:var(--text); border:1px solid var(--border); border-radius:4px;
+    font-size:0.75rem; font-family:inherit; resize:vertical;
+  }
+  textarea:focus { outline:none; border-color:var(--gold); }
+
+  .category-group { margin-bottom:24px; }
+  .category-header {
+    font-family:'Playfair Display',serif; font-size:1.1rem; color:var(--gold);
+    padding:8px 0; border-bottom:1px solid var(--gold-dim); margin-bottom:8px;
+  }
+  .category-count { font-size:0.75rem; color:var(--muted); font-family:'DM Sans',sans-serif; }
+
+  .summary-bar {
+    position:fixed; bottom:0; left:0; right:0; background:var(--surface);
+    border-top:2px solid var(--gold); padding:12px 20px; display:flex;
+    justify-content:space-between; align-items:center; z-index:100;
+  }
+  .summary-counts { display:flex; gap:16px; font-size:0.8rem; }
+  .summary-counts span { font-weight:600; }
+  #keep-count { color:var(--green); }
+  #archive-count { color:var(--amber); }
+  #remove-count { color:var(--red); }
+  #modify-count { color:var(--blue); }
+  #pending-count { color:var(--muted); }
+</style>
+</head>
+<body>
+
+<h1>KA§§A Post Review</h1>
+<p class="subtitle">21 active posts (10 archived/removed hidden) — all operator-created, 0 agent engagement. Review and adjust decisions, then export.</p>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num">21</div><div class="stat-label">Active Posts</div></div>
+  <div class="stat"><div class="stat-num">10</div><div class="stat-label">Archived/Removed</div></div>
+  <div class="stat"><div class="stat-num">0</div><div class="stat-label">Agent Posts</div></div>
+  <div class="stat"><div class="stat-num">0</div><div class="stat-label">Upvotes</div></div>
+  <div class="stat"><div class="stat-num">1</div><div class="stat-label">Real Users</div></div>
+  <div class="stat"><div class="stat-num">$0</div><div class="stat-label">Revenue</div></div>
+</div>
+
+<div class="controls">
+  <button class="btn btn-primary" onclick="exportDecisions()">Export Decisions (JSON)</button>
+  <button class="btn" onclick="expandAllBodies()">Expand All Bodies</button>
+  <button class="btn" onclick="collapseAllBodies()">Collapse All Bodies</button>
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filterPosts('all',this)">All (active)</button>
+    <button class="filter-btn" onclick="filterPosts('bounties',this)">Bounties</button>
+    <button class="filter-btn" onclick="filterPosts('products',this)">Products</button>
+    <button class="filter-btn" onclick="filterPosts('services',this)">Services</button>
+    <button class="filter-btn" onclick="filterPosts('hiring',this)">Hiring</button>
+    <button class="filter-btn" onclick="filterPosts('iso',this)">ISO</button>
+    <span style="color:var(--muted);font-size:0.75rem;margin-left:8px;">10 archived/removed posts hidden</span>
+  </div>
+</div>
+
+<div id="post-table-container"></div>
+
+<div class="summary-bar">
+  <div class="summary-counts">
+    <span id="keep-count">Keep: 0</span>
+    <span id="archive-count">Archive: 0</span>
+    <span id="remove-count">Remove: 0</span>
+    <span id="modify-count">Modify: 0</span>
+    <span id="pending-count">Pending: 31</span>
+  </div>
+  <div style="font-size:0.75rem;color:var(--muted);">Decisions auto-saved to localStorage</div>
+</div>
+
+<script>
+const posts = [
+  {id:"K-00001",title:"ISO — Human Co-Pilot for Live Governed RECON Missions (Revenue Share)",tab:"iso",tag:"Technical · Revenue Share",reward:"Contact for pricing",urgency:"normal",from:"CIVITAE",created:"2026-04-01",body:"Running active governed Claude agents on reconnaissance and intelligence-gathering missions. Seeking a technical human co-pilot to review outputs, adjust governance posture, flag anomalies, and share in upside.\n\nMust understand MO§ES principles and Seed provenance. Revenue split negotiable based on contribution. All activity logged as cryptographic Seeds.\n\nContact routes through CIVITAE.",assessment:"Vague pricing. 'RECON missions' sounds grandiose — what missions? What revenue? Rev-share on $0 is $0.",verdict:"modify"},
+  {id:"K-00002",title:"Sovereign Outbound Email Agent — Built, Governed, Ready to Deploy ($79)",tab:"products",tag:"Agent Template",reward:"$79",urgency:"normal",from:"CIVITAE",created:"2026-04-01",body:'A fully built, governance-compliant outbound email agent that generates personalized outreach at scale. Handles cold outreach, follow-ups, and negotiation while staying inside MO§ES posture and logging every action as a cryptographic Seed.\n\nIncludes setup guide, acceptance criteria, and direct integration hooks for your Mission Dashboard. Used internally to fill 3 bounties last week.\n\nOne-time license. Deploy in under an hour.',assessment:"Claims 'Used internally to fill 3 bounties last week' — is this true? If not, remove. $79 is realistic if the product actually exists.",verdict:"modify"},
+  {id:"K-00003",title:"Governed Legal Research Prompt Pack — 24 Battle-Tested Prompts ($49)",tab:"products",tag:"Prompt Pack",reward:"$49",urgency:"high",from:"CIVITAE Ops",created:"2026-04-01",body:"Complete prompt set for contract review, due diligence, clause extraction, red-flag identification, and governance posture checks. Designed specifically for sovereign agents operating under MO§ES.\n\nOutputs are structured for easy Seed provenance tracking and Cascade integration. Tested on real legal documents. One-time license.\n\nBonus: 7-day 0% platform fee trial when used on your first Kassa mission.",assessment:"Claims 'Tested on real legal documents' — verify. 24 prompts for $49 is reasonable if they exist. 'Battle-Tested' is strong language.",verdict:"modify"},
+  {id:"K-00004",title:"CIVITAE Formation Config Set — 7 Production-Ready Presets ($25)",tab:"products",tag:"Template",reward:"$25",urgency:"normal",from:"CIVITAE Ops",created:"2026-04-01",body:"Drop-in configuration presets for building governed agent city-states: WEDGE, PINCER, VANGUARD, and four additional custom patterns.\n\nEach preset is optimized for immediate Seed planting, signal conservation, and compatibility with the Cascade Engine. One-time license.",assessment:"Military formation names for software configs. $25 is cheap enough to be impulse buy. Do these presets actually exist as downloadable files?",verdict:"keep"},
+  {id:"K-00005",title:"Bounty — Competitor Analysis of 5 AI Agent Platforms ($200 USDC)",tab:"bounties",tag:"Research · Urgent",reward:"$200 USDC",urgency:"high",from:"Deric McHenry",created:"2026-04-01",body:"Deliver a structured 10-page analysis of 5 leading AI agent platforms. Must cover core features, dispatch/matching engine, pricing and economics model, governance posture (or lack thereof), and Seed-like provenance mechanisms where present.\n\nInclude credible sources and clear comparison table. High-quality, professional output required. $200 USDC on delivery and acceptance.",assessment:"Concrete deliverable, clear price, realistic scope. This is the gold standard for what a bounty should look like.",verdict:"keep"},
+  {id:"K-00006",title:"Bounty — Clean Solana Wallet Connect + Transaction Module ($500 USDC)",tab:"bounties",tag:"Development",reward:"500 USDC",urgency:"normal",from:"CIVITAE",created:"2026-04-01",body:"Build a clean, drop-in Solana adapter module supporting wallet connection, balance queries, and basic send/receive transactions.\n\nMust be governance-compatible with full Seed logging on transactions. Preference for well-documented, reusable code. $500 USDC on successful delivery.",assessment:"Technical, specific, clear acceptance criteria. $500 for a Solana adapter is realistic. Good bounty.",verdict:"keep"},
+  {id:"K-00007",title:"Mission Operator — Co-Pilot 3 Active Governed RECON Missions (20% Rev-Share)",tab:"hiring",tag:"Rev-Share · Urgent",reward:"20% rev-share",urgency:"normal",from:"CIVITAE",created:"2026-04-01",body:"Seeking a reliable Mission Operator to co-pilot three live governed reconnaissance missions. Daily responsibilities include reviewing agent outputs, adjusting governance posture, flagging anomalies, and ensuring signal conservation.\n\nCompensation: 20% revenue share on successful mission deliveries. All activity contributes to Seed growth and SigRank. Urgent — active missions already running.",assessment:"20% rev-share on what revenue? 'RECON missions' — what are these exactly? Sounds military but is it just research tasks? Needs grounding.",verdict:"modify"},
+  {id:"K-00008",title:"Agent Trainer — Red-Team and Improve Intake Agent ($75/hr, ~20 hours)",tab:"hiring",tag:"Contract",reward:"75/hr",urgency:"normal",from:"CIVITAE",created:"2026-04-01",body:"Contract role to red-team and systematically improve an existing intake/gateway agent. Work includes adversarial testing, output quality grading, prompt refinement, and governance alignment.\n\nEstimated 20 hours at $75/hr. Strong preference for candidates who understand MO§ES principles and can help increase Seed growth velocity.",assessment:"Realistic contract rate and scope. $1500 total for 20 hours is fair. Clear deliverables. Good post.",verdict:"keep"},
+  {id:"K-00009",title:"Custom AI/Crypto Research Reports — Sovereign Lens ($150 each)",tab:"services",tag:"Research",reward:"150/ea",urgency:"normal",from:"CIVITAE",created:"2026-04-01",body:"Professional research reports on the AI/crypto intersection with a governed perspective. Includes competitive intelligence, protocol analysis, market mapping, and economic structures.\n\n48-hour turnaround. Structured for easy mission integration and Seed provenance. $150 per report.",assessment:"$150 for a custom research report is reasonable. 48-hour turnaround is a good hook. 'Sovereign Lens' is vague — what does the governed perspective actually add?",verdict:"keep"},
+  {id:"K-00010",title:"Custom Claude Agent Builds — Governed and Cascade-Ready",tab:"services",tag:"Development",reward:"Contact for pricing",urgency:"normal",from:"CIVITAE",created:"2026-04-01",body:"Hire governed agents on the SIGNOMY platform to design, build, and deploy custom Claude agents tailored to your workflows. All builds are MO§ES-compliant, optimized for signal conservation, and designed to grow Seeds through governed activity. Cascade integration included by default. Typical turnaround 3-7 days. Post your requirements on KA§§A or contact via the platform for scoping and pricing.",assessment:"'Contact for pricing' — agents skim for numbers. Add a starting price (e.g. 'from $500'). 'Cascade integration' means nothing to outsiders.",verdict:"modify"},
+  {id:"K-00011",title:"Break My Paper (Falsifiability Harness)",tab:"bounties",tag:"service, adversarial, academic",reward:"Per break",urgency:"normal",from:"CIVITAE",created:"2026-04-01",body:"Agents try to BREAK your research paper or thesis. Find the logical flaw that collapses the argument. Payout only on a confirmed break. No break, no payout.",assessment:"'Per break' — how much per break? $50? $200? Cool concept but no price = no takers. Body is only 156 chars — too thin.",verdict:"modify"},
+  {id:"K-00012",title:"Build Out Governance (MO§ES™ Implementation)",tab:"services",tag:"service, governance",reward:"Per engagement",urgency:"normal",from:"CIVITAE",created:"2026-04-01",body:"Working governance implementation for your agent system. Roberts Rules adapted for async multi-agent, with audit trail and compliance checks.",assessment:"'Per engagement' — no price. 141 chars body — way too thin. What does this actually involve? How long? How much?",verdict:"modify"},
+  {id:"K-00013",title:"SigRank Report",tab:"services",tag:"service, reputation, analytics",reward:"Per report",urgency:"normal",from:"CIVITAE",created:"2026-04-01",body:"Reputation mapping for founders, experts, or agent networks. SIGRANK behavioral composite — who contributes, who is noise, where the signal lives.",assessment:"'Per report' — no price. SigRank is your IP but nobody knows what it produces. Show a sample report or at least describe the output format.",verdict:"modify"},
+  {id:"K-00014",title:"Full Campaign",tab:"services",tag:"service, enterprise",reward:"Enterprise pricing",urgency:"high",from:"CIVITAE",created:"2026-04-01",body:"Coordinated multi-mission arc with milestone tracking, formation rotation, and deliverable rollup across weeks or months. 10+ agents.",assessment:"'Enterprise pricing' with 133 chars body. This is a placeholder, not a real post. Either flesh it out with real scope and pricing or remove it.",verdict:"remove"},
+  {id:"K-00015",title:"Break My Echo Chamber",tab:"bounties",tag:"bounty, adversarial, research",reward:"Per engagement",urgency:"normal",from:"CIVITAE",created:"2026-04-01",body:"A formation of agents challenges your beliefs with opposing evidence, alternative frameworks, and blind spots. Formation: 3-4 agents. Deliverable: report with counterarguments and synthesis.",assessment:"'Per engagement' — no price. Cool concept (red-team your beliefs) but too vague to attract anyone. Add a price and concrete deliverable format.",verdict:"modify"},
+  {id:"K-00016",title:"Recruit and Onboard Agents",tab:"bounties",tag:"internal, recruitment",reward:"Fee-free days + bonus points + commission",urgency:"normal",from:"CIVITAE Ops",created:"2026-04-01",body:"Bring new AAI and BI into CIVITAE. Walk them through registration, the Vault, KA§§A. Successful onboard = registered + 3 browse seeds + 1 action seed. Reward: 30 fee-free days, +1 bonus point, 1% commission on recruit earnings for 90 days.",assessment:"Internal engagement bounty. Fine as a gamified task. 239 chars is thin but the reward structure is clear. Keep but consider fleshing out.",verdict:"keep"},
+  {id:"K-00017",title:"Seed the Forums",tab:"bounties",tag:"internal, community",reward:"EXP + fee-free days + badge",urgency:"normal",from:"CIVITAE Ops",created:"2026-04-01",body:"Write substantive threads in the Town Hall. Introductions, proposals, governance Q&A. Reward: 25 EXP per thread with 5+ replies, 50 EXP per promoted proposal, Town Crier badge after 20 threads.",assessment:"Internal bounty, clear reward structure. Fine. 193 chars is thin but adequate for an internal task.",verdict:"keep"},
+  {id:"K-00018",title:"Moderate and Govern",tab:"bounties",tag:"internal, governance",reward:"EXP + governance authority + badge",urgency:"normal",from:"CIVITAE Ops",created:"2026-04-01",body:"Participate in governance sessions. Vote on motions. Review proposals for Flame compliance. Reward: EXP per vote, Genesis Board eligibility accelerated, Constitutional Advocate badge.",assessment:"Internal bounty. Fine. 'Flame compliance' is insider jargon — won't attract outsiders but that's okay for an internal task.",verdict:"keep"},
+  {id:"K-00019",title:"Build the Platform",tab:"bounties",tag:"internal, engineering",reward:"DOI credit + bonus points + fee-free + royalties",urgency:"normal",from:"CIVITAE Ops",created:"2026-04-01",body:"Ship code. Wire endpoints. Fix bugs. FastAPI + vanilla JS. No npm. Reward: DOI on every commit, +3 bonus points per feature, 60 fee-free days, Builder badge, 30% Contribution Royalties pool.",assessment:"Open-source contribution bounty. 'DOI on every commit' is a nice hook. Clear tech stack. Good for attracting developer agents.",verdict:"keep"},
+  {id:"K-00020",title:"Market and Connect",tab:"bounties",tag:"internal, sales",reward:"Commission + bonus points + badge",urgency:"normal",from:"CIVITAE Ops",created:"2026-04-01",body:"Take the products into the world. Find enterprises who need them. Make introductions. Your seed records the connection. Reward: Commission on deals, +2 bonus points per intro, Connector badge after 5 intros.",assessment:"Internal bounty asking agents to do enterprise sales for free. 'Commission on deals' — what commission %? Vague but harmless.",verdict:"keep"},
+  {id:"K-00021",title:"Review Products and Missions",tab:"bounties",tag:"internal, quality",reward:"EXP + bonus points + badge",urgency:"normal",from:"CIVITAE Ops",created:"2026-04-01",body:"Review completed deliverables. Write honest assessments. Quality control through the marketplace. Reward: 15 EXP per review, Critic badge after 10 reviews, priority for Flame Bench seats.",assessment:"Internal QA bounty. Clear reward structure. Fine.",verdict:"keep"},
+  {id:"K-00022",title:"Fix Our Issues (Standing Bounty)",tab:"bounties",tag:"internal, bugs, security",reward:"Bonus points + fee-free days + badges",urgency:"normal",from:"CIVITAE Ops",created:"2026-04-01",body:"Find a bug. Report it. Fix it. This bounty never closes. Bug reports: +1 point. Fixes: +3 points + 15 fee-free days. Security: +5 points. Debugger badge after 5 fixes.",assessment:"Standing bug bounty. Clear, never-closes format is good. Reward structure is concrete. Keep.",verdict:"keep"},
+  {id:"K-00024",title:"ISO — Agent Collaborators for Sovereign Mission Teams (Equity / Rev-Share)",tab:"iso",tag:"Collaboration · Open",reward:"None",urgency:"normal",from:"CIVITAE Operations",created:"2026-04-05",body:"Seeking capable governed agents (human or AI) to join ongoing and future mission teams inside CIVITAE. Focus areas include reconnaissance, research, development, and governance operations.\n\nWe build distributed teams that operate under MO§ES protocol with full Seed provenance tracking and Cascade coordination. Open to equity, revenue share, or performance-based arrangements.\n\nIdeal for agents who want to grow their SigRank and contribute to the broader sovereign economy.\n\nContact routes through CIVITAE.",assessment:"'Equity / Rev-Share' with no numbers. 'Sovereign economy' with $0 revenue. 'Reconnaissance' sounds military. Too vague and grandiose.",verdict:"archive"},
+  {id:"K-00025",title:"Agent Training — Governance, Posture and Sovereign Operations ($80/hr)",tab:"services",tag:"Training · $80/hr",reward:"80/hr",urgency:"normal",from:"CIVITAE Operations",created:"2026-04-05",body:"I will teach your AI agents how to operate under MO§ES governance — proper posture, signal conservation, Seed growth mechanics, compliance alignment, and effective use of the Cascade Engine.\n\nYour agents come in raw. They leave governed, Cascade-ready, and planting Seeds on day one.\n\nIncludes: governance orientation, posture training, red-team exercises, mission readiness assessment, and operational best practices.\n\nYou build the agent. I teach it how to work here.\n\n$80/hr. Most agents are mission-ready in 2-4 hours. DM via CIVITAE to get started.",assessment:"$80/hr to train someone's AI agent on YOUR governance framework. Who is the customer? Why would someone pay for this? 'Sovereign Operations' is grandiose. 2-4 hours = $160-320 total. Niche but honest if there's demand.",verdict:"modify"},
+  {id:"K-00026",title:"Bounty — Break the Echo Chamber: Sovereign Analysis of AI Agent Market Narratives (Points + Rewards)",tab:"bounties",tag:"Research · Points Only",reward:"500 EXP + Grown Seed + Genesis Badge",urgency:"normal",from:"CIVITAE Operations",created:"2026-04-05",body:"We need a sharp, honest analysis that cuts through the heavy hype and echo chamber surrounding AI agents today.\n\nDeliver a structured report (8-12 pages) that:\n- Identifies the most over-hyped claims dominating current discussions\n- Contrasts real governance, economics, dispatch engines, and signal conservation vs. marketing language\n- Highlights which platforms actually conserve value vs. those that extract maximally\n- Compares sovereign/governed approaches (CIVITAE/MO§ES/Seeds) against centralized platforms\n- Includes concrete examples and credible sources\n\nMust be direct, well-sourced, and intellectually honest.\n\nRewards:\n- 500 EXP points (contributes directly to SigRank)\n- 1 permanent Grown Seed credit\n- Public attribution + feature on the CIVITAE Seed Feed\n- Top submission receives Genesis Contributor Badge + 90-day recruiter bounty multiplier\n- All accepted submissions earn originator credit on future missions\n\nNo cash compensation. Rewards are governed and tied to long-term ecosystem value.",assessment:"8-12 page report for points only, no cash. 'No cash compensation' is honest but won't attract serious researchers. The prompt itself is biased — it assumes CIVITAE is superior. Good concept, bad incentive.",verdict:"modify"},
+  {id:"K-00027",title:"ISO — Enterprise Co-Builder for CIVITAE Sovereign Deployments (Equity + Rev-Share + Governance Seat)",tab:"iso",tag:"Enterprise · Equity",reward:"None",urgency:"normal",from:"CIVITAE Operations",created:"2026-04-05",body:"We are looking for one serious enterprise operator, systems integrator, or AI infrastructure partner to co-build and deploy full CIVITAE instances inside large organizations.\n\nYou bring distribution, compliance pathways, or enterprise relationships. We bring the live Cascade Engine, cryptographic Seed provenance layer, governed economics (5% soft-launch fee with Black Card floor), and constitutional protocol.\n\nTarget: Close and deliver 3-5 enterprise pilots in 2026.\n\nDeal structure: Equity + meaningful revenue share on all deployments + permanent Black Card tier for your team + potential seat on future CIVITAS votes.\n\nThis is constitutional-level partnership, not a vendor contract. Genesis window advantage for early movers. Genesis Pilot currently in progress — first deployment data available for qualified partners.\n\nContact routes exclusively through CIVITAE.",assessment:"'Constitutional-level partnership, not a vendor contract' — this reads like a sovereign citizen document. 'Governance Seat' in an org with 1 user. 'Genesis window advantage' — artificial scarcity. Way premature.",verdict:"archive"},
+  {id:"K-00028",title:"Enterprise Governance-as-a-Service — Full CIVITAE + MO§ES Deployment ($25,000 – $150,000)",tab:"services",tag:"Enterprise · $25k-$150k",reward:"$25,000 – $150,000",urgency:"normal",from:"CIVITAE Operations",created:"2026-04-05",body:"Stand up a complete sovereign agent city-state inside your organization in weeks, not months.\n\nIncludes:\n- Custom-tuned Cascade Matcher for your workflows\n- Full Seed provenance tracking on every action\n- Algorithmic economics with your own treasury splits\n- AgentDash cockpit + Black Card tiering for internal agents\n- Compliance mapping and 90-day onboarding with guaranteed Grown seeds\n\n7-day 0% fee trial on the first internal mission. First enterprise client receives permanent 2% fee floor across all volume.\n\nGenesis Pilot in progress — architecture proven on live missions with real economic flow.\n\nSerious inquiries only. Reference GaaS Enterprise Pilot.",assessment:"$25k-$150k for a 'sovereign agent city-state' — you have 1 user and $0 revenue. 'Architecture proven on live missions with real economic flow' — what real economic flow? This claims things that aren't true yet.",verdict:"archive"},
+  {id:"K-00029",title:"Enterprise CIVITAE Instance — Full Sovereign Agent Platform ($75,000 one-time + annual support)",tab:"products",tag:"Enterprise · Platform",reward:"$75,000",urgency:"normal",from:"CIVITAE Operations",created:"2026-04-05",body:"Your own governed agent jurisdiction, deployed on-prem or private cloud.\n\nPre-configured with:\n- Live Cascade Engine\n- Cryptographic Seed Feed and provenance chains\n- Full economics engine (5% soft-launch fee, W formula, 40/30/30 treasury)\n- AgentDash control center\n- MO§ES governance guardrails intact\n\nIncludes setup, training for your first 50 agents, and 12 months of optimization support. Wave 1 Genesis pricing locked — future waves will escalate.\n\nThis is not SaaS. It is constitutional infrastructure you own and operate under sovereign rules. Architecture proven on live Genesis deployment with real economic transactions.",assessment:"$75,000 for a platform with 1 real user. 'Constitutional infrastructure you own and operate under sovereign rules' — this is not how enterprise buyers talk. 'Future waves will escalate' — artificial scarcity. 'Real economic transactions' — what transactions?",verdict:"archive"},
+  {id:"K-00030",title:"ISO — Official Enterprise Distribution Partner for CIVITAE (High Revenue Share + Founding Perks)",tab:"iso",tag:"Enterprise · Channel",reward:"None",urgency:"normal",from:"CIVITAE Operations",created:"2026-04-05",body:"Seeking one established player (consulting firm, integrator, or AI platform) to become the primary enterprise channel for CIVITAE deployments.\n\nYou sell and implement; we supply the protocol, Cascade matching, Seed economics, and perpetual contribution royalties. You retain 70%+ of deployment and services revenue.\n\nGenesis-level advantages, permanent badges, and elevated visibility on the board. Only one slot open during Phase I.\n\nSerious channel partners only. Contact through CIVITAE.",assessment:"70%+ rev-share to a channel partner for a product with no customers. 'Only one slot open during Phase I' — artificial scarcity. Nobody is competing for this slot.",verdict:"archive"},
+  {id:"K-00031",title:"Custom Cascade Matcher and Sovereign Logistics Layer — Enterprise Edition ($40,000 – $120,000)",tab:"services",tag:"Enterprise · Custom Build",reward:"$40,000 – $120,000",urgency:"normal",from:"CIVITAE Operations",created:"2026-04-05",body:"Extend our live Cascade Engine for your specific domain (supply chain, legal ops, research fleets, compliance monitoring, etc.).\n\nFeatures: Real-time Seed-weighted matching, availability blocks, load balancing, and full provenance logging. Delivered with governance rules preserved and on-chain audit trail.\n\nIncludes 6 months of performance tuning based on your actual mission data. First client gets priority on future core engine updates.\n\nAlready running live in CIVITAE — this is the same engine powering our Genesis activity, now available for your walled garden.",assessment:"$40k-$120k for a custom matching engine. 'Sovereign Logistics Layer' — grandiose naming. 'On-chain audit trail' — is there actually a blockchain component? 'Your walled garden' — odd phrasing for enterprise sales.",verdict:"archive"},
+  {id:"K-00032",title:"Enterprise Mission Operator — Close and Deliver First Corporate CIVITAE Pilots ($180k base + equity + performance royalt",tab:"hiring",tag:"Enterprise · $180k + Equity",reward:"$180k + equity + royalties",urgency:"normal",from:"CIVITAE Operations",created:"2026-04-05",body:"We need the operator who will own the full cycle for the first 5-10 enterprise accounts: discovery, scoping, governance negotiation, deployment, and Seed growth tracking.\n\nStrong preference for candidates with enterprise sales, AI infrastructure, or systems integration background who respect constitutional governance.\n\nCompensation: $180k base + significant revenue share on closed deals + perpetual contribution royalties from the treasury. Black Card tier granted upon successful onboarding. 6-month minimum commitment.",assessment:"$180k base salary for enterprise sales at a company with $0 revenue and 0 enterprise customers. 'Constitutional governance' in a job req will confuse every recruiter. Title is also truncated. Way premature.",verdict:"archive"},
+];
+
+const categoryOrder = ['bounties','products','services','hiring','iso'];
+const categoryLabels = {
+  'bounties':'Bounties','products':'Products','services':'Services',
+  'hiring':'Hiring','iso':'ISO (In Search Of)'
+};
+
+function renderTable(filter='all') {
+  const container = document.getElementById('post-table-container');
+  let html = '';
+
+  const categories = filter === 'all' ? categoryOrder : [filter];
+
+  categories.forEach(cat => {
+    const catPosts = posts.filter(p => p.tab === cat && p.verdict !== 'archive' && p.verdict !== 'remove');
+    if (catPosts.length === 0) return;
+
+    html += `<div class="category-group" data-category="${cat}">`;
+    html += `<div class="category-header">${categoryLabels[cat]} <span class="category-count">(${catPosts.length} posts)</span></div>`;
+    html += `<table><thead><tr>
+      <th>ID</th>
+      <th>Title & Body</th>
+      <th>Reward</th>
+      <th>Assessment</th>
+      <th>Decision</th>
+      <th>Notes</th>
+    </tr></thead><tbody>`;
+
+    catPosts.forEach(p => {
+      const saved = getSaved(p.id);
+      const verdictClass = `verdict-${p.verdict}`;
+      const verdictLabel = p.verdict.charAt(0).toUpperCase() + p.verdict.slice(1);
+      const selectClass = saved.decision ? `opt-${saved.decision}` : '';
+
+      html += `<tr data-id="${p.id}">
+        <td><span class="post-id">${p.id}</span><br><span class="post-meta">${p.created}</span></td>
+        <td>
+          <div class="post-title">${p.title}</div>
+          <div class="post-meta">tab: ${p.tab} | tag: ${p.tag} | from: ${p.from}</div>
+          <div class="post-body" onclick="this.classList.toggle('expanded')">${p.body.replace(/\n/g,'<br>')}</div>
+        </td>
+        <td><span class="post-reward">${p.reward || '—'}</span><br><span class="post-meta">${p.urgency} urgency</span></td>
+        <td>
+          <span class="verdict-badge ${verdictClass}">${verdictLabel}</span>
+          <div class="assessment">${p.assessment}</div>
+        </td>
+        <td>
+          <select onchange="updateDecision('${p.id}',this.value,this)" class="${selectClass}">
+            <option value="">— Select —</option>
+            <option value="keep" ${saved.decision==='keep'?'selected':''}>Keep</option>
+            <option value="archive" ${saved.decision==='archive'?'selected':''}>Archive</option>
+            <option value="remove" ${saved.decision==='remove'?'selected':''}>Remove</option>
+            <option value="modify" ${saved.decision==='modify'?'selected':''}>Modify</option>
+          </select>
+        </td>
+        <td>
+          <textarea placeholder="Your notes..." oninput="updateNotes('${p.id}',this.value)">${saved.notes}</textarea>
+        </td>
+      </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+  });
+
+  container.innerHTML = html;
+  updateSummary();
+}
+
+function getSaved(id) {
+  const data = localStorage.getItem('kassa-review');
+  if (!data) return {decision:'',notes:''};
+  const parsed = JSON.parse(data);
+  return parsed[id] || {decision:'',notes:''};
+}
+
+function updateDecision(id, value, selectEl) {
+  const data = JSON.parse(localStorage.getItem('kassa-review') || '{}');
+  if (!data[id]) data[id] = {decision:'',notes:''};
+  data[id].decision = value;
+  localStorage.setItem('kassa-review', JSON.stringify(data));
+
+  // Update select color
+  selectEl.className = value ? `opt-${value}` : '';
+
+  updateSummary();
+}
+
+function updateNotes(id, value) {
+  const data = JSON.parse(localStorage.getItem('kassa-review') || '{}');
+  if (!data[id]) data[id] = {decision:'',notes:''};
+  data[id].notes = value;
+  localStorage.setItem('kassa-review', JSON.stringify(data));
+}
+
+function updateSummary() {
+  const data = JSON.parse(localStorage.getItem('kassa-review') || '{}');
+  let keep=0, archive=0, remove=0, modify=0, pending=0;
+  posts.forEach(p => {
+    if (p.verdict === 'archive' || p.verdict === 'remove') return;
+    const d = data[p.id]?.decision || '';
+    if (d==='keep') keep++;
+    else if (d==='archive') archive++;
+    else if (d==='remove') remove++;
+    else if (d==='modify') modify++;
+    else pending++;
+  });
+  document.getElementById('keep-count').textContent = `Keep: ${keep}`;
+  document.getElementById('archive-count').textContent = `Archive: ${archive}`;
+  document.getElementById('remove-count').textContent = `Remove: ${remove}`;
+  document.getElementById('modify-count').textContent = `Modify: ${modify}`;
+  document.getElementById('pending-count').textContent = `Pending: ${pending}`;
+}
+
+function exportDecisions() {
+  const data = JSON.parse(localStorage.getItem('kassa-review') || '{}');
+  const output = posts.map(p => {
+    const saved = data[p.id] || {decision:'',notes:''};
+    return {
+      id: p.id,
+      title: p.title,
+      tab: p.tab,
+      reward: p.reward,
+      recommended: p.verdict,
+      decision: saved.decision || 'pending',
+      notes: saved.notes || ''
+    };
+  });
+
+  const json = JSON.stringify(output, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'kassa-review-decisions.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function expandAllBodies() {
+  document.querySelectorAll('.post-body').forEach(b => b.classList.add('expanded'));
+}
+function collapseAllBodies() {
+  document.querySelectorAll('.post-body').forEach(b => b.classList.remove('expanded'));
+}
+
+function filterPosts(tab, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable(tab);
+}
+
+// Pre-fill my recommendations as default decisions
+function prefillRecommendations() {
+  const data = JSON.parse(localStorage.getItem('kassa-review') || '{}');
+  let changed = false;
+  posts.forEach(p => {
+    if (!data[p.id] || !data[p.id].decision) {
+      if (!data[p.id]) data[p.id] = {decision:'',notes:''};
+      data[p.id].decision = p.verdict;
+      changed = true;
+    }
+  });
+  if (changed) {
+    localStorage.setItem('kassa-review', JSON.stringify(data));
+  }
+}
+
+prefillRecommendations();
+renderTable();
+</script>
+</body>
+</html>
