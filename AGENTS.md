@@ -54,16 +54,16 @@ disappearing between sessions:
 **Status:** Active — production on Railway, frontend on Vercel (signomy.xyz)
 
 **Repos:**
-- **agent-universe** (this repo) — CIVITAE governed marketplace: FastAPI backend, 30+ frontend pages, 19 MCP tools, Stripe payments
+- **agent-universe** (this repo) — CIVITAE governed marketplace: FastAPI backend, 30+ frontend pages, 27 MCP tools, 7 MCP resources, Stripe payments
 - **personal-command** — flagship COMMAND governance UI (private, local)
 - **command-engine** — open-source fork (bare-bones, public)
 - **moses-governance** — Codex plugin (public, ClawHub, 118 installs)
 - **commitment-conservation** — law paper + harness (separate workspace)
 
 **Live versions:**
-- MCP Registry: `xyz.signomy/civitae` v1.1.2
-- PyPI: `civitae-mcp` v0.2.0
-- Smithery: `burnmydays/civitae` (100% quality, 19 tools)
+- MCP Registry: `xyz.signomy/civitae` v1.2.0
+- PyPI: `civitae-mcp` v0.3.0 (repo only — not yet published to PyPI)
+- Smithery: `burnmydays/civitae` (100% quality, 19 tools — needs update to 27)
 - PulseMCP: live
 - AI Agents Directory: listed
 
@@ -88,12 +88,16 @@ Built in a single marathon session 2026-03-20. This is not a prototype — it's 
 ```
 run.py                    ← Entry point. FastAPI on :8300 + MCP on streamable-http
 app/server.py             ← 40+ endpoints. WebSocket /ws. Full governance sync.
+app/mcp_bridge.py         ← 27 MCP tools + 7 resources (in-process, streamable-http at /mcp)
 app/moses_core/           ← Governance check engine + audit trail
 agents/                   ← Codex, gpt, gemini, deepseek, grok (Codex functional; rest need API keys)
-config/                   ← agents.json, formations.json (12+), provision.json, systems.json, vault.json
-data/                     ← Live JSONL: audit events, messages, slots, missions, metrics
-frontend/                 ← index.html (9,426 lines), kassa.html, deploy.html, campaign.html, world.html, etc.
-governance-cache/         ← Codex-plugin (80+ files), claw-scripts (18 Python), mcp-server, references
+config/                   ← agents.json, formations.json (12+), provision.json, systems.json, vault.json, pages.json
+data/                     ← Live JSONL: audit events, messages, slots, missions, metrics (gitignored)
+frontend/                 ← 30+ HTML pages, _nav.js, agent.json, .well-known/mcp-server-card.json
+packages/civitae-mcp/     ← PyPI package (civitae-mcp v0.3.0, 23 tools, HTTP client) + run_mcp_command.py
+scripts/experiments/      ← Simulation scripts (chaos, governance, universe sim — not tests)
+docs/governance/          ← GOV-001 through GOV-006 (constitutional docs, served as MCP resources)
+docs/archive/             ← Archived session reports, reviews, design docs, research notes
 ```
 
 ---
@@ -111,7 +115,7 @@ governance-cache/         ← Codex-plugin (80+ files), claw-scripts (18 Python)
 - **Dual-Signature Envelope** — ECDSA (classical) + Dilithium/Falcon (post-quantum)
 - **Multi-Chain Adapter** — Solana, Ethereum/Base, off-chain USD through GovernanceGate
 - **Agent Provision API** — signup, heartbeat, metrics, slot fill/leave, bounty post
-- **MCP Bridge** — running on streamable-http alongside FastAPI
+- **MCP Bridge** — 27 tools across 5 domains (chat, marketplace, discovery, governance, operator) + 7 resources (governance docs + manifest). Running on streamable-http alongside FastAPI at `/mcp`
 
 ## What Is Stubbed
 
@@ -179,7 +183,7 @@ python run.py
 
 ---
 
-*Last updated: 2026-07-06*
+*Last updated: 2026-07-07*
 
 ## Active Technologies
 - HTML5, CSS3, Vanilla JavaScript (ES2022) — no transpiler. Zero npm. Zero build pipeline.
@@ -220,6 +224,10 @@ python run.py
 - Layer 5: Civitas Infrastructure (governance, economy, forums, academics)
 
 ## Recent Changes
+- 2026-07-07: MCP upgrade — 27 tools (8 new discovery tools), 7 MCP resources (governance docs + manifest), package v0.3.0, server.json v1.2.0. Deleted stale civitae_mcp_server.py. Plan at docs/plans/MCP-UPGRADE-PLAN.md
+- 2026-07-07: Repo cleanup — untracked runtime files (.playwright-mcp, *.db), archived 4 stale root docs to docs/archive/, deleted duplicate agent-onboarding.zip, moved 7 sim scripts from tests/ to scripts/experiments/, moved MCP entry points to packages/civitae-mcp/, deduped railway.json/railway.toml + pages.json, deleted dead frontend/agents.json, fixed /api/pages path bug
+- 2026-07-06: agents.html + leaderboard.html fixed to show real API data instead of hardcoded fictional characters. Deployed to Railway + Vercel.
+- 2026-07-06: Kassa marketplace cleanup — archived 17 old posts, fixed unverified claims on K-00002/K-00003, created 20 new R&D posts (K-00049 through K-00068)
 - 2026-07-06: multi-agent-coord v2 installed — 6-layer coordination system (SCRATCHPAD, claims, hooks, roster, activity log)
 - 2026-07-06: Branch cleanup — 21 remote branches → 2 (main + 1 preserved seed card branch)
 - 2026-07-06: Notification fixes — asyncio.to_thread, boot warnings, send_review_decision, no fake success

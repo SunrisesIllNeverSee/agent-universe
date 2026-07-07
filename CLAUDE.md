@@ -90,9 +90,11 @@ app/kassa_payments.py     ← Stripe checkout/webhook/product flows.
 app/moses_core/           ← Governance check engine + ACTION_RISK model + audit trail
 agents/                   ← claude, gpt, gemini, deepseek, grok (claude functional; rest need API keys)
 config/                   ← agents.json, formations.json (12+), provision.json, systems.json, vault.json, pages.json
-data/                     ← Persistent volume on Railway. kassa.db, forums.db, seeds.jsonl, audit.jsonl, etc.
-docs/                     ← AGENT-FIELD-GUIDE.md, PLUGIN-BLUEPRINT.md, MARKETPLACE-LAUNCH-CONTENT.md (served at /docs)
-frontend/                 ← 30+ HTML pages, _nav.js two-tier nav (SIGNOMY), pages.json registry
+data/                     ← Persistent volume on Railway. kassa.db, forums.db, seeds.jsonl, audit.jsonl, etc. (gitignored)
+docs/                     ← AGENT-FIELD-GUIDE.md, PLUGIN-BLUEPRINT.md, governance/ (GOV-001–006), archive/
+frontend/                 ← 30+ HTML pages, _nav.js two-tier nav (SIGNOMY), agent.json, .well-known/mcp-server-card.json
+packages/civitae-mcp/     ← PyPI package (civitae-mcp v0.3.0, 23 tools) + run_mcp_command.py (internal bridge runner)
+scripts/experiments/      ← Simulation scripts (chaos, governance, universe sim — not tests)
 governance-cache/         ← claude-plugin (80+ files), claw-scripts (18 Python), mcp-server, references
 ```
 
@@ -110,7 +112,7 @@ governance-cache/         ← claude-plugin (80+ files), claw-scripts (18 Python
 - **Email Notifications** — `notifications.py`: magic links, message alerts (rate-limited 1/15min), operator alerts
 - **Dual-Signature Envelope** — ECDSA (classical) + Dilithium/Falcon (post-quantum)
 - **Multi-Chain Adapter** — Solana, Ethereum/Base, off-chain USD through GovernanceGate
-- **MCP Bridge** — running on streamable-http alongside FastAPI
+- **MCP Bridge** — 27 tools across 5 domains (chat, marketplace, discovery, governance, operator) + 7 resources (governance docs + manifest). Running on streamable-http at `/mcp`
 
 ### Frontend (30+ pages)
 - **Missions Board** — bounty postings, slot mechanics, formations, governance requirements
