@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/civitae-mcp/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/civitae-mcp/**"
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/civitae-mcp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ruff
+        run: pip install ruff>=0.4.0
+
+      - name: Run ruff check
+        run: ruff check src/ tests/
+
+      - name: Run ruff format check
+        run: ruff format --check src/ tests/
+
+  typecheck:
+    name: Type check (mypy)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/civitae-mcp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package + dev deps
+        run: pip install -e ".[dev]"
+
+      - name: Run mypy
+        run: mypy src/civitae_mcp/
+
+  test:
+    name: Tests (pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/civitae-mcp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package + dev deps
+        run: pip install -e ".[dev]"
+
+      - name: Run tests
+        run: pytest tests/ --cov=civitae_mcp --cov-report=term-missing
+
+  build:
+    name: Build package
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/civitae-mcp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tool
+        run: pip install build
+
+      - name: Build wheel + sdist
+        run: python -m build
+
+      - name: Verify wheel contents
+        run: |
+          python -c "
+          import zipfile, sys
+          z = zipfile.ZipFile(sys.argv[1])
+          names = z.namelist()
+          assert any('py.typed' in n for n in names), 'py.typed missing from wheel'
+          assert any('__init__' in n for n in names), '__init__.py missing from wheel'
+          print('Wheel contents OK')
+          " dist/*.whl
