@@ -1,0 +1,3 @@
+﻿"Address","Status Code","Status","Inlinks","Matched Robots.txt Line"
+"https://signomy.xyz/console","0","Blocked by robots.txt","5","Line:31 /console"
+"https://signomy.xyz/admin","0","Blocked by robots.txt","2","Line:30 /admin"
