@@ -191,12 +191,81 @@ Devin will:
 
 ---
 
+## CLI mode (no GUI needed)
+
+Screaming Frog can run headless from the terminal. A wrapper script is at
+`scripts/sf-crawl.sh`.
+
+### Quick run
+
+```bash
+# Crawl signomy.xyz (default)
+bash scripts/sf-crawl.sh
+
+# Crawl a different site
+bash scripts/sf-crawl.sh https://example.com
+```
+
+This will:
+- Run SF in `--headless` mode (no GUI)
+- Crawl the site with JavaScript rendering
+- Export all bulk CSVs + reports to `docs/sf-crawl-<date>/<timestamp>/`
+- Save the crawl file (for later comparison via `--load-crawl`)
+
+### Compare two crawls
+
+```bash
+SF="/Applications/Screaming Frog SEO Spider.app/Contents/MacOS/ScreamingFrogSEOSpiderLauncher"
+
+# Load two saved crawls and diff them
+$SF --headless --crawl-comparison <db-id-1> <db-id-2>
+```
+
+### Schedule recurring crawls (cron)
+
+```bash
+# Weekly crawl every Monday at 6 AM
+0 6 * * 1 cd /Users/dericmchenry/Desktop/agent-universe && bash scripts/sf-crawl.sh >> /tmp/sf-crawl.log 2>&1
+```
+
+### CLI reference
+
+```bash
+SF="/Applications/Screaming Frog SEO Spider.app/Contents/MacOS/ScreamingFrogSEOSpiderLauncher"
+
+# Full help
+$SF --help
+
+# Bulk export options
+$SF --help bulk-export
+
+# Report options
+$SF --help save-report
+```
+
+Key flags:
+- `--headless` — no GUI
+- `--crawl <url>` — crawl a single URL
+- `--crawl-sitemap <url>` — crawl from sitemap
+- `--output-folder <dir>` — where to save
+- `--timestamped-output` — create timestamped subfolder
+- `--save-crawl` — save .sfcrawl file for later comparison
+- `--export-format csv` — CSV (also: xls, xlsx, gsheet)
+- `--bulk-export <list>` — which bulk exports to run
+- `--save-report <list>` — which reports to save
+- `--overwrite` — overwrite existing files
+- `--load-crawl <file>` — load a saved crawl
+- `--crawl-comparison <id1> <id2>` — diff two crawls
+
+---
+
 ## Cadence
 
 - **First crawl:** baseline (this run).
 - **Quarterly:** re-crawl and compare to baseline (SF has a "Compare Crawls" feature — load the
   previous crawl's save file and diff).
 - **After any redirect/canonical/page-add change:** ad-hoc crawl to verify.
+- **CLI:** `bash scripts/sf-crawl.sh` — no GUI needed, saves to `docs/sf-crawl-<date>/`
 
 ---
 
