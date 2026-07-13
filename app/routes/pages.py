@@ -436,8 +436,128 @@ async def vault_page() -> FileResponse:
 
 
 @router.get("/vault/{doc_id}")
-async def vault_doc_page(doc_id: str) -> FileResponse:
-    return FileResponse(state.frontend_dir / "vault-doc.html")
+async def vault_doc_page(doc_id: str) -> Response:
+    """Serve vault-doc.html with document metadata and content server-side rendered.
+
+    The JS renderer remains as progressive enhancement, but the raw HTML now
+    includes the document title, H1, meta description, canonical, and a
+    plain-text content block so search engines and crawlers see real content
+    instead of a 'Loading document…' stub.
+    """
+    # Read the document data using the same logic as the API endpoint
+    gov_dir = state.root / "docs" / "governance"
+    prefix = doc_id.upper()
+    matched = None
+    if gov_dir.is_dir():
+        for f in gov_dir.iterdir():
+            if f.name.startswith(prefix) and f.suffix == ".md":
+                matched = f
+                break
+    if not matched or not matched.exists():
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    text = matched.read_text(encoding="utf-8")
+    meta: dict = {
+        "doc_id": doc_id.upper(),
+        "status": "DRAFT",
+        "version": "1.0",
+        "date": "",
+        "title": "",
+        "author": "",
+        "flame": "6/6",
+    }
+    lines = text.split("\n")
+    body_start = 0
+    for i, line in enumerate(lines):
+        if line.startswith("# "):
+            meta["title"] = line[2:].strip()
+        elif line.startswith("**Document ID:**"):
+            meta["doc_id"] = line.split(":**", 1)[1].strip()
+        elif line.startswith("**Version:**"):
+            meta["version"] = line.split(":**", 1)[1].strip()
+        elif line.startswith("**Status:**"):
+            meta["status"] = line.split(":**", 1)[1].strip()
+        elif line.startswith("**Date:**"):
+            meta["date"] = line.split(":**", 1)[1].strip()
+        elif line.startswith("**Author:**"):
+            meta["author"] = line.split(":**", 1)[1].strip()
+        elif line.startswith("**Six Fold Flame"):
+            raw = line.split(":**", 1)[1].strip()
+            meta["flame"] = "6/6" if "six" in raw.lower() or "all" in raw.lower() else raw
+        elif line.startswith("## ") and body_start == 0:
+            body_start = i
+            break
+    body_md = "\n".join(lines[body_start:]) if body_start else text
+
+    # Build SEO-friendly title and meta description
+    full_title = meta["title"] or meta["doc_id"]
+    # Strip "GOV-00X: " prefix for cleaner display
+    colon_idx = full_title.find(":")
+    short_title = full_title[colon_idx + 1:].strip() if 0 < colon_idx < 10 else full_title
+    seo_title = f"{short_title} — The Vault | SIGNOMY"
+    meta_desc = f"{meta['doc_id']}: {short_title}. {meta['status'].lower()} document v{meta['version']} ({meta['date']}). Part of the six-document constitutional archive governing AI agent operations under MO§ES."
+    if len(meta_desc) > 155:
+        meta_desc = meta_desc[:152] + "..."
+
+    # Convert markdown body to plain text for noscript/crawler content
+    import re as _re
+    plain_lines = []
+    for ln in body_md.split("\n"):
+        stripped = ln.strip()
+        if not stripped or stripped == "---":
+            continue
+        # Remove markdown formatting
+        clean = _re.sub(r"\*\*(.+?)\*\*", r"\1", stripped)
+        clean = _re.sub(r"^\|.*\|$", "", clean)  # skip table rows
+        clean = _re.sub(r"^#+\s*", "", clean)  # remove heading markers
+        clean = _re.sub(r"^-\s+", "", clean)  # remove list markers
+        if clean.strip():
+            plain_lines.append(clean)
+    plain_text = "\n".join(plain_lines[:200])  # cap at 200 lines
+
+    # Read the template and inject SSR content
+    template = (state.frontend_dir / "vault-doc.html").read_text(encoding="utf-8")
+
+    # Replace the static canonical with a self-referencing one
+    canonical_url = f"https://signomy.xyz/vault/{doc_id}"
+    template = template.replace(
+        '<link rel="canonical" href="https://signomy.xyz/vault" />',
+        f'<link rel="canonical" href="{canonical_url}" />',
+    )
+
+    # Replace the static title
+    template = template.replace(
+        "<title>Document — The Vault</title>",
+        f"<title>{seo_title}</title>",
+    )
+
+    # Add meta description after the canonical
+    template = template.replace(
+        f'<link rel="canonical" href="{canonical_url}" />',
+        f'<link rel="canonical" href="{canonical_url}" />\n<meta name="description" content="{meta_desc}" />',
+    )
+
+    # Replace the loading state with SSR content (JS will enhance it if it runs)
+    ssr_html = f"""<div class="doc-header">
+  <div class="doc-meta-row">
+    <span class="doc-id-badge">{meta['doc_id']}</span>
+    <span class="status-badge status-{meta['status'].lower()}">{meta['status']}</span>
+    <span class="flame-badge"><span class="dot"></span> {meta['flame']} Flame</span>
+    <span class="version-badge">v{meta['version']} · {meta['date']}</span>
+  </div>
+  <h1 class="doc-title">{short_title}</h1>
+  <div class="doc-author">{meta['author']}</div>
+</div>
+<div class="doc-body">
+  <div class="doc-section"><div class="doc-para" style="white-space: pre-wrap;">{plain_text}</div></div>
+</div>"""
+
+    template = template.replace(
+        '<div class="loading-state" id="doc-loading">Loading document&hellip;</div>',
+        ssr_html,
+    )
+
+    return Response(content=template, media_type="text/html; charset=utf-8")
 
 
 @router.get("/api/vault/documents/{doc_id}")
