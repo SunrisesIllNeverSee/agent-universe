@@ -358,15 +358,6 @@ async def indexnow_key():
     return PlainTextResponse("51976fa8a5d2128a98a52af6b05d2141")
 
 
-@router.get("/BingSiteAuth.xml")
-async def bing_site_auth() -> Response:
-    """Bing Webmaster Tools site verification."""
-    return Response(
-        '<?xml version="1.0"?>\n<users>\n\t<user>PLACEHOLDER_GET_FROM_BING_WEBMASTER_TOOLS</user>\n</users>',
-        media_type="application/xml",
-    )
-
-
 @router.get("/.well-known/agent.json")
 async def well_known_agent_json() -> FileResponse:
     return FileResponse(state.frontend_dir / "agent.json", media_type="application/json")
