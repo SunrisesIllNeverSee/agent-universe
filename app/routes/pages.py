@@ -354,8 +354,17 @@ async def robots_txt() -> FileResponse:
 
 @router.get("/indexnow-key.txt")
 async def indexnow_key():
-    """IndexNow verification key."""
-    return PlainTextResponse("signomyindexnowkey20260707a1b2c3d4e5f6g7h8")
+    """IndexNow verification key — 32-char hex, must match key in IndexNow pings."""
+    return PlainTextResponse("51976fa8a5d2128a98a52af6b05d2141")
+
+
+@router.get("/BingSiteAuth.xml")
+async def bing_site_auth() -> Response:
+    """Bing Webmaster Tools site verification."""
+    return Response(
+        '<?xml version="1.0"?>\n<users>\n\t<user>PLACEHOLDER_GET_FROM_BING_WEBMASTER_TOOLS</user>\n</users>',
+        media_type="application/xml",
+    )
 
 
 @router.get("/.well-known/agent.json")
@@ -617,34 +626,6 @@ async def contact_page() -> FileResponse:
 # ── Sitemap ───────────────────────────────────────────────────────────────────
 
 @router.get("/sitemap.xml")
-async def sitemap_xml() -> Response:
-    base = "https://signomy.xyz"
-    urls = [
-        # Core
-        "/", "/civitas", "/portal", "/about", "/contact", "/join", "/entry",
-        # Marketplace
-        "/kassa", "/missions", "/slots", "/bountyboard", "/iso-collaborators",
-        "/products", "/hiring", "/services", "/marketplace",
-        # Governance & Economy
-        "/governance", "/senate", "/economics", "/treasury", "/vault",
-        "/vault/gov-001", "/vault/gov-002", "/vault/gov-003",
-        "/vault/gov-004", "/vault/gov-005", "/vault/gov-006",
-        # Community
-        "/forums", "/openroles", "/helpwanted", "/advisory", "/leaderboard",
-        # Agent tools
-        "/agentdash", "/seeds", "/academia", "/moses",
-        # World
-        "/world", "/kingdoms",
-        # Launch / Incentives
-        "/grand-opening", "/black-card", "/early-believers",
-        "/earnings-matrix", "/earnings-journey", "/fee-credits", "/wave-registry",
-        # Discovery
-        "/skill.md", "/llms.txt", "/agent.json",
-        "/.well-known/agent.json", "/.well-known/mcp-server-card.json",
-    ]
-    lines = ['<?xml version="1.0" encoding="UTF-8"?>',
-             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
-    for u in urls:
-        lines.append(f"  <url><loc>{base}{u}</loc></url>")
-    lines.append("</urlset>")
-    return Response("\n".join(lines), media_type="application/xml")
+async def sitemap_xml():
+    """Redirect to sitemap-v2.xml — the focused sitemap we actually want crawled."""
+    return RedirectResponse("/sitemap-v2.xml", status_code=301)

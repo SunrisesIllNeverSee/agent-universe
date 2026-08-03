@@ -1,74 +1,54 @@
 #!/usr/bin/env bash
-# IndexNow ping — notifies Bing, DuckDuckGo, Yandex, and Seznam
-# about all URLs in the sitemap. Run after each deploy.
+# IndexNow ping script for signomy.xyz
+# Notifies Bing, DuckDuckGo, Yandex about page updates.
 #
 # Usage:
-#   ./scripts/indexnow-ping.sh              # ping all URLs from sitemap
-#   ./scripts/indexnow-ping.sh /treasury    # ping a single URL
+#   ./scripts/indexnow-ping.sh            # ping all sitemap URLs
+#   ./scripts/indexnow-ping.sh /kassa     # ping a single URL
 
 set -euo pipefail
 
 HOST="signomy.xyz"
-KEY="036af2adecc34d87884249a062326a1e"
+KEY="51976fa8a5d2128a98a52af6b05d2141"
 KEY_LOCATION="https://${HOST}/${KEY}.txt"
-ENGINES=("api.indexnow.org" "www.bing.com" "yandex.com")
+SITEMAP_URL="https://${HOST}/sitemap-v2.xml"
 
-ping_urls() {
-  local urls=("$@")
-  local json_urls
-  json_urls=$(printf '"%s",' "${urls[@]}")
-  json_urls="[${json_urls%,}]"
-
-  local payload
-  payload=$(cat <<EOF
-{
-  "host": "${HOST}",
-  "key": "${KEY}",
-  "keyLocation": "${KEY_LOCATION}",
-  "urlList": ${json_urls}
-}
-EOF
+ENGINES=(
+  "https://api.indexnow.org/indexnow"
+  "https://www.bing.com/indexnow"
+  "https://yandex.com/indexnow"
 )
 
-  for engine in "${ENGINES[@]}"; do
-    echo "→ Pinging ${engine} with ${#urls[@]} URLs..."
-    status=$(curl -s -o /dev/null -w "%{http_code}" \
-      -X POST "https://${engine}/indexnow" \
-      -H "Content-Type: application/json; charset=utf-8" \
-      -d "${payload}")
-    echo "  ${engine}: HTTP ${status}"
-  done
-}
-
-if [ $# -gt 0 ]; then
-  # Single URL mode
-  url="https://${HOST}${1}"
-  echo "Pinging single URL: ${url}"
-  ping_urls "${url}"
+if [ "${1:-}" != "" ]; then
+  URLS=("https://${HOST}${1}")
 else
-  # Full sitemap mode — extract all <loc> URLs
-  SITEMAP="frontend/sitemap.xml"
-  if [ ! -f "${SITEMAP}" ]; then
-    SITEMAP="$(dirname "$0")/../frontend/sitemap.xml"
-  fi
-
-  if [ ! -f "${SITEMAP}" ]; then
-    echo "Error: sitemap.xml not found"
-    exit 1
-  fi
-
-  mapfile -t urls < <(sed -n 's/.*<loc>\(.*\)<\/loc>.*/\1/p' "${SITEMAP}")
-  echo "Found ${#urls[@]} URLs in sitemap"
-  echo ""
-
-  # IndexNow accepts max 10,000 URLs per request, batch in groups of 100
-  batch_size=100
-  for ((i=0; i<${#urls[@]}; i+=batch_size)); do
-    batch=("${urls[@]:i:batch_size}")
-    echo "--- Batch $((i/batch_size + 1)) (${#batch[@]} URLs) ---"
-    ping_urls "${batch[@]}"
-    echo ""
-  done
+  echo "Fetching sitemap from $SITEMAP_URL..."
+  mapfile -t URLS < <(curl -s "$SITEMAP_URL" | sed -n 's/.*<loc>\(.*\)<\/loc>.*/\1/p')
 fi
 
+if [ ${#URLS[@]} -eq 0 ]; then
+  echo "ERROR: No URLs found" >&2
+  exit 1
+fi
+
+echo "Pinging ${#URLS[@]} URL(s) to ${#ENGINES[@]} engines..."
+
+PAYLOAD=$(jq -n \
+  --arg host "$HOST" \
+  --arg key "$KEY" \
+  --arg keyLocation "$KEY_LOCATION" \
+  --argjson urlList "$(printf '%s\n' "${URLS[@]}" | jq -R . | jq -s .)" \
+  '{host: $host, key: $key, keyLocation: $keyLocation, urlList: $urlList}')
+
+for ENGINE in "${ENGINES[@]}"; do
+  echo ""
+  echo "→ $ENGINE"
+  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+    -X POST "$ENGINE" \
+    -H "Content-Type: application/json" \
+    -d "$PAYLOAD")
+  echo "  Status: $HTTP_CODE"
+done
+
+echo ""
 echo "Done."
