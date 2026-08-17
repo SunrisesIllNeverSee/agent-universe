@@ -24,6 +24,14 @@
   var right = document.createElement('div');
   right.style.cssText = 'display:flex;align-items:center;gap:16px;';
 
+  // MO§ES™ link
+  var mosesLink = document.createElement('a');
+  mosesLink.href = 'https://mos2es.com';
+  mosesLink.target = '_blank';
+  mosesLink.rel = 'noopener';
+  mosesLink.textContent = 'MO\u00a7ES\u2122';
+  right.appendChild(mosesLink);
+
   // GitHub icon
   var ghLink = document.createElement('a');
   ghLink.href = 'https://github.com/SunrisesIllNeverSee';
