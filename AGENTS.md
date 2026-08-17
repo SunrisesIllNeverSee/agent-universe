@@ -174,7 +174,7 @@ Primary build partner for this workspace. I work in:
 ## To Start the Server
 
 ```bash
-cd /Users/dericmchenry/Desktop/agent-universe
+cd /Users/dericmchenry/Developer/built/agent-universe
 source .venv/bin/activate
 python run.py
 # FastAPI: http://127.0.0.1:8300
@@ -239,3 +239,55 @@ python run.py
 - 2026-03-24: Global nav `_nav.js` injected into 21 content pages
 - 2026-03-24: Sitemap restructured — dot notation, SESSION_LOG, per-entry notes
 - 2026-03-21: Full initial build — missions, deploy, campaign, kassa, governance, world, helpwanted
+
+---
+
+## Master Canon Context (Search Authority)
+
+This repository contains **Signomy** and **CIVITAE** material governed by the
+Search Authority master canon. Signomy and CIVITAE are distinct entities — do
+NOT collapse them.
+
+### When to load canon context
+
+Before modifying any of the following, load the relevant canon context:
+
+- canonical product definitions (what Signomy is, what CIVITAE is)
+- ecosystem relationships (Signomy/CIVITAE ↔ MO§ES™ governance)
+- terminology (MO§ES™ rendering, Signomy vs CIVITAE distinction)
+- product boundaries (Signomy vs CIVITAE — independently resolvable entities)
+- research claims or governance architecture descriptions
+- public positioning
+
+### How to load canon context
+
+```bash
+export SEARCH_AUTHORITY_PATH="${SEARCH_AUTHORITY_PATH:-$HOME/Developer/active/search-authority}"
+python3 "$SEARCH_AUTHORITY_PATH/canon_cli.py" context signomy
+python3 "$SEARCH_AUTHORITY_PATH/canon_cli.py" context civitae
+```
+
+Or use the MCP server (compatible agents):
+
+```bash
+python3 "$SEARCH_AUTHORITY_PATH/canon_mcp.py"
+```
+
+If the canon repository is unavailable, **do not invent canonical context** —
+ask the owner. The canon outranks ad-hoc public copy or generated model output
+for normative product/research truth.
+
+### What is NOT authority-sensitive
+
+CSS/layout, dependency bumps, frontend styling, and test infrastructure do
+**not** require loading the canon.
+
+### Key governance rules
+
+- Do NOT collapse Signomy and CIVITAE — they are distinct entities.
+- MO§ES™ **governs** both Signomy and CIVITAE.
+- CIVITAE = a constitutional AI ecosystem governed by MO§ES™.
+- Signomy = a platform governed by MO§ES™.
+- Exactly ONE MO§ES entity. Canonical display: MO§ES™. Never render: MO§E§.
+- The harness may measure authority, but it cannot manufacture authority.
+- Automated systems may not promote claims into owner-approved truth.
