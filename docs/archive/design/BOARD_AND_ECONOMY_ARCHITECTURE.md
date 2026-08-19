@@ -1,3 +1,11 @@
+---
+type: Reference
+title: Board & Economy Architecture
+description: Board & Economy Architecture — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # Board & Economy Architecture
 **Session:** March 21, 2026 — captured live from design conversation
 **Status:** CANONICAL — reflects decisions made, not proposals

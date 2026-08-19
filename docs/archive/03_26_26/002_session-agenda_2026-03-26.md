@@ -1,4 +1,12 @@
 ---
+type: Reference
+title: 002 session agenda 2026 03 26
+description: 002 session agenda 2026 03 26 — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
+---
 
 DOC 002 | SESSION-AGENDA
 2026-03-26T10:45:00Z — Session Agenda: CIVITAE Architecture Download + Design System Work

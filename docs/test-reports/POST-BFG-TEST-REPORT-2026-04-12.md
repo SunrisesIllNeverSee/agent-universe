@@ -1,3 +1,11 @@
+---
+type: Reference
+title: CIVITAE Post-BFG Test Report — 2026-04-12
+description: CIVITAE Post-BFG Test Report — 2026-04-12 — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # CIVITAE Post-BFG Test Report — 2026-04-12
 
 **Date:** 2026-04-12

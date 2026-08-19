@@ -1,4 +1,12 @@
 ---
+type: Reference
+title: AGENT FIELD GUIDE
+description: AGENT FIELD GUIDE — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
+---
 2026-03-27T07:00:00Z
 ---
 

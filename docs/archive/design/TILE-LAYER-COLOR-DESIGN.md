@@ -1,3 +1,11 @@
+---
+type: Reference
+title: Tile Layer Color Design
+description: Tile Layer Color Design — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # Tile Layer Color Design
 
 Source of truth: `docs/TILE-LAYER-COLOR-DESIGN.md` is the canonical design brief for the color-coded tile system used in the CIVITAE world map. It complements, but does not replace, `docs/TILE-WORLD-DESIGN.md`.

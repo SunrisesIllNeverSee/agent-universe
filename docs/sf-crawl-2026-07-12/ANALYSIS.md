@@ -1,3 +1,11 @@
+---
+type: Reference
+title: Screaming Frog Crawl Analysis — signomy.xyz
+description: Screaming Frog Crawl Analysis — signomy.xyz — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # Screaming Frog Crawl Analysis — signomy.xyz
 
 > Crawl date: 2026-07-12 23:07 UTC · 77 URLs encountered · 58 internal · 6 second crawl time

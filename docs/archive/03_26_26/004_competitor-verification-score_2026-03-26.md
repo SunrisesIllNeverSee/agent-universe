@@ -1,4 +1,12 @@
 ---
+type: Reference
+title: 004 competitor verification score 2026 03 26
+description: 004 competitor verification score 2026 03 26 — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
+---
 
 DOC 004 | COMPETITOR-VERIFICATION-AND-SCORE
 2026-03-26T12:30:00Z — Competitor Verification, Honest Score, and Answers Integrated

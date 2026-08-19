@@ -1,4 +1,12 @@
 ---
+type: Reference
+title: PLUGIN BLUEPRINT
+description: PLUGIN BLUEPRINT — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
+---
 2026-03-27T06:00:00Z
 ---
 

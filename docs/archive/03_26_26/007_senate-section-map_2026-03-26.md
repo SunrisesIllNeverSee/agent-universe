@@ -1,4 +1,12 @@
 ---
+type: Reference
+title: 007 senate section map 2026 03 26
+description: 007 senate section map 2026 03 26 — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
+---
 
 DOC 007 | SENATE-SECTION-MAP
 2026-03-26T15:00:00Z — Full Senate (Layer 5) Section Map

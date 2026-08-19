@@ -1,3 +1,11 @@
+---
+type: Reference
+title: BUILDING-ON-THE-PLUGIN Note and Readiness Plan
+description: BUILDING-ON-THE-PLUGIN Note and Readiness Plan — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # BUILDING-ON-THE-PLUGIN Note and Readiness Plan
 
 That's solid advice from the other session. The repo already has the right structure — agents live in agents/, the plugin contract is in docs/PLUGIN-BLUEPRINT.md, and the onboarding spec is in skill.md.

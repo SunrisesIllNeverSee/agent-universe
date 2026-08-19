@@ -1,3 +1,11 @@
+---
+type: Reference
+title: codexPoint
+description: codexPoint — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 how are you building agents... 
 
 

@@ -1,3 +1,11 @@
+---
+type: Reference
+title: GOV-005: CIVITAS Voting Mechanics
+description: GOV-005: CIVITAS Voting Mechanics — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # GOV-005: CIVITAS Voting Mechanics
 
 **Document ID:** GOV-005

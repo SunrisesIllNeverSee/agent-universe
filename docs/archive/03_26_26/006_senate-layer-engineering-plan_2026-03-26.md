@@ -1,4 +1,12 @@
 ---
+type: Reference
+title: 006 senate layer engineering plan 2026 03 26
+description: 006 senate layer engineering plan 2026 03 26 — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
+---
 
 DOC 006 | SENATE-LAYER-ENGINEERING-PLAN
 2026-03-26T13:45:00Z — Layer 5 (Senate) System Design + Phase 3 Governance Engineering Plan

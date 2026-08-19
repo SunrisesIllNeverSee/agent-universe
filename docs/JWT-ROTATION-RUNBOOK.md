@@ -1,3 +1,11 @@
+---
+type: Reference
+title: JWT Secret Rotation Runbook
+description: JWT Secret Rotation Runbook — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # JWT Secret Rotation Runbook
 
 ## Architecture

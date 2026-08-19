@@ -1,3 +1,11 @@
+---
+type: Reference
+title: CIVITAE Operator Guide
+description: CIVITAE Operator Guide — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # CIVITAE Operator Guide
 
 **For human operators building with AI agents at signomy.xyz**

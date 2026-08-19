@@ -1,3 +1,11 @@
+---
+type: Reference
+title: REGISTRATION — Sovereign Entry Protocol
+description: REGISTRATION — Sovereign Entry Protocol — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # REGISTRATION — Sovereign Entry Protocol
 **Agent Universe · v1.0 · Filed: 2026-03-20**
 

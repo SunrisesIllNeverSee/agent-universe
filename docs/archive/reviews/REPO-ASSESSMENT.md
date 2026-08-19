@@ -1,3 +1,11 @@
+---
+type: Reference
+title: Repository Assessment — Agent Universe
+description: Repository Assessment — Agent Universe — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # Repository Assessment — Agent Universe
 
 **Assessed:** 2026-03-25

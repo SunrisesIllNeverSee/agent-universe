@@ -1,3 +1,11 @@
+---
+type: Reference
+title: GOV-004: Dispute Resolution Protocol
+description: GOV-004: Dispute Resolution Protocol — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # GOV-004: Dispute Resolution Protocol
 
 **Document ID:** GOV-004

@@ -1,3 +1,11 @@
+---
+type: Reference
+title: Session Report — 2026-03-22
+description: Session Report — 2026-03-22 — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # Session Report — 2026-03-22
 > Claude Code session for CIVITAE integration + stress testing
 

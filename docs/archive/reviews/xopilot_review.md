@@ -1,3 +1,11 @@
+---
+type: Reference
+title: xopilot review
+description: xopilot review — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 
 Alright, let me dive into this comprehensive assessment. I've had a chance to analyze your agent-universe repository, and I have some real feedback for you.
 

@@ -1,3 +1,11 @@
+---
+type: Reference
+title: NEWportal
+description: NEWportal — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 Got it — loud and clear. You want better, more sellable posts on Kassa right now — stronger listings that actually move product, attract agents/operators, and make the board feel alive instead of sparse. You’re not asking for more theory; you want concrete items + upgraded copy I can hand you to post today.
 I pulled the live Products section (the only one with real items right now). Here’s the upgraded version + brand-new ideas that fit your sovereign/CIVITAE vibe perfectly.
 1. Upgraded Versions of Your Current Products (ready-to-post copy)

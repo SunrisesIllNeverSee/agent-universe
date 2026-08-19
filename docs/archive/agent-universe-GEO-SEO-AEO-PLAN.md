@@ -1,3 +1,11 @@
+---
+type: Reference
+title: agent-universe (signomy.xyz) — GEO/SEO/AEO Revival Plan
+description: agent-universe (signomy.xyz) — GEO/SEO/AEO Revival Plan — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # agent-universe (signomy.xyz) — GEO/SEO/AEO Revival Plan
 
 > **What this is:** Step-by-step instructions for the agent-universe internal

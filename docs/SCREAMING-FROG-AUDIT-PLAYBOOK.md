@@ -1,3 +1,11 @@
+---
+type: Reference
+title: Screaming Frog Audit Playbook — signomy.xyz
+description: Screaming Frog Audit Playbook — signomy.xyz — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # Screaming Frog Audit Playbook — signomy.xyz
 
 > Adapted from the SigRank SF playbook (`~/Desktop/SigRank/Devins_Plans/growth/seo-geo-plan.md` Phase 7

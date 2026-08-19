@@ -1,0 +1,39 @@
+standard:
+  name: ello-repo-standard
+  version: "1.0.0"
+  mode: migrate
+
+repo:
+  name: agent-universe
+  type: platform
+  lifecycle: active
+  repo_id: agent_universe
+  family: agent-universe
+  purpose: Agent Universe — Signomy/CIVITAE governed agent marketplace. FastAPI backend, 30+ frontend pages, 27 MCP tools, 7 MCP resources, Stripe payments. Live at signomy.xyz.
+
+structure:
+  profile: platform
+  allowed_root_dirs_extra: [.agents, .circleci, .playwright-mcp, adapters, agents, app, config, data, Devins_Plans, docs, frontend, packages, scripts, tests, system-devin]
+  allowed_root_files_extra: [.env.example, .vercelignore, CLAUDE.md, Dockerfile.glama, ONTOLOGY.md, Procfile, glama.json, LICENSE-MCP, railway.json, run.py, run_prod.py, server.json]
+  document_roots: [docs, Devins_Plans]
+  artifact_roots: [artifacts, data]
+  archive_roots: [archive, docs/archive]
+
+naming:
+  forbid_version_suffixes: true
+  forbidden_suffixes: [_final, _final2, _new, _updated, _revised, _copy]
+
+knowledge:
+  okf_enabled: true
+  okf_roots: [docs, .coord]
+  okf_severity: warn
+
+coordination:
+  micro_enabled: true
+  micro_root: .coord/micro
+  macro_enabled: true
+  macro_root: .coord/macro
+
+github:
+  ruleset_profile: solo-fast
+  required_check: repo-standard

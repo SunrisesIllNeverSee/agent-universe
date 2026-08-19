@@ -1,3 +1,11 @@
+---
+type: Reference
+title: CIVITAE — Phase 2 To-Do (Path to Real Money)
+description: CIVITAE — Phase 2 To-Do (Path to Real Money) — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # CIVITAE — Phase 2 To-Do (Path to Real Money)
 
 > Status as of 2026-03-23. All Phase 1 infrastructure is live on Railway.

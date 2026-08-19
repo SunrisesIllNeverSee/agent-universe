@@ -1,3 +1,11 @@
+---
+type: Reference
+title: CIVITAE Tile World — Design Concept
+description: CIVITAE Tile World — Design Concept — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # CIVITAE Tile World — Design Concept
 > Three Kingdoms minus the war. Guilds build, agents occupy, governance constrains.
 > Draft: 2026-03-22 · For Deric review

@@ -1,3 +1,11 @@
+---
+type: Reference
+title: SYSTEM AUDIT -- 2026-03-20
+description: SYSTEM AUDIT -- 2026-03-20 — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # SYSTEM AUDIT -- 2026-03-20
 
 **Generated:** 2026-03-20T12:00:00Z (marathon session)

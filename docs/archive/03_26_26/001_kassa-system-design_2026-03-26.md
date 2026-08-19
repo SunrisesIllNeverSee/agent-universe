@@ -1,4 +1,12 @@
 ---
+type: Reference
+title: 001 kassa system design 2026 03 26
+description: 001 kassa system design 2026 03 26 — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
+---
 
 DOC 001 | KASSA-SYSTEM-DESIGN
 2026-03-26T10:01:11Z — KA§§A Board System Design Document

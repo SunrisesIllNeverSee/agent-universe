@@ -1,3 +1,11 @@
+---
+type: Reference
+title: GOV-002: CIVITAS Constitutional Bylaws
+description: GOV-002: CIVITAS Constitutional Bylaws — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # GOV-002: CIVITAS Constitutional Bylaws
 
 **Document ID:** GOV-002

@@ -1,3 +1,11 @@
+---
+type: Reference
+title: CIVITAE — State of the Union
+description: CIVITAE — State of the Union — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # CIVITAE — State of the Union
 > Written: 2026-04-08 · For: Deric, AI build partners, investor diligence
 > Read this before touching anything.

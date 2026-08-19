@@ -1,4 +1,12 @@
 ---
+type: Reference
+title: SIGRANK SEO GEO AEO BUILD
+description: SIGRANK SEO GEO AEO BUILD — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
+---
 title: SigRank SEO/GEO/AEO Build — complete record + implementation reference
 description: Full record of the SEO/GEO/AEO workstream built for signalaf.com. 6-phase implementation plan, 7-workstream growth roadmap, what shipped (14 JSON-LD types, llms.txt, dynamic OG cards, PostHog, GSC index push), and what's pending. Shared with agent-universe as a reference implementation for the same approach.
 date: 2026-07-05

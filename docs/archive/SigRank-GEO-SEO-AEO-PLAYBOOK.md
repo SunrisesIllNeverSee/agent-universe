@@ -1,3 +1,11 @@
+---
+type: Reference
+title: SigRank GEO/SEO/AEO Playbook — Complete Build Record
+description: SigRank GEO/SEO/AEO Playbook — Complete Build Record — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # SigRank GEO/SEO/AEO Playbook — Complete Build Record
 
 > **What this is:** The full record of every GEO (Generative Engine Optimization),

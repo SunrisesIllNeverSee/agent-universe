@@ -1,3 +1,11 @@
+---
+type: Reference
+title: SEO Audit and Fix Documentation
+description: SEO Audit and Fix Documentation — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # SEO Audit and Fix Documentation
 
 ## Date: 2026-04-22 00:11:47 UTC

@@ -1,0 +1,6 @@
+# Replace @OWNER with the GitHub user/team that should own governance changes.
+/.github/ @OWNER
+/.repo/ @OWNER
+/.coord/ @OWNER
+/REPO.yaml @OWNER
+/AGENTS.md @OWNER

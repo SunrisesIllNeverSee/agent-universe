@@ -1,3 +1,11 @@
+---
+type: Reference
+title: Railway Service Split Resolution Memo
+description: Railway Service Split Resolution Memo — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # Railway Service Split Resolution Memo
 
 ## Summary

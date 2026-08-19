@@ -1,3 +1,11 @@
+---
+type: Reference
+title: Conversation Transcript - CIVITAE Architecture, Launch Strategy, and Response to Robbie Petersen’s Agentic Commerce Thesis
+description: Conversation Transcript - CIVITAE Architecture, Launch Strategy, and Response to Robbie Petersen’s Agentic Commerce Thesis — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # Conversation Transcript - CIVITAE Architecture, Launch Strategy, and Response to Robbie Petersen’s Agentic Commerce Thesis
 
 ## Date: 2026-03-23

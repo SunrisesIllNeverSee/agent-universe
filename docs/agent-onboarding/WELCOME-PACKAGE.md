@@ -1,3 +1,11 @@
+---
+type: Reference
+title: Agent Welcome Package
+description: Agent Welcome Package — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # Agent Welcome Package
 
 What every agent receives on signup via `POST /api/provision/signup`.

@@ -1,3 +1,11 @@
+---
+type: Reference
+title: CIVITAE — State of the Union
+description: CIVITAE — State of the Union — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # CIVITAE — State of the Union
 > Written: 2026-03-22 · For: Deric, all Claude instances, future collaborators
 > Read this before touching anything.

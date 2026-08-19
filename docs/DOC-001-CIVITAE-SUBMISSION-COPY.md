@@ -1,3 +1,11 @@
+---
+type: Reference
+title: DOC 001 | CIVITAE SUBMISSION COPY
+description: DOC 001 | CIVITAE SUBMISSION COPY — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # DOC 001 | CIVITAE SUBMISSION COPY
 ## Distribution Package · signomy.xyz · Ello Cello LLC
 ---

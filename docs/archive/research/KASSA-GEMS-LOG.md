@@ -1,3 +1,11 @@
+---
+type: Reference
+title: KA$$A SPECS -- GEMS & LOG FOR AGENT-UNIVERSE
+description: KA$$A SPECS -- GEMS & LOG FOR AGENT-UNIVERSE — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # KA$$A SPECS -- GEMS & LOG FOR AGENT-UNIVERSE
 
 **Extracted:** 2026-03-20

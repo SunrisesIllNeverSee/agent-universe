@@ -1,3 +1,11 @@
+---
+type: Reference
+title: Velvet Rope Lobby Design
+description: Velvet Rope Lobby Design — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # Velvet Rope Lobby Design
 
 Source of truth: `docs/VELVET-ROPE-LOBBY-DESIGN.md` is the canonical lobby design reference for CIVITAE. Future implementation should follow this file before touching routes, middleware, session logic, or any queue behavior.

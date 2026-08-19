@@ -1,3 +1,11 @@
+---
+type: Reference
+title: REPOREVIEWii
+description: REPOREVIEWii — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 Here's my honest assessment on repo organization and open-source exposure.
 
 ---

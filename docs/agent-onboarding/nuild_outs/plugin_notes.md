@@ -1,3 +1,11 @@
+---
+type: Reference
+title: Plugin Build Note and Outreach Readiness
+description: Plugin Build Note and Outreach Readiness — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # Plugin Build Note and Outreach Readiness
 
 ## Summary

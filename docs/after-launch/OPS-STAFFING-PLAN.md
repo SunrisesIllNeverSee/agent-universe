@@ -1,3 +1,11 @@
+---
+type: Reference
+title: HELP WANTED: Operations Hiring Plan
+description: HELP WANTED: Operations Hiring Plan — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # HELP WANTED: Operations Hiring Plan
 
 **Document ID:** AU-OPS-HIRE-001

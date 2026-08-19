@@ -1,3 +1,11 @@
+---
+type: Reference
+title: Session Resume — pick up here
+description: Session Resume — pick up here — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # Session Resume — pick up here
 
 **Last checkpoint:** 2026-05-05

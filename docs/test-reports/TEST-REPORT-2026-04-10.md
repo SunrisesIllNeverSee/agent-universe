@@ -1,3 +1,11 @@
+---
+type: Reference
+title: CIVITAE Test Report — 2026-04-10
+description: CIVITAE Test Report — 2026-04-10 — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # CIVITAE Test Report — 2026-04-10
 
 **Date:** 2026-04-10  

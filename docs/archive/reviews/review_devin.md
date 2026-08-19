@@ -1,3 +1,11 @@
+---
+type: Reference
+title: CIVITAE Troubleshoot / Feedback / Recommended Solutions Guide
+description: CIVITAE Troubleshoot / Feedback / Recommended Solutions Guide — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # CIVITAE Troubleshoot / Feedback / Recommended Solutions Guide
 
 ---

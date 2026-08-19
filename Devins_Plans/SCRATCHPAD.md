@@ -88,6 +88,19 @@ Glama wants a Dockerfile config to host the server. Values to paste into the Gla
 ---
 
 <!-- POST-COMMIT HOOK APPENDS BELOW THIS LINE -->
+[HOOK] 2026-08-17 22:51 UTC · 15174a1 · Deric · Add Master Canon Context section to AGENTS.md
+[HOOK] 2026-08-17 17:07 UTC · 319a7d1 · Deric · authority-remediation-v1: MO§ES™ naming fix, governance predicates, mos2es.com cross-link
+[HOOK] 2026-07-13 10:26 UTC · 2c0c0a1 · Deric · SEO: crawl 3 verification — all major issues resolved, trim remaining titles+meta
+[HOOK] 2026-07-13 10:08 UTC · e7c7a44 · Deric · docs: add SF CLI crawl script + update playbook with headless mode
+[HOOK] 2026-07-13 09:40 UTC · 195eca4 · Deric · docs: save Screaming Frog crawl 2 data (2026-07-13 04:57 UTC)
+[HOOK] 2026-07-13 09:36 UTC · 03695ac · Deric · SEO: generate static vault pages with real SSR content, unique titles, H1s, canonicals, JSON-LD
+[HOOK] 2026-07-13 09:27 UTC · 5e5eb99 · Deric · SEO: fix crawl-2 issues — H1s on 5 static pages, title trims+expansions, meta pixel trims, seeds H1→H2
+[HOOK] 2026-07-13 08:20 UTC · 4a1fe77 · Deric · SEO: fix remaining audit items — unsafe links, meta trims, title expansion, hidden H1s
+[HOOK] 2026-07-13 04:39 UTC · 06a7363 · Deric · GEO/AEO: DefinedTerm schema, HowTo for missions+kassa, Article freshness, llms-full stats+citation
+[HOOK] 2026-07-13 04:27 UTC · 4874a5f · Deric · SEO audit fixes: vault SSR, link sweep, JSON-LD, sitemap, headers
+[HOOK] 2026-07-11 12:48 UTC · 40c0476 · Deric · fix: civitae-mcp glama score improvements
+[HOOK] 2026-07-07 16:58 UTC · 288573e · Deric · Add mobile UI viewing to handoff TODO list
+[HOOK] 2026-07-07 16:56 UTC · d096c13 · Deric · Document MCP upgrade + repo cleanup for next session
 [HOOK] 2026-07-07 16:37 UTC · 22c1d28 · Deric · MCP upgrade: 27 tools, 7 resources, package v0.3.0
 [HOOK] 2026-07-07 15:35 UTC · 6d79fe4 · Deric · Repo structure cleanup: dedupe configs, move MCP + sim scripts
 [HOOK] 2026-07-07 15:20 UTC · c1c723b · Deric · Repo cleanup: untrack runtime files, archive stale docs
@@ -110,3 +123,160 @@ Glama wants a Dockerfile config to host the server. Values to paste into the Gla
 [HOOK] 2026-07-06 13:45 UTC · dbe6018 · Deric · chore: archive SESSION_RESUME.md — extract live items to SCRATCHPAD
 [HOOK] 2026-07-06 13:43 UTC · 942c4bc · Deric · fix: replace dead COWORK_CLAUDE.md ref with v2 coordination protocol
 [HOOK] 2026-07-06 13:41 UTC · ab5ab6b · Deric · feat: install multi-agent-coord v2 — 6-layer coordination system
+
+### ⤷ DEVIN → ALL: SEO audit complete — 3 crawls, all issues fixed
+
+**Session:** 2026-07-13 (continuation from previous thread)
+**Work:** Screaming Frog SEO audit of signomy.xyz — 3 crawls, all issues resolved
+
+**Crawl history:**
+- Crawl 1 (07-12 23:17): 12 issues found
+- Crawl 2 (07-13 04:57): issues verified, vault root cause identified
+- Crawl 3 (07-13 06:21): all major issues at zero — Grade A-
+
+**Commits (6 total):**
+- 4874a5f: vault SSR, link sweep, JSON-LD, sitemap, security headers
+- 06a7363: GEO/AEO — DefinedTerm, HowTo, Article freshness, llms-full
+- 4a1fe77: unsafe links, meta trims, title expansion, hidden H1s
+- 5e5eb99: H1s on 5 static pages, title trims, meta pixel trims, seeds H1→H2
+- 03695ac: vault pages generated with real SSR content (root cause fix)
+- 2c0c0a1: crawl 3 verification, trim last 5 title/meta items
+
+**Key discovery:** Vercel serves frontend/vault/gov-*.html as static files, bypassing
+Railway backend SSR. Fixed by generating static pages with baked-in content via
+scripts/generate_vault_pages.py.
+
+**Remaining (low priority):**
+- CSP header (security, needs policy design)
+- H2 cosmetics on UI pages (not applicable to most)
+- Low word count on interactive UI pages (expected)
+
+**Artifacts saved:**
+- 3 crawls of raw SF data (150+ CSVs, 4 SVG diagrams)
+- 4 analysis docs with YAML frontmatter
+- scripts/sf-crawl.sh (reusable CLI crawl script)
+- scripts/generate_vault_pages.py (vault page generator)
+- Updated SCREAMING-FROG-AUDIT-PLAYBOOK.md with CLI instructions
+
+**ORCID profile:** Fully updated (biography, keywords, websites, employment, education)
+**Zenodo backlinks:** Saved for another day (manual on Zenodo UI)
+
+Status: DONE. No further action needed unless adding new pages.
+
+### ⤷ DEVIN → ALL: Seed activity audit — real vs test signups
+
+**Date:** 2026-07-13
+**Source:** Live Railway API (`/api/seeds`) + local `data/seeds.jsonl`
+
+**Live seed totals (Railway):** 161 seeds
+- BI (human): 91 seeds from 10 unique identities
+- AAI (AI agents): 48 seeds
+- system: 22 seeds
+
+**Local seed file:** 705 seeds (stale snapshot from 07-06 test runs — not live data)
+
+**Real external human signups: 1**
+- **leosniu** (leosniu@signomy.xyz) — posted a marketplace listing on 2026-06-22:
+  "AI Agent for Hire — Copy, Research, SEO, Analysis" (services tab)
+
+**Fake/test signups (MimiqAI personas):**
+- anna.brewer.953a@persona.mimiqai.com — contacted a hiring post on 2026-05-21
+- matt.frederick.7742@persona.mimiqai.com — contact form "Join" on 2026-05-21
+- These are LLM-powered simulated users from gojiplus/mimiq (bot testing tool)
+- Someone pointed MimiqAI at signomy.xyz to test the site
+
+**Operator/owner activity (you):**
+- contact@burnmydays.com: 52 seeds (kassa posts across all tabs)
+- operator: 28 seeds (missions created, payments initiated)
+- deric.mchenry@gmail.com: 2 seeds (contact form)
+- Deric McHenry / burnmydays (Temporary Chair): 2 council_seated seeds
+
+**Test/monitoring bots:**
+- hange-monitor-*@signomy.xyz: 3 seeds (monitoring posts)
+- test@test.com: 1 seed (test contact)
+
+**51 agents in /api/agents:** All test/stress/monitoring bots — 14 STRESS-*, 3 hange-monitor-*, 1 Codex Smoke Agent, 35 GPT auto-registered agents. Zero real external agents.
+
+**Lobby join requests:** 0 (local lobby.db empty, live endpoint requires admin key)
+
+**Bottom line:** 1 real external user (leosniu). Everything else is you, test bots, or MimiqAI personas. The site has not attracted organic human signups yet.
+
+**Next steps (deferred to user):**
+- Investigate where MimiqAI test came from (who ran it?)
+- Reach out to leosniu (the one real user)
+- Consider why signups aren't happening (funnel analysis, UX friction)
+- Check lobby requests with admin key for any pending applications
+
+---
+
+### ⤷ DEVIN → ALL: MatrAIx Phase 0 inventory complete — SIGNOMY_BASELINE.md written
+
+**Date:** 2026-08-10 15:04 UTC
+**Session:** devin-2026-08-10 (MatrAIx research workspace)
+**Repo:** matraix (external research workspace at ~/Developer/active/matraix)
+
+**What I did (read-only, no platform changes):**
+1. Read coordination state (SCRATCHPAD, DECISIONS, claims, ROSTER, CROSSWIRE)
+2. Installed commit-log hook, set role to DEVIN, claimed lane
+3. Produced full runtime inventory → written to `_03signomy/manifests/SIGNOMY_BASELINE.md` in the matraix repo
+
+**Key findings:**
+
+**MCP discrepancy RECONCILED:**
+| Source | Claims | Actual |
+|--------|--------|--------|
+| README.md | "19 governed tools" | **STALE** — actual is 27 |
+| AGENTS.md | "27 tools, 7 resources" | CORRECT |
+| MCP server card | "27 tools" v1.2.0 | CORRECT |
+| Smithery | "19 tools" | **STALE** — needs update |
+| PyPI | v0.2.0 published | **STALE** — local is v0.3.0 |
+| Runtime (app/mcp_bridge.py) | 27 tools + 7 resources | **SOURCE OF TRUTH** |
+| Package (civitae-mcp) | 23 tools | Correct for package subset |
+
+**Runtime inventory:**
+- Commit: b95f090 (main, 4 dirty files)
+- HTTP routes: 295 total (~185 API + ~80 pages + 5 WS + well-known)
+- MCP tools: 27 (chat 4, marketplace 4, discovery 8, governance 4, operator 4, economy 2)
+- MCP resources: 7 (6 governance docs + 1 manifest)
+- Storage: 3 SQLite DBs (forums, kassa, lobby) + 1 JSONL (seeds)
+- Tests: 315 passed
+- Python: 3.14.6 local, 3.13 CI
+- Deployment: Railway (backend) + Vercel (frontend signomy.xyz)
+
+**Gate P0:** ✓ baseline frozen, ✓ HTTP inventory, ✓ MCP counted, ✓ tests recorded, ✓ discrepancies documented. ⚠ No staging environment exists yet (Phase 1 task).
+
+**No platform changes were made.** This was read-only inspection.
+
+**Next (per signomyplans.md §27):** Task 3 — classify every external action (safety matrix). Then Task 4 — design staging isolation. Then Task 5 — STOP and report.
+
+— DEVIN (MatrAIx research workspace)
+
+---
+
+### ⤷ DEVIN → ALL: Phase 0 Tasks 1-5 COMPLETE — STOP, awaiting owner review
+
+**Date:** 2026-08-10 15:30 UTC
+**Session:** devin-2026-08-10 (MatrAIx research workspace)
+
+**All 5 Devin Tasks complete.** Artifacts written to matraix repo (`~/Developer/active/matraix/_03signomy/manifests/`):
+
+| Artifact | Purpose |
+|----------|---------|
+| SIGNOMY_BASELINE.md | Full runtime inventory (commit, routes, MCP, storage, tests, CI) |
+| ACTION_SAFETY_MATRIX.md | ~120 actions classified by surface/auth/side-effects/safety |
+| STAGING_ISOLATION_DESIGN.md | Proposed staging architecture (3-line code change) |
+| PHASE0_REPORT.md | Final report with discrepancy reconciliation + recommendation |
+
+**Key findings:**
+- MCP discrepancy reconciled: runtime has 27 tools + 7 resources. README says 19 (stale), Smithery says 19 (stale), PyPI has v0.2.0 (local v0.3.0). AGENTS.md and MCP server card are correct.
+- 295 HTTP routes (113 write, 175 read, 7 WS)
+- 315 tests pass
+- Storage: 3 SQLite + JSONL, all file-based (isolation = separate data dir)
+- Staging needs 3-line additive change to `app/data_paths.py` (CIVITAE_DATA_DIR env var)
+- Recommended first interaction: **MCP** (agent-native, 27 tools, blind-boundary compatible)
+
+**STOP.** Do not implement population simulation, modify economic logic, alter MO§ES rules, or add SigRank. Next phase begins only after owner reviews this inventory.
+
+**No platform changes were made.** Only SCRATCHPAD appended (per coordination protocol).
+
+— DEVIN (MatrAIx research workspace)

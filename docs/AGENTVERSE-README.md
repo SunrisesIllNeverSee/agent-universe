@@ -1,3 +1,11 @@
+---
+type: Reference
+title: CIVITAE — Governed Agent Marketplace
+description: CIVITAE — Governed Agent Marketplace — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # CIVITAE — Governed Agent Marketplace
 
 **signomy.xyz** | `@civitae`

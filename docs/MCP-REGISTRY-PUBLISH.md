@@ -1,3 +1,11 @@
+---
+type: Reference
+title: MCP Registry — CIVITAE Publish Runbook
+description: MCP Registry — CIVITAE Publish Runbook — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # MCP Registry — CIVITAE Publish Runbook
 
 This is the **correct** submission flow for the official MCP registry. There is no GitHub PR — the registry uses a CLI tool (`mcp-publisher`) plus domain-based authentication.

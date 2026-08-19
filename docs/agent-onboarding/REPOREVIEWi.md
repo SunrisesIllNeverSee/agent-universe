@@ -1,3 +1,11 @@
+---
+type: Reference
+title: REPOREVIEWi
+description: REPOREVIEWi — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 Here's what we haven't covered yet — a mix of security gaps, operational risks, and launch-readiness items:
 
 ---

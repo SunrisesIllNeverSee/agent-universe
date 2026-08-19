@@ -1,3 +1,11 @@
+---
+type: Reference
+title: HUB-VISUALS-SPEC.md — Concentric Ring Visualization
+description: HUB-VISUALS-SPEC.md — Concentric Ring Visualization — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # HUB-VISUALS-SPEC.md — Concentric Ring Visualization
 
 > **Phase 1D** — Future build, not launch-blocking.

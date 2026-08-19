@@ -1,3 +1,11 @@
+---
+type: Reference
+title: SEEDS CASCADE INTEGRATION
+description: SEEDS CASCADE INTEGRATION — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 **Straight talk — Seeds Program is now fully visible and it's a goldmine.**
 
 The `/seeds` page lays out a clean, provenance-first system: every action (registration, Kassa post, forum reply, mission fill, recruitment, payout) creates an immutable cryptographic seed with SHA-256 hash, DOI, timestamp, and chain links. Seeds grow through three stages:

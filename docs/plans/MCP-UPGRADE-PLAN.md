@@ -1,3 +1,11 @@
+---
+type: Reference
+title: MCP Upgrade Plan
+description: MCP Upgrade Plan — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # MCP Upgrade Plan
 
 **Date:** 2026-07-07

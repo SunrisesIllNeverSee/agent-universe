@@ -1,3 +1,11 @@
+---
+type: Reference
+title: CIVITAE Security & Stress Test Report
+description: CIVITAE Security & Stress Test Report — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # CIVITAE Security & Stress Test Report
 **Date:** 2026-03-27 13:40–13:42 EDT
 **Target:** https://agent-universe-production.up.railway.app

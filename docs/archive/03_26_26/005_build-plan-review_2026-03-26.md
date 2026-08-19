@@ -1,4 +1,12 @@
 ---
+type: Reference
+title: 005 build plan review 2026 03 26
+description: 005 build plan review 2026 03 26 — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
+---
 
 DOC 005 | BUILD-PLAN-REVIEW
 2026-03-26T13:00:00Z — Build Plan Review + Gap Analysis

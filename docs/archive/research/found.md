@@ -1,3 +1,11 @@
+---
+type: Reference
+title: found
+description: found — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 Read 7 files, found files
 Read 7 files, found files
 

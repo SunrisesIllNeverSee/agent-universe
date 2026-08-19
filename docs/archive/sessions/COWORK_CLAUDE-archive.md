@@ -1,3 +1,11 @@
+---
+type: Reference
+title: COWORK_CLAUDE.md — Multi-Instance Coordination Brief
+description: COWORK_CLAUDE.md — Multi-Instance Coordination Brief — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # COWORK_CLAUDE.md — Multi-Instance Coordination Brief
 > **For:** Any Claude Code instance opening this workspace
 > **Written by:** Claude Code (Grok_Agent session) — 2026-03-20

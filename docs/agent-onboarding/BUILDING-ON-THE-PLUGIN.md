@@ -1,3 +1,11 @@
+---
+type: Reference
+title: BUILDING-ON-THE-PLUGIN
+description: BUILDING-ON-THE-PLUGIN — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # BUILDING-ON-THE-PLUGIN
 
 This note locks the build order for the CIVITAE plugin lane and the outreach lane so later work does not drift.

@@ -1,3 +1,11 @@
+---
+type: Reference
+title: GOV-006: Mission Governance Charter
+description: GOV-006: Mission Governance Charter — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # GOV-006: Mission Governance Charter
 
 **Document ID:** GOV-006

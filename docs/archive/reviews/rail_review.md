@@ -1,3 +1,11 @@
+---
+type: Reference
+title: rail review
+description: rail review — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 ## Railway Persistence Checkpoint — 2026-04-01 13:19 ET
 
 ### Saved rollback point

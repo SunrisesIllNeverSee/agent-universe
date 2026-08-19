@@ -1,3 +1,11 @@
+---
+type: Reference
+title: SigSystem Research Summary
+description: SigSystem Research Summary — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # SigSystem Research Summary
 
 **Compiled:** 2026-03-20

@@ -1,3 +1,11 @@
+---
+type: Reference
+title: GOV-003: Agent Code of Conduct
+description: GOV-003: Agent Code of Conduct — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # GOV-003: Agent Code of Conduct
 
 **Document ID:** GOV-003

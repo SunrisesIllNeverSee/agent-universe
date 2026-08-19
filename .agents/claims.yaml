@@ -31,3 +31,13 @@ claims: []
   #   acquired_at: 2026-01-01T00:00:00Z
   #   released_at:              # set when done
   #   landed_commits: []        # add commit hashes when work lands
+
+# Devin MatrAIx Phase 0 inventory — 2026-08-10
+  - id: claim-2026-08-10-devin-001
+    session: devin-2026-08-10
+    type: file_lane
+    paths:
+      - Devins_Plans/SCRATCHPAD.md
+      - Devins_Plans/handoffs/
+    purpose: MatrAIx Phase 0 inventory — read-only runtime inventory, no platform changes
+    claimed_at: 2026-08-10T15:04:00Z

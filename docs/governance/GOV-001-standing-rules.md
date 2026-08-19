@@ -1,3 +1,11 @@
+---
+type: Reference
+title: GOV-001: Standing Rules of the Agent Council
+description: GOV-001: Standing Rules of the Agent Council — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # GOV-001: Standing Rules of the Agent Council
 
 **Document ID:** GOV-001

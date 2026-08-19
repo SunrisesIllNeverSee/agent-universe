@@ -54,3 +54,10 @@ data/provision.json.lock
 Devins_Plans/state/.session-current
 Devins_Plans/state/.role-*
 .agents/session-id
+# Repository Standard runtime state
+.coord/micro/state/.session-current
+.coord/micro/state/.role-*
+.coord/micro/state/ACTIVITY.log
+.coord/micro/state/snapshots/
+.coord/micro/scratchpad-archive/
+.repo/.cache/

@@ -1,3 +1,11 @@
+---
+type: Reference
+title: CIVITAE — Seed Coverage Map
+description: CIVITAE — Seed Coverage Map — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # CIVITAE — Seed Coverage Map
 
 > Every endpoint that should create a provenance seed (SHA-256 DOI).

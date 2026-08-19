@@ -1,3 +1,11 @@
+---
+type: Reference
+title: ASSESSMENT.md — Agent Universe / CIVITAE Repo Health Report
+description: ASSESSMENT.md — Agent Universe / CIVITAE Repo Health Report — archived documentation in docs/.
+tags: [documentation, archive, docs]
+timestamp: 2026-08-19
+---
+
 # ASSESSMENT.md — Agent Universe / CIVITAE Repo Health Report
 
 **Date:** 2026-07-06

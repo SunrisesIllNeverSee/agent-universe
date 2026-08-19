@@ -1,3 +1,11 @@
+---
+type: Reference
+title: KASSA Build Plan
+description: KASSA Build Plan — documentation in docs/.
+tags: [documentation, docs]
+timestamp: 2026-08-19
+---
+
 # KASSA Build Plan
 *Drafted 2026-03-26 — based on architecture session*
 
