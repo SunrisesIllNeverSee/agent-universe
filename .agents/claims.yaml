@@ -7,30 +7,39 @@
 # Validated by: python3 scripts/check.py
 
 schema_version: 2
-updated_at: 2026-01-01T00:00:00Z
+updated_at: 2026-08-21T23:55:00Z
 
 # Active sessions (auto-managed by session-start hook + set-role.sh)
-sessions: []
-  # - id: claude-2026-01-01-001
-  #   provider: claude          # claude | codex | devin | copilot | cursor | gemini | manual
-  #   surface: vscode           # vscode | cli | terminal | web
-  #   role: LEAD                # LEAD | DEVIN | CODEX | COPILOT | GTM | custom
-  #   started_at: 2026-01-01T00:00:00Z
-  #   heartbeat: 2026-01-01T01:00:00Z
-  #   status: active            # active | wrapped | stale
+sessions:
+  - id: codex-2026-08-21-agent-readiness
+    provider: codex
+    surface: web
+    role: CODEX
+    started_at: 2026-08-21T23:55:00Z
+    heartbeat: 2026-08-21T23:55:00Z
+    status: active
 
 # File lane claims (append before starting work, release when done)
-claims: []
-  # - id: claim-2026-01-01-001
-  #   session: claude-2026-01-01-001
-  #   type: file_lane           # file_lane | migration_number | feature
-  #   paths:
-  #     - src/auth/
-  #     - src/api/stripe.ts
-  #   purpose: Stripe webhook implementation
-  #   acquired_at: 2026-01-01T00:00:00Z
-  #   released_at:              # set when done
-  #   landed_commits: []        # add commit hashes when work lands
+claims:
+  - id: claim-2026-08-21-codex-agent-readiness
+    session: codex-2026-08-21-agent-readiness
+    type: file_lane
+    paths:
+      - vercel.json
+      - app/server.py
+      - frontend/index.html
+      - frontend/llms.txt
+      - frontend/openapi.yaml
+      - frontend/openapi.json
+      - frontend/developers.html
+      - frontend/privacy.html
+      - frontend/404.html
+      - frontend/404.md
+      - tests/test_agent_readiness.py
+    purpose: Ora agent-readiness remediation for signomy.xyz
+    acquired_at: 2026-08-21T23:55:00Z
+    released_at:
+    landed_commits: []
 
 # Devin MatrAIx Phase 0 inventory — 2026-08-10
   - id: claim-2026-08-10-devin-001
