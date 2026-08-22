@@ -163,10 +163,13 @@ def test_api_404_is_structured_json(client) -> None:
 
 
 def test_api_validation_error_is_structured_json(client) -> None:
-    # /api/provision/key uses a typed Pydantic payload, so an empty body
-    # exercises FastAPI's RequestValidationError handler rather than a route's
-    # intentional manual 400 validation contract.
-    response = client.post("/api/provision/key", json={})
+    # Availability is a public write route with a typed Pydantic body. Passing
+    # an integer for a list[str] field reaches FastAPI's validation handler
+    # without being intercepted by the administrator middleware.
+    response = client.post(
+        "/api/availability/agent-validation-probe",
+        json={"domains": 123},
+    )
     assert response.status_code == 422
     error = response.json()["error"]
     assert error["code"] == "validation_error"
