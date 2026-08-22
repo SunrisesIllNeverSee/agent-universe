@@ -129,6 +129,15 @@ def test_complete_organization_schema_is_discoverable() -> None:
     assert org["address"]["addressCountry"] == "US"
 
 
+def test_shared_footer_surfaces_developer_links_and_complete_org_graph() -> None:
+    footer = (FRONTEND / "_footer.js").read_text(encoding="utf-8")
+    for target in ("/developers", "/openapi.json", "/privacy"):
+        assert target in footer
+    assert "signomy-org-schema-complete" in footer
+    assert "contactPoint" in footer
+    assert "PostalAddress" in footer
+
+
 def test_signomy_cli_alias_is_packaged() -> None:
     with (ROOT / "packages" / "civitae-mcp" / "pyproject.toml").open("rb") as fh:
         project = tomllib.load(fh)["project"]
