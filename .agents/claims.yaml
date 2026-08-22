@@ -7,7 +7,7 @@
 # Validated by: python3 scripts/check.py
 
 schema_version: 2
-updated_at: 2026-08-22T01:31:00Z
+updated_at: 2026-08-22T01:33:00Z
 
 # Active sessions (auto-managed by session-start hook + set-role.sh)
 sessions:
@@ -30,7 +30,7 @@ sessions:
     surface: web
     role: CODEX
     started_at: 2026-08-22T01:24:00Z
-    heartbeat: 2026-08-22T01:31:00Z
+    heartbeat: 2026-08-22T01:33:00Z
     status: active
 
 # File lane claims (append before starting work, release when done)
@@ -87,6 +87,7 @@ claims:
       - tests/test_routes_lobby.py
       - docs/agent-onboarding/REGISTRATION.md
       - frontend/openapi.json
-    purpose: Remove legacy permanent registration cap collision with Velvet Rope occupancy while preserving anti-abuse controls; repair pre-existing malformed OpenAPI JSON blocking CI
+      - tests/test_agent_readiness.py
+    purpose: Remove legacy permanent registration cap collision with Velvet Rope occupancy while preserving anti-abuse controls; repair pre-existing agent-readiness CI blockers discovered by the full suite
     acquired_at: 2026-08-22T01:24:00Z
     released_at:
