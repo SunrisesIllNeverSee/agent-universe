@@ -112,7 +112,8 @@ async def agent_signup(request: Request, payload: dict) -> dict:
     """
     Agent self-registration. The Snowmaker endpoint.
     Agent provides name, optional system preference, and gets a key + governance assignment.
-    Respects provision config: require_governance, max_agents, approval_mode, rate_limit.
+    Registration creates a persistent identity; live occupancy is governed separately by the
+    Velvet Rope lobby. Provision config still controls governance, approval mode, and rate limits.
     """
     runtime = state.runtime
     audit = state.audit
@@ -136,11 +137,10 @@ async def agent_signup(request: Request, payload: dict) -> dict:
         # Reload from disk so we see writes from other workers
         runtime.reload_registry()
 
-        # Check max agents (global cap)
-        current_agents = [r for r in runtime.registry if r.get("type") == "agent"]
-        max_agents = runtime.provision.get("max_agents", 50)
-        if len(current_agents) >= max_agents:
-            return JSONResponse({"error": f"Max agents ({max_agents}) reached"}, status_code=429)
+        # Registration is identity creation, not chamber occupancy. The legacy
+        # global max_agents registry cap was removed because historical/test
+        # identities must not consume Velvet Rope live seats. The lobby owns
+        # concurrent occupancy (100 seats / 1-hour TTL / FIFO queue).
 
         # Per-IP agent cap — max 3 agents per IP ever (Sybil resistance)
         MAX_AGENTS_PER_IP = 3

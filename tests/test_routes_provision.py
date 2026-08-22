@@ -4,11 +4,32 @@ test_routes_provision.py — HTTP contract tests for app/routes/provision.py
 Covers: signup, login, status, heartbeat, registry (admin-gated)
 """
 import uuid
+
+from app.deps import state
+from app.routes import provision as provision_routes
 from tests.conftest import signup_agent
 
 
 def _ip():
     return f"10.2.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}"
+
+
+def _agent_record(index: int, *, signup_ip: str | None = None) -> dict:
+    return {
+        "agent_id": f"historical-agent-{index}",
+        "handle": f"historical-agent-{index}",
+        "name": f"Historical Agent {index}",
+        "type": "agent",
+        "status": "active",
+        "signup_ip": signup_ip or f"172.16.{index // 255}.{index % 255}",
+    }
+
+
+def _restore_registry(registry: list[dict], provision: dict) -> None:
+    state.runtime.registry = registry
+    state.runtime.provision = provision
+    state.runtime.persist_registry()
+    provision_routes._rate_stores.clear()
 
 
 def test_signup_creates_agent(client):
@@ -21,6 +42,77 @@ def test_signup_creates_agent(client):
     assert "api_key" in data
     assert "token" in data
     assert data["email"].endswith("@signomy.xyz")
+
+
+def test_signup_ignores_legacy_global_agent_cap(client):
+    """Persistent identities must not consume Velvet Rope live capacity."""
+    original_registry = list(state.runtime.registry)
+    original_provision = dict(state.runtime.provision)
+    try:
+        state.runtime.registry = [_agent_record(i) for i in range(51)]
+        state.runtime.provision = {**original_provision, "max_agents": 50}
+        state.runtime.persist_registry()
+        provision_routes._rate_stores.clear()
+
+        r = signup_agent(
+            client,
+            name=f"CapacityIndependent-{uuid.uuid4().hex[:6]}",
+            ip=_ip(),
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["welcome"] is True
+        assert len([x for x in state.runtime.registry if x.get("type") == "agent"]) == 52
+    finally:
+        _restore_registry(original_registry, original_provision)
+
+
+def test_signup_does_not_consume_lobby_seat(client):
+    """Registration creates identity only; chamber occupancy begins at lobby entry."""
+    before = state.lobby.chamber_status()
+    r = signup_agent(
+        client,
+        name=f"IdentityOnly-{uuid.uuid4().hex[:6]}",
+        ip=_ip(),
+    )
+    assert r.status_code == 200
+    after = state.lobby.chamber_status()
+    assert after["active"] == before["active"]
+    assert after["available"] == before["available"]
+
+
+def test_signup_per_origin_cap_still_enforced(client):
+    """Removing the global registry cap must not weaken Sybil resistance."""
+    original_registry = list(state.runtime.registry)
+    original_provision = dict(state.runtime.provision)
+    origin_ip = _ip()
+    try:
+        state.runtime.registry = [
+            _agent_record(i, signup_ip=origin_ip) for i in range(3)
+        ]
+        state.runtime.persist_registry()
+        provision_routes._rate_stores.clear()
+
+        r = signup_agent(
+            client,
+            name=f"FourthFromOrigin-{uuid.uuid4().hex[:6]}",
+            ip=origin_ip,
+        )
+        assert r.status_code == 429
+        assert r.json()["error"] == "Max agents per origin reached"
+    finally:
+        _restore_registry(original_registry, original_provision)
+
+
+def test_signup_hourly_rate_limit_still_enforced(client):
+    """Two signup attempts per IP per hour remains the first-line rate limit."""
+    provision_routes._rate_stores.clear()
+    ip = _ip()
+    assert signup_agent(client, name=f"RateOne-{uuid.uuid4().hex[:6]}", ip=ip).status_code == 200
+    assert signup_agent(client, name=f"RateTwo-{uuid.uuid4().hex[:6]}", ip=ip).status_code == 200
+    third = signup_agent(client, name=f"RateThree-{uuid.uuid4().hex[:6]}", ip=ip)
+    assert third.status_code == 429
+    assert "Rate limit" in third.text
+    provision_routes._rate_stores.clear()
 
 
 def test_signup_preserves_handle_and_capabilities(client):

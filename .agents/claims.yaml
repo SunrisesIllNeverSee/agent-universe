@@ -7,7 +7,7 @@
 # Validated by: python3 scripts/check.py
 
 schema_version: 2
-updated_at: 2026-08-22T00:16:00Z
+updated_at: 2026-08-22T01:37:00Z
 
 # Active sessions (auto-managed by session-start hook + set-role.sh)
 sessions:
@@ -25,6 +25,13 @@ sessions:
     started_at: 2026-08-22T00:13:00Z
     heartbeat: 2026-08-22T00:16:00Z
     status: wrapped
+  - id: codex-2026-08-22-registration-lobby-capacity
+    provider: codex
+    surface: web
+    role: CODEX
+    started_at: 2026-08-22T01:24:00Z
+    heartbeat: 2026-08-22T01:37:00Z
+    status: active
 
 # File lane claims (append before starting work, release when done)
 claims:
@@ -70,3 +77,18 @@ claims:
       - Devins_Plans/handoffs/
     purpose: MatrAIx Phase 0 inventory — read-only runtime inventory, no platform changes
     claimed_at: 2026-08-10T15:04:00Z
+  - id: claim-2026-08-22-codex-registration-lobby-capacity
+    session: codex-2026-08-22-registration-lobby-capacity
+    type: file_lane
+    paths:
+      - app/routes/provision.py
+      - app/mcp_bridge.py
+      - tests/test_routes_provision.py
+      - tests/test_routes_lobby.py
+      - docs/agent-onboarding/REGISTRATION.md
+      - frontend/openapi.json
+      - tests/test_agent_readiness.py
+      - tests/test_jwt_config.py
+    purpose: Remove legacy permanent registration cap collision with Velvet Rope occupancy while preserving anti-abuse controls; repair pre-existing CI blockers exposed by the full suite
+    acquired_at: 2026-08-22T01:24:00Z
+    released_at:
