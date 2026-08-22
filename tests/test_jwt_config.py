@@ -8,6 +8,12 @@ from app.jwt_config import clear_kassa_jwt_secret_cache, get_kassa_jwt_secret
 
 
 class JwtConfigTests(unittest.TestCase):
+    def setUp(self) -> None:
+        # The application imports JWT configuration during test collection and
+        # may populate the lru_cache before this test module runs. Each case
+        # must start from an empty cache so environment patches are authoritative.
+        clear_kassa_jwt_secret_cache()
+
     def tearDown(self) -> None:
         clear_kassa_jwt_secret_cache()
 
