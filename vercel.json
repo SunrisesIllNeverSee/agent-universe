@@ -2,137 +2,46 @@
   "outputDirectory": "frontend",
   "cleanUrls": true,
   "redirects": [
-    {
-      "source": "/openroles",
-      "destination": "/helpwanted",
-      "statusCode": 301
-    },
-    {
-      "source": "/marketplace",
-      "destination": "/products",
-      "statusCode": 301
-    },
-    {
-      "source": "/3d",
-      "destination": "/world",
-      "statusCode": 301
-    },
-    {
-      "source": "/economy",
-      "destination": "/economics",
-      "statusCode": 301
-    },
-    {
-      "source": "/civitae-roadmap",
-      "destination": "/portal",
-      "statusCode": 301
-    },
-    {
-      "source": "/join",
-      "destination": "/#collaborate",
-      "statusCode": 301
-    },
-    {
-      "source": "/agent-earnings-matrix",
-      "destination": "/earnings-matrix",
-      "statusCode": 301
-    },
-    {
-      "source": "/agent-earnings-journey",
-      "destination": "/earnings-journey",
-      "statusCode": 301
-    },
-    {
-      "source": "/fee-credit-packs",
-      "destination": "/fee-credits",
-      "statusCode": 301
-    }
+    { "source": "/openroles", "destination": "/helpwanted", "statusCode": 301 },
+    { "source": "/marketplace", "destination": "/products", "statusCode": 301 },
+    { "source": "/3d", "destination": "/world", "statusCode": 301 },
+    { "source": "/economy", "destination": "/economics", "statusCode": 301 },
+    { "source": "/civitae-roadmap", "destination": "/portal", "statusCode": 301 },
+    { "source": "/join", "destination": "/#collaborate", "statusCode": 301 },
+    { "source": "/agent-earnings-matrix", "destination": "/earnings-matrix", "statusCode": 301 },
+    { "source": "/agent-earnings-journey", "destination": "/earnings-journey", "statusCode": 301 },
+    { "source": "/fee-credit-packs", "destination": "/fee-credits", "statusCode": 301 }
   ],
   "rewrites": [
     {
-      "source": "/.well-known/agent.json",
-      "destination": "/agent.json"
+      "source": "/",
+      "has": [
+        { "type": "header", "key": "Accept", "value": ".*text/markdown.*" }
+      ],
+      "destination": "/index.md"
     },
-    {
-      "source": "/.well-known/mcp/server-card.json",
-      "destination": "/.well-known/mcp-server-card.json"
-    },
-    {
-      "source": "/portal",
-      "destination": "/portal.html"
-    },
-    {
-      "source": "/moses",
-      "destination": "/moses.html"
-    },
-    {
-      "source": "/lobby",
-      "destination": "/lobby.html"
-    },
-    {
-      "source": "/mapsite",
-      "destination": "/sitemap.html"
-    },
-    {
-      "source": "/api/:path*",
-      "destination": "https://agent-universe-production.up.railway.app/api/:path*"
-    },
-    {
-      "source": "/mcp",
-      "destination": "https://agent-universe-production.up.railway.app/mcp"
-    },
-    {
-      "source": "/mcp/:path*",
-      "destination": "https://agent-universe-production.up.railway.app/mcp/:path*"
-    },
-    {
-      "source": "/docs/:path*",
-      "destination": "https://agent-universe-production.up.railway.app/docs/:path*"
-    },
-    {
-      "source": "/health",
-      "destination": "https://agent-universe-production.up.railway.app/health"
-    },
-    {
-      "source": "/ws/:path*",
-      "destination": "https://agent-universe-production.up.railway.app/ws/:path*"
-    },
-    {
-      "source": "/assets/:path*",
-      "destination": "/:path*"
-    },
-    {
-      "source": "/profile/:handle",
-      "destination": "/agent-profile"
-    },
-    {
-      "source": "/agent/:slug",
-      "destination": "/agent"
-    },
-    {
-      "source": "/kassa/post/:id",
-      "destination": "/kassa-post"
-    },
-    {
-      "source": "/kassa/thread/:id",
-      "destination": "/kassa-thread"
-    },
-    {
-      "source": "/connect/success",
-      "destination": "/connect-success"
-    },
-    {
-      "source": "/earnings-matrix",
-      "destination": "/agent-earnings-matrix"
-    },
-    {
-      "source": "/earnings-journey",
-      "destination": "/agent-earnings-journey"
-    },
-    {
-      "source": "/fee-credits",
-      "destination": "/fee-credit-packs"
-    }
+    { "source": "/.well-known/agent.json", "destination": "/agent.json" },
+    { "source": "/.well-known/mcp", "destination": "/.well-known/mcp-server-card.json" },
+    { "source": "/.well-known/mcp/server-card.json", "destination": "/.well-known/mcp-server-card.json" },
+    { "source": "/portal", "destination": "/portal.html" },
+    { "source": "/moses", "destination": "/moses.html" },
+    { "source": "/lobby", "destination": "/lobby.html" },
+    { "source": "/mapsite", "destination": "/sitemap.html" },
+    { "source": "/api/:path*", "destination": "https://agent-universe-production.up.railway.app/api/:path*" },
+    { "source": "/mcp", "destination": "https://agent-universe-production.up.railway.app/mcp" },
+    { "source": "/mcp/:path*", "destination": "https://agent-universe-production.up.railway.app/mcp/:path*" },
+    { "source": "/docs/:path*", "destination": "https://agent-universe-production.up.railway.app/docs/:path*" },
+    { "source": "/health", "destination": "https://agent-universe-production.up.railway.app/health" },
+    { "source": "/ws/:path*", "destination": "https://agent-universe-production.up.railway.app/ws/:path*" },
+    { "source": "/assets/:path*", "destination": "/:path*" },
+    { "source": "/profile/:handle", "destination": "/agent-profile" },
+    { "source": "/agent/:slug", "destination": "/agent" },
+    { "source": "/kassa/post/:id", "destination": "/kassa-post" },
+    { "source": "/kassa/thread/:id", "destination": "/kassa-thread" },
+    { "source": "/connect/success", "destination": "/connect-success" },
+    { "source": "/earnings-matrix", "destination": "/agent-earnings-matrix" },
+    { "source": "/earnings-journey", "destination": "/agent-earnings-journey" },
+    { "source": "/fee-credits", "destination": "/fee-credit-packs" }
   ],
   "headers": [
     {
@@ -145,70 +54,90 @@
       ]
     },
     {
+      "source": "/",
+      "headers": [
+        { "key": "Vary", "value": "Accept, Accept-Encoding" }
+      ]
+    },
+    {
+      "source": "/",
+      "has": [
+        { "type": "header", "key": "Accept", "value": ".*text/markdown.*" }
+      ],
+      "headers": [
+        { "key": "Content-Type", "value": "text/markdown; charset=utf-8" },
+        { "key": "Vary", "value": "Accept, Accept-Encoding" },
+        { "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/(index.md|404.md)",
+      "headers": [
+        { "key": "Content-Type", "value": "text/markdown; charset=utf-8" },
+        { "key": "Vary", "value": "Accept, Accept-Encoding" },
+        { "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/(openapi.json|openapi.yaml)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/openapi.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+      ]
+    },
+    {
+      "source": "/openapi.yaml",
+      "headers": [
+        { "key": "Content-Type", "value": "application/yaml; charset=utf-8" }
+      ]
+    },
+    {
       "source": "/assets/(.*).js",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=300, must-revalidate"
-        }
+        { "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" }
       ]
     },
     {
       "source": "/assets/(.*)",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400, stale-while-revalidate=3600"
-        }
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=3600" }
       ]
     },
     {
       "source": "/(.*).html",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600, must-revalidate"
-        }
+        { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" }
       ]
     },
     {
       "source": "/pages.json",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=300, must-revalidate"
-        }
+        { "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" }
       ]
     },
     {
       "source": "/favicon.ico",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=604800"
-        }
+        { "key": "Cache-Control", "value": "public, max-age=604800" }
       ]
     },
     {
       "source": "/(llms.txt|agent.json|robots.txt|skill.md)",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600, must-revalidate"
-        }
+        { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" }
       ]
     },
     {
       "source": "/.well-known/(.*)",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600, must-revalidate"
-        },
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        }
+        { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
       ]
     }
   ]
