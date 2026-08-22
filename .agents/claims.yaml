@@ -7,7 +7,7 @@
 # Validated by: python3 scripts/check.py
 
 schema_version: 2
-updated_at: 2026-08-22T02:05:00Z
+updated_at: 2026-08-22T02:16:00Z
 
 # Active sessions (auto-managed by session-start hook + set-role.sh)
 sessions:
@@ -37,8 +37,8 @@ sessions:
     surface: web
     role: CODEX
     started_at: 2026-08-22T02:05:00Z
-    heartbeat: 2026-08-22T02:05:00Z
-    status: active
+    heartbeat: 2026-08-22T02:16:00Z
+    status: wrapped
 
 # File lane claims (append before starting work, release when done)
 claims:
@@ -110,4 +110,6 @@ claims:
       - tests/test_agent_readiness.py
     purpose: Remove legacy permanent registration cap from MCP agent.register and verify live MCP protocol initialize/tools/list without redesigning lobby semantics
     acquired_at: 2026-08-22T02:05:00Z
-    released_at:
+    released_at: 2026-08-22T02:16:00Z
+    landed_commits:
+      - 4d99dc128c97da450d1bcd8c8dd989d0a39d362d
