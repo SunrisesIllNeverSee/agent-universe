@@ -7,7 +7,7 @@
 # Validated by: python3 scripts/check.py
 
 schema_version: 2
-updated_at: 2026-08-22T01:37:00Z
+updated_at: 2026-08-22T01:41:00Z
 
 # Active sessions (auto-managed by session-start hook + set-role.sh)
 sessions:
@@ -30,8 +30,8 @@ sessions:
     surface: web
     role: CODEX
     started_at: 2026-08-22T01:24:00Z
-    heartbeat: 2026-08-22T01:37:00Z
-    status: active
+    heartbeat: 2026-08-22T01:41:00Z
+    status: wrapped
 
 # File lane claims (append before starting work, release when done)
 claims:
@@ -91,4 +91,6 @@ claims:
       - tests/test_jwt_config.py
     purpose: Remove legacy permanent registration cap collision with Velvet Rope occupancy while preserving anti-abuse controls; repair pre-existing CI blockers exposed by the full suite
     acquired_at: 2026-08-22T01:24:00Z
-    released_at:
+    released_at: 2026-08-22T01:41:00Z
+    landed_commits:
+      - 03e0a1c750d08fee0a648eb3b0ddb695d6e62d91
