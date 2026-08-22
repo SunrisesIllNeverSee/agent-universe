@@ -7,7 +7,7 @@
 # Validated by: python3 scripts/check.py
 
 schema_version: 2
-updated_at: 2026-08-22T01:41:00Z
+updated_at: 2026-08-22T02:05:00Z
 
 # Active sessions (auto-managed by session-start hook + set-role.sh)
 sessions:
@@ -32,6 +32,13 @@ sessions:
     started_at: 2026-08-22T01:24:00Z
     heartbeat: 2026-08-22T01:41:00Z
     status: wrapped
+  - id: codex-2026-08-22-mcp-registration-capacity
+    provider: codex
+    surface: web
+    role: CODEX
+    started_at: 2026-08-22T02:05:00Z
+    heartbeat: 2026-08-22T02:05:00Z
+    status: active
 
 # File lane claims (append before starting work, release when done)
 claims:
@@ -89,8 +96,18 @@ claims:
       - frontend/openapi.json
       - tests/test_agent_readiness.py
       - tests/test_jwt_config.py
-    purpose: Remove legacy permanent registration cap collision with Velvet Rope occupancy while preserving anti-abuse controls; repair pre-existing CI blockers exposed by the full suite
+    purpose: Remove legacy permanent registration cap collision with Velvet Rope occupancy while preserving anti-abuse controls; repair pre-existing agent-readiness CI blockers exposed by the full suite
     acquired_at: 2026-08-22T01:24:00Z
     released_at: 2026-08-22T01:41:00Z
     landed_commits:
       - 03e0a1c750d08fee0a648eb3b0ddb695d6e62d91
+  - id: claim-2026-08-22-codex-mcp-registration-capacity
+    session: codex-2026-08-22-mcp-registration-capacity
+    type: file_lane
+    paths:
+      - app/mcp_bridge.py
+      - tests/test_mcp_bridge.py
+      - tests/test_agent_readiness.py
+    purpose: Remove legacy permanent registration cap from MCP agent.register and verify live MCP protocol initialize/tools/list without redesigning lobby semantics
+    acquired_at: 2026-08-22T02:05:00Z
+    released_at:
