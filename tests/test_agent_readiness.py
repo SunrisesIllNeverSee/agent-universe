@@ -141,3 +141,32 @@ def test_sitemap_lists_new_human_facing_trust_surfaces() -> None:
     sitemap = (FRONTEND / "sitemap.xml").read_text(encoding="utf-8")
     assert "https://signomy.xyz/developers" in sitemap
     assert "https://signomy.xyz/privacy" in sitemap
+
+
+def test_api_404_is_structured_json(client) -> None:
+    response = client.get("/api/agent-readiness-probe-does-not-exist")
+    assert response.status_code == 404
+    assert response.headers["content-type"].startswith("application/json")
+    error = response.json()["error"]
+    assert error["code"] == "not_found"
+    assert error["message"]
+    assert "openapi.json" in error["hint"]
+
+
+def test_api_validation_error_is_structured_json(client) -> None:
+    response = client.post("/api/provision/login", json={})
+    assert response.status_code == 422
+    error = response.json()["error"]
+    assert error["code"] == "validation_error"
+    assert error["message"]
+    assert error["hint"]
+    assert error["details"]
+
+
+def test_admin_guard_error_is_structured_json(client) -> None:
+    response = client.post("/api/message", json={"message": "probe"})
+    assert response.status_code == 403
+    error = response.json()["error"]
+    assert error["code"] == "admin_key_required"
+    assert error["message"]
+    assert error["hint"]
