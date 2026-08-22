@@ -11,8 +11,35 @@
   styleEl.textContent = '#civitae-footer{position:fixed;bottom:0;left:0;right:0;background:rgba(11,13,16,0.97);border-top:1px solid #1a1a22;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-family:"DM Mono",monospace;font-size:8px;letter-spacing:0.18em;color:#3a3a4a;text-transform:uppercase;z-index:9998;}' +
     '#civitae-footer a{color:#3a3a4a;text-decoration:none;transition:color 0.15s;}' +
     '#civitae-footer a:hover{color:#c8a96e;}' +
-    '#civitae-footer svg{display:block;}';
+    '#civitae-footer svg{display:block;}' +
+    '@media(max-width:760px){#civitae-footer .agent-resource-link{display:none;}}';
   document.head.appendChild(styleEl);
+
+  // Complete Organization graph on pages that use this shared footer.
+  // This supplements the static JSON-LD without changing the visible page design.
+  if (!document.getElementById('signomy-org-schema-complete')) {
+    var orgSchema = document.createElement('script');
+    orgSchema.type = 'application/ld+json';
+    orgSchema.id = 'signomy-org-schema-complete';
+    orgSchema.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      '@id': 'https://signomy.xyz/#org',
+      name: 'SIGNOMY',
+      url: 'https://signomy.xyz',
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'developer and general inquiries',
+        email: 'contact@burnmydays.com',
+        url: 'https://signomy.xyz/contact'
+      },
+      address: {
+        '@type': 'PostalAddress',
+        addressCountry: 'US'
+      }
+    });
+    document.head.appendChild(orgSchema);
+  }
 
   var footer = document.createElement('footer');
   footer.id = 'civitae-footer';
@@ -23,6 +50,19 @@
 
   var right = document.createElement('div');
   right.style.cssText = 'display:flex;align-items:center;gap:16px;';
+
+  function addResourceLink(href, label) {
+    var link = document.createElement('a');
+    link.href = href;
+    link.textContent = label;
+    link.className = 'agent-resource-link';
+    right.appendChild(link);
+  }
+
+  // Stable machine/developer discovery links from the homepage and shared pages.
+  addResourceLink('/developers', 'Developers');
+  addResourceLink('/openapi.json', 'OpenAPI');
+  addResourceLink('/privacy', 'Privacy');
 
   // MO§ES™ link
   var mosesLink = document.createElement('a');
