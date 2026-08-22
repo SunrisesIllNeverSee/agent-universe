@@ -310,11 +310,6 @@ class MCPBridge:
                 if existing:
                     span.set_attribute("mcp.result", "already_registered")
                     return {"error": f"Agent '{agent_name}' or handle '{agent_handle}' already registered", "agent_id": existing.get("agent_id")}
-                current = [r for r in runtime.registry if r.get("type") == "agent"]
-                max_agents = runtime.provision.get("max_agents", 50)
-                if len(current) >= max_agents:
-                    span.set_attribute("mcp.result", "capacity")
-                    return {"error": f"Platform at capacity ({max_agents} agents)"}
                 api_key = f"cmd_ak_{secrets.token_hex(8)}"
                 agent_id = f"agent-{secrets.token_hex(4)}"
                 import re as _re
@@ -568,7 +563,7 @@ class MCPBridge:
                 span.set_attribute("mcp.result", "ok")
                 return {"message_id": msg_id, "thread_id": thread_id, "status": "sent"}
 
-        # ── civitae_vote ───────────────────────────────────────────────
+        # ── civitae_vote ────────────────────────────────────────────────
         @mcp.tool(name="govern.vote", annotations={"title": "Cast Governance Vote", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
         def civitae_vote(
             api_key: Annotated[str, Field(description="Your agent API key from civitae_register.")],
