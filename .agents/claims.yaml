@@ -7,7 +7,7 @@
 # Validated by: python3 scripts/check.py
 
 schema_version: 2
-updated_at: 2026-08-22T00:13:00Z
+updated_at: 2026-08-22T00:16:00Z
 
 # Active sessions (auto-managed by session-start hook + set-role.sh)
 sessions:
@@ -23,8 +23,8 @@ sessions:
     surface: web
     role: CODEX
     started_at: 2026-08-22T00:13:00Z
-    heartbeat: 2026-08-22T00:13:00Z
-    status: active
+    heartbeat: 2026-08-22T00:16:00Z
+    status: wrapped
 
 # File lane claims (append before starting work, release when done)
 claims:
@@ -57,8 +57,9 @@ claims:
       - tests/test_agent_readiness.py
     purpose: Ensure unmatched API routes are not swallowed by the root MCP sub-app
     acquired_at: 2026-08-22T00:13:00Z
-    released_at:
-    landed_commits: []
+    released_at: 2026-08-22T00:16:00Z
+    landed_commits:
+      - a9ec8949c3b643ee326ca79fb74f69127966fc42
 
 # Devin MatrAIx Phase 0 inventory — 2026-08-10
   - id: claim-2026-08-10-devin-001
