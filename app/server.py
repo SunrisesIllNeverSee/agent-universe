@@ -485,6 +485,24 @@ def create_app(root: Path | None = None) -> FastAPI:
     from .seeds_otel import otel_router
     app.include_router(otel_router, prefix="/api/traces", tags=["traces"])
 
+    # ── API fallback ─────────────────────────────────────────────────
+    # FastMCP is mounted at the root so its own /mcp route maps 1:1. Without
+    # this API-only fallback, unmatched /api/* requests fall through to the
+    # mounted Starlette sub-app and become plain-text 404 responses. Register
+    # this after every real API router so it cannot shadow valid endpoints.
+    @app.api_route(
+        "/api/{unmatched_path:path}",
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+        include_in_schema=False,
+    )
+    async def _api_not_found(unmatched_path: str):
+        return _error_response(
+            404,
+            "not_found",
+            "The requested API route was not found.",
+            "Check https://signomy.xyz/openapi.json for valid API routes before retrying the request.",
+        )
+
     # ── Mount FastMCP (streamable-http at /mcp) ──────────────────────
     # External clients (Smithery, Claude Desktop, etc.) POST to /mcp directly.
     # Empty-prefix mount lets the sub-app's own /mcp route map 1:1 to the parent
