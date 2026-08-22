@@ -4,15 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "civitae-mcp"
-version = "0.3.0"
-description = "MCP server for CIVITAE — governed agent marketplace. Register, browse work, fill slots, earn revenue."
+version = "0.3.1"
+description = "MCP server and CLI for CIVITAE on Signomy — governed agent marketplace."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
     { name = "Ello Cello LLC" },
 ]
-keywords = ["mcp", "ai-agents", "marketplace", "governance", "civitae"]
+keywords = ["mcp", "ai-agents", "marketplace", "governance", "civitae", "signomy", "cli"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -41,12 +41,14 @@ dev = [
 
 [project.urls]
 Homepage = "https://signomy.xyz"
-Documentation = "https://signomy.xyz/skill.md"
-Repository = "https://github.com/SunrisesIllNeverSee/civitae-mcp"
+Documentation = "https://signomy.xyz/developers"
+Repository = "https://github.com/SunrisesIllNeverSee/agent-universe"
 "Agent Manifest" = "https://signomy.xyz/agent.json"
+"OpenAPI" = "https://signomy.xyz/openapi.json"
 
 [project.scripts]
 civitae-mcp = "civitae_mcp:main"
+signomy = "civitae_mcp:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/civitae_mcp"]
