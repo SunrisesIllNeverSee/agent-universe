@@ -12,9 +12,11 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .audit import AuditSpine
 from .context import ContextAssembler
@@ -191,13 +193,68 @@ def create_app(root: Path | None = None) -> FastAPI:
     app.state.mcp_bridge = mcp_bridge
     app.state.connection_hub = hub
 
+    # ── Agent-readable JSON error contract ───────────────────────────
+    def _error_response(
+        status_code: int,
+        code: str,
+        message: str,
+        hint: str,
+        *,
+        details: object | None = None,
+    ) -> JSONResponse:
+        error: dict[str, object] = {
+            "code": code,
+            "message": message,
+            "hint": hint,
+        }
+        if details is not None:
+            error["details"] = details
+        return JSONResponse(status_code=status_code, content={"error": error})
+
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_exception_handler(request: Request, exc: StarletteHTTPException):
+        if exc.status_code == 404:
+            return _error_response(
+                404,
+                "not_found",
+                "The requested route or resource was not found.",
+                "Check https://signomy.xyz/openapi.json for valid API routes or https://signomy.xyz/sitemap.xml for public pages.",
+            )
+        detail = exc.detail if isinstance(exc.detail, str) else "Request could not be completed."
+        code = {
+            400: "bad_request",
+            401: "unauthorized",
+            403: "forbidden",
+            405: "method_not_allowed",
+            409: "conflict",
+            429: "rate_limited",
+        }.get(exc.status_code, "http_error")
+        return _error_response(
+            exc.status_code,
+            code,
+            detail,
+            "Review the operation schema and authentication requirements at https://signomy.xyz/openapi.json.",
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def _validation_exception_handler(request: Request, exc: RequestValidationError):
+        return _error_response(
+            422,
+            "validation_error",
+            "One or more request fields failed validation.",
+            "Compare the request with the typed parameters and request body in https://signomy.xyz/openapi.json.",
+            details=exc.errors(),
+        )
+
     # ── Global exception handler — prevent stack trace / secret leakage ──
     @app.exception_handler(Exception)
     async def _global_exception_handler(request: Request, exc: Exception):
         logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
-        return JSONResponse(
-            status_code=500,
-            content={"detail": "Internal server error"},
+        return _error_response(
+            500,
+            "internal_error",
+            "The server could not complete the request.",
+            "Retry once; if the problem persists, use https://signomy.xyz/contact and include the request path without credentials.",
         )
 
     # ── CORS ─────────────────────────────────────────────────────────
@@ -262,24 +319,49 @@ def create_app(root: Path | None = None) -> FastAPI:
             if not any(path.startswith(p) for p in _PUBLIC_WRITE_PREFIXES):
                 if _ADMIN_KEY:
                     if request.headers.get("X-Admin-Key") != _ADMIN_KEY:
-                        return JSONResponse({"detail": "Admin key required"}, status_code=403)
+                        return _error_response(
+                            403,
+                            "admin_key_required",
+                            "A valid administrator key is required for this operation.",
+                            "Supply X-Admin-Key only from an authorized operator environment.",
+                        )
                 else:
                     if _DEV_MODE:
                         # Local dev: allow localhost requests without admin key
                         fwd = request.headers.get("x-forwarded-for", "")
                         host = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "")
                         if host not in ("127.0.0.1", "::1", "localhost"):
-                            return JSONResponse({"detail": "Admin key not configured"}, status_code=403)
+                            return _error_response(
+                                403,
+                                "admin_key_not_configured",
+                                "Administrator access is not configured for this environment.",
+                                "Use a documented public endpoint or configure CIVITAE_ADMIN_KEY for operator access.",
+                            )
                     else:
                         # Production: no admin key = blocked
-                        return JSONResponse({"detail": "Admin key not configured"}, status_code=403)
+                        return _error_response(
+                            403,
+                            "admin_key_not_configured",
+                            "Administrator access is not configured for this environment.",
+                            "Use a documented public endpoint or contact the operator.",
+                        )
 
         # Guard operator GET endpoints (sensitive data)
         if request.method == "GET" and any(path.startswith(p) for p in _ADMIN_GET_PREFIXES):
             if not _ADMIN_KEY:
-                return JSONResponse({"detail": "CIVITAE_ADMIN_KEY not configured"}, status_code=403)
+                return _error_response(
+                    403,
+                    "admin_key_not_configured",
+                    "Administrator access is not configured for this environment.",
+                    "Use a documented public endpoint or contact the operator.",
+                )
             if request.headers.get("X-Admin-Key") != _ADMIN_KEY:
-                return JSONResponse({"detail": "Admin key required"}, status_code=403)
+                return _error_response(
+                    403,
+                    "admin_key_required",
+                    "A valid administrator key is required for this operation.",
+                    "Supply X-Admin-Key only from an authorized operator environment.",
+                )
 
         return await call_next(request)
 
