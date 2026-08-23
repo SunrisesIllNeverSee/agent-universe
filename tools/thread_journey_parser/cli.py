@@ -5,8 +5,9 @@ import json
 from pathlib import Path
 
 from .analyze import analyze_thread
+from .evolution import enrich_evolution
 from .normalize import load_thread
-from .report import render_report
+from .report_v2 import render_report
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -23,7 +24,7 @@ def main() -> int:
     title, turns = load_thread(args.input)
     if args.title:
         title = args.title
-    ledger = analyze_thread(title, turns, thread_id=args.thread_id)
+    ledger = enrich_evolution(analyze_thread(title, turns, thread_id=args.thread_id))
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "thread-ledger.json").write_text(json.dumps(ledger.to_dict(), indent=2, ensure_ascii=False), encoding="utf-8")
