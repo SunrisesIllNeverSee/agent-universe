@@ -7,7 +7,7 @@
 # Validated by: python3 scripts/check.py
 
 schema_version: 2
-updated_at: 2026-08-22T02:16:00Z
+updated_at: 2026-08-23T19:42:00Z
 
 # Active sessions (auto-managed by session-start hook + set-role.sh)
 sessions:
@@ -39,6 +39,13 @@ sessions:
     started_at: 2026-08-22T02:05:00Z
     heartbeat: 2026-08-22T02:16:00Z
     status: wrapped
+  - id: codex-2026-08-23-thread-parser-authority-packaging
+    provider: codex
+    surface: web
+    role: CODEX
+    started_at: 2026-08-23T19:42:00Z
+    heartbeat: 2026-08-23T19:42:00Z
+    status: active
 
 # File lane claims (append before starting work, release when done)
 claims:
@@ -113,3 +120,12 @@ claims:
     released_at: 2026-08-22T02:16:00Z
     landed_commits:
       - 4d99dc128c97da450d1bcd8c8dd989d0a39d362d
+  - id: claim-2026-08-23-codex-thread-parser-authority-packaging
+    session: codex-2026-08-23-thread-parser-authority-packaging
+    type: file_lane
+    paths:
+      - tools/thread_journey_parser/
+      - tests/test_thread_journey_parser.py
+    purpose: Strengthen authority/evolution tracking, add MO§ES governance review notes, and make the thread parser exportable as a standalone package
+    acquired_at: 2026-08-23T19:42:00Z
+    released_at:
