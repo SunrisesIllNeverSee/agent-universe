@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "thread-journey-parser"
+version = "0.2.0"
+description = "Single-thread conversation journey parser with authority, evolution, flow, documents, and turn citations."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Ello Cello LLC" }]
+dependencies = []
+
+[project.scripts]
+thread-journey-parser = "thread_journey_parser.cli:main"
+
+[tool.setuptools]
+packages = ["thread_journey_parser"]
+package-dir = { thread_journey_parser = "." }

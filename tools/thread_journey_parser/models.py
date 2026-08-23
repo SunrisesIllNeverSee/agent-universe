@@ -24,6 +24,17 @@ class NormalizedTurn:
 
 
 @dataclass
+class EvolutionEvent:
+    turn_id: str
+    event: str
+    status: str
+    authority: str
+    authority_weight: float
+    confidence: float
+    note: str = ""
+
+
+@dataclass
 class ExtractedItem:
     item_id: str
     category: str
@@ -36,6 +47,7 @@ class ExtractedItem:
     source_turns: list[str] = field(default_factory=list)
     related_turns: list[str] = field(default_factory=list)
     supersedes: list[str] = field(default_factory=list)
+    evolution: list[EvolutionEvent] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 
 
