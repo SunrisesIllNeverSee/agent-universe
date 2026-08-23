@@ -76,6 +76,8 @@ def _append(
 
 
 def _reconstruct_item_history(ledger: ThreadLedger, item: ExtractedItem) -> None:
+    if item.evolution:
+        return
     initial_status, initial_authority, initial_weight = _initial_state(item)
     _append(
         item,
@@ -188,7 +190,7 @@ def _link_supersession(ledger: ThreadLedger) -> None:
 
 
 def enrich_evolution(ledger: ThreadLedger) -> ThreadLedger:
-    """Populate an auditable authority/evolution history without promoting parser inference to canon.
+    """Populate auditable authority/evolution history without promoting parser inference to canon.
 
     The operation is idempotent. It reconstructs lifecycle transitions already evidenced by
     the thread ledger and conservatively links later high-authority decisions/canon updates
