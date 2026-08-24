@@ -1,6 +1,11 @@
 {
   "outputDirectory": "frontend",
   "cleanUrls": true,
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  },
   "redirects": [
     { "source": "/openroles", "destination": "/helpwanted", "statusCode": 301 },
     { "source": "/marketplace", "destination": "/products", "statusCode": 301 },
