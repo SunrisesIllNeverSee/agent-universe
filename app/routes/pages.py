@@ -379,6 +379,14 @@ async def well_known_governance_json() -> FileResponse:
     )
 
 
+@router.get("/.well-known/exchange.json")
+async def well_known_exchange_json() -> FileResponse:
+    return FileResponse(
+        state.frontend_dir / ".well-known" / "exchange.json",
+        media_type="application/json",
+    )
+
+
 @router.get("/seeds")
 async def seeds_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "seeds.html")
