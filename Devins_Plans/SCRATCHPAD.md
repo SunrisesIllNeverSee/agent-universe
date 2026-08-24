@@ -88,6 +88,7 @@ Glama wants a Dockerfile config to host the server. Values to paste into the Gla
 ---
 
 <!-- POST-COMMIT HOOK APPENDS BELOW THIS LINE -->
+[HOOK] 2026-08-24 21:21 UTC · 773adfb · Deric · docs: update SCRATCHPAD with session notes
 [HOOK] 2026-08-24 19:53 UTC · 4166b13 · Deric · feat(exchange): add /.well-known/exchange.json pointing at signalaf.com Steward
 [HOOK] 2026-08-24 16:57 UTC · a1e0584 · Deric · fix(vercel): only deploy main branch — stop preview auth email flood
 [HOOK] 2026-08-24 16:57 UTC · a1e0584 · Deric · fix(vercel): only deploy main branch — stop preview auth email flood
