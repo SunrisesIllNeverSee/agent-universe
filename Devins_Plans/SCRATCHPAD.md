@@ -88,6 +88,9 @@ Glama wants a Dockerfile config to host the server. Values to paste into the Gla
 ---
 
 <!-- POST-COMMIT HOOK APPENDS BELOW THIS LINE -->
+[HOOK] 2026-08-24 19:53 UTC · 4166b13 · Deric · feat(exchange): add /.well-known/exchange.json pointing at signalaf.com Steward
+[HOOK] 2026-08-24 16:57 UTC · a1e0584 · Deric · fix(vercel): only deploy main branch — stop preview auth email flood
+[HOOK] 2026-08-24 16:57 UTC · a1e0584 · Deric · fix(vercel): only deploy main branch — stop preview auth email flood
 [HOOK] 2026-08-17 22:51 UTC · 15174a1 · Deric · Add Master Canon Context section to AGENTS.md
 [HOOK] 2026-08-17 17:07 UTC · 319a7d1 · Deric · authority-remediation-v1: MO§ES™ naming fix, governance predicates, mos2es.com cross-link
 [HOOK] 2026-07-13 10:26 UTC · 2c0c0a1 · Deric · SEO: crawl 3 verification — all major issues resolved, trim remaining titles+meta
