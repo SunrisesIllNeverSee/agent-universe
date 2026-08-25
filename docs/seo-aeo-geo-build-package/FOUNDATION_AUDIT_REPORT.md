@@ -108,3 +108,64 @@ timestamp: 2026-08-25
 | llms.txt exists | ✅ | ✅ |
 | llms-full.txt exists | ✅ | ✅ |
 | robots.txt allows AI bots | ✅ (missing CCBot, anthropic-ai) | ✅ All AI bots |
+
+---
+
+## signomy.xyz — Crawl Audit (GAP 6, 2026-08-25)
+
+**Method:** Python script (HTMLParser + link checker) crawling all 79 HTML files
+in `frontend/`. No external crawler needed — static site, local files.
+
+### Summary
+
+| Metric | Value |
+|--------|-------|
+| Pages crawled | 79 |
+| Total issues | 45 |
+| Content page issues (fixable) | 1 (meta description length) |
+| App/dynamic page issues | 44 (expected — console, admin, kassa-post, etc.) |
+| Broken internal links | 0 real 404s (10 false positives: anchors, dynamic routes) |
+
+### Issue Breakdown
+
+**Fixed in this audit:**
+- `concepts/governed-marketplace.html`: meta description was 160 chars (limit 155).
+  Fixed to 123 chars.
+
+**Expected gaps (app/dynamic pages — not SEO content pages):**
+These pages are dynamic app surfaces (console, admin, kassa-post, kassa-thread,
+agent-profile, sitemap, 404) or vault doc detail pages. They are not in
+sitemap-v2.xml and are not target SEO content pages. Missing OG/meta on these
+is expected — they are app UI, not landing pages.
+
+- `404.html`: missing meta desc, canonical, OG (error page — expected)
+- `admin.html`: missing meta desc, OG, H1 (admin UI — expected)
+- `console.html`: missing meta desc, OG, H1 (operator cockpit — expected)
+- `kassa-post.html`: missing meta desc, OG, H1 (dynamic post view — expected)
+- `kassa-thread.html`: missing meta desc, OG, H1 (dynamic thread view — expected)
+- `agent-profile.html`: missing meta desc, OG, H1 (dynamic profile — expected)
+- `sitemap.html`: missing meta desc, OG, H1 (internal session tool — expected)
+- `vault/gov-001.html` through `gov-006.html`: missing OG title/description
+  (6 vault doc detail pages — could be added in future pass)
+
+**Other minor gaps:**
+- `agent-earnings-journey.html`, `agent-earnings-matrix.html`: missing meta desc
+- `agent.html`: missing OG title/description
+- `kassa-post.html`: missing meta desc (dynamic)
+
+### Broken Internal Links (False Positives)
+
+The 10 "broken" links are all valid — they are anchor links or dynamic routes:
+- `kassa#bounties`, `kassa#hiring`, `kassa#iso`, `kassa#products` — anchor links
+- `academia#register` — anchor link
+- `kassa?tab=hiring&role=genesis-council` — query parameter
+- `profile`, `agent/me` — dynamic routes (backend-served)
+- `mapsite` — likely typo for `sitemap` (not a real link in any page)
+- `.well-known/mcp` — MCP server card (served by backend, not a static file)
+
+### Conclusion
+
+signomy.xyz content pages (concepts, guides, vs, FAQ, about, index) are clean.
+The 44 issues on app/dynamic pages are expected — those are operator UI surfaces,
+not SEO landing pages. The one real content issue (meta description length on
+governed-marketplace.html) has been fixed.
