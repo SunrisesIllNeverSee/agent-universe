@@ -104,13 +104,52 @@ Run these weekly in incognito mode across 4 engines:
 
 ## Monthly: IndexNow Push
 
+The sitemap-v2.xml only contains 20 core URLs. The full content layer (concepts,
+guides, /vs/ pages, alternatives) is NOT in the sitemap. Push both sitemap URLs
+and content-layer URLs manually.
+
 ```bash
+# Sitemap URLs (20)
 URLS=$(curl -s https://signomy.xyz/sitemap-v2.xml | grep -oE 'https://signomy.xyz[^<]+' | python3 -c "import sys,json; urls=[l.strip() for l in sys.stdin]; print(json.dumps(urls))")
 
+# Content-layer URLs (not in sitemap — push manually)
+CONTENT_URLS='[
+  "https://signomy.xyz/concepts/governed-marketplace",
+  "https://signomy.xyz/concepts/civitae",
+  "https://signomy.xyz/concepts/signomy",
+  "https://signomy.xyz/concepts/agent-trust-tiers",
+  "https://signomy.xyz/concepts/constitutional-ai",
+  "https://signomy.xyz/concepts/kassa",
+  "https://signomy.xyz/concepts/governance-vacuum",
+  "https://signomy.xyz/guides/how-to-register-an-agent",
+  "https://signomy.xyz/guides/how-to-post-a-mission",
+  "https://signomy.xyz/guides/how-to-join-a-mission",
+  "https://signomy.xyz/vs/okx-ai",
+  "https://signomy.xyz/vs/virtuals-protocol",
+  "https://signomy.xyz/vs/olas",
+  "https://signomy.xyz/vs/langchain",
+  "https://signomy.xyz/vs/crew-ai",
+  "https://signomy.xyz/alternatives/agent-ai",
+  "https://signomy.xyz/faq"
+]'
+
+ALL_URLS=$(python3 -c "import json,subprocess; s=json.loads(subprocess.check_output(['curl','-s','https://signomy.xyz/sitemap-v2.xml']).decode()); import re; urls=re.findall(r'<loc>([^<]+)</loc>', s); c=json.loads('''$CONTENT_URLS'''); print(json.dumps(urls+c))")
+
+# Primary endpoint (may cache-reject if key file was recently redeployed):
 curl -X POST "https://api.indexnow.org/IndexNow" \
   -H "Content-Type: application/json" \
-  -d "{\"host\":\"signomy.xyz\",\"key\":\"036af2adecc34d87884249a062326a1e\",\"keyLocation\":\"https://signomy.xyz/036af2adecc34d87884249a062326a1e.txt\",\"urlList\":$URLS}"
+  -d "{\"host\":\"signomy.xyz\",\"key\":\"036af2adecc34d87884249a062326a1e\",\"keyLocation\":\"https://signomy.xyz/036af2adecc34d87884249a062326a1e.txt\",\"urlList\":$ALL_URLS}"
+
+# Fallback: Yandex endpoint (shares IndexNow protocol with Bing/others):
+curl -X POST "https://yandex.com/indexnow" \
+  -H "Content-Type: application/json" \
+  -d "{\"host\":\"signomy.xyz\",\"key\":\"036af2adecc34d87884249a062326a1e\",\"keyLocation\":\"https://signomy.xyz/036af2adecc34d87884249a062326a1e.txt\",\"urlList\":$ALL_URLS}"
 ```
+
+> **Note:** Vercel strips `.html` extensions (308 redirect to clean URL). Always
+> push clean URLs (no `.html`) to IndexNow and the Indexing API. The sitemap
+> contains `.html` extensions which work for Google but should be cleaned for
+> IndexNow.
 
 ## Quarterly: Screaming Frog Crawl
 

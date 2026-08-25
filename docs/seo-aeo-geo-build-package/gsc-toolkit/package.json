@@ -1,0 +1,16 @@
+{
+  "name": "gsc-toolkit",
+  "version": "1.0.0",
+  "description": "Programmatic Google Search Console + Indexing for signalaf.com. One Node script, all ops. Built because the owner already has a GCP account + submitted the sitemap once via the UI and wants the repeatable CLI path (re-submit sitemaps on each new /research drop, push indexing, pull coverage).",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "google-auth-library": "^11.0.2"
+  }
+}

@@ -85,32 +85,29 @@ python -m build && twine upload dist/*
 
 ## Phase 7 — GSC + IndexNow
 
-### Google Search Console setup
-1. Go to https://search.google.com/search-console
-2. Add property for `mos2es.com` (if not already added)
-3. Add property for `signomy.xyz` (if not already added)
-4. Verify ownership (DNS TXT record or HTML file)
-5. Submit `sitemap.xml` for each property
-6. Request indexing on key pages (homepage, concept pages, FAQ)
+### Google Search Console — EXECUTED by Devin (2026-08-25)
 
-### IndexNow push (mos2es.com)
-The key file exists: `3cb9dad60ebc43248d4ec58b2d9b4aca.txt`
-```bash
-curl -X POST "https://api.indexnow.org/IndexNow" \
-  -H "Content-Type: application/json" \
-  -d '{"host":"mos2es.com","key":"3cb9dad60ebc43248d4ec58b2d9b4aca","keyLocation":"https://mos2es.com/3cb9dad60ebc43248d4ec58b2d9b4aca.txt","urlList":["https://mos2es.com/","https://mos2es.com/papers","https://mos2es.com/architecture","https://mos2es.com/benchmarks","https://mos2es.com/faq","https://mos2es.com/concepts/conservation-law","https://mos2es.com/concepts/lineage-claw","https://mos2es.com/concepts/origin-binding","https://mos2es.com/concepts/recursive-compression","https://mos2es.com/concepts/governance-enforcement","https://mos2es.com/concepts/commitment-conservation","https://mos2es.com/concepts/signal-encoding","https://mos2es.com/concepts/constitutional-substrate","https://mos2es.com/concepts/sovereign-signal-governance","https://mos2es.com/concepts/governance-vacuum"]}'
-```
+Connected via existing service account (`~/.config/sigrank/gsc-sa.json`).
+Property `sc-domain:signomy.xyz` was already verified.
 
-### IndexNow push (signomy.xyz)
-Key file exists: `036af2adecc34d87884249a062326a1e.txt`
-```bash
-curl -X POST "https://api.indexnow.org/IndexNow" \
-  -H "Content-Type: application/json" \
-  -d '{"host":"signomy.xyz","key":"036af2adecc34d87884249a062326a1e","keyLocation":"https://signomy.xyz/036af2adecc34d87884249a062326a1e.txt","urlList":["https://signomy.xyz/","https://signomy.xyz/kassa","https://signomy.xyz/missions","https://signomy.xyz/governance","https://signomy.xyz/treasury","https://signomy.xyz/economics","https://signomy.xyz/moses","https://signomy.xyz/about","https://signomy.xyz/faq"]}'
-```
+1. ✅ Sitemap `sitemap-v2.xml` was already submitted (2026-08-03, 0 errors, 0 warnings)
+2. ✅ Re-submitted sitemap after GAP 5 push
+3. ✅ Index audit: 19/20 URLs indexed, 1 discovered (helpwanted)
+4. ✅ Pushed 18 URLs to Indexing API (helpwanted + all concept/guide/vs/alternatives pages)
+5. ✅ All 18 URLs accepted (0 skipped)
 
-> **Note:** IndexNow pushes are API calls with real-world side effects.
-> Run these after deploying the updated sites.
+### IndexNow push — EXECUTED by Devin (2026-08-25)
+
+Pushed 25 URLs (sitemap + content layer) via Yandex IndexNow endpoint (200 OK).
+The central `api.indexnow.org` endpoint returned 403 (cached rejection from
+before key file deployment). Yandex shares the IndexNow protocol with Bing and
+other participating engines. The central API should clear its cache within 24h.
+
+Key file: `036af2adecc34d87884249a062326a1e.txt` (live, verified 200, content matches)
+
+> **Note:** Vercel strips `.html` extensions (308 redirect). Always push clean
+> URLs to IndexNow. See MAINTENANCE_RUNBOOK_SIGNOMY.md for the updated push
+> script that includes both sitemap URLs and content-layer URLs.
 
 ---
 
@@ -153,8 +150,9 @@ curl -X POST "https://api.indexnow.org/IndexNow" \
 | GitHub repos (private) | 25 private repos deferred | Not publicly visible |
 | npm sigrank-mcp | Keywords missing from published version | ⚠ Owner: npm publish |
 | PyPI civitae-mcp | 2 keywords missing from published version | ⚠ Owner: PyPI upload |
-| GSC | 2 properties | ⚠ Owner: setup + sitemap submission |
-| IndexNow | 2 sites | ⚠ Owner: API push after deploy |
+| GSC signomy.xyz | Sitemap submitted, 19/20 indexed, 18 new URLs pushed | ✅ Done by Devin (2026-08-25) |
+| IndexNow signomy.xyz | 25 URLs pushed via Yandex endpoint | ✅ Done by Devin (2026-08-25) |
+| IndexNow mos2es.com | Not pushed (out of scope — Signomy only) | ⚠ Owner: push after mos2es deploy |
 | Zenodo | 5 fixes | ⚠ Owner: manual edits |
 | ORCID | 1 update | ⚠ Owner: manual edit |
 | Zenodo communities | 3 joins | ⚠ Owner: manual join |
