@@ -14,54 +14,72 @@ timestamp: 2026-08-25
 
 ## Phase 4 — GitHub + npm discoverability
 
-### Repos with blank descriptions (need description + homepage + topics)
+### EXECUTED by Devin (2026-08-25)
 
-| Repo | Description needed | Homepage | Suggested topics |
-|------|-------------------|----------|-----------------|
-| search-authority | Master canon for the owner's body of work | (internal) | canon, knowledge-graph, authority, semantic-web |
-| commitment-test-harness | Test harness for commitment conservation experiments | https://mos2es.com | commitment-conservation, testing, ai-governance |
-| matraix | MatrAIx persona model | https://mos2es.com | ai, persona, llm |
-| raw-data-package | Raw data package for SigRank | https://signalaf.com | sigrank, data, dataset |
-| sigpax-compare | SigRank comparison tool | https://signalaf.com | sigrank, comparison |
-| academic-sync | Academic publication sync tool | (internal) | academic, sync, zenodo |
-| agent-universe-pre-bfg | Pre-BFG archive of agent-universe | https://signomy.xyz | archive, signomy |
-| pickle | (determine purpose) | (determine) | (determine) |
-| stats-dump | Statistics dump repository | (internal) | stats, data |
-| Aiainti | (determine purpose) | (determine) | (determine) |
-| Codexboardoflead | (determine purpose) | (determine) | (determine) |
-| TransSignal | (determine purpose) | (determine) | (determine) |
-| awesome-mcp-servers-2 | MCP servers directory | https://signomy.xyz | mcp, model-context-protocol, servers |
+The following public non-fork repos were fixed via `gh repo edit`:
 
-### Repos with 0 topics (need ≥5 topics each)
+| Repo | Fix applied | Homepage | Topics added |
+|------|------------|----------|-------------|
+| qaapplication | homepage + topics | https://mos2es.com | application-infrastructure |
+| moses | homepage (mos2es.org → mos2es.com) + topics | https://mos2es.com | governance, ai-governance, commitment-conservation, ai-agents, constitutional-ai |
+| mos2es-site | topics (4 → 6) | https://mos2es.com (unchanged) | governance, commitment-conservation |
+| sigarena | homepage + topics | https://signalaf.com | ai-operator, yield-cascade, leaderboard, token-tracking, sigrank |
+| fundscore | homepage | https://signalaf.com | (already had 7 topics) |
+| bestuser-router-mcp | homepage + topics | https://signalaf.com | ai-operator, yield-cascade, mcp, model-context-protocol, sigrank |
+| .github | homepage + topics | https://signalaf.com | sigrank, ai-operator, yield-cascade, signalaf, moses |
+| SunrisesIllneverSee | homepage + topics | https://signalaf.com | sigrank, moses, signomy, ai-governance, commitment-conservation |
+| MatrAIx-Persona-8B | topics | https://matraix.ai/ (unchanged) | ai, persona, llm, simulation, moses |
 
-b2bpilot, moses, sigarena, sigrank-gtm, ello-repo-control, bestuser-router-mcp,
-KASSA_LEGACY, RNS, MOS2ES-IP-Attorney-Workroom, MatrAIx-Persona-8B,
-awesome-mcp-servers, awesome-ai-tools, awesome-ai-coding, raw-data-package,
-sigadmin-web, sigpax-compare, SunrisesIllneverSee, awesome-mcp-servers-2,
-mcp-find, awesome-mcp-servers-1, MCP-Directory, .github, academic-sync,
-signalaf, Signal-ARCHIVED, agent-universe-pre-bfg, pickle, Turing_Test,
-MOS2ES--Codex--Drop, MOS2ES-Teaser-TM-PPA, MOS2ES-PitchDeck, Bakery,
-stats-dump, Aiainti, Codexboardoflead, TransSignal
+Already passing (no fix needed): KASSA (9 topics), FMS-2.0-Package (7 topics),
+application-hub (8 topics), sigrank-app (19 topics), sigrank-mcp (homepage set),
+agent-universe (homepage set).
 
-### Suggested topics for MO§ES repos
-```
-governance, ai-governance, commitment-conservation, ai-agents,
-multi-agent, sha256, audit-trail, protocol, constitutional-ai,
-semantic-preservation
-```
+### Fork repos (NOT modified — forks inherit parent metadata)
 
-### Commands to fix (run for each repo)
+The following public repos are forks of community projects. Their metadata
+should not be overridden as they represent upstream community resources:
+
+awesome-mcp-servers, awesome-mcp-servers-1, awesome-mcp-servers-2,
+awesome-ai-coding, awesome-ai-tools, MCP-Directory, mcp-find
+
+### Private repos (deferred — not publicly visible)
+
+The following private repos have no description/topics. These are internal
+tooling and not publicly visible, so they do not affect discoverability:
+
+search-authority, commitment-test-harness, matraix, raw-data-package,
+sigpax-compare, academic-sync, agent-universe-pre-bfg, pickle, stats-dump,
+Aiainti, Codexboardoflead, TransSignal, b2bpilot, sigrank-gtm, ello-repo-control,
+KASSA_LEGACY, RNS, MOS2ES-IP-Attorney-Workroom, sigadmin-web, Signal-ARCHIVED,
+Turing_Test, MOS2ES--Codex--Drop, MOS2ES-Teaser-TM-PPA, MOS2ES-PitchDeck, Bakery
+
+### npm package — OWNER ACTION REQUIRED
+
+**sigrank-mcp** on npm: published version has NO keywords.
+Local `package.json` (in sigrank-mcp repo) has 15 keywords defined:
+`sigrank, mcp, model-context-protocol, ai-agents, claude, anthropic, llm,
+token-telemetry, token-usage, leaderboard, cli, tui, yield-cascade,
+agent-tools, on-device`
+
+Action: publish a new version to npm to surface keywords.
 ```bash
-gh repo edit SunrisesIllneverSee/<repo> --description "..." --homepage "https://..."
-gh repo edit SunrisesIllneverSee/<repo> --add-topic governance --add-topic ai-governance ...
+cd <sigrank-mcp repo>
+npm publish
 ```
 
-### npm package keywords
-- Verify `sigrank-mcp` package.json has keywords: `sigrank, mcp, ai-operator, yield-cascade, token-tracking, leaderboard, model-context-protocol, claude, anthropic`
-- Verify `civitae-mcp` package.json has keywords: `civitae, signomy, mcp, agent-marketplace, governed-ai, moses, constitutional-ai`
+### PyPI package — minor staleness
 
-### PyPI package metadata
-- Verify `civitae-mcp` on PyPI has correct description, keywords, and homepage
+**civitae-mcp** on PyPI: published version has 5 keywords
+(`ai-agents, civitae, governance, marketplace, mcp`).
+Local `pyproject.toml` has 7 keywords
+(`mcp, ai-agents, marketplace, governance, civitae, signomy, cli`).
+Homepage and repository URLs are correct on PyPI.
+
+Action: publish a new version to PyPI to add `signomy` and `cli` keywords.
+```bash
+cd ~/Developer/built/agent-universe/packages/civitae-mcp
+python -m build && twine upload dist/*
+```
 
 ---
 
@@ -119,19 +137,24 @@ curl -X POST "https://api.indexnow.org/IndexNow" \
    - Prospectus P-000 → Conservation Law V.05
 
 ### GitHub repo fixes
-6. Fix blank GitHub repos: KASSA, FMS-2.0-Package, qaapplication
-   (KASSA and FMS-2.0-Package already have descriptions — verify qaapplication)
+6. ~~Fix blank GitHub repos: KASSA, FMS-2.0-Package, qaapplication~~
+   **DONE** — KASSA (9 topics), FMS-2.0-Package (7 topics) already had metadata.
+   qaapplication fixed by Devin: homepage set to https://mos2es.com, topic added.
+   See Phase 4 section above for full list of repos fixed by Devin.
 
 ---
 
 ## Summary
 
-| Category | Items | Owner actions needed |
-|----------|-------|---------------------|
-| GitHub repos | 13 blank descriptions, 36 repos with 0 topics | `gh repo edit` commands |
-| npm/PyPI | 2 packages | Verify keywords |
-| GSC | 2 properties | Setup + sitemap submission |
-| IndexNow | 2 sites | API push after deploy |
-| Zenodo | 5 fixes | Manual edits on Zenodo |
-| ORCID | 1 update | Manual edit on ORCID |
-| Zenodo communities | 3 joins | Manual join requests |
+| Category | Items | Status |
+|----------|-------|--------|
+| GitHub repos (public, non-fork) | 9 repos fixed by Devin | ✅ Done |
+| GitHub repos (forks) | 7 fork repos skipped | N/A (forks) |
+| GitHub repos (private) | 25 private repos deferred | Not publicly visible |
+| npm sigrank-mcp | Keywords missing from published version | ⚠ Owner: npm publish |
+| PyPI civitae-mcp | 2 keywords missing from published version | ⚠ Owner: PyPI upload |
+| GSC | 2 properties | ⚠ Owner: setup + sitemap submission |
+| IndexNow | 2 sites | ⚠ Owner: API push after deploy |
+| Zenodo | 5 fixes | ⚠ Owner: manual edits |
+| ORCID | 1 update | ⚠ Owner: manual edit |
+| Zenodo communities | 3 joins | ⚠ Owner: manual join |

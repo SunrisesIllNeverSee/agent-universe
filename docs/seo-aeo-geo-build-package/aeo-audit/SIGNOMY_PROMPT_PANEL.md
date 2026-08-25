@@ -25,6 +25,29 @@ timestamp: 2026-08-25
    - Which competitor cited instead?
 4. Log results in a spreadsheet. Re-run weekly. Track trend over time.
 
+## Execution status
+
+**Panel built:** ✅ 46 prompts (20 named + 26 broad discovery)
+**Baseline run:** ⚠ OWNER ACTION REQUIRED — see note below.
+
+> **Why Devin cannot run this panel:** The 7 target engines
+> (ChatGPT Search, Perplexity, Claude, Gemini, Grok, Google AI
+> Overviews, Bing Copilot) require interactive web UI sessions with
+> authenticated accounts. Devin operates in a terminal environment and
+> cannot interact with these LLM search interfaces. Running the panel
+> is a manual task for the owner.
+>
+> **Owner procedure:**
+> 1. Open each engine in a private/incognito browser window.
+> 2. Paste each of the 46 prompts below, one at a time.
+> 3. Run each prompt 2-3 times to account for LLM variance.
+> 4. Record results in `CITATION_TRACKING_SIGNOMY.csv` (columns:
+>    date, engine, query, mentioned, cited, correct, hallucinated,
+>    competitor_cited, notes).
+> 5. Re-run weekly. Track citation share over time.
+> 6. After Phase 8 reconciliation fixes (Tier 1-5), re-run the full
+>    panel and compare baseline vs post-fix retrieval rates.
+
 ## Named/branded prompts (20)
 
 1. "What is Signomy?"

@@ -88,6 +88,10 @@ Glama wants a Dockerfile config to host the server. Values to paste into the Gla
 ---
 
 <!-- POST-COMMIT HOOK APPENDS BELOW THIS LINE -->
+[HOOK] 2026-08-25 10:40 UTC · 3968e0f · Deric · feat(seo): Phase 5-10 — content layer, crawl fixes, AEO panels, runbooks
+[HOOK] 2026-08-25 10:26 UTC · fecc1f0 · Deric · feat(seo): Phase 1-3 — OG meta, JSON-LD, sitemap, robots.txt for signomy.xyz
+[HOOK] 2026-08-25 10:08 UTC · 9744acf · Deric · docs(seo): add signomy.xyz phased SEO/GEO/AEO implementation plan and execution prompt
+[HOOK] 2026-08-25 09:26 UTC · d9ebdcd · Deric · docs: update SCRATCHPAD
 [HOOK] 2026-08-25 08:24 UTC · dcde2ce · Deric · docs: add consolidated SEO/AEO/GEO build package v2.0
 [HOOK] 2026-08-24 21:22 UTC · df7eaab · Deric · docs: update SCRATCHPAD
 [HOOK] 2026-08-24 21:21 UTC · 773adfb · Deric · docs: update SCRATCHPAD with session notes
