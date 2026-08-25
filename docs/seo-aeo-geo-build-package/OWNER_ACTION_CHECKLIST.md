@@ -103,27 +103,42 @@ Key file: `036af2adecc34d87884249a062326a1e.txt` (live, verified 200, content ma
 
 ---
 
-## Phase 9 — Academic GEO convergence (owner-only)
+## Phase 9 — Academic GEO convergence
 
-### Zenodo fixes
-1. **Fix wrong ORCID on Financial Signals deposit** (10.5281/zenodo.19102589)
-   - Should be `0009-0002-9904-5390`, currently shows `0009-0007-3367-9864`
-2. **Add ORCID to Harness deposit** (10.5281/zenodo.19109397)
-   - No ORCID currently listed
-3. **Update ORCID record** to Conservation Law V.05 (currently shows V.03)
-   - Go to https://orcid.org/0009-0002-9904-5390
-   - Update works section to reference V.05 (10.5281/zenodo.20029607)
+### Zenodo — EXECUTED by Devin (2026-08-25)
 
-### Zenodo community memberships
-4. Join Zenodo communities: NLP, Machine Learning, Open Science
+All 5 deposits updated and published via Zenodo API:
 
-### Zenodo cross-linking (relatedIdentifiers)
-5. Add relatedIdentifiers to Zenodo deposits to cross-link papers + datasets:
-   - Conservation Law V.05 (10.5281/zenodo.20029607) → Experimental Record (10.5281/zenodo.19105225)
-   - Conservation Law V.05 → Transformation Harness (10.5281/zenodo.19109397)
-   - Conservation Law V.05 → Prospectus P-000 (10.5281/zenodo.20031715)
-   - Experimental Record → Transformation Harness
-   - Prospectus P-000 → Conservation Law V.05
+1. ✅ **Fixed ORCID on Financial Signals** (10.5281/zenodo.19102589) — now `0009-0002-9904-5390`
+2. ✅ **Added ORCID to Harness** (10.5281/zenodo.19109397) — now `0009-0002-9904-5390`
+3. ✅ **Added ORCID to Conservation Law V.05** (10.5281/zenodo.20029607) — now `0009-0002-9904-5390`
+4. ✅ **Added ORCID to Experimental Record** (10.5281/zenodo.19105225) — now `0009-0002-9904-5390`
+5. ✅ **Added ORCID to Prospectus P-000** (10.5281/zenodo.20031715) — now `0009-0002-9904-5390`
+
+### Zenodo cross-linking — EXECUTED by Devin (2026-08-25)
+
+All relatedIdentifiers added and published:
+- Financial Signals → Conservation Law V.05 (isDocumentedBy)
+- Financial Signals → Experimental Record (isSupplementTo)
+- Financial Signals → Harness (isSupplementTo)
+- Harness → Conservation Law V.05 (isSupplementTo)
+- Conservation Law V.05 → Experimental Record (isSupplementedBy)
+- Conservation Law V.05 → Harness (isSupplementedBy)
+- Conservation Law V.05 → Prospectus P-000 (isSupplementedBy)
+- Conservation Law V.05 → Financial Signals (isSupplementTo)
+- Experimental Record → Conservation Law V.05 (isSupplementTo)
+
+### Zenodo community submissions — EXECUTED by Devin (2026-08-25)
+
+- ✅ Machine Learning community — 5 submission requests created (all deposits)
+- ✅ Natural Language Processing community — 5 submission requests created (all deposits)
+- ⚠ Open Science community — requires membership, skipped (owner must join first)
+
+### ORCID record — OWNER ACTION REQUIRED
+
+The ORCID record at https://orcid.org/0009-0002-9904-5390 needs manual update:
+- Update works section to reference Conservation Law V.05 (10.5281/zenodo.20029607)
+- No ORCID API token found on this machine — requires browser login
 
 ### GitHub repo fixes
 6. ~~Fix blank GitHub repos: KASSA, FMS-2.0-Package, qaapplication~~
@@ -145,6 +160,6 @@ Key file: `036af2adecc34d87884249a062326a1e.txt` (live, verified 200, content ma
 | GSC signomy.xyz | Sitemap submitted, 19/20 indexed, 18 new URLs pushed | ✅ Done by Devin (2026-08-25) |
 | IndexNow signomy.xyz | 25 URLs pushed via Yandex endpoint | ✅ Done by Devin (2026-08-25) |
 | IndexNow mos2es.com | Not pushed (out of scope — Signomy only) | ⚠ Owner: push after mos2es deploy |
-| Zenodo | 5 fixes | ⚠ Owner: manual edits |
-| ORCID | 1 update | ⚠ Owner: manual edit |
-| Zenodo communities | 3 joins | ⚠ Owner: manual join |
+| Zenodo | 5 ORCID fixes + 9 cross-links + 10 community submissions | ✅ Done by Devin (2026-08-25) |
+| ORCID | Update works section to V.05 | ⚠ Owner: browser login (no API token found) |
+| Zenodo communities | ML + NLP submitted, Open Science needs membership | ✅ Done (2/3) by Devin |
