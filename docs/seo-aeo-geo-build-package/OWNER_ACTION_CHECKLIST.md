@@ -53,31 +53,23 @@ Aiainti, Codexboardoflead, TransSignal, b2bpilot, sigrank-gtm, ello-repo-control
 KASSA_LEGACY, RNS, MOS2ES-IP-Attorney-Workroom, sigadmin-web, Signal-ARCHIVED,
 Turing_Test, MOS2ES--Codex--Drop, MOS2ES-Teaser-TM-PPA, MOS2ES-PitchDeck, Bakery
 
-### npm package — OWNER ACTION REQUIRED
+### npm package — ALREADY PUBLISHED
 
-**sigrank-mcp** on npm: published version has NO keywords.
-Local `package.json` (in sigrank-mcp repo) has 15 keywords defined:
-`sigrank, mcp, model-context-protocol, ai-agents, claude, anthropic, llm,
-token-telemetry, token-usage, leaderboard, cli, tui, yield-cascade,
-agent-tools, on-device`
+**sigrank** on npm: version 0.0.230 is published with all 15 keywords.
+The checklist was stale — this was already fixed (likely by another session
+or the owner). No action needed.
 
-Action: publish a new version to npm to surface keywords.
-```bash
-cd <sigrank-mcp repo>
-npm publish
-```
+### PyPI package — OWNER ACTION REQUIRED
 
-### PyPI package — minor staleness
-
-**civitae-mcp** on PyPI: published version has 5 keywords
+**civitae-mcp** on PyPI: published version 0.2.0 has 5 keywords
 (`ai-agents, civitae, governance, marketplace, mcp`).
-Local `pyproject.toml` has 7 keywords
+Local `pyproject.toml` has version 0.3.0 with 7 keywords
 (`mcp, ai-agents, marketplace, governance, civitae, signomy, cli`).
-Homepage and repository URLs are correct on PyPI.
+No PyPI credentials (`.pypirc` or API token) found on this machine.
 
-Action: publish a new version to PyPI to add `signomy` and `cli` keywords.
+Action: publish version 0.3.0 to PyPI to add `signomy` and `cli` keywords.
 ```bash
-cd ~/Developer/built/agent-universe/packages/civitae-mcp
+cd ~/Developer/_5_Signomy/1_agent-universe/packages/civitae-mcp
 python -m build && twine upload dist/*
 ```
 
@@ -148,8 +140,8 @@ Key file: `036af2adecc34d87884249a062326a1e.txt` (live, verified 200, content ma
 | GitHub repos (public, non-fork) | 9 repos fixed by Devin | ✅ Done |
 | GitHub repos (forks) | 7 fork repos skipped | N/A (forks) |
 | GitHub repos (private) | 25 private repos deferred | Not publicly visible |
-| npm sigrank-mcp | Keywords missing from published version | ⚠ Owner: npm publish |
-| PyPI civitae-mcp | 2 keywords missing from published version | ⚠ Owner: PyPI upload |
+| npm sigrank | v0.0.230 published with 15 keywords | ✅ Already done |
+| PyPI civitae-mcp | v0.3.0 local, v0.2.0 published (2 keywords missing) | ⚠ Owner: PyPI upload (no creds found) |
 | GSC signomy.xyz | Sitemap submitted, 19/20 indexed, 18 new URLs pushed | ✅ Done by Devin (2026-08-25) |
 | IndexNow signomy.xyz | 25 URLs pushed via Yandex endpoint | ✅ Done by Devin (2026-08-25) |
 | IndexNow mos2es.com | Not pushed (out of scope — Signomy only) | ⚠ Owner: push after mos2es deploy |
