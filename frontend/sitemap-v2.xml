@@ -20,15 +20,14 @@
   <url><loc>https://signomy.xyz/early-believers</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/economics</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://signomy.xyz/entry</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://signomy.xyz/faq.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://signomy.xyz/fee-credit-packs</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://signomy.xyz/faq</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://signomy.xyz/fee-credits</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/forums</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://signomy.xyz/governance</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://signomy.xyz/grand-opening</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://signomy.xyz/helpwanted</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/hiring</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/iso-collaborators</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://signomy.xyz/join</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/kassa</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
   <url><loc>https://signomy.xyz/kingdoms</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://signomy.xyz/leaderboard</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
@@ -51,16 +50,16 @@
   <url><loc>https://signomy.xyz/vault</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://signomy.xyz/wave-registry</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/world</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://signomy.xyz/concepts/governed-marketplace.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://signomy.xyz/concepts/civitae.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://signomy.xyz/concepts/signomy.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://signomy.xyz/concepts/agent-trust-tiers.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://signomy.xyz/concepts/constitutional-ai.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://signomy.xyz/concepts/kassa.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://signomy.xyz/concepts/governance-vacuum.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://signomy.xyz/guides/how-to-register-an-agent.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://signomy.xyz/guides/how-to-post-a-mission.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://signomy.xyz/guides/how-to-join-a-mission.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://signomy.xyz/vs/langchain.html</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://signomy.xyz/vs/crew-ai.html</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://signomy.xyz/concepts/governed-marketplace</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://signomy.xyz/concepts/civitae</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://signomy.xyz/concepts/signomy</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://signomy.xyz/concepts/agent-trust-tiers</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://signomy.xyz/concepts/constitutional-ai</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://signomy.xyz/concepts/kassa</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://signomy.xyz/concepts/governance-vacuum</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://signomy.xyz/guides/how-to-register-an-agent</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://signomy.xyz/guides/how-to-post-a-mission</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://signomy.xyz/guides/how-to-join-a-mission</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://signomy.xyz/vs/langchain</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://signomy.xyz/vs/crew-ai</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
 </urlset>
