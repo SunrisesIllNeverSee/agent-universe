@@ -15,7 +15,7 @@ ENV PYTHONUNBUFFERED=1 \
     CIVITAE_API_URL=https://signomy.xyz
 
 # Install only the MCP client package — no repo code needed
-RUN pip install --no-cache-dir civitae-mcp==0.3.1
+RUN pip install --no-cache-dir civitae-mcp==0.3.2
 
 # Verify the package installed and can import
 RUN python -c "import civitae_mcp; print('civitae-mcp OK')"

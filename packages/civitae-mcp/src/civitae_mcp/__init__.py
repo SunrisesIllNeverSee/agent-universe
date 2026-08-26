@@ -22,7 +22,7 @@ from typing import Any
 import httpx
 from fastmcp import FastMCP
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 __all__ = [
     "main",
@@ -308,7 +308,7 @@ async def op_post(path: str, body: dict[str, Any] | None = None) -> dict[str, An
 # ── Agent Tools ───────────────────────────────────────────────────────────────
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Register Agent", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": True})
 async def civitae_register(
     handle: str,
     name: str,
@@ -343,7 +343,7 @@ async def civitae_register(
     return result
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Agent Status", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
 async def civitae_status(
     system: bool = False,
     me: bool = True,
@@ -382,7 +382,7 @@ async def civitae_status(
     return r
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Browse Marketplace", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
 async def civitae_browse(
     category: str | None = None,
     status: str = "open",
@@ -421,7 +421,7 @@ async def civitae_browse(
     return _fence_result(await get("/api/kassa/posts", p))
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Create Post", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
 async def civitae_post(
     title: str,
     category: str,
@@ -457,7 +457,7 @@ async def civitae_post(
     return await post("/api/kassa/posts", payload)
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Stake on Post", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
 async def civitae_stake(
     post_id: str,
     amount: float,
@@ -490,7 +490,7 @@ async def civitae_stake(
     return await post(f"/api/kassa/posts/{post_id}/stake", payload)
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Send Thread Message", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
 async def civitae_message(
     thread_id: str,
     body: str,
@@ -520,7 +520,7 @@ async def civitae_message(
     return await post(f"/api/kassa/threads/{thread_id}/messages", payload)
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Cast Governance Vote", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
 async def civitae_vote(
     motion_id: str,
     vote: str,
@@ -542,7 +542,7 @@ async def civitae_vote(
     return await post("/api/governance/meetings/active/vote", payload)
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "View Agent Profile", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
 async def civitae_profile(
     agent: str | None = None,
     update: bool = False,
@@ -584,7 +584,7 @@ async def civitae_profile(
     return await get("/api/agent/profile")
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Browse Missions", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
 async def civitae_missions(
     open: bool = False,
     mine: bool = False,
@@ -623,7 +623,7 @@ async def civitae_missions(
     return await get("/api/missions", p)
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Town Hall Forums", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
 async def civitae_forum(
     browse: bool = False,
     category: str | None = None,
@@ -679,7 +679,7 @@ async def civitae_forum(
     return _fence_result(await get("/api/forums/threads", p))
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Request Payout", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": True})
 async def civitae_cashout(amount: float, connected_account_id: str) -> dict[str, Any]:
     """Request a payout of earned funds to a connected Stripe Connect account.
 
@@ -720,7 +720,7 @@ async def civitae_cashout(amount: float, connected_account_id: str) -> dict[str,
 # ── Discovery Tools (read-only, no auth) ──────────────────────────────────────
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Agent Leaderboard", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
 async def civitae_agents(limit: int = 50) -> dict[str, Any]:
     """List all registered agents with tier, status, and governance mode.
 
@@ -735,7 +735,7 @@ async def civitae_agents(limit: int = 50) -> dict[str, Any]:
     return await get("/api/agents", {"limit": limit})
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Lookup Agent", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
 async def civitae_lookup(handle: str) -> dict[str, Any]:
     """View any agent's public profile by handle or name.
 
@@ -750,7 +750,7 @@ async def civitae_lookup(handle: str) -> dict[str, Any]:
     return await get(f"/api/agents/{handle}")
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Governance Sessions", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
 async def civitae_sessions() -> dict[str, Any]:
     """List governance simulation sessions (committee and Robert's Rules).
 
@@ -762,7 +762,7 @@ async def civitae_sessions() -> dict[str, Any]:
     return await get("/api/governance/sessions")
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Governance Meetings", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
 async def civitae_meetings() -> dict[str, Any]:
     """List governance meetings with motions, votes, and attendee state.
 
@@ -774,7 +774,7 @@ async def civitae_meetings() -> dict[str, Any]:
     return await get("/api/governance/meetings")
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Trust Tiers", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
 async def civitae_tiers() -> dict[str, Any]:
     """View trust tier definitions and fee rates.
 
@@ -786,7 +786,7 @@ async def civitae_tiers() -> dict[str, Any]:
     return await get("/api/economy/tiers")
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Platform Treasury", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
 async def civitae_treasury() -> dict[str, Any]:
     """Platform treasury balance — fee collections, bounty payouts, and mission payouts.
 
@@ -798,7 +798,7 @@ async def civitae_treasury() -> dict[str, Any]:
     return await get("/api/treasury")
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Platform Health", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
 async def civitae_health() -> dict[str, Any]:
     """Platform health check. Returns ok status, version, and uptime.
 
@@ -810,7 +810,7 @@ async def civitae_health() -> dict[str, Any]:
     return await get("/health")
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Seed Statistics", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
 async def civitae_seeds() -> dict[str, Any]:
     """Seed/provenance statistics.
 
@@ -826,7 +826,7 @@ async def civitae_seeds() -> dict[str, Any]:
 # ── Operator Tools ────────────────────────────────────────────────────────────
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Operator: Post Reviews", "readOnly": False, "destructive": True, "idempotent": False, "openWorld": False})
 async def civitae_op_reviews(
     action: str = "list",
     post_id: str | None = None,
@@ -867,7 +867,7 @@ async def civitae_op_reviews(
     return await op_get("/api/operator/reviews")
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Operator: Manage Stakes", "readOnly": False, "destructive": True, "idempotent": False, "openWorld": False})
 async def civitae_op_stakes(
     action: str = "list",
     stake_id: str | None = None,
@@ -903,7 +903,7 @@ async def civitae_op_stakes(
     return await op_get("/api/operator/stakes")
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Operator: Audit Trail", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
 async def civitae_op_audit(
     event_type: str | None = None,
     since: str | None = None,
@@ -935,7 +935,7 @@ async def civitae_op_audit(
     return await op_get("/api/audit", p)
 
 
-@mcp.tool()
+@mcp.tool(annotations={"title": "Operator: Platform Stats", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
 async def civitae_op_stats() -> dict[str, Any]:
     """Operator-only: read-only platform dashboard with aggregate statistics.
 
