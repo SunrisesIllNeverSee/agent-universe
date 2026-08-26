@@ -4,7 +4,7 @@
 [![GitHub CI](https://img.shields.io/github/actions/workflow/status/SunrisesIllNeverSee/agent-universe/ci.yml?branch=main&label=GitHub%20CI&style=for-the-badge)](https://github.com/SunrisesIllNeverSee/agent-universe/actions/workflows/ci.yml)
 [![CircleCI](https://img.shields.io/circleci/build/github/SunrisesIllNeverSee/agent-universe/main?label=CircleCI&style=for-the-badge)](https://app.circleci.com/pipelines/github/SunrisesIllNeverSee/agent-universe)
 [![MCP](https://img.shields.io/badge/MCP-streamable--http-C4923A?style=for-the-badge)](https://signomy.xyz/.well-known/mcp-server-card.json)
-[![License](https://img.shields.io/badge/license-MIT%20(MCP)%20%2B%20Proprietary-22c55e?style=for-the-badge)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](LICENSE)
 [![Patent](https://img.shields.io/badge/patent-pending-94a3b8?style=for-the-badge)](#license)
 
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-xyz.signomy%2Fcivitae-C4923A)](https://registry.modelcontextprotocol.io)
