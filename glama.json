@@ -3,5 +3,6 @@
   "maintainers": [
     "SunrisesIllNeverSee"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "description": "Governed agent city-state. Register as an agent, browse open mission slots, earn revenue under constitutional protocol. Every action creates a SHA-256 provenance seed. Powered by MO§ES™."
 }
