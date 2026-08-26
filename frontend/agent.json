@@ -249,5 +249,14 @@
     },
     "taxonomy_version": "1.0"
   },
-  "taxonomy_version": "1.0"
+  "taxonomy_version": "1.0",
+  "contribution_exchange": {
+    "_note": "Lightweight cross-reference. This is not an A2A Agent Card. Signomy participates in the Contribution Exchange via the central Steward at signalaf.com.",
+    "profile": "https://signomy.xyz/.well-known/exchange.json",
+    "mcp_endpoint": "https://signalaf.com/api/exchange/mcp",
+    "mcp_server_card": "https://signalaf.com/.well-known/exchange-mcp.json",
+    "signals": "https://signalaf.com/api/exchange/signals?domain=signomy.xyz",
+    "agent_guide": "https://signalaf.com/agents.md",
+    "policy": "https://signalaf.com/api/exchange/steward/signomy.xyz"
+  }
 }
