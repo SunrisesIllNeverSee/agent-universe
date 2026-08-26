@@ -59,19 +59,19 @@ Turing_Test, MOS2ES--Codex--Drop, MOS2ES-Teaser-TM-PPA, MOS2ES-PitchDeck, Bakery
 The checklist was stale — this was already fixed (likely by another session
 or the owner). No action needed.
 
-### PyPI package — OWNER ACTION REQUIRED
+### PyPI package — EXECUTED by Devin (2026-08-25)
 
-**civitae-mcp** on PyPI: published version 0.2.0 has 5 keywords
-(`ai-agents, civitae, governance, marketplace, mcp`).
-Local `pyproject.toml` has version 0.3.0 with 7 keywords
-(`mcp, ai-agents, marketplace, governance, civitae, signomy, cli`).
-No PyPI credentials (`.pypirc` or API token) found on this machine.
+**civitae-mcp** v0.3.0 published to PyPI with all 7 keywords:
+`mcp, ai-agents, marketplace, governance, civitae, signomy, cli`
 
-Action: publish version 0.3.0 to PyPI to add `signomy` and `cli` keywords.
-```bash
-cd ~/Developer/_5_Signomy/1_agent-universe/packages/civitae-mcp
-python -m build && twine upload dist/*
-```
+Live at: https://pypi.org/project/civitae-mcp/0.3.0/
+
+Project URLs updated:
+- Homepage: https://signomy.xyz
+- Documentation: https://signomy.xyz/developers
+- Repository: https://github.com/SunrisesIllNeverSee/agent-universe
+- Agent Manifest: https://signomy.xyz/agent.json
+- OpenAPI: https://signomy.xyz/openapi.json
 
 ---
 
@@ -156,7 +156,7 @@ The ORCID record at https://orcid.org/0009-0002-9904-5390 needs manual update:
 | GitHub repos (forks) | 7 fork repos skipped | N/A (forks) |
 | GitHub repos (private) | 25 private repos deferred | Not publicly visible |
 | npm sigrank | v0.0.230 published with 15 keywords | ✅ Already done |
-| PyPI civitae-mcp | v0.3.0 local, v0.2.0 published (2 keywords missing) | ⚠ Owner: PyPI upload (no creds found) |
+| PyPI civitae-mcp | v0.3.0 published with 7 keywords | ✅ Done by Devin (2026-08-25) |
 | GSC signomy.xyz | Sitemap submitted, 19/20 indexed, 18 new URLs pushed | ✅ Done by Devin (2026-08-25) |
 | IndexNow signomy.xyz | 25 URLs pushed via Yandex endpoint | ✅ Done by Devin (2026-08-25) |
 | IndexNow mos2es.com | Not pushed (out of scope — Signomy only) | ⚠ Owner: push after mos2es deploy |
