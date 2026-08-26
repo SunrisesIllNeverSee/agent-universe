@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-24
 **Target:** signomy.xyz — served by the agent-universe repo
-**Repo:** `/Users/dericmchenry/Developer/built/agent-universe/`
+**Repo:** `/path/to/agent-universe/`
 **Reference playbook:** `docs/seo-aeo-geo-build-package/` (in this same repo)
 **Reference implementation:** signalaf.com (7 phases shipped — use as template, do not modify)
 

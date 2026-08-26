@@ -12,7 +12,7 @@ timestamp: 2026-08-19
 **Branch:** main (post-BFG — rewritten history)
 **HEAD:** 15ae957b (fresh clone from cleaned repo)
 **Environment:** macOS 25.4.0, Python 3.14, fresh .venv on fresh git clone
-**Tester:** Deric McHenry + Claude Code
+**Tester:** Operator + Claude Code
 **Admin Key:** Rotated (new key set on Railway same day)
 **JWT Secret:** Rotated with 24h grace period (KASSA_JWT_SECRET_PREV set)
 

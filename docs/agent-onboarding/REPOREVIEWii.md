@@ -22,19 +22,19 @@ This file has 15+ agent records with `key_hash` values (full SHA-256 hashes) and
 
 **2. `roster/GEM_CATALOG.md` — contains personal life details**
 
-This file was mined from 371 GPT threads and includes: DoorDash earnings data ("$29.40 per ACTIVE hour"), sewer repair notes, humidifier troubleshooting, monitor shopping decisions, emotional relationship content ("I've never stopped believing that you and I are actually the best for one another"), estate/probate checklists, valuation decisions ("$10M post-money"), and medical persona references ("Dr. GYN-MD"). This is deeply personal data that has no business in a public repo. [6-cite-1](#6-cite-1) 
+This file was mined from personal GPT threads and includes: personal financial data, personal notes, emotional content, and medical persona references. This is deeply personal data that has no business in a public repo. [6-cite-1](#6-cite-1) 
 
 **3. `roster/MASTER_ROSTER.md` — reveals internal operational structure**
 
-Shows your full 33-persona system with tiers, activation counts, and local file paths (`/Desktop/GPT_WorkFlow/parsed_output/`). This is your internal playbook. [6-cite-2](#6-cite-2) [6-cite-3](#6-cite-3) 
+Shows the full 33-persona system with tiers, activation counts, and local file paths. This is internal operational IP. [6-cite-2](#6-cite-2) [6-cite-3](#6-cite-3) 
 
 **4. `CLAUDE.md` — reveals owner identity, local paths, and internal architecture**
 
-Contains your full name, company name, patent serial number, local machine path (`/Users/dericmchenry/Desktop/agent-universe`), the fact the repo is marked PRIVATE, env var names, and a complete internal status board of what's built vs stubbed. [6-cite-4](#6-cite-4) [6-cite-5](#6-cite-5) 
+Contains owner identity, company name, patent info, local machine paths, repo visibility status, env var names, and a complete internal status board of what's built vs stubbed. [6-cite-4](#6-cite-4) [6-cite-5](#6-cite-5) 
 
 **5. `IDENTITY.md` — internal persona coordination protocol**
 
-References `~/Desktop/MULTI_CLAUDE.md` and reveals your multi-agent coordination strategy. This is operational IP. [6-cite-6](#6-cite-6) 
+References local multi-agent coordination files and reveals the multi-agent coordination strategy. This is operational IP. [6-cite-6](#6-cite-6) 
 
 **6. `reference/DEPLOY_Pricing_Architecture_v2.md` — marked "Confidential Internal Document"**
 
@@ -50,7 +50,7 @@ Lists every missing governance gate, every unseeded endpoint, and the exact patt
 
 **9. `app/notifications.py` — hardcoded operator email**
 
-`contact@burnmydays.com` is hardcoded as the default `OPERATOR_EMAIL`. Should be env-var only with no default in code. [6-cite-10](#6-cite-10) 
+A personal email was hardcoded as the default `OPERATOR_EMAIL`. Now fixed — env-var only with no default in code. [6-cite-10](#6-cite-10) 
 
 **10. `data/minutes_20260321_002336.md` — live operational data**
 
@@ -98,7 +98,7 @@ civitae/
   run.py
 ```
 
-**What to strip from `app/` before publishing:** Remove the hardcoded `contact@burnmydays.com` default — make it env-var only with no fallback. Remove any comments referencing local paths.
+**What to strip from `app/` before publishing:** Remove any hardcoded personal email defaults — make them env-var only with no fallback. Remove any comments referencing local paths.
 
 ### 2. `civitae-internal` (PRIVATE) — Your operational brain
 

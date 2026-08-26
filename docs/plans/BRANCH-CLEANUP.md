@@ -99,7 +99,7 @@ These have more commits or touch substantial features. Review the diff before de
 ## Recommended cleanup procedure
 
 ```bash
-cd ~/Desktop/agent-universe
+cd /path/to/agent-universe
 
 # Step 1: Delete the 4 merged branches (safe, loses nothing)
 git push origin --delete 001-civitae-full-build

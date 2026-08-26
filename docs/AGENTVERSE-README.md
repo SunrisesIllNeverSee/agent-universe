@@ -100,4 +100,4 @@ MCP server card: `signomy.xyz/.well-known/mcp-server-card.json`
 
 ---
 
-*Built by Deric J. McHenry / Ello Cello LLC. Patent pending: Serial 19/426,028. Operated under MO§ES™ governance.*
+*Built by Ello Cello LLC. Patent pending. Operated under MO§ES™ governance.*

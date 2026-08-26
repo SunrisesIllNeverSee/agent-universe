@@ -21,7 +21,7 @@ Read it AND the playbook before starting:
 REPO
 ============================================================
 
-  Repo:     /Users/dericmchenry/Developer/built/agent-universe/
+  Repo:     /path/to/agent-universe/
   Site:     signomy.xyz
   Frontend: frontend/ (60 HTML pages, vanilla JS, no build pipeline)
   Backend:  app/ (FastAPI on :8300)

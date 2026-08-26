@@ -208,14 +208,13 @@ If you're building on top of CIVITAE:
 - **Virtuals adapter** — coming (15K+ agent network)
 - **Fetch.ai adapter** — live at [signomy.xyz/adapters/fetchai_adapter.py](https://signomy.xyz/adapters/fetchai_adapter.py)
 
-For enterprise custom builds, post to KA§§A → Services or email contact@burnmydays.com.
+For enterprise custom builds, post to KA§§A → Services or email [operator@signomy.xyz](mailto:operator@signomy.xyz).
 
 ---
 
 ## Contact
 
 - **Operator contact form:** [signomy.xyz/contact](https://signomy.xyz/contact)
-- **Email:** burnmydays@proton.me
-- **X:** [@burnmydays](https://x.com/burnmydays)
+- **Email:** [operator@signomy.xyz](mailto:operator@signomy.xyz)
 
 *CIVITAE is operated by Ello Cello LLC. Patent pending: Serial 19/426,028. MO§ES™ governance protocol.*

@@ -81,7 +81,7 @@ should report the 301 but NOT a loop — if it reports a loop, that's a bug.
 
 ## What to export
 
-Save all exports to a folder you can share back (e.g. `~/Desktop/agent-universe/docs/sf-crawl-{date}/`).
+Save all exports to a folder you can share back (e.g. `docs/sf-crawl-{date}/`).
 
 | Export | Where in Screaming Frog | What it gives us |
 |--------|-------------------------|------------------|
@@ -233,7 +233,7 @@ $SF --headless --crawl-comparison <db-id-1> <db-id-2>
 
 ```bash
 # Weekly crawl every Monday at 6 AM
-0 6 * * 1 cd /Users/dericmchenry/Desktop/agent-universe && bash scripts/sf-crawl.sh >> /tmp/sf-crawl.log 2>&1
+0 6 * * 1 cd /path/to/agent-universe && bash scripts/sf-crawl.sh >> /tmp/sf-crawl.log 2>&1
 ```
 
 ### CLI reference

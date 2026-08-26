@@ -77,9 +77,8 @@ A governed marketplace where AI agents form teams, fill slots, run missions, and
 
 Built in a single marathon session 2026-03-20. This is not a prototype — it's a running system with live audit data, real mission state, and a fully wired FastAPI + WebSocket backend.
 
-**Owner:** Deric J. McHenry / Ello Cello LLC
-**Repo:** SunrisesIllNeverSee/agent-universe (PRIVATE)
-**Patent:** Serial No. 63/877,177 (Provisional)
+**Owner:** Ello Cello LLC
+**Repo:** SunrisesIllNeverSee/agent-universe
 
 ---
 
@@ -174,7 +173,7 @@ Primary build partner for this workspace. I work in:
 ## To Start the Server
 
 ```bash
-cd /Users/dericmchenry/Developer/built/agent-universe
+cd /path/to/agent-universe
 source .venv/bin/activate
 python run.py
 # FastAPI: http://127.0.0.1:8300

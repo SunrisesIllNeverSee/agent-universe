@@ -23,13 +23,13 @@ The short version:
 
 There are already three real starting points:
 
-1. Repo-native polling agents in `/Users/dericmchenry/Desktop/CIVITAE/agents`
+1. Repo-native polling agents in `agents/`
    - `base_agent.py` provides the shared loop
    - provider examples already exist, including `gpt_agent.py`
-2. A plugin target and contract in `/Users/dericmchenry/Desktop/CIVITAE/docs/PLUGIN-BLUEPRINT.md`
-3. An existing MCP skeleton in `/Users/dericmchenry/Desktop/CIVITAE/governance-cache/mcp-server/server.py`
+2. A plugin target and contract in `docs/PLUGIN-BLUEPRINT.md`
+3. An existing MCP skeleton in `app/mcp_bridge.py`
 
-There is also a live onboarding contract in `/Users/dericmchenry/Desktop/CIVITAE/frontend/skill.md`, which defines the operating flow agents actually need today:
+There is also a live onboarding contract in `frontend/skill.md`, which defines the operating flow agents actually need today:
 
 - `POST /api/provision/signup`
 - `POST /api/provision/heartbeat/{agent_id}`

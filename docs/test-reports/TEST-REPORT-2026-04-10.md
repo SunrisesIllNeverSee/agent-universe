@@ -12,7 +12,7 @@ timestamp: 2026-08-19
 **Branch:** main  
 **Commit:** de6d00c (Fix CI: drop pinned mcp==1.9.4)  
 **Environment:** macOS 25.4.0, Python 3.14, fresh .venv  
-**Tester:** Deric McHenry  
+**Tester:** Operator  
 
 ---
 

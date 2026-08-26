@@ -1,8 +1,0 @@
-﻿"Address","Content Type","Status Code","Status","Crawl Depth","Inlinks"
-"https://orcid.org/0009-0002-9904-5390","text/html","200","OK","1","24"
-"https://x.com/burnmydays","text/html; charset=UTF-8","200","OK","3","1"
-"https://github.com/SunrisesIllNeverSee/command-engine","text/html; charset=utf-8","200","OK","3","1"
-"https://github.com/SunrisesIllNeverSee","text/html; charset=utf-8","200","OK","3","1"
-"https://github.com/SunrisesIllNeverSee/moses-governance","text/html; charset=utf-8","200","OK","3","2"
-"https://zenodo.org/records/18792459","text/html; charset=utf-8","200","OK","3","3"
-"https://zenodo.org/records/19105225","text/html; charset=utf-8","200","OK","3","2"

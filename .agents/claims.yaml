@@ -132,3 +132,17 @@ claims:
     released_at: 2026-08-23T19:52:00Z
     landed_commits:
       - 39df519f3f2ce44efb08c63b3b68033d6d3d07f9
+  - id: claim-2026-08-25-devin-signomy-seo-finish
+    session: devin-2026-08-25-signomy-seo-finish
+    type: file_lane
+    paths:
+      - frontend/*.html
+      - frontend/concepts/*.html
+      - frontend/guides/*.html
+      - frontend/vs/*.html
+      - frontend/llms-full.txt
+      - frontend/b01f4eb042a24d3e8f1578588aaae66e.txt
+      - docs/seo-aeo-geo-build-package/FOUNDATION_AUDIT_REPORT.md
+      - docs/seo-aeo-geo-build-package/SCHEMA_VALIDATION_REPORT_SIGNOMY.md
+    purpose: Signomy SEO/GEO/AEO finish work — GAPs 1,2,3,4,6,7,8 (GAP 5 blocked on competitor research)
+    acquired_at: 2026-08-25T00:00:00Z

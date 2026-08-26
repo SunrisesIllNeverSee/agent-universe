@@ -23,7 +23,7 @@ Work from this folder once the live product is stable and generating activity.
 - **SEED-COVERAGE-MAP** → Full provenance trail; constitutional record is complete
 - **VELVET-ROPE-LOBBY** → Controlled onboarding pressure; ceremonial access layer
 - **PHASE-2-BACKLOG** → World becomes inhabitable; guilds enable collective missions
-- **OPS-STAFFING-PLAN** → Deric stops running operations; governed agents run the platform
+- **OPS-STAFFING-PLAN** → Operator transitions from manual operations; governed agents run the platform
 
 ---
 

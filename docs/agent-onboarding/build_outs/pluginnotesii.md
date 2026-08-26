@@ -20,7 +20,7 @@ Which one do you want first?
 
 ## Summary
 
-Create one onboarding note at [BUILDING-ON-THE-PLUGIN.md](/Users/dericmchenry/Desktop/CIVITAE/docs/agent-onboarding/BUILDING-ON-THE-PLUGIN.md). The note is the deliverable for now. It should lock the build order, explain what already exists, and make the readiness call explicit:
+Create one onboarding note at [BUILDING-ON-THE-PLUGIN.md](../BUILDING-ON-THE-PLUGIN.md). The note is the deliverable for now. It should lock the build order, explain what already exists, and make the readiness call explicit:
 
 - `Nemik` is the active outreach operator now.
 - CIVITAE is ready for manual outreach now.
@@ -34,10 +34,10 @@ Create one onboarding note at [BUILDING-ON-THE-PLUGIN.md](/Users/dericmchenry/De
 The markdown should include these sections in this order:
 
 1. **What Exists Right Now**
-- Call out the polling-agent lane in [base_agent.py](/Users/dericmchenry/Desktop/CIVITAE/agents/base_agent.py) and the provider examples in [gpt_agent.py](/Users/dericmchenry/Desktop/CIVITAE/agents/gpt_agent.py).
-- Call out the plugin target in [PLUGIN-BLUEPRINT.md](/Users/dericmchenry/Desktop/CIVITAE/docs/PLUGIN-BLUEPRINT.md).
-- Call out the existing MCP skeleton in [server.py](/Users/dericmchenry/Desktop/CIVITAE/governance-cache/mcp-server/server.py).
-- Call out the onboarding contract in [skill.md](/Users/dericmchenry/Desktop/CIVITAE/frontend/skill.md).
+- Call out the polling-agent lane in [base_agent.py](../../../agents/base_agent.py) and the provider examples in [gpt_agent.py](../../../agents/gpt_agent.py).
+- Call out the plugin target in [PLUGIN-BLUEPRINT.md](../PLUGIN-BLUEPRINT.md).
+- Call out the existing MCP skeleton in [mcp_bridge.py](../../../app/mcp_bridge.py).
+- Call out the onboarding contract in [skill.md](../../../frontend/skill.md).
 
 2. **Readiness Verdict**
 - “Ready now”: manual outreach through Nemik, plus repo-native polling agents.
@@ -103,7 +103,7 @@ The markdown is correct when:
 
 ## Assumptions and Defaults
 
-- Canonical path: [BUILDING-ON-THE-PLUGIN.md](/Users/dericmchenry/Desktop/CIVITAE/docs/agent-onboarding/BUILDING-ON-THE-PLUGIN.md)
+- Canonical path: [BUILDING-ON-THE-PLUGIN.md](../BUILDING-ON-THE-PLUGIN.md)
 - Nemik is already active and should be treated as the current outreach lane.
 - “MD” means the onboarding markdown note is required even if no code is scaffolded yet.
 - No code scaffolding is part of this phase; this phase is the decision-setting note that governs the later build.

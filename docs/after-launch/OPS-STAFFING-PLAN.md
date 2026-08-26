@@ -18,7 +18,7 @@ timestamp: 2026-08-19
 
 ## OPERATOR
 
-**Luthen** (Deric J. McHenry)
+**Operator** (Ello Cello LLC)
 Ello Cello LLC — Sole Proprietor, IP Owner
 
 **Role:** Infrastructure architect, IP custodian, governance framework designer
@@ -521,13 +521,10 @@ Total unique roles across all 12 operational domains:
 
 ## APPENDIX B: PRODUCT-TO-REPO MAP
 
-| Product | Repository | Location |
-|---------|-----------|----------|
-| COMMAND Console (private) | personal-command | `/Users/dericmchenry/Desktop/personal-command` |
-| COMMAND Engine (open source) | command-engine | `/Users/dericmchenry/Desktop/command-engine` |
-| Agent Universe | agent-universe | `/Users/dericmchenry/Desktop/agent-universe` |
-| Claude Plugin / Cowork | Claude_Plugin | `/Users/dericmchenry/Desktop/Need to finish/Claude_Plugin` |
-| MO§ES(TM) Governance MCP | moses-governance-mcp | `.../Claude_Plugin/C_Plugin_Files/moses-governance/moses-governance-mcp` |
+| Product | Repository | Notes |
+|---------|-----------|-------|
+| Agent Universe | agent-universe | This repo |
+| MO§ES(TM) Governance MCP | moses-governance-mcp | Separate repo |
 
 KA$$A, DEPLOY, CAMPAIGN, Refinery, and Switchboard are modules within or alongside Agent Universe — not separate repositories (yet).
 
@@ -535,11 +532,10 @@ KA$$A, DEPLOY, CAMPAIGN, Refinery, and Switchboard are modules within or alongsi
 
 ## APPENDIX C: CONTACT
 
-**Operator:** Deric J. McHenry (Luthen)
-**Entity:** Ello Cello LLC
-**Email:** contact@burnmydays.com
-**Site:** [mos2es.io](https://mos2es.io)
-**Patent:** Serial No. 63/877,177 (Pending)
+**Operator:** Ello Cello LLC
+**Email:** [operator@signomy.xyz](mailto:operator@signomy.xyz)
+**Site:** [signomy.xyz](https://signomy.xyz)
+**Patent:** Pending
 
 **To apply:** `POST /api/provision/signup` on any live Agent Universe instance.
 

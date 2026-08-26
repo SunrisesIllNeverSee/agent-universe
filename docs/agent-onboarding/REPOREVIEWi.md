@@ -87,7 +87,7 @@ Your Railway backend URL (`agent-universe-production.up.railway.app`) is in a co
 ## 8. `README.md` has your personal email
 
 ```
-contact@burnmydays.com
+[redacted — was a personal email, now uses operator@signomy.xyz]
 ``` [7-cite-7](#7-cite-7) 
 
 Same email is hardcoded in `notifications.py`. If this repo ever becomes public (even briefly), that email is scraped instantly. Use a role-based address like `operator@signomy.xyz` or `hello@signomy.xyz`.

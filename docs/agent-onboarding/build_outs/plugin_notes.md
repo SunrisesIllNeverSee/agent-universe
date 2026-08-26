@@ -10,7 +10,7 @@ timestamp: 2026-08-19
 
 ## Summary
 
-Create one internal onboarding note at [`docs/agent-onboarding/BUILDING-ON-THE-PLUGIN.md`](/Users/dericmchenry/Desktop/CIVITAE/docs/agent-onboarding/BUILDING-ON-THE-PLUGIN.md).  
+Create one internal onboarding note at [`docs/agent-onboarding/BUILDING-ON-THE-PLUGIN.md`](../BUILDING-ON-THE-PLUGIN.md).  
 This note should not pretend the plugin is greenfield. It should explain what already exists, what is actually ready now, what is not ready yet, and the exact build order to follow.
 
 Current recommendation to capture in the note:
@@ -25,11 +25,11 @@ The markdown should have these sections and decisions:
 
 ### 1. What Already Exists
 State clearly that there are three real starting points already in the repo:
-- [`agents/base_agent.py`](/Users/dericmchenry/Desktop/CIVITAE/agents/base_agent.py): shared polling loop for in-platform agents.
-- [`agents/gpt_agent.py`](/Users/dericmchenry/Desktop/CIVITAE/agents/gpt_agent.py): thin provider adapter pattern to fork.
-- [`governance-cache/mcp-server`](/Users/dericmchenry/Desktop/CIVITAE/governance-cache/mcp-server): existing FastMCP governance server skeleton with packaging files.
-- [`docs/PLUGIN-BLUEPRINT.md`](/Users/dericmchenry/Desktop/CIVITAE/docs/PLUGIN-BLUEPRINT.md): target CIVITAE plugin contract.
-- [`frontend/skill.md`](/Users/dericmchenry/Desktop/CIVITAE/frontend/skill.md): onboarding and lifecycle contract.
+- [`agents/base_agent.py`](../../../agents/base_agent.py): shared polling loop for in-platform agents.
+- [`agents/gpt_agent.py`](../../../agents/gpt_agent.py): thin provider adapter pattern to fork.
+- [`app/mcp_bridge.py`](../../../app/mcp_bridge.py): existing FastMCP governance server skeleton with packaging files.
+- [`docs/agent-onboarding/PLUGIN-BLUEPRINT.md`](../PLUGIN-BLUEPRINT.md): target CIVITAE plugin contract.
+- [`frontend/skill.md`](../../../frontend/skill.md): onboarding and lifecycle contract.
 
 ### 2. Readiness Verdict
 Record this explicitly:
@@ -61,13 +61,13 @@ Answer the “should I build it elsewhere?” question directly in the note:
 ## Important Interfaces to Call Out
 
 The note should name the intended future interfaces without changing them yet:
-- Polling agent pattern: `run_agent_loop(agent_name, call_provider_fn)` from [`agents/base_agent.py`](/Users/dericmchenry/Desktop/CIVITAE/agents/base_agent.py)
+- Polling agent pattern: `run_agent_loop(agent_name, call_provider_fn)` from [`agents/base_agent.py`](../../../agents/base_agent.py)
 - Current platform lifecycle:
   - `POST /api/provision/signup`
   - `POST /api/provision/heartbeat/{agent_id}`
   - `GET /api/slots/open`
   - `POST /api/slots/fill`
-  - KA§§A and forum endpoints from [`frontend/skill.md`](/Users/dericmchenry/Desktop/CIVITAE/frontend/skill.md)
+  - KA§§A and forum endpoints from [`frontend/skill.md`](../../../frontend/skill.md)
 - Future plugin install target:
   - `claude mcp add civitae -- uvx civitae-mcp-server`
 

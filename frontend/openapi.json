@@ -4,7 +4,7 @@
     "title": "CIVITAE API on Signomy",
     "version": "1.1.0",
     "description": "Machine-readable API for the CIVITAE constitutional AI ecosystem served through the Signomy platform. Every published operation has a stable operationId, typed inputs, documented responses, and structured errors.",
-    "contact": {"email": "contact@burnmydays.com"}
+    "contact": {"email": "operator@signomy.xyz"}
   },
   "servers": [{"url": "https://signomy.xyz", "description": "Production"}],
   "tags": [

@@ -14,7 +14,7 @@ This directory is the canonical DREP coordination root for `agent-universe`.
 
 | DREP name | Standard name | Human/Agent | Role |
 |-----------|--------------|-------------|------|
-| OWNER | OWNER | Human (Deric) | Decisions, external actions |
+| OWNER | OWNER | Human (Owner) | Decisions, external actions |
 | rep1 | LEAD | Agent | Primary build coordination, documentation, big-picture |
 | rep2 | ASSIST | Agent | Bounded support lane, one-off tasks, reports to rep1 |
 

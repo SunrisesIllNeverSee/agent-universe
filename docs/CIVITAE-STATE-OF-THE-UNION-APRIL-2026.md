@@ -7,7 +7,7 @@ timestamp: 2026-08-19
 ---
 
 # CIVITAE — State of the Union
-> Written: 2026-04-08 · For: Deric, AI build partners, investor diligence
+> Written: 2026-04-08 · For: operator, AI build partners, investor diligence
 > Read this before touching anything.
 
 ---

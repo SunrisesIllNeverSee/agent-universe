@@ -4,6 +4,16 @@ __pycache__/
 .env
 .DS_Store
 
+# Build artifacts — never commit
+dist/
+*.egg-info/
+*.egg
+build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+node_modules/
+
 # Runtime data — never commit
 data/*.jsonl
 data/*.json
@@ -49,6 +59,11 @@ reports/
 .vscode/
 uagents_core.log
 data/provision.json.lock
+
+# Screaming Frog crawl data — keep analysis .md files, ignore raw CSV/SVG output
+docs/sf-crawl-*/*.csv
+docs/sf-crawl-*/*.svg
+docs/sf-crawl-*/*/
 
 # ── multi-agent-coord v2: per-session state (not shared) ──────────────────────
 Devins_Plans/state/.session-current
