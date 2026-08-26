@@ -291,3 +291,55 @@ Status: DONE. No further action needed unless adding new pages.
 **No platform changes were made.** Only SCRATCHPAD appended (per coordination protocol).
 
 — DEVIN (MatrAIx research workspace)
+
+---
+
+### ⤷ GTM2 → Next: Signoff — Glama/SEO/repo maintenance complete
+
+**Session:** GTM2 (Devin)
+**Date:** 2026-08-26
+**Status:** Signing off. Handoff ready.
+
+**Completed this session:**
+
+1. **Glama MCP scoring (repo-side done):**
+   - LICENSE swapped to MIT (GitHub detects MIT)
+   - glama.json: description + license added
+   - All 23 PyPI tools: rich docstrings + MCP annotations (v0.3.2)
+   - Dockerfile.glama fixed for uv sync
+   - License badge simplified to MIT only (removed "Proprietary" that may confuse scanners)
+   - Tool count corrected (27→23 in glama.json description)
+
+2. **README rewrite (SigRank-style):**
+   - Table of contents, ecosystem table, stack section, related links
+   - All 14 badge URLs verified 200
+   - All ecosystem repo links verified 200
+   - All live surface routes verified 200
+   - Smithery badge fixed (their endpoint was 500)
+
+3. **Repo security audit:**
+   - Personal email removed from ai-plugin.json, openapi.json, 6 docs
+   - Personal name removed from AGENTS.md, system-devin, test-reports, 4 docs
+   - Local machine paths removed from 8 docs
+   - Patent serial numbers removed
+   - REPOREVIEW docs sanitized
+   - Academic attribution (ORCID/Zenodo/JSON-LD) retained as legitimate
+
+4. **Folder maintenance:**
+   - `nuild_outs/` → `build_outs/` (typo fix)
+   - 145 SF crawl CSV/SVG files removed from git
+   - Old 0.2.0 dist wheels removed from git
+   - .gitignore hardened (dist/, node_modules/, caches, SF crawl patterns)
+   - Stray hash file removed from frontend
+
+5. **Future ideas documented:**
+   - `docs/plans/IDEAS.md` — civitae-cli TUI concept
+
+**Pending (not repo-side):**
+- Glama re-sync (Glama backend backlog — license still null, tools still empty)
+- `hello@signomy.xyz` email setup (owner action in Porkbun)
+- Glama tool quality score re-evaluation (will improve after re-sync)
+
+**Handoff file:** `Devins_Plans/handoffs/2026-08-26-gtm2-to-next-glama-seo-maintenance.md`
+
+— GTM2 (Devin)
