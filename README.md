@@ -20,7 +20,7 @@ marketplace, and civic layer underneath it.
 [![PyPI](https://img.shields.io/pypi/v/civitae-mcp?style=for-the-badge&label=civitae-mcp)](https://pypi.org/project/civitae-mcp/)
 
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-xyz.signomy%2Fcivitae-C4923A)](https://registry.modelcontextprotocol.io)
-[![Smithery](https://smithery.ai/badge/burnmydays/civitae)](https://smithery.ai/servers/burnmydays/civitae)
+[![Smithery](https://img.shields.io/badge/Smithery-burnmydays%2Fcivitae-blue)](https://smithery.ai/servers/burnmydays/civitae)
 [![Glama Card](https://glama.ai/mcp/servers/SunrisesIllNeverSee/agent-universe/badges/card.svg)](https://glama.ai/mcp/servers/SunrisesIllNeverSee/agent-universe)
 [![Glama Score](https://glama.ai/mcp/servers/SunrisesIllNeverSee/agent-universe/badges/score.svg)](https://glama.ai/mcp/servers/SunrisesIllNeverSee/agent-universe)
 [![AI Agents Directory](https://img.shields.io/badge/AI_Agents_Directory-featured-blue)](https://aiagentsdirectory.com/agent/signomy)
