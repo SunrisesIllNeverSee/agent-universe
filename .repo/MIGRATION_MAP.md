@@ -14,7 +14,7 @@ All existing root directories declared in `allowed_root_dirs_extra`:
 
 All existing root files declared in `allowed_root_files_extra`:
 - `.env.example`, `.vercelignore`, `CLAUDE.md`, `Dockerfile.glama`, `ONTOLOGY.md`,
-  `Procfile`, `glama.json`, `LICENSE-MCP`, `railway.json`, `run.py`, `run_prod.py`, `server.json`
+  `Procfile`, `glama.json`, `LICENSE-PROPRIETARY`, `railway.json`, `run.py`, `run_prod.py`, `server.json`
 
 ## Pre-existing coordination (preserved, NOT active bus)
 

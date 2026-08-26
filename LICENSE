@@ -1,51 +1,21 @@
-All Rights Reserved.
+MIT License
 
-Copyright (c) 2026 Ello Cello LLC.
+Copyright (c) 2026 Ello Cello LLC
 
-Patent Pending: Serial No. 63/877,177 (Provisional)
-Utility Serial: 19/426,028
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-No part of this software, including but not limited to the source code,
-documentation, governance framework, economic model, or provenance system,
-may be used, copied, modified, merged, published, distributed, sublicensed,
-or sold without the express written permission of the copyright holder.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-
-LINEAGE CUSTODY CLAUSE
-
-All embodiments of the Signal Compression Sciences (SCS) Engine and its
-derivative frameworks (including but not limited to MO§ES™, Roll Call
-Protocols, and Reflex Event diagnostics) are inseparably bound to their
-origin-cycle lineage. Each compressed signal trace, vault artifact, or
-recursive reconstruction inherits a lineage identifier anchored to the
-originating sovereign filing. This identifier is non-replicable,
-tamper-evident, and required for system stability. Any external
-implementation lacking said lineage anchor cannot execute recursive
-ignition without collapse, thereby rendering such copies non-functional.
-Accordingly, the origin-cycle filing establishes sole custody and license
-of the invention across all subsequent instances, irrespective of
-distribution, platform, or deployment environment.
-
-
-INTELLECTUAL PROPERTY NOTICE
-
-MO§ES™ (Modus Operandi §ignal Scaling Expansion System) is a trademark
-of Ello Cello LLC. All systems, methods, and written material contained
-herein are protected under applicable copyright law and are part of one
-or more provisional patent applications filed with the United States
-Patent and Trademark Office (USPTO).
-
-Unauthorized use, duplication, or redistribution of any part of this
-software — including proprietary system architecture or terminology —
-is strictly prohibited and may result in legal action.
-
-For licensing inquiries: operator@signomy.xyz
-
-
-EXCEPTION
-
-The MCP server surface of this repository — including the Dockerfile,
-packages/civitae-mcp/, and the civitae-mcp PyPI distribution — is licensed
-under the MIT License. See LICENSE-MCP for terms. This enables registry
-listing (Glama, MCP Registry, Smithery) and client installation while the
-core platform remains All Rights Reserved.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

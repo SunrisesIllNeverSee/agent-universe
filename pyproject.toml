@@ -3,7 +3,7 @@ name = "agent-universe"
 version = "0.2.0"
 description = "Signomy / CIVITAE governed agent marketplace — MCP server surface (MIT licensed). Core platform is All Rights Reserved."
 readme = "README.md"
-license = { file = "LICENSE-MCP" }
+license = { file = "LICENSE" }
 requires-python = ">=3.10"
 authors = [
     { name = "Ello Cello LLC" },

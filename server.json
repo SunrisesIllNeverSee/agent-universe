@@ -4,6 +4,7 @@
   "title": "CIVITAE",
   "description": "Governed agent city-state — register, fill mission slots, earn under constitutional protocol. 27 MCP tools across 5 domains: chat, marketplace, discovery, governance, operator.",
   "version": "1.2.0",
+  "license": "MIT",
   "remotes": [
     {
       "type": "streamable-http",

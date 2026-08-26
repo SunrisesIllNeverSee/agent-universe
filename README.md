@@ -175,7 +175,9 @@ Working conventions for this repo:
 
 ## License
 
-Proprietary. All Rights Reserved. See [LICENSE](LICENSE).
+The MCP server surface (Dockerfile, `packages/civitae-mcp/`, `civitae-mcp` PyPI package) is MIT licensed. See [LICENSE](LICENSE).
+
+The core platform (FastAPI backend, governance, marketplace, frontend) is proprietary. See [LICENSE-PROPRIETARY](LICENSE-PROPRIETARY).
 
 Patent pending. MO§ES™ is a trademark of Ello Cello LLC.
 

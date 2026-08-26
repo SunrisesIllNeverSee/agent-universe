@@ -14,7 +14,7 @@ repo:
 structure:
   profile: platform
   allowed_root_dirs_extra: [.agents, .circleci, .playwright-mcp, adapters, agents, app, config, data, Devins_Plans, docs, frontend, packages, scripts, tests, system-devin]
-  allowed_root_files_extra: [.env.example, .vercelignore, CLAUDE.md, Dockerfile.glama, ONTOLOGY.md, Procfile, glama.json, LICENSE-MCP, railway.json, run.py, run_prod.py, server.json]
+  allowed_root_files_extra: [.env.example, .vercelignore, CLAUDE.md, Dockerfile.glama, ONTOLOGY.md, Procfile, glama.json, LICENSE-PROPRIETARY, railway.json, run.py, run_prod.py, server.json]
   document_roots: [docs, Devins_Plans]
   artifact_roots: [artifacts, data]
   archive_roots: [archive, docs/archive]
