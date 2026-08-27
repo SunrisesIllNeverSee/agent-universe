@@ -48,7 +48,14 @@ def update_org_block(block_text, canon):
         return block_text, False
 
     org = canon["organization"]
+    canon_context = canon["canon_ld_context"]
     changed = False
+
+    # Replace @context with canon LD context (maps provenance fields to
+    # the moses namespace so the JSON-LD is semantically valid)
+    if d.get("@context") != canon_context:
+        d["@context"] = canon_context
+        changed = True
 
     # Canon-sensitive: name
     if d.get("name") != org["name"]:
@@ -98,6 +105,46 @@ def get_existing_entity_ids(html):
     return ids
 
 
+def replace_entity_blocks(html, canon, changes):
+    """Replace existing canon entity blocks whose content doesn't match canon.
+
+    This handles entity blocks (signomy, civitae, moses) that were injected
+    by a prior run but may have stale @context or other fields. Organization
+    blocks are handled separately by update_org_block.
+    """
+    entity_map = {
+        canon["signomy_entity"]["@id"]: canon["signomy_entity"],
+        canon["civitae_entity"]["@id"]: canon["civitae_entity"],
+        canon["moses_entity"]["@id"]: canon["moses_entity"],
+    }
+
+    def replacer(match):
+        block_text = match.group(1)
+        try:
+            d = json.loads(block_text)
+        except json.JSONDecodeError:
+            return match.group(0)
+        if not isinstance(d, dict) or "@id" not in d:
+            return match.group(0)
+        canon_entity = entity_map.get(d["@id"])
+        if canon_entity is None:
+            return match.group(0)
+        # Compare serialized form — if different, replace with canon version
+        canon_serialized = json.dumps(canon_entity, indent=2, ensure_ascii=False)
+        current_serialized = json.dumps(d, indent=2, ensure_ascii=False)
+        if canon_serialized != current_serialized:
+            changes.append(f"update entity {d['@id'].rsplit('/', 1)[-1]}")
+            return f'<script type="application/ld+json">\n{canon_serialized}\n</script>'
+        return match.group(0)
+
+    return re.sub(
+        r'<script type="application/ld\+json">(.*?)</script>',
+        replacer,
+        html,
+        flags=re.DOTALL,
+    )
+
+
 def update_html_file(filepath, canon, dry_run=False):
     """Update a single HTML file with canon-backed JSON-LD."""
     html = open(filepath, encoding="utf-8").read()
@@ -118,6 +165,9 @@ def update_html_file(filepath, canon, dry_run=False):
         html,
         flags=re.DOTALL,
     )
+
+    # 1b. Replace existing entity blocks with stale @context or fields
+    html = replace_entity_blocks(html, canon, changes)
 
     # 2. Inject entity blocks based on page type
     rel_path = str(Path(filepath).relative_to(FRONTEND_DIR))

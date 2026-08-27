@@ -21,7 +21,14 @@
 :root{color-scheme:dark;--bg:#0a0d12;--panel:#10141a;--border:#252c38;--text:#c8cdd6;--bright:#e8ecf1;--gold:#c4923a;--blue:#5ba8f0}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.7 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{max-width:860px;margin:auto;padding:64px 24px 96px}h1,h2{color:var(--bright)}h1{font-size:clamp(2rem,6vw,4rem);line-height:1.05}h2{margin-top:36px;border-top:1px solid var(--border);padding-top:22px}a{color:var(--blue)}.eyebrow{color:var(--gold);text-transform:uppercase;letter-spacing:.12em;font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
 </style>
 <script type="application/ld+json">{
-  "@context": "https://schema.org",
+  "@context": {
+    "@vocab": "https://schema.org/",
+    "moses": "https://mos2es.com/ontology/0.1/",
+    "sourceSystem": "moses:sourceSystem",
+    "canonBacked": "moses:canonBacked",
+    "authorityApprovalRef": "moses:authorityApprovalRef",
+    "associatedWith": "moses:associatedWith"
+  },
   "@type": "Organization",
   "@id": "https://signomy.xyz/#org",
   "name": "Ello Cello LLC",

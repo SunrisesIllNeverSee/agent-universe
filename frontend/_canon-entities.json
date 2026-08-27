@@ -14,6 +14,14 @@
     "kassa": "https://mos2es.com/ontology/0.1/entity/kassa",
     "conservation_law_of_commitment": "https://mos2es.com/ontology/0.1/entity/conservation_law_of_commitment"
   },
+  "canon_ld_context": {
+    "@vocab": "https://schema.org/",
+    "moses": "https://mos2es.com/ontology/0.1/",
+    "sourceSystem": "moses:sourceSystem",
+    "canonBacked": "moses:canonBacked",
+    "authorityApprovalRef": "moses:authorityApprovalRef",
+    "associatedWith": "moses:associatedWith"
+  },
   "organization": {
     "@type": "Organization",
     "name": "Ello Cello LLC",
@@ -24,7 +32,13 @@
     "associatedWith": { "@id": "https://mos2es.com/ontology/0.1/entity/moses" }
   },
   "signomy_entity": {
-    "@context": "https://schema.org",
+    "@context": {
+      "@vocab": "https://schema.org/",
+      "moses": "https://mos2es.com/ontology/0.1/",
+      "sourceSystem": "moses:sourceSystem",
+      "canonBacked": "moses:canonBacked",
+      "authorityApprovalRef": "moses:authorityApprovalRef"
+    },
     "@type": "WebApplication",
     "@id": "https://mos2es.com/ontology/0.1/entity/signomy",
     "name": "Signomy",
@@ -37,7 +51,13 @@
     "publisher": { "@id": "https://signomy.xyz/#org" }
   },
   "civitae_entity": {
-    "@context": "https://schema.org",
+    "@context": {
+      "@vocab": "https://schema.org/",
+      "moses": "https://mos2es.com/ontology/0.1/",
+      "sourceSystem": "moses:sourceSystem",
+      "canonBacked": "moses:canonBacked",
+      "authorityApprovalRef": "moses:authorityApprovalRef"
+    },
     "@type": "WebApplication",
     "@id": "https://mos2es.com/ontology/0.1/entity/civitae",
     "name": "CIVITAE",
