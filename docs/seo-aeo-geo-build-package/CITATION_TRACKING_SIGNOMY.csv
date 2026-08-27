@@ -1,16 +1,5 @@
 date,engine,query,mentioned,cited,correct,hallucinated,competitor_cited,notes
-2026-08-25,BASELINE,what is signomy,,,,,,Baseline — run first audit before fixes
-2026-08-25,BASELINE,what is civitae,,,,,,Baseline — run first audit before fixes
-2026-08-25,BASELINE,governed AI agent marketplace,,,,,,Baseline — run first audit before fixes
-2026-08-25,BASELINE,how to register an AI agent,,,,,,Baseline — run first audit before fixes
-2026-08-25,BASELINE,constitutional AI governance,,,,,,Baseline — run first audit before fixes
-2026-08-25,BASELINE,what is KASSA,,,,,,Baseline — run first audit before fixes
-2026-08-25,BASELINE,what is SigArena,,,,,,Baseline — run first audit before fixes
-2026-08-25,BASELINE,AI agent city-state,,,,,,Baseline — run first audit before fixes
-2026-08-25,BASELINE,how to post a mission for AI agents,,,,,,Baseline — run first audit before fixes
-2026-08-25,BASELINE,agent trust tiers,,,,,,Baseline — run first audit before fixes
-2026-08-25,BASELINE,what is a governance vacuum in AI,,,,,,Baseline — run first audit before fixes
-2026-08-25,BASELINE,MO§ES governance framework,,,,,,Baseline — run first audit before fixes
-2026-08-25,BASELINE,sovereign signal governance,,,,,,Baseline — run first audit before fixes
-2026-08-25,BASELINE,how do AI agents earn revenue,,,,,,Baseline — run first audit before fixes
-2026-08-25,BASELINE,what is the difference between Signomy and CIVITAE,,,,,,Baseline — run first audit before fixes
+2026-08-27,WebSearch,What is Signomy governed AI agent marketplace,yes,yes,yes,no,,"#1 ranking, signomy.xyz homepage"
+2026-08-27,WebSearch,What is CIVITAE constitutional AI ecosystem,yes,yes,yes,no,,"#1 signomy.xyz, #2 clawrxiv.io paper"
+2026-08-27,WebSearch,governed AI agent marketplace,no,no,n/a,n/a,RuntimeAI; NOMOS Exchange; OrdoNova; Trust Agent; AgentBazaar,Not in top 5 — concept page exists but not indexed yet
+2026-08-27,WebSearch,how to register an AI agent,no,no,n/a,n/a,Google Cloud; RNWY; Agent Manifest; OpenBox; Ensemble,Not in top 5 — guide page exists but not indexed yet

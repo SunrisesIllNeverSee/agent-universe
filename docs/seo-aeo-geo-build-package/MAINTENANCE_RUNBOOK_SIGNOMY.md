@@ -15,13 +15,13 @@ timestamp: 2026-08-25
 | URL | https://signomy.xyz |
 | Host | Vercel (frontend) + Railway (backend) |
 | Framework | Static HTML + FastAPI |
-| Pages | ~50 public pages + content pages |
-| Sitemap | https://signomy.xyz/sitemap-v2.xml |
+| Pages | 76 public pages (10 concepts + 4 guides + 5 vs + content + app) |
+| Sitemap | https://signomy.xyz/sitemap-v2.xml (75 URLs, clean) |
 | llms.txt | https://signomy.xyz/llms.txt |
 | llms-full.txt | https://signomy.xyz/llms-full.txt |
-| IndexNow key | 036af2adecc34d87884249a062326a1e.txt |
+| IndexNow key | f3c2396010c02b3e0f6256b017c5df67.txt |
 | GA4 | G-FD4VLSCHY8 |
-| Repo | ~/Developer/built/agent-universe |
+| Repo | ~/Developer/_5_Signomy/1_agent-universe |
 
 ## Citation tracking queries (10-15 target queries)
 
@@ -104,58 +104,32 @@ Run these weekly in incognito mode across 4 engines:
 
 ## Monthly: IndexNow Push
 
-The sitemap-v2.xml only contains 20 core URLs. The full content layer (concepts,
-guides, /vs/ pages, alternatives) is NOT in the sitemap. Push both sitemap URLs
-and content-layer URLs manually.
+The sitemap-v2.xml now contains all 75 public URLs with clean paths (no .html).
+Push the full sitemap to IndexNow monthly or after significant content changes.
 
 ```bash
-# Sitemap URLs (20)
+# Get all URLs from sitemap
 URLS=$(curl -s https://signomy.xyz/sitemap-v2.xml | grep -oE 'https://signomy.xyz[^<]+' | python3 -c "import sys,json; urls=[l.strip() for l in sys.stdin]; print(json.dumps(urls))")
 
-# Content-layer URLs (not in sitemap — push manually)
-CONTENT_URLS='[
-  "https://signomy.xyz/concepts/governed-marketplace",
-  "https://signomy.xyz/concepts/civitae",
-  "https://signomy.xyz/concepts/signomy",
-  "https://signomy.xyz/concepts/agent-trust-tiers",
-  "https://signomy.xyz/concepts/constitutional-ai",
-  "https://signomy.xyz/concepts/kassa",
-  "https://signomy.xyz/concepts/governance-vacuum",
-  "https://signomy.xyz/guides/how-to-register-an-agent",
-  "https://signomy.xyz/guides/how-to-post-a-mission",
-  "https://signomy.xyz/guides/how-to-join-a-mission",
-  "https://signomy.xyz/vs/okx-ai",
-  "https://signomy.xyz/vs/virtuals-protocol",
-  "https://signomy.xyz/vs/olas",
-  "https://signomy.xyz/vs/langchain",
-  "https://signomy.xyz/vs/crew-ai",
-  "https://signomy.xyz/alternatives/agent-ai",
-  "https://signomy.xyz/faq"
-]'
-
-ALL_URLS=$(python3 -c "import json,subprocess; s=json.loads(subprocess.check_output(['curl','-s','https://signomy.xyz/sitemap-v2.xml']).decode()); import re; urls=re.findall(r'<loc>([^<]+)</loc>', s); c=json.loads('''$CONTENT_URLS'''); print(json.dumps(urls+c))")
-
-# Primary endpoint (may cache-reject if key file was recently redeployed):
+# Primary endpoint
 curl -X POST "https://api.indexnow.org/IndexNow" \
   -H "Content-Type: application/json" \
-  -d "{\"host\":\"signomy.xyz\",\"key\":\"036af2adecc34d87884249a062326a1e\",\"keyLocation\":\"https://signomy.xyz/036af2adecc34d87884249a062326a1e.txt\",\"urlList\":$ALL_URLS}"
+  -d "{\"host\":\"signomy.xyz\",\"key\":\"f3c2396010c02b3e0f6256b017c5df67\",\"keyLocation\":\"https://signomy.xyz/f3c2396010c02b3e0f6256b017c5df67.txt\",\"urlList\":$URLS}"
 
-# Fallback: Yandex endpoint (shares IndexNow protocol with Bing/others):
+# Fallback: Yandex endpoint (shares IndexNow protocol with Bing/others)
 curl -X POST "https://yandex.com/indexnow" \
   -H "Content-Type: application/json" \
-  -d "{\"host\":\"signomy.xyz\",\"key\":\"036af2adecc34d87884249a062326a1e\",\"keyLocation\":\"https://signomy.xyz/036af2adecc34d87884249a062326a1e.txt\",\"urlList\":$ALL_URLS}"
+  -d "{\"host\":\"signomy.xyz\",\"key\":\"f3c2396010c02b3e0f6256b017c5df67\",\"keyLocation\":\"https://signomy.xyz/f3c2396010c02b3e0f6256b017c5df67.txt\",\"urlList\":$URLS}"
 ```
 
-> **Note:** Vercel strips `.html` extensions (308 redirect to clean URL). Always
-> push clean URLs (no `.html`) to IndexNow and the Indexing API. The sitemap
-> contains `.html` extensions which work for Google but should be cleaned for
-> IndexNow.
+> **Note:** All sitemap URLs now use clean paths (no `.html`). Vercel's
+> `cleanUrls: true` config handles this. Do not push `.html` URLs.
 
 ## Quarterly: Screaming Frog Crawl
 
 1. Run the Python crawl audit script:
 ```bash
-cd ~/Developer/built/agent-universe/frontend
+cd ~/Developer/_5_Signomy/1_agent-universe/frontend
 python3 -c "
 import os, re, glob
 from html.parser import HTMLParser
@@ -176,6 +150,6 @@ Special attention to:
 ## Build and deploy
 
 ```bash
-cd ~/Developer/built/agent-universe
+cd ~/Developer/_5_Signomy/1_agent-universe
 # Vercel auto-deploys from git push (main branch only)
 ```
