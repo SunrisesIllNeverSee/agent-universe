@@ -20,14 +20,15 @@
   <url><loc>https://signomy.xyz/early-believers</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/economics</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://signomy.xyz/entry</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://signomy.xyz/faq</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://signomy.xyz/fee-credits</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://signomy.xyz/faq.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://signomy.xyz/fee-credit-packs</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/forums</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://signomy.xyz/governance</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://signomy.xyz/grand-opening</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://signomy.xyz/helpwanted</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/hiring</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/iso-collaborators</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://signomy.xyz/join</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/kassa</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
   <url><loc>https://signomy.xyz/kingdoms</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://signomy.xyz/leaderboard</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
@@ -62,4 +63,13 @@
   <url><loc>https://signomy.xyz/guides/how-to-join-a-mission</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://signomy.xyz/vs/langchain</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://signomy.xyz/vs/crew-ai</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://signomy.xyz/vs/okx-ai</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://signomy.xyz/vs/olas</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://signomy.xyz/vs/virtuals-protocol</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://signomy.xyz/agent-earnings-journey</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://signomy.xyz/agent-earnings-matrix</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://signomy.xyz/agent-profile</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://signomy.xyz/kassa-post</loc><changefreq>daily</changefreq><priority>0.6</priority></url>
+  <url><loc>https://signomy.xyz/kassa-thread</loc><changefreq>daily</changefreq><priority>0.6</priority></url>
+  <url><loc>https://signomy.xyz/sitemap</loc><changefreq>weekly</changefreq><priority>0.3</priority></url>
 </urlset>
