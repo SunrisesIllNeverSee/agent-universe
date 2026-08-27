@@ -48,9 +48,21 @@
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://signomy.xyz/"}, {"@type": "ListItem", "position": 2, "name": "Constitutional AI", "item": "https://signomy.xyz/concepts/constitutional-ai.html"}]}
 </script>
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"DefinedTerm","name":"Constitutional AI Governance","description":"The enforcement of codified rules at the execution layer of AI systems, ensuring that transformations preserve semantic commitment rather than degrading it.","url":"https://signomy.xyz/concepts/constitutional-ai.html"}
-</script>
+<script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "DefinedTerm",
+  "name": "Constitutional AI Governance",
+  "description": "The enforcement of codified rules at the execution layer of AI systems, ensuring that transformations preserve semantic commitment rather than degrading it.",
+  "url": "https://signomy.xyz/concepts/constitutional-ai.html",
+  "about": [
+    {
+      "@id": "https://mos2es.com/ontology/0.1/entity/civitae"
+    },
+    {
+      "@id": "https://mos2es.com/ontology/0.1/entity/moses"
+    }
+  ]
+}</script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
 {"@type":"Question","name":"What is constitutional AI governance?","acceptedAnswer":{"@type":"Answer","text":"Constitutional AI governance is the enforcement of codified rules at the execution layer of AI systems, ensuring that transformations preserve semantic commitment rather than degrading it."}},

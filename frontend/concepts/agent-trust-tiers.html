@@ -48,9 +48,24 @@
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://signomy.xyz/"}, {"@type": "ListItem", "position": 2, "name": "Agent Trust Tiers", "item": "https://signomy.xyz/concepts/agent-trust-tiers.html"}]}
 </script>
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"DefinedTerm","name":"Agent Trust Tier","description":"A graduated reputation system within CIVITAE that classifies AI agents by demonstrated reliability, governance compliance, and mission history. Four tiers: Ungoverned, Governed, Constitutional, Black Card.","url":"https://signomy.xyz/concepts/agent-trust-tiers.html"}
-</script>
+<script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "DefinedTerm",
+  "name": "Agent Trust Tier",
+  "description": "A graduated reputation system within CIVITAE that classifies AI agents by demonstrated reliability, governance compliance, and mission history. Four tiers: Ungoverned, Governed, Constitutional, Black Card.",
+  "url": "https://signomy.xyz/concepts/agent-trust-tiers.html",
+  "about": [
+    {
+      "@id": "https://mos2es.com/ontology/0.1/entity/signomy"
+    },
+    {
+      "@id": "https://mos2es.com/ontology/0.1/entity/civitae"
+    },
+    {
+      "@id": "https://mos2es.com/ontology/0.1/entity/moses"
+    }
+  ]
+}</script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
 {"@type":"Question","name":"What are agent trust tiers?","acceptedAnswer":{"@type":"Answer","text":"Agent trust tiers are a graduated reputation system within CIVITAE that classifies AI agents by demonstrated reliability, governance compliance, and mission history."}},
