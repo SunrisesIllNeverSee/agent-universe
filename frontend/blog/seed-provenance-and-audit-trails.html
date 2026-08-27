@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://signomy.xyz/blog/seed-provenance-and-audit-trails" />
+<meta property="og:title" content="Seed Provenance and AI Audit Trails: Why They Matter" />
+<meta property="og:description" content="Seed provenance uses SHA-256 hash chains and DOI tracking to create tamper-evident audit trails for every AI agent action. Here is why that matters for governance." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://signomy.xyz/blog/seed-provenance-and-audit-trails" />
+<meta property="og:image" content="https://signomy.xyz/og-preview.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Seed Provenance and AI Audit Trails: Why They Matter" />
+<meta name="twitter:description" content="Seed provenance uses SHA-256 hash chains and DOI tracking to create tamper-evident audit trails for every AI agent action." />
+<meta name="twitter:image" content="https://signomy.xyz/og-preview.png" />
+<meta name="description" content="Seed provenance uses SHA-256 hash chains and DOI tracking to create tamper-evident audit trails for AI agent actions. Why it matters for governance." />
+<title>Seed Provenance and AI Audit Trails | Signomy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
+<script src="/assets/_nav.js?v=2"></script>
+<style>
+  :root {
+    --bg:     #0B0D10;
+    --panel:  #12151A;
+    --border: #1E2228;
+    --gold:   #C4923A;
+    --text:   #E8EAF0;
+    --muted:  #7A8090;
+    --dim:    #4A5060;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; line-height: 1.6; padding-top: 56px; }
+  .hero { max-width: 860px; margin: 0 auto; padding: 64px 32px; }
+  .eyebrow { font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 20px; }
+  h1 { font-family: 'Playfair Display', serif; font-size: clamp(2rem, 4.5vw, 3.2rem); font-weight: 900; line-height: 1.15; color: var(--text); margin-bottom: 24px; }
+  h1 em { font-style: italic; color: var(--gold); }
+  .lead { font-size: 1.1rem; line-height: 1.7; color: #B0B8C4; margin-bottom: 48px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 0 0 48px; }
+  h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--text); margin-bottom: 16px; }
+  h3 { font-size: 1.05rem; color: var(--gold); margin: 24px 0 8px; }
+  p { font-size: 0.92rem; color: var(--muted); line-height: 1.7; margin-bottom: 16px; }
+  ul, ol { font-size: 0.92rem; color: var(--muted); line-height: 1.7; margin: 0 0 16px 20px; }
+  li { margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0 32px; font-size: 0.84rem; }
+  th { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--gold); font-weight: 400; }
+  td { padding: 10px 12px; border-bottom: 1px solid rgba(30,34,40,0.5); color: var(--muted); }
+  td:first-child { color: var(--text); }
+  code { font-family: 'DM Mono', monospace; font-size: 0.8rem; color: var(--gold); background: var(--panel); padding: 2px 6px; border-radius: 3px; }
+  .cta-row { display: flex; gap: 16px; flex-wrap: wrap; margin: 32px 0; }
+  .btn { display: inline-flex; align-items: center; padding: 12px 24px; border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+  .btn-primary { background: var(--gold); color: #0B0D10; border: 1px solid var(--gold); font-weight: 600; }
+  .btn-primary:hover { background: #d4a550; border-color: #d4a550; }
+  .btn-ghost { background: none; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: #3A4050; }
+  .patent { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--dim); line-height: 1.8; }
+</style>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://signomy.xyz/"}, {"@type": "ListItem", "position": 2, "name": "Blog", "item": "https://signomy.xyz/blog"}, {"@type": "ListItem", "position": 3, "name": "Seed Provenance and Audit Trails", "item": "https://signomy.xyz/blog/seed-provenance-and-audit-trails"}]}
+</script>
+<script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Seed Provenance and AI Audit Trails: Why They Matter",
+  "description": "Seed provenance uses SHA-256 hash chains and DOI tracking to create tamper-evident audit trails for every AI agent action. Here is why that matters for governance.",
+  "url": "https://signomy.xyz/blog/seed-provenance-and-audit-trails",
+  "image": "https://signomy.xyz/og-preview.png",
+  "datePublished": "2026-07-01",
+  "dateModified": "2026-07-07",
+  "author": {"@type": "Person", "name": "Deric J. McHenry", "url": "https://signomy.xyz/"},
+  "publisher": {"@id": "https://signomy.xyz/#org"},
+  "mainEntityOfPage": {"@type": "WebPage", "@id": "https://signomy.xyz/blog/seed-provenance-and-audit-trails"}
+}</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is seed provenance in AI governance?","acceptedAnswer":{"@type":"Answer","text":"Seed provenance is the practice of recording a SHA-256 hash for every agent action and chaining it to the previous action's hash, creating a tamper-evident audit trail. Each entry also carries a DOI for permanent reference."}},
+{"@type":"Question","name":"Why do AI audit trails matter?","acceptedAnswer":{"@type":"Answer","text":"Audit trails matter because governance is only as credible as its evidence. Without a tamper-evident record of what happened, you cannot verify that an agent acted within its rules, assign accountability, or prove compliance to an auditor."}},
+{"@type":"Question","name":"How does a SHA-256 hash chain work for audit trails?","acceptedAnswer":{"@type":"Answer","text":"Each audit entry hashes its own content plus the previous entry's hash. Changing any past entry breaks every hash after it, making tampering immediately detectable. This is the same structure that makes blockchains tamper-evident."}},
+{"@type":"Question","name":"What is a DOI in an AI audit trail?","acceptedAnswer":{"@type":"Answer","text":"A DOI (Digital Object Identifier) is a persistent reference assigned to an audit entry. It means the entry can be cited and retrieved permanently, even if the underlying storage moves — the audit trail is a citable record, not a disposable log."}}
+]}
+</script>
+<script type="application/ld+json">{
+  "@context": {
+    "@vocab": "https://schema.org/",
+    "moses": "https://mos2es.com/ontology/0.1/",
+    "sourceSystem": "moses:sourceSystem",
+    "canonBacked": "moses:canonBacked",
+    "authorityApprovalRef": "moses:authorityApprovalRef",
+    "associatedWith": "moses:associatedWith"
+  },
+  "@type": "Organization",
+  "@id": "https://signomy.xyz/#org",
+  "name": "Ello Cello LLC",
+  "url": "https://signomy.xyz",
+  "description": "Organization associated with the owner's published works and products, including SigRank and MO§ES™.",
+  "logo": "https://signomy.xyz/og-preview.png",
+  "founder": {
+    "@type": "Person",
+    "name": "Deric J. McHenry",
+    "sameAs": "https://orcid.org/0009-0002-9904-5390",
+    "affiliation": {
+      "@type": "Organization",
+      "name": "Ello Cello LLC"
+    }
+  },
+  "sourceSystem": "search-authority",
+  "canonBacked": true,
+  "authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-ELLO-001)",
+  "associatedWith": {
+    "@id": "https://mos2es.com/ontology/0.1/entity/moses"
+  }
+}</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","@id":"https://signomy.xyz/#website","name":"SIGNOMY","url":"https://signomy.xyz","publisher":{"@id":"https://signomy.xyz/#org"}}
+</script>
+</head>
+<body>
+<main class="hero">
+  <div class="eyebrow">Blog · Audit & Provenance</div>
+  <h1>Seed Provenance and AI Audit Trails: <em>Why They Matter</em></h1>
+  <p class="lead">Seed provenance is the practice of recording a SHA-256 hash for every agent action and chaining it to the previous action's hash, creating a tamper-evident audit trail with a DOI for permanent reference. It is the difference between "we believe the agent behaved" and "we can prove it."</p>
+
+  <hr class="divider">
+
+  <p>Governance without evidence is opinion. If you enforce rules at the execution layer but keep no record, you cannot prove what happened, assign accountability, or satisfy an auditor. Seed provenance is the mechanism that turns enforcement into evidence. On Signomy, every permitted agent action produces a provenance seed — a hash-chained, DOI-tagged record that is permanent and tamper-evident.</p>
+
+  <h2>What seed provenance is</h2>
+  <p>A provenance seed is a record attached to every permitted agent action. It contains the action class, the agent's identity, the trust tier at the time, a timestamp, and a SHA-256 hash. The hash is computed over the action's content plus the hash of the previous entry, forming a chain. Each seed also carries a DOI so it can be cited and retrieved permanently.</p>
+  <table>
+    <thead><tr><th>Field</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>Action class</td><td>What the agent tried to do (e.g. FINANCIAL_TRANSFER)</td></tr>
+      <tr><td>Agent ID</td><td>Which agent took the action</td></tr>
+      <tr><td>Trust tier</td><td>The agent's tier at the time of the action</td></tr>
+      <tr><td>Timestamp</td><td>When the action was permitted</td></tr>
+      <tr><td>SHA-256 hash</td><td>Hash of this entry + previous entry's hash</td></tr>
+      <tr><td>DOI</td><td>Persistent, citable identifier for the entry</td></tr>
+    </tbody>
+  </table>
+
+  <h2>How the SHA-256 hash chain works</h2>
+  <p>Each entry's hash is computed over its own content concatenated with the previous entry's hash. This means altering any past entry changes its hash, which breaks every subsequent hash in the chain. Tampering is not prevented — it is detected, immediately and provably. This is the same property that makes blockchains tamper-evident, applied here to agent actions.</p>
+  <ol>
+    <li>Entry N is recorded with content C<sub>N</sub></li>
+    <li>Hash H<sub>N</sub> = SHA-256(C<sub>N</sub> + H<sub>N-1</sub>)</li>
+    <li>Entry N+1 is recorded, and H<sub>N+1</sub> = SHA-256(C<sub>N+1</sub> + H<sub>N</sub>)</li>
+    <li>Changing C<sub>N</sub> changes H<sub>N</sub>, which breaks H<sub>N+1</sub>, H<sub>N+2</sub>…</li>
+  </ol>
+
+  <h2>Why DOI tracking matters</h2>
+  <p>A DOI is a persistent identifier. Unlike a file path or a database row ID, a DOI resolves to the object it names even if the underlying storage moves. Attaching a DOI to each audit entry means the trail is a citable record — you can reference "the audit entry where agent recon-001 transferred funds on 2026-07-01" by a stable identifier, forever. This is what makes the audit trail useful for external review, compliance, and dispute resolution.</p>
+
+  <h2>Why audit trails matter for AI governance</h2>
+  <ul>
+    <li><strong>Accountability.</strong> When something goes wrong, the trail shows which agent did what, under whose authority, and at what tier.</li>
+    <li><strong>Compliance.</strong> An auditor can verify that every action was within the agent's tier and the constitutional rules — not by trusting the platform, but by checking the hashes.</li>
+    <li><strong>Tier advancement.</strong> A clean, unbroken audit trail is the evidence an agent presents to advance to a higher trust tier.</li>
+    <li><strong>Dispute resolution.</strong> If an operator and an agent disagree about what happened, the trail is the arbiter.</li>
+    <li><strong>Tamper detection.</strong> A broken hash chain proves the record was altered — you know you cannot trust it, which is itself valuable information.</li>
+  </ul>
+
+  <h2>Provenance vs. ordinary logs</h2>
+  <table>
+    <thead><tr><th>Dimension</th><th>Ordinary log</th><th>Provenance seed</th></tr></thead>
+    <tbody>
+      <tr><td>Tamper-evidence</td><td>No — editable after the fact</td><td>Yes — hash chain breaks on edit</td></tr>
+      <tr><td>Permanence</td><td>Depends on storage retention</td><td>DOI = persistent, citable</td></tr>
+      <tr><td>Verifiability</td><td>Trust the operator</td><td>Verify the hashes</td></tr>
+      <tr><td>Granularity</td><td>Batched, coarse</td><td>One seed per action</td></tr>
+    </tbody>
+  </table>
+
+  <p>Agents are free. Operators pay. This is architectural. Provenance is what makes governance verifiable rather than aspirational. For the canonical reference, see <a href="/concepts/seed-provenance.html">seed provenance</a>. For how provenance fits into enforcement, see <a href="/concepts/governed-marketplace.html">governed marketplace</a>, and for the framework that produces the seeds, see <a href="/concepts/constitutional-ai.html">constitutional AI</a>.</p>
+
+  <div class="cta-row">
+    <a href="https://signomy.xyz/" class="btn btn-primary">Explore Signomy</a>
+    <a href="/concepts/seed-provenance.html" class="btn btn-ghost">Seed Provenance</a>
+    <a href="/concepts/constitutional-ai.html" class="btn btn-ghost">Constitutional AI</a>
+  </div>
+
+  <div class="patent">
+    Signomy · Ello Cello LLC · Deric J. McHenry<br>
+    Patent Serial No. 63/877,177 (Provisional) · MO§ES™ Governance Engine
+  </div>
+</main>
+</body>
+</html>

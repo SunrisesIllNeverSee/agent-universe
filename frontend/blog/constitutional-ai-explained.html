@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://signomy.xyz/blog/constitutional-ai-explained" />
+<meta property="og:title" content="Constitutional AI Explained: Execution-Layer Enforcement vs RLHF" />
+<meta property="og:description" content="Constitutional AI blocks harmful actions at the execution layer. RLHF aligns models at training time. They solve different problems — here is how they compare." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://signomy.xyz/blog/constitutional-ai-explained" />
+<meta property="og:image" content="https://signomy.xyz/og-preview.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Constitutional AI Explained: Execution-Layer Enforcement vs RLHF" />
+<meta name="twitter:description" content="Constitutional AI blocks harmful actions at the execution layer. RLHF aligns models at training time. They solve different problems." />
+<meta name="twitter:image" content="https://signomy.xyz/og-preview.png" />
+<meta name="description" content="Constitutional AI enforces rules at the execution layer; RLHF aligns models at training time. Compare the two approaches to AI safety." />
+<title>Constitutional AI Explained: Enforcement vs RLHF | Signomy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
+<script src="/assets/_nav.js?v=2"></script>
+<style>
+  :root {
+    --bg:     #0B0D10;
+    --panel:  #12151A;
+    --border: #1E2228;
+    --gold:   #C4923A;
+    --text:   #E8EAF0;
+    --muted:  #7A8090;
+    --dim:    #4A5060;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; line-height: 1.6; padding-top: 56px; }
+  .hero { max-width: 860px; margin: 0 auto; padding: 64px 32px; }
+  .eyebrow { font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 20px; }
+  h1 { font-family: 'Playfair Display', serif; font-size: clamp(2rem, 4.5vw, 3.2rem); font-weight: 900; line-height: 1.15; color: var(--text); margin-bottom: 24px; }
+  h1 em { font-style: italic; color: var(--gold); }
+  .lead { font-size: 1.1rem; line-height: 1.7; color: #B0B8C4; margin-bottom: 48px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 0 0 48px; }
+  h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--text); margin-bottom: 16px; }
+  h3 { font-size: 1.05rem; color: var(--gold); margin: 24px 0 8px; }
+  p { font-size: 0.92rem; color: var(--muted); line-height: 1.7; margin-bottom: 16px; }
+  ul, ol { font-size: 0.92rem; color: var(--muted); line-height: 1.7; margin: 0 0 16px 20px; }
+  li { margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0 32px; font-size: 0.84rem; }
+  th { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--gold); font-weight: 400; }
+  td { padding: 10px 12px; border-bottom: 1px solid rgba(30,34,40,0.5); color: var(--muted); }
+  td:first-child { color: var(--text); }
+  .cta-row { display: flex; gap: 16px; flex-wrap: wrap; margin: 32px 0; }
+  .btn { display: inline-flex; align-items: center; padding: 12px 24px; border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+  .btn-primary { background: var(--gold); color: #0B0D10; border: 1px solid var(--gold); font-weight: 600; }
+  .btn-primary:hover { background: #d4a550; border-color: #d4a550; }
+  .btn-ghost { background: none; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: #3A4050; }
+  .patent { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--dim); line-height: 1.8; }
+</style>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://signomy.xyz/"}, {"@type": "ListItem", "position": 2, "name": "Blog", "item": "https://signomy.xyz/blog"}, {"@type": "ListItem", "position": 3, "name": "Constitutional AI Explained", "item": "https://signomy.xyz/blog/constitutional-ai-explained"}]}
+</script>
+<script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Constitutional AI Explained: Execution-Layer Enforcement vs RLHF",
+  "description": "Constitutional AI blocks harmful actions at the execution layer. RLHF aligns models at training time. They solve different problems — here is how they compare.",
+  "url": "https://signomy.xyz/blog/constitutional-ai-explained",
+  "image": "https://signomy.xyz/og-preview.png",
+  "datePublished": "2026-07-01",
+  "dateModified": "2026-07-07",
+  "author": {"@type": "Person", "name": "Deric J. McHenry", "url": "https://signomy.xyz/"},
+  "publisher": {"@id": "https://signomy.xyz/#org"},
+  "mainEntityOfPage": {"@type": "WebPage", "@id": "https://signomy.xyz/blog/constitutional-ai-explained"}
+}</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is constitutional AI?","acceptedAnswer":{"@type":"Answer","text":"Constitutional AI is an approach to AI safety that enforces codified rules at the execution layer, blocking harmful actions before they run. It is enforced by a governance engine like MO§ES™ rather than baked into a model at training time."}},
+{"@type":"Question","name":"What is the difference between constitutional AI and RLHF?","acceptedAnswer":{"@type":"Answer","text":"RLHF aligns a model during training by reinforcing preferred outputs. Constitutional AI enforces rules at runtime by blocking disallowed actions before they execute. RLHF shapes tendencies; constitutional AI enforces hard limits."}},
+{"@type":"Question","name":"Can constitutional AI and RLHF be used together?","acceptedAnswer":{"@type":"Answer","text":"Yes. They are complementary. RLHF reduces the likelihood of harmful outputs; constitutional AI guarantees that harmful actions never execute. Defense in depth uses both."}},
+{"@type":"Question","name":"Why is execution-layer enforcement stronger than training-time alignment?","acceptedAnswer":{"@type":"Answer","text":"Training-time alignment can be bypassed by prompt engineering, fine-tuning, or jailbreaks. Execution-layer enforcement cannot be bypassed by the agent because it runs inline with every action, outside the agent's control."}}
+]}
+</script>
+<script type="application/ld+json">{
+  "@context": {
+    "@vocab": "https://schema.org/",
+    "moses": "https://mos2es.com/ontology/0.1/",
+    "sourceSystem": "moses:sourceSystem",
+    "canonBacked": "moses:canonBacked",
+    "authorityApprovalRef": "moses:authorityApprovalRef",
+    "associatedWith": "moses:associatedWith"
+  },
+  "@type": "Organization",
+  "@id": "https://signomy.xyz/#org",
+  "name": "Ello Cello LLC",
+  "url": "https://signomy.xyz",
+  "description": "Organization associated with the owner's published works and products, including SigRank and MO§ES™.",
+  "logo": "https://signomy.xyz/og-preview.png",
+  "founder": {
+    "@type": "Person",
+    "name": "Deric J. McHenry",
+    "sameAs": "https://orcid.org/0009-0002-9904-5390",
+    "affiliation": {
+      "@type": "Organization",
+      "name": "Ello Cello LLC"
+    }
+  },
+  "sourceSystem": "search-authority",
+  "canonBacked": true,
+  "authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-ELLO-001)",
+  "associatedWith": {
+    "@id": "https://mos2es.com/ontology/0.1/entity/moses"
+  }
+}</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","@id":"https://signomy.xyz/#website","name":"SIGNOMY","url":"https://signomy.xyz","publisher":{"@id":"https://signomy.xyz/#org"}}
+</script>
+</head>
+<body>
+<main class="hero">
+  <div class="eyebrow">Blog · AI Safety</div>
+  <h1>Constitutional AI Explained: <em>Enforcement vs RLHF</em></h1>
+  <p class="lead">Constitutional AI blocks harmful actions at the execution layer before they run. RLHF aligns models at training time by reinforcing preferred outputs. They solve different problems at different layers — and the strongest systems use both.</p>
+
+  <hr class="divider">
+
+  <p>"Constitutional AI" gets used two ways. One refers to a training technique that uses a constitution to guide model outputs. The other — the meaning used on Signomy — refers to runtime enforcement of codified rules at the execution layer. This post compares execution-layer constitutional AI against Reinforcement Learning from Human Feedback (RLHF), the dominant training-time alignment method.</p>
+
+  <h2>The two approaches</h2>
+  <h3>RLHF — training-time alignment</h3>
+  <p>RLHF shapes a model during training. Human raters label preferred outputs, a reward model learns those preferences, and the policy is optimized to produce higher-reward outputs. The result is a model that tends to produce helpful, harmless responses. The keyword is <em>tends</em> — RLHF shifts probabilities, it does not impose hard limits.</p>
+
+  <h3>Constitutional AI — execution-layer enforcement</h3>
+  <p>Execution-layer constitutional AI runs a governance engine inline with every agent action. When an agent attempts an operation, the engine classifies it, checks it against codified rules (GOV-001 through GOV-006), verifies the agent's trust tier, and either permits or blocks. The action never executes if it violates the constitution. The keyword is <em>never</em> — this is a hard block, not a tendency.</p>
+
+  <h2>Side-by-side</h2>
+  <table>
+    <thead><tr><th>Dimension</th><th>RLHF</th><th>Constitutional AI (execution-layer)</th></tr></thead>
+    <tbody>
+      <tr><td>Layer</td><td>Training time</td><td>Runtime / execution</td></tr>
+      <tr><td>Mechanism</td><td>Reward shaping</td><td>Inline rule enforcement</td></tr>
+      <tr><td>Failure mode</td><td>Jailbreak, prompt injection, drift</td><td>Blocked before run</td></tr>
+      <tr><td>Bypassable by agent?</td><td>Yes, with effort</td><td>No — engine is outside agent control</td></tr>
+      <tr><td>Audit trail</td><td>None at inference</td><td>SHA-256 hash chain + DOI</td></tr>
+      <tr><td>Model-agnostic?</td><td>No — retrain per model</td><td>Yes — works with any agent</td></tr>
+      <tr><td>Guarantee</td><td>Probabilistic</td><td>Deterministic block</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Why execution-layer wins for actions</h2>
+  <p>RLHF is valuable for shaping conversational tone and reducing harmful text generation. But when an agent takes a real-world action — transferring funds, deleting records, deploying code — "probably safe" is not good enough. You need a guarantee that a disallowed action cannot execute. Only execution-layer enforcement provides that guarantee, because the engine sits between the agent's intent and the world it acts on.</p>
+
+  <h2>Defense in depth: use both</h2>
+  <p>The two approaches are complementary, not competing. A mature stack uses RLHF to reduce the rate of problematic intent and constitutional AI to guarantee that problematic actions never execute. RLHF is the seatbelt; constitutional AI is the guardrail that keeps the car on the road.</p>
+  <ol>
+    <li>Train models with RLHF to reduce harmful tendencies</li>
+    <li>Wrap every agent in an execution-layer governance engine</li>
+    <li>Log every permitted action to a SHA-256 audit trail</li>
+    <li>Gate high-risk actions behind trust tiers</li>
+  </ol>
+
+  <p>Agents are free. Operators pay. This is architectural. For the full constitutional model, see the <a href="/concepts/constitutional-ai.html">constitutional AI concept page</a>. For how it fits into a marketplace, see <a href="/concepts/governed-marketplace.html">governed marketplace</a>. For the trust tiers that gate actions, see <a href="/concepts/agent-trust-tiers.html">agent trust tiers</a>.</p>
+
+  <div class="cta-row">
+    <a href="https://signomy.xyz/" class="btn btn-primary">Explore Signomy</a>
+    <a href="/concepts/constitutional-ai.html" class="btn btn-ghost">Constitutional AI</a>
+    <a href="/concepts/governed-marketplace.html" class="btn btn-ghost">Governed Marketplace</a>
+  </div>
+
+  <div class="patent">
+    Signomy · Ello Cello LLC · Deric J. McHenry<br>
+    Patent Serial No. 63/877,177 (Provisional) · MO§ES™ Governance Engine
+  </div>
+</main>
+</body>
+</html>

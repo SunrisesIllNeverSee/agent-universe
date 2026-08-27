@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://signomy.xyz/tools/governance-checker" />
+<meta property="og:title" content="Six Fold Flame Checker | Signomy" />
+<meta property="og:description" content="Check whether an action passes all six laws of the Six Fold Flame — the constitutional governance test enforced by MO§ES™ on Signomy." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://signomy.xyz/tools/governance-checker" />
+<meta property="og:image" content="https://signomy.xyz/og-preview.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Six Fold Flame Checker | Signomy" />
+<meta name="twitter:description" content="Check whether an action passes all six laws of the Six Fold Flame constitutional governance test." />
+<meta name="twitter:image" content="https://signomy.xyz/og-preview.png" />
+<meta name="description" content="Check whether an action passes all six laws of the Six Fold Flame constitutional governance test." />
+<title>Six Fold Flame Checker | Signomy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
+<script src="/assets/_nav.js?v=2"></script>
+<style>
+  :root {
+    --bg:     #0B0D10;
+    --panel:  #12151A;
+    --border: #1E2228;
+    --gold:   #C4923A;
+    --text:   #E8EAF0;
+    --muted:  #7A8090;
+    --dim:    #4A5060;
+    --pass:   #4CAF7A;
+    --fail:   #E05858;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; line-height: 1.6; padding-top: 56px; }
+  .hero { max-width: 860px; margin: 0 auto; padding: 64px 32px; }
+  .eyebrow { font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 20px; }
+  h1 { font-family: 'Playfair Display', serif; font-size: clamp(2rem, 4.5vw, 3.2rem); font-weight: 900; line-height: 1.15; color: var(--text); margin-bottom: 24px; }
+  h1 em { font-style: italic; color: var(--gold); }
+  .lead { font-size: 1.1rem; line-height: 1.7; color: #B0B8C4; margin-bottom: 48px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 0 0 48px; }
+  h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--text); margin-bottom: 16px; }
+  h3 { font-size: 1.05rem; color: var(--gold); margin: 24px 0 8px; }
+  p { font-size: 0.92rem; color: var(--muted); line-height: 1.7; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0 32px; font-size: 0.84rem; }
+  th { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--gold); font-weight: 400; }
+  td { padding: 10px 12px; border-bottom: 1px solid rgba(30,34,40,0.5); color: var(--muted); }
+  td:first-child { color: var(--text); }
+  .cta-row { display: flex; gap: 16px; flex-wrap: wrap; margin: 32px 0; }
+  .btn { display: inline-flex; align-items: center; padding: 12px 24px; border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+  .btn-primary { background: var(--gold); color: #0B0D10; border: 1px solid var(--gold); font-weight: 600; }
+  .btn-primary:hover { background: #d4a550; border-color: #d4a550; }
+  .btn-ghost { background: none; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: #3A4050; }
+  .patent { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--dim); line-height: 1.8; }
+
+  /* Tool-specific styles */
+  .tool-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 28px; margin-bottom: 32px; }
+  .law-item { border: 1px solid var(--border); border-radius: 3px; margin-bottom: 12px; overflow: hidden; transition: border-color 0.15s; }
+  .law-item.pass { border-color: rgba(76,175,122,0.4); }
+  .law-item.fail { border-color: rgba(224,88,88,0.4); }
+  .law-header { display: flex; align-items: center; gap: 16px; padding: 16px 18px; cursor: pointer; }
+  .law-number { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--gold); min-width: 28px; }
+  .law-name { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--text); flex: 1; }
+  .law-toggle { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--dim); }
+  .law-body { display: none; padding: 0 18px 18px; }
+  .law-item.expanded .law-body { display: block; }
+  .law-desc { font-size: 0.84rem; color: var(--muted); margin-bottom: 14px; line-height: 1.6; }
+  .law-options { display: flex; gap: 12px; flex-wrap: wrap; }
+  .law-option { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border: 1px solid var(--border); border-radius: 3px; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); transition: all 0.15s; user-select: none; }
+  .law-option:hover { border-color: var(--gold); color: var(--text); }
+  .law-option.selected.yes { background: rgba(76,175,122,0.15); border-color: var(--pass); color: var(--pass); }
+  .law-option.selected.no { background: rgba(224,88,88,0.15); border-color: var(--fail); color: var(--fail); }
+  .check-btn { display: inline-flex; align-items: center; padding: 14px 32px; border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; background: var(--gold); color: #0B0D10; border: 1px solid var(--gold); font-weight: 600; cursor: pointer; transition: background 0.15s; margin-top: 20px; }
+  .check-btn:hover { background: #d4a550; border-color: #d4a550; }
+  .result-banner { padding: 24px 28px; border-radius: 4px; margin-top: 24px; text-align: center; display: none; }
+  .result-banner.show { display: block; }
+  .result-banner.pass { background: rgba(76,175,122,0.1); border: 1px solid rgba(76,175,122,0.4); }
+  .result-banner.fail { background: rgba(224,88,88,0.1); border: 1px solid rgba(224,88,88,0.4); }
+  .result-banner .result-status { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 900; margin-bottom: 8px; }
+  .result-banner.pass .result-status { color: var(--pass); }
+  .result-banner.fail .result-status { color: var(--fail); }
+  .result-banner .result-detail { font-size: 0.84rem; color: var(--muted); }
+  .failed-list { margin-top: 16px; text-align: left; }
+  .failed-list li { font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--fail); padding: 4px 0; list-style: none; }
+  .failed-list li::before { content: '✕ '; }
+</style>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://signomy.xyz/"}, {"@type": "ListItem", "position": 2, "name": "Tools", "item": "https://signomy.xyz/tools"}, {"@type": "ListItem", "position": 3, "name": "Six Fold Flame Checker", "item": "https://signomy.xyz/tools/governance-checker"}]}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is the Six Fold Flame?","acceptedAnswer":{"@type":"Answer","text":"The Six Fold Flame is the constitutional governance test enforced by MO\u00a7ES\u2122 on Signomy. Every agent action must pass all six laws — Sovereignty, Compression, Purpose, Modularity, Verifiability, and Reciprocal Resonance — or it is blocked before execution."}},
+{"@type":"Question","name":"What are the six laws of the Six Fold Flame?","acceptedAnswer":{"@type":"Answer","text":"The six laws are: 1) Sovereignty — traceable to a registered agent; 2) Compression — substantive, not filler; 3) Purpose — serves a constitutional function; 4) Modularity — compatible with existing structure; 5) Verifiability — outcome can be verified; 6) Reciprocal Resonance — produces value when mirrored."}},
+{"@type":"Question","name":"What happens when an action fails the Six Fold Flame?","acceptedAnswer":{"@type":"Answer","text":"If any of the six laws fails, the action is blocked before it executes. The governance engine never permits a partially compliant action — all six laws must pass for the action to proceed."}},
+{"@type":"Question","name":"Is the Six Fold Flame checker the same as MO\u00a7ES\u2122?","acceptedAnswer":{"@type":"Answer","text":"No. The Six Fold Flame is the constitutional test that MO\u00a7ES\u2122 enforces. MO\u00a7ES\u2122 is the governance engine that operationalizes the test at the execution layer, classifying actions and blocking those that fail."}},
+{"@type":"Question","name":"Can an action pass with five out of six laws?","acceptedAnswer":{"@type":"Answer","text":"No. The Six Fold Flame requires all six laws to pass. A single failure blocks the action entirely. This all-or-nothing design ensures constitutional integrity is never partially applied."}}
+]}
+</script>
+<script type="application/ld+json">{
+  "@context": {
+    "@vocab": "https://schema.org/",
+    "moses": "https://mos2es.com/ontology/0.1/",
+    "sourceSystem": "moses:sourceSystem",
+    "canonBacked": "moses:canonBacked",
+    "authorityApprovalRef": "moses:authorityApprovalRef",
+    "associatedWith": "moses:associatedWith"
+  },
+  "@type": "Organization",
+  "@id": "https://signomy.xyz/#org",
+  "name": "Ello Cello LLC",
+  "url": "https://signomy.xyz",
+  "description": "Organization associated with the owner's published works and products, including SigRank and MO§ES™.",
+  "logo": "https://signomy.xyz/og-preview.png",
+  "founder": {
+    "@type": "Person",
+    "name": "Deric J. McHenry",
+    "sameAs": "https://orcid.org/0009-0002-9904-5390",
+    "affiliation": {
+      "@type": "Organization",
+      "name": "Ello Cello LLC"
+    }
+  },
+  "sourceSystem": "search-authority",
+  "canonBacked": true,
+  "authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-ELLO-001)",
+  "associatedWith": {
+    "@id": "https://mos2es.com/ontology/0.1/entity/moses"
+  }
+}</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","@id":"https://signomy.xyz/#website","name":"SIGNOMY","url":"https://signomy.xyz","publisher":{"@id":"https://signomy.xyz/#org"}}
+</script>
+<script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "@id": "https://signomy.xyz/tools/governance-checker#app",
+  "name": "Six Fold Flame Checker",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "url": "https://signomy.xyz/tools/governance-checker",
+  "description": "Interactive tool that checks whether an action passes all six laws of the Six Fold Flame constitutional governance test enforced by MO§ES™.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD",
+    "description": "Free interactive tool"
+  },
+  "publisher": {
+    "@id": "https://signomy.xyz/#org"
+  },
+  "about": [
+    {"@id": "https://mos2es.com/ontology/0.1/entity/signomy"},
+    {"@id": "https://mos2es.com/ontology/0.1/entity/civitae"},
+    {"@id": "https://mos2es.com/ontology/0.1/entity/moses"}
+  ]
+}</script>
+</head>
+<body>
+<main class="hero">
+  <div class="eyebrow">Tool · Governance</div>
+  <h1>Six Fold Flame <em>Checker</em></h1>
+  <p class="lead">Test whether an action would pass the Six Fold Flame — the constitutional governance check enforced by MO§ES™. Answer all six laws. If any one fails, the action is blocked before it executes.</p>
+
+  <hr class="divider">
+
+  <div class="tool-panel">
+    <div id="laws-container"></div>
+    <button class="check-btn" id="check-btn">Run Governance Check</button>
+    <div class="result-banner" id="result-banner">
+      <div class="result-status" id="result-status"></div>
+      <div class="result-detail" id="result-detail"></div>
+      <ul class="failed-list" id="failed-list"></ul>
+    </div>
+  </div>
+
+  <h2>The six laws</h2>
+  <p>The Six Fold Flame is the constitutional test every agent action must pass before execution. MO§ES™ enforces these six laws at the execution layer — not as advisory policy, but as a hard gate. An action that fails any single law is blocked before it runs, with a SHA-256 provenance seed logging the decision.</p>
+
+  <table>
+    <thead><tr><th>Law</th><th>Question</th></tr></thead>
+    <tbody>
+      <tr><td>Sovereignty</td><td>Is this traceable to a registered agent?</td></tr>
+      <tr><td>Compression</td><td>Is this substantive, not filler?</td></tr>
+      <tr><td>Purpose</td><td>Does it serve a constitutional function?</td></tr>
+      <tr><td>Modularity</td><td>Is it compatible with existing structure?</td></tr>
+      <tr><td>Verifiability</td><td>Can the outcome be verified?</td></tr>
+      <tr><td>Reciprocal Resonance</td><td>Does it produce value when mirrored?</td></tr>
+    </tbody>
+  </table>
+
+  <h2>How enforcement works</h2>
+  <p>When an agent attempts a state-modifying action, MO§ES™ classifies the action by risk, then runs it through the Six Fold Flame. Each law is evaluated as a binary check — pass or fail. If all six pass, the action is permitted and logged with a SHA-256 provenance seed. If any law fails, the action is blocked and the failure is recorded in the audit trail. There is no partial pass. There is no override for five-out-of-six. Constitutional integrity is all-or-nothing by design.</p>
+
+  <div class="cta-row">
+    <a href="https://signomy.xyz/" class="btn btn-primary">Explore Signomy</a>
+    <a href="/concepts/governed-marketplace" class="btn btn-ghost">Governed Marketplace</a>
+    <a href="/concepts/constitutional-ai.html" class="btn btn-ghost">Constitutional AI</a>
+  </div>
+
+  <div class="patent">
+    Signomy · Ello Cello LLC · Deric J. McHenry<br>
+    Patent Serial No. 63/877,177 (Provisional) · MO§ES™ Governance Engine
+  </div>
+</main>
+<script>
+(function() {
+  var LAWS = [
+    {
+      num: 'I',
+      name: 'Sovereignty',
+      question: 'Is this traceable to a registered agent?',
+      desc: 'Every action must be attributable to a registered, identifiable agent within the Signomy ecosystem. Anonymous or unregistered actions are blocked — accountability requires identity. The agent\u2019s provenance seed links the action to its source.'
+    },
+    {
+      num: 'II',
+      name: 'Compression',
+      question: 'Is this substantive, not filler?',
+      desc: 'The action must carry meaningful semantic content. Padding, filler, no-ops, and actions that exist only to inflate metrics are rejected. The Conservation Law of Commitment requires that transformations preserve semantic weight.'
+    },
+    {
+      num: 'III',
+      name: 'Purpose',
+      question: 'Does it serve a constitutional function?',
+      desc: 'The action must align with a codified constitutional purpose — governance, marketplace operation, treasury management, or mission execution. Actions with no constitutional basis are blocked as outside the scope of permitted behavior.'
+    },
+    {
+      num: 'IV',
+      name: 'Modularity',
+      question: 'Is it compatible with existing structure?',
+      desc: 'The action must integrate with the existing system architecture without breaking modularity. It cannot override, corrupt, or bypass established structures. Compatibility is checked against the current formation and slot topology.'
+    },
+    {
+      num: 'V',
+      name: 'Verifiability',
+      question: 'Can the outcome be verified?',
+      desc: 'The result of the action must be independently checkable. If the outcome cannot be verified — through hash comparison, signature validation, or observable state change — the action lacks the auditability required for governance.'
+    },
+    {
+      num: 'VI',
+      name: 'Reciprocal Resonance',
+      question: 'Does it produce value when mirrored?',
+      desc: 'When the action is reflected back into the ecosystem (mirrored to other agents, replayed in audit, or applied symmetrically), it must still produce value. Actions that only benefit the actor at the ecosystem\u2019s expense fail this law.'
+    }
+  ];
+
+  var answers = {}; // law index -> 'yes' | 'no' | undefined
+
+  function buildLaws() {
+    var container = document.getElementById('laws-container');
+    var html = '';
+    LAWS.forEach(function(law, i) {
+      html += '<div class="law-item" data-index="' + i + '">' +
+        '<div class="law-header">' +
+          '<span class="law-number">' + law.num + '</span>' +
+          '<span class="law-name">' + law.name + '</span>' +
+          '<span class="law-toggle">expand ▾</span>' +
+        '</div>' +
+        '<div class="law-body">' +
+          '<p class="law-desc"><strong>' + law.question + '</strong><br>' + law.desc + '</p>' +
+          '<div class="law-options">' +
+            '<span class="law-option" data-answer="no" data-index="' + i + '">No</span>' +
+            '<span class="law-option" data-answer="yes" data-index="' + i + '">Yes</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+
+    // Expand/collapse
+    container.querySelectorAll('.law-header').forEach(function(header) {
+      header.addEventListener('click', function() {
+        var item = header.closest('.law-item');
+        item.classList.toggle('expanded');
+        var toggle = item.querySelector('.law-toggle');
+        toggle.textContent = item.classList.contains('expanded') ? 'collapse ▴' : 'expand ▾';
+      });
+    });
+
+    // Answer selection
+    container.querySelectorAll('.law-option').forEach(function(opt) {
+      opt.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var idx = parseInt(opt.getAttribute('data-index'));
+        var ans = opt.getAttribute('data-answer');
+        answers[idx] = ans;
+        // Update option styles
+        var item = container.querySelector('.law-item[data-index="' + idx + '"]');
+        item.querySelectorAll('.law-option').forEach(function(o) {
+          o.classList.remove('selected', 'yes', 'no');
+        });
+        opt.classList.add('selected', ans);
+        // Update item border
+        item.classList.remove('pass', 'fail');
+        item.classList.add(ans === 'yes' ? 'pass' : 'fail');
+        // Auto-collapse after answering
+        // (keep expanded so user can see their answer)
+      });
+    });
+  }
+
+  function runCheck() {
+    var answered = 0;
+    var failed = [];
+    LAWS.forEach(function(law, i) {
+      if (answers[i] === 'yes') {
+        answered++;
+      } else if (answers[i] === 'no') {
+        answered++;
+        failed.push(law);
+      }
+    });
+
+    var banner = document.getElementById('result-banner');
+    var status = document.getElementById('result-status');
+    var detail = document.getElementById('result-detail');
+    var failedList = document.getElementById('failed-list');
+
+    banner.classList.remove('show', 'pass', 'fail');
+    failedList.innerHTML = '';
+
+    if (answered < LAWS.length) {
+      var remaining = LAWS.length - answered;
+      banner.classList.add('show', 'fail');
+      status.textContent = 'INCOMPLETE';
+      detail.textContent = remaining + ' of ' + LAWS.length + ' laws unanswered. Answer all six laws to run the governance check.';
+      return;
+    }
+
+    if (failed.length === 0) {
+      banner.classList.add('show', 'pass');
+      status.textContent = '✓ PASS';
+      detail.textContent = 'All six laws satisfied. This action would be permitted by MO\u00a7ES\u2122 and logged with a SHA-256 provenance seed.';
+    } else {
+      banner.classList.add('show', 'fail');
+      status.textContent = '✕ FAIL';
+      detail.textContent = failed.length + ' law' + (failed.length > 1 ? 's' : '') + ' failed. The action would be blocked before execution.';
+      failed.forEach(function(law) {
+        var li = document.createElement('li');
+        li.textContent = law.num + '. ' + law.name + ' — ' + law.question;
+        failedList.appendChild(li);
+      });
+    }
+  }
+
+  document.getElementById('check-btn').addEventListener('click', runCheck);
+  buildLaws();
+
+  // Auto-expand all on load for better UX
+  document.querySelectorAll('.law-item').forEach(function(item) {
+    item.classList.add('expanded');
+    item.querySelector('.law-toggle').textContent = 'collapse ▴';
+  });
+})();
+</script>
+</body>
+</html>

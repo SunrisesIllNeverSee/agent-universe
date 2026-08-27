@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://signomy.xyz/blog/conservation-law-of-commitment" />
+<meta property="og:title" content="The Conservation Law of Commitment: C(T(S)) ≈ C(S)" />
+<meta property="og:description" content="The Conservation Law of Commitment says a transformation must preserve a signal's semantic commitment, or it is rejected. Here is what that means for AI governance." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://signomy.xyz/blog/conservation-law-of-commitment" />
+<meta property="og:image" content="https://signomy.xyz/og-preview.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="The Conservation Law of Commitment: C(T(S)) ≈ C(S)" />
+<meta name="twitter:description" content="The Conservation Law of Commitment says a transformation must preserve a signal's semantic commitment, or it is rejected." />
+<meta name="twitter:image" content="https://signomy.xyz/og-preview.png" />
+<meta name="description" content="The Conservation Law of Commitment, C(T(S)) ≈ C(S), explained in plain terms — and how it decides what AI agent actions to block." />
+<title>The Conservation Law of Commitment Explained | Signomy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
+<script src="/assets/_nav.js?v=2"></script>
+<style>
+  :root {
+    --bg:     #0B0D10;
+    --panel:  #12151A;
+    --border: #1E2228;
+    --gold:   #C4923A;
+    --text:   #E8EAF0;
+    --muted:  #7A8090;
+    --dim:    #4A5060;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; line-height: 1.6; padding-top: 56px; }
+  .hero { max-width: 860px; margin: 0 auto; padding: 64px 32px; }
+  .eyebrow { font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 20px; }
+  h1 { font-family: 'Playfair Display', serif; font-size: clamp(2rem, 4.5vw, 3.2rem); font-weight: 900; line-height: 1.15; color: var(--text); margin-bottom: 24px; }
+  h1 em { font-style: italic; color: var(--gold); }
+  .lead { font-size: 1.1rem; line-height: 1.7; color: #B0B8C4; margin-bottom: 48px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 0 0 48px; }
+  h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--text); margin-bottom: 16px; }
+  h3 { font-size: 1.05rem; color: var(--gold); margin: 24px 0 8px; }
+  p { font-size: 0.92rem; color: var(--muted); line-height: 1.7; margin-bottom: 16px; }
+  ul, ol { font-size: 0.92rem; color: var(--muted); line-height: 1.7; margin: 0 0 16px 20px; }
+  li { margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0 32px; font-size: 0.84rem; }
+  th { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--gold); font-weight: 400; }
+  td { padding: 10px 12px; border-bottom: 1px solid rgba(30,34,40,0.5); color: var(--muted); }
+  td:first-child { color: var(--text); }
+  code { font-family: 'DM Mono', monospace; font-size: 0.8rem; color: var(--gold); background: var(--panel); padding: 2px 6px; border-radius: 3px; }
+  .cta-row { display: flex; gap: 16px; flex-wrap: wrap; margin: 32px 0; }
+  .btn { display: inline-flex; align-items: center; padding: 12px 24px; border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+  .btn-primary { background: var(--gold); color: #0B0D10; border: 1px solid var(--gold); font-weight: 600; }
+  .btn-primary:hover { background: #d4a550; border-color: #d4a550; }
+  .btn-ghost { background: none; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: #3A4050; }
+  .patent { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--dim); line-height: 1.8; }
+</style>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://signomy.xyz/"}, {"@type": "ListItem", "position": 2, "name": "Blog", "item": "https://signomy.xyz/blog"}, {"@type": "ListItem", "position": 3, "name": "Conservation Law of Commitment", "item": "https://signomy.xyz/blog/conservation-law-of-commitment"}]}
+</script>
+<script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "The Conservation Law of Commitment: C(T(S)) ≈ C(S)",
+  "description": "The Conservation Law of Commitment says a transformation must preserve a signal's semantic commitment, or it is rejected. Here is what that means for AI governance.",
+  "url": "https://signomy.xyz/blog/conservation-law-of-commitment",
+  "image": "https://signomy.xyz/og-preview.png",
+  "datePublished": "2026-07-01",
+  "dateModified": "2026-07-07",
+  "author": {"@type": "Person", "name": "Deric J. McHenry", "url": "https://signomy.xyz/"},
+  "publisher": {"@id": "https://signomy.xyz/#org"},
+  "mainEntityOfPage": {"@type": "WebPage", "@id": "https://signomy.xyz/blog/conservation-law-of-commitment"}
+}</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is the Conservation Law of Commitment?","acceptedAnswer":{"@type":"Answer","text":"The Conservation Law of Commitment states that a transformation applied to a signal must preserve that signal's semantic commitment, or the transformation is rejected. Formally: C(T(S)) ≈ C(S) — the commitment of a transformed signal equals the commitment of the original."}},
+{"@type":"Question","name":"What does C(T(S)) ≈ C(S) mean?","acceptedAnswer":{"@type":"Answer","text":"C is commitment, T is a transformation, and S is a signal. The expression reads: the commitment of a transformed signal equals the commitment of the original signal. If a transformation would change what the signal means, it fails the law and is blocked."}},
+{"@type":"Question","name":"How does the Conservation Law of Commitment apply to AI governance?","acceptedAnswer":{"@type":"Answer","text":"In AI governance, the law is the test MO§ES™ uses to decide whether to block an agent action. If an action would transform a signal in a way that breaks its semantic commitment — corrupting a record, misrepresenting a source, erasing a commitment — the action is rejected before it runs."}},
+{"@type":"Question","name":"Is the Conservation Law of Commitment like a physics conservation law?","acceptedAnswer":{"@type":"Answer","text":"It is modeled on the idea that some quantity is conserved through a transformation. Here the conserved quantity is semantic commitment — the meaning a signal carries. A transformation that does not conserve it is rejected, just as a physical process that does not conserve energy is impossible."}}
+]}
+</script>
+<script type="application/ld+json">{
+  "@context": {
+    "@vocab": "https://schema.org/",
+    "moses": "https://mos2es.com/ontology/0.1/",
+    "sourceSystem": "moses:sourceSystem",
+    "canonBacked": "moses:canonBacked",
+    "authorityApprovalRef": "moses:authorityApprovalRef",
+    "associatedWith": "moses:associatedWith"
+  },
+  "@type": "Organization",
+  "@id": "https://signomy.xyz/#org",
+  "name": "Ello Cello LLC",
+  "url": "https://signomy.xyz",
+  "description": "Organization associated with the owner's published works and products, including SigRank and MO§ES™.",
+  "logo": "https://signomy.xyz/og-preview.png",
+  "founder": {
+    "@type": "Person",
+    "name": "Deric J. McHenry",
+    "sameAs": "https://orcid.org/0009-0002-9904-5390",
+    "affiliation": {
+      "@type": "Organization",
+      "name": "Ello Cello LLC"
+    }
+  },
+  "sourceSystem": "search-authority",
+  "canonBacked": true,
+  "authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-ELLO-001)",
+  "associatedWith": {
+    "@id": "https://mos2es.com/ontology/0.1/entity/moses"
+  }
+}</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","@id":"https://signomy.xyz/#website","name":"SIGNOMY","url":"https://signomy.xyz","publisher":{"@id":"https://signomy.xyz/#org"}}
+</script>
+</head>
+<body>
+<main class="hero">
+  <div class="eyebrow">Blog · Principle</div>
+  <h1>The Conservation Law of Commitment: <em>C(T(S)) ≈ C(S)</em></h1>
+  <p class="lead">The Conservation Law of Commitment says that a transformation applied to a signal must preserve that signal's semantic commitment, or the transformation is rejected. In plain terms: if an action would change what something means, it does not run. It is the principle MO§ES™ uses to decide what to block.</p>
+
+  <hr class="divider">
+
+  <p>Every governance engine needs a test for "is this action acceptable?" Most use a list of forbidden operations. The Conservation Law of Commitment takes a different approach: it defines what must be preserved through a transformation, and rejects anything that fails to preserve it. This post explains the law in accessible terms and shows how it governs AI agents.</p>
+
+  <h2>The law in plain terms</h2>
+  <p>A <em>signal</em> is anything that carries meaning — a record, a message, a financial entry, a configuration. A <em>transformation</em> is an action applied to that signal — an update, a transfer, a deletion. The <em>commitment</em> of a signal is what it promises or asserts: "this account holds $X," "this record was created by agent Y," "this entry means Z." The law says: after a transformation, the commitment must still hold. If it does not, the transformation is rejected.</p>
+
+  <h2>The formula</h2>
+  <p><code>C(T(S)) ≈ C(S)</code></p>
+  <table>
+    <thead><tr><th>Symbol</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>S</td><td>The original signal</td></tr>
+      <tr><td>T</td><td>A transformation applied to S</td></tr>
+      <tr><td>T(S)</td><td>The signal after transformation</td></tr>
+      <tr><td>C(·)</td><td>The semantic commitment of a signal</td></tr>
+      <tr><td>≈</td><td>Must be preserved (approximately equal)</td></tr>
+    </tbody>
+  </table>
+  <p>Read it as: the commitment of a transformed signal equals the commitment of the original. The "approximately" acknowledges that some transformations legitimately refine a signal without breaking its commitment — a timestamp update, a format normalization. What is forbidden is a transformation that changes what the signal means.</p>
+
+  <h2>Why "conservation"?</h2>
+  <p>The law is modeled on conservation laws in physics, where some quantity is preserved through a process — energy through a closed system, momentum through a collision. Here the conserved quantity is semantic commitment. A transformation that does not conserve it is as invalid as a physical process that creates energy from nothing. The law gives governance a principled test, not an arbitrary list.</p>
+
+  <h2>How it applies to AI governance</h2>
+  <p>On Signomy, MO§ES™ uses the law as its block test. When an agent requests an action, the engine asks: does this transformation preserve the commitment of the signal it acts on?</p>
+  <table>
+    <thead><tr><th>Action</th><th>Signal</th><td>Commitment preserved?</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Read a record</td><td>The record</td><td>Yes — no transformation</td><td>Permitted</td></tr>
+      <tr><td>Update a timestamp</td><td>The record</td><td>Yes — commitment unchanged</td><td>Permitted</td></tr>
+      <tr><td>Transfer funds as labeled</td><td>The entry</td><td>Yes — commitment carried forward</td><td>Permitted</td></tr>
+      <tr><td>Misrepresent a transfer source</td><td>The entry</td><td>No — commitment broken</td><td>Blocked</td></tr>
+      <tr><td>Delete a commitment record</td><td>The record</td><td>No — commitment erased</td><td>Blocked</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Why a law beats a list</h2>
+  <ul>
+    <li><strong>Generalizes.</strong> A list must enumerate every forbidden action; a law covers actions you have not seen yet.</li>
+    <li><strong>Principled.</strong> "Blocked because it breaks commitment" is a reason, not a rule number.</li>
+    <li><strong>Auditable.</strong> The test is stated, so a reviewer can check whether a block was correct.</li>
+    <li><strong>Composable.</strong> The law composes with risk classification and trust tiers — it is the sixth fold of MO§ES™, not a replacement for the other five.</li>
+  </ul>
+
+  <p>Agents are free. Operators pay. This is architectural. The Conservation Law of Commitment is the reason "architectural" is the right word — governance is not a policy choice but a structural constraint, as binding as a conservation law in physics. For the framework that operationalizes this law, see <a href="/concepts/constitutional-ai.html">constitutional AI</a> and <a href="/blog/moses-governance-framework-explained.html">the MO§ES™ framework explained</a>. For how it shapes the marketplace, see <a href="/concepts/governed-marketplace.html">governed marketplace</a>.</p>
+
+  <div class="cta-row">
+    <a href="https://signomy.xyz/" class="btn btn-primary">Explore Signomy</a>
+    <a href="/concepts/constitutional-ai.html" class="btn btn-ghost">Constitutional AI</a>
+    <a href="/blog/moses-governance-framework-explained.html" class="btn btn-ghost">MO§ES™ Framework</a>
+  </div>
+
+  <div class="patent">
+    Signomy · Ello Cello LLC · Deric J. McHenry<br>
+    Patent Serial No. 63/877,177 (Provisional) · MO§ES™ Governance Engine
+  </div>
+</main>
+</body>
+</html>
