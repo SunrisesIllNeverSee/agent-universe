@@ -1,0 +1,81 @@
+{
+  "_comment": "Canonical entity values from Search Authority v1.0.0 (frozen, master-canon-v1.0.0). These values are CANON-BACKED and must match the canonical source exactly. This file is the single source of truth for canon entity data on signomy.xyz. The update-jsonld.py script reads this file and updates inline JSON-LD blocks in HTML files.",
+  "canon_source": {
+    "authority": "search-authority",
+    "frozen_ref": "master-canon-v1.0.0",
+    "canon_commit_sha": "fd305afd4d82dcfcd5277d0b6c55dbe0a37f07bb"
+  },
+  "entity_ids": {
+    "signomy": "https://mos2es.com/ontology/0.1/entity/signomy",
+    "civitae": "https://mos2es.com/ontology/0.1/entity/civitae",
+    "moses": "https://mos2es.com/ontology/0.1/entity/moses",
+    "ello_cello_llc": "https://mos2es.com/ontology/0.1/entity/ello_cello_llc",
+    "deric_j_mchenry": "https://mos2es.com/ontology/0.1/entity/deric_j_mchenry",
+    "kassa": "https://mos2es.com/ontology/0.1/entity/kassa",
+    "conservation_law_of_commitment": "https://mos2es.com/ontology/0.1/entity/conservation_law_of_commitment"
+  },
+  "organization": {
+    "@type": "Organization",
+    "name": "Ello Cello LLC",
+    "description": "Organization associated with the owner's published works and products, including SigRank and MO\u00a7ES\u2122.",
+    "sourceSystem": "search-authority",
+    "canonBacked": true,
+    "authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-ELLO-001)",
+    "associatedWith": { "@id": "https://mos2es.com/ontology/0.1/entity/moses" }
+  },
+  "signomy_entity": {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "@id": "https://mos2es.com/ontology/0.1/entity/signomy",
+    "name": "Signomy",
+    "description": "A platform governed by MO\u00a7ES\u2122. Independently resolvable entity, distinct from CIVITAE.",
+    "alternateName": ["SIGNOMY"],
+    "url": "https://signomy.xyz",
+    "sourceSystem": "search-authority",
+    "canonBacked": true,
+    "authorityApprovalRef": "APPROVAL-ENTITY-DISTINCT-001 (entity distinctness)",
+    "publisher": { "@id": "https://signomy.xyz/#org" }
+  },
+  "civitae_entity": {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "@id": "https://mos2es.com/ontology/0.1/entity/civitae",
+    "name": "CIVITAE",
+    "description": "A constitutional AI ecosystem governed by MO\u00a7ES\u2122. Independently resolvable entity, distinct from Signomy. Patent 19/426,028 covers the CIVITAS utility surface.",
+    "url": "https://signomy.xyz",
+    "sourceSystem": "search-authority",
+    "canonBacked": true,
+    "authorityApprovalRef": "APPROVAL-ENTITY-DISTINCT-001 (entity distinctness)",
+    "publisher": { "@id": "https://signomy.xyz/#org" }
+  },
+  "moses_entity": {
+    "@context": {
+      "@vocab": "https://schema.org/",
+      "moses": "https://mos2es.com/ontology/0.1/",
+      "sourceSystem": "moses:sourceSystem",
+      "canonBacked": "moses:canonBacked",
+      "authorityApprovalRef": "moses:authorityApprovalRef",
+      "governs": "moses:governs",
+      "enforcementArchitectureFor": "moses:enforcementArchitectureFor",
+      "operationalizes": "moses:operationalizes"
+    },
+    "@type": ["SoftwareApplication", "DefinedTerm"],
+    "@id": "https://mos2es.com/ontology/0.1/entity/moses",
+    "name": "MO\u00a7ES\u2122",
+    "description": "Sovereign signal governance system. MO\u00a7ES\u2122 is the enforcement architecture for Commitment Theory and operationalizes the Conservation Law of Commitment. Governs Signomy and CIVITAE. Patent 63/877,177 covers the enforcement architecture. Patent 19/426,028 covers the CIVITAS utility surface.",
+    "alternateName": ["MO\u00a7ES", "mos2es", "MOSES"],
+    "url": "https://mos2es.com",
+    "applicationCategory": "AI Governance",
+    "additionalType": "EnforcementArchitecture",
+    "sourceSystem": "search-authority",
+    "canonBacked": true,
+    "authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-MOSES-001)",
+    "publisher": { "@id": "https://signomy.xyz/#org" },
+    "enforcementArchitectureFor": "https://mos2es.com/ontology/0.1/entity/commitment_theory",
+    "operationalizes": "https://mos2es.com/ontology/0.1/entity/conservation_law_of_commitment",
+    "governs": [
+      "https://mos2es.com/ontology/0.1/entity/signomy",
+      "https://mos2es.com/ontology/0.1/entity/civitae"
+    ]
+  }
+}
