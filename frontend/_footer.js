@@ -227,6 +227,25 @@
     social.appendChild(x);
 
     bottom.appendChild(social);
+
+    // Featured-on-Whatsthebigdata badge (free listing exchange)
+    var wtbd = document.createElement('div');
+    wtbd.className = 'sf-wtbd';
+    wtbd.style.marginTop = '8px';
+    var wtbdLink = document.createElement('a');
+    wtbdLink.href = 'https://whatsthebigdata.com/ai-tools/';
+    wtbdLink.target = '_blank';
+    wtbdLink.rel = 'noopener';
+    wtbdLink.title = 'Whatsthebigdata AI Tools Directory';
+    var wtbdImg = document.createElement('img');
+    wtbdImg.src = 'https://whatsthebigdata.com/badges/featured-on-whatsthebigdata-dark.png';
+    wtbdImg.alt = 'Featured on Whatsthebigdata';
+    wtbdImg.width = 180;
+    wtbdImg.style.cssText = 'max-width:100%;height:auto;display:block';
+    wtbdLink.appendChild(wtbdImg);
+    wtbd.appendChild(wtbdLink);
+    bottom.appendChild(wtbd);
+
     footer.appendChild(bottom);
 
     return footer;
