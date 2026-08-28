@@ -242,7 +242,7 @@ _Ambiguous or unknown mode input defaults to High Security (fail-safe)._
 - ORCID: https://orcid.org/0009-0002-9904-5390
 
 ## Related Surfaces
-- SigRank (live data product built on Conservation Law): https://signalaf.com
+- Upsilon (measurement engine) → SigRank (public leaderboard at signalaf.com): https://signalaf.com
 - SigRank /science page: https://signalaf.com/science
 - SigRank llms.txt: https://signalaf.com/llms.txt
 
