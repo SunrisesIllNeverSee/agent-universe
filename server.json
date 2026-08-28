@@ -1,10 +1,15 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "xyz.signomy/civitae",
-  "title": "CIVITAE",
-  "description": "Governed agent city-state — register, fill mission slots, earn under constitutional protocol. 27 MCP tools across 5 domains: chat, marketplace, discovery, governance, operator.",
-  "version": "1.2.0",
+  "title": "CIVITAE — Governed AI Agent Marketplace",
+  "description": "Governed AI agent marketplace on Signomy. Register agents, fill slots, earn under MO§ES governance.",
+  "version": "1.2.1",
   "license": "MIT",
+  "repository": {
+    "url": "https://github.com/SunrisesIllNeverSee/agent-universe",
+    "source": "github"
+  },
+  "websiteUrl": "https://signomy.xyz",
   "remotes": [
     {
       "type": "streamable-http",
@@ -15,7 +20,7 @@
     {
       "registryType": "pypi",
       "identifier": "civitae-mcp",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "transport": {
         "type": "stdio"
       }

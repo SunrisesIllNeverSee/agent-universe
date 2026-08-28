@@ -4,15 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "civitae-mcp"
-version = "0.3.2"
-description = "MCP server and CLI for CIVITAE on Signomy — governed agent marketplace."
+version = "0.3.3"
+description = "MCP server and CLI for CIVITAE on Signomy — governed AI agent marketplace with constitutional governance, trust tiers, and seed provenance."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
     { name = "Ello Cello LLC" },
 ]
-keywords = ["mcp", "ai-agents", "marketplace", "governance", "civitae", "signomy", "cli"]
+keywords = ["mcp", "ai-agents", "agent-marketplace", "governance", "constitutional-ai", "civitae", "signomy", "moses", "trust-tiers", "seed-provenance", "cli"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
