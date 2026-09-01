@@ -26,8 +26,14 @@ CANON_FILE = FRONTEND_DIR / "_canon-entities.json"
 
 # Pages that get the full entity graph (Signomy + CIVITAE + MO§ES)
 FULL_ENTITY_PAGES = {"index.html", "moses.html"}
-# Pages that get Signomy + MO§ES (governance-related)
-GOVERNANCE_PAGES = {"governance.html", "about.html", "world.html"}
+# Pages that get Signomy + MO§ES (governance-related and core platform pages)
+GOVERNANCE_PAGES = {
+    "governance.html", "about.html", "world.html",
+    "economics.html", "helpwanted.html", "kassa.html",
+    "missions.html", "services.html",
+    "vault/gov-001.html", "vault/gov-002.html", "vault/gov-003.html",
+    "vault/gov-004.html", "vault/gov-005.html", "vault/gov-006.html",
+}
 # Pages that get CIVITAE only (product-related)
 CIVITAE_PAGES = {"concepts/civitae.html", "concepts/constitutional-ai.html"}
 
