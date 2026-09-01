@@ -92,6 +92,45 @@ def update_org_block(block_text, canon):
     return block_text, False
 
 
+def update_website_block(block_text, canon):
+    """Update a WebSite JSON-LD block with canon-backed provenance fields."""
+    try:
+        d = json.loads(block_text)
+    except json.JSONDecodeError:
+        return block_text, False
+
+    if not isinstance(d, dict) or d.get("@type") != "WebSite":
+        return block_text, False
+
+    org = canon["organization"]
+    canon_context = canon["canon_ld_context"]
+    changed = False
+
+    # Replace @context with canon LD context
+    if d.get("@context") != canon_context:
+        d["@context"] = canon_context
+        changed = True
+
+    # Add canon provenance fields (same as Organization)
+    for key in ("sourceSystem", "canonBacked", "authorityApprovalRef"):
+        if d.get(key) != org[key]:
+            d[key] = org[key]
+            changed = True
+
+    # Add associatedWith — WebSite links to both #org and the moses entity
+    expected_associated = [
+        {"@id": d.get("publisher", {}).get("@id", "https://signomy.xyz/#org")},
+        {"@id": canon["entity_ids"]["moses"]},
+    ]
+    if d.get("associatedWith") != expected_associated:
+        d["associatedWith"] = expected_associated
+        changed = True
+
+    if changed:
+        return json.dumps(d, indent=2, ensure_ascii=False), True
+    return block_text, False
+
+
 def build_entity_script(entity_data):
     """Build a <script type="application/ld+json"> block for an entity."""
     return '<script type="application/ld+json">\n' + json.dumps(entity_data, indent=2, ensure_ascii=False) + '\n</script>'
@@ -157,17 +196,22 @@ def update_html_file(filepath, canon, dry_run=False):
     original = html
     changes = []
 
-    # 1. Update all Organization blocks
-    def replace_org(match):
+    # 1. Update all Organization and WebSite blocks
+    def replace_canon_blocks(match):
         block_text = match.group(1)
         new_text, changed = update_org_block(block_text, canon)
         if changed:
             changes.append("org update")
-        return f'<script type="application/ld+json">{new_text}</script>'
+            return f'<script type="application/ld+json">{new_text}</script>'
+        new_text, changed = update_website_block(block_text, canon)
+        if changed:
+            changes.append("website update")
+            return f'<script type="application/ld+json">{new_text}</script>'
+        return match.group(0)
 
     html = re.sub(
         r'<script type="application/ld\+json">(.*?)</script>',
-        replace_org,
+        replace_canon_blocks,
         html,
         flags=re.DOTALL,
     )

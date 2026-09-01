@@ -72,21 +72,39 @@
     "@id": "https://mos2es.com/ontology/0.1/entity/moses"
   }
 }</script>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
+<script type="application/ld+json">{
+  "@context": {
+    "@vocab": "https://schema.org/",
+    "moses": "https://mos2es.com/ontology/0.1/",
+    "sourceSystem": "moses:sourceSystem",
+    "canonBacked": "moses:canonBacked",
+    "authorityApprovalRef": "moses:authorityApprovalRef",
+    "associatedWith": "moses:associatedWith"
+  },
   "@type": "WebSite",
   "@id": "https://signomy.xyz/#website",
   "name": "SIGNOMY",
   "url": "https://signomy.xyz",
-  "publisher": { "@id": "https://signomy.xyz/#org" },
+  "publisher": {
+    "@id": "https://signomy.xyz/#org"
+  },
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://signomy.xyz/portal?q={search_term_string}",
     "query-input": "required name=search_term_string"
-  }
-}
-</script>
+  },
+  "sourceSystem": "search-authority",
+  "canonBacked": true,
+  "authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-ELLO-001)",
+  "associatedWith": [
+    {
+      "@id": "https://signomy.xyz/#org"
+    },
+    {
+      "@id": "https://mos2es.com/ontology/0.1/entity/moses"
+    }
+  ]
+}</script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
