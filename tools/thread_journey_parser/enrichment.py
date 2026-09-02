@@ -27,6 +27,15 @@ RULES = (
         r"\bmeans\b", r"\bdefine(?:d|s)?\b", r"\bby .* i mean\b", r"\bthe distinction is\b",
         r"\bthe point is\b",
     )),
+    Rule("FACT", (
+        r"\bi have\b", r"\bwe have\b", r"\bi use\b", r"\bwe use\b",
+        r"\bthe repo is\b", r"\bthe repository is\b", r"\bthe file is\b",
+        r"\bis located (?:at|in)\b", r"\blives (?:at|in|under)\b",
+    ), confidence=0.76),
+    Rule("OBJECTIVE", (
+        r"\bi want\b", r"\bwe want\b", r"\bmy goal is\b", r"\bour goal is\b",
+        r"\bthe goal is\b", r"\bthe objective is\b", r"\bi need\b", r"\bwe need\b",
+    ), confidence=0.80),
     Rule("CONTEXT", (
         r"\bfor context\b", r"\bbackground\b", r"\bcurrently\b", r"\bright now\b",
         r"\bthe situation is\b", r"\bwhere we are\b",
@@ -50,11 +59,11 @@ def _authority_for_turn(ledger: ThreadLedger, turn_id: str) -> tuple[str, float]
 
 
 def enrich_context_records(ledger: ThreadLedger) -> ThreadLedger:
-    """Add conservative Rethread-style context records without changing decision/canon status.
+    """Add conservative Rethread-style descriptive records without changing canon.
 
-    These records are descriptive analytical objects. They never promote canon, never
-    supersede decisions automatically, and retain the authority of the source turn.
-    The operation is idempotent.
+    Facts, preferences, constraints, definitions, objectives, and context remain
+    source-bound observations. They never become decisions/canon merely because the
+    enrichment layer detected them. The operation is idempotent.
     """
     existing = {(item.category, item.introduced_at, item.statement) for item in ledger.items}
     max_id = 0
