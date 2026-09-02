@@ -5,62 +5,74 @@ import json
 import sqlite3
 import threading
 import webbrowser
-from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, quote, urlparse
+from urllib.parse import parse_qs, urlparse
 
-from .compare import compare_threads
+from .compare import compare_threads, profile_thread
 from .search_index import ArchiveIndex
+from .semantic_search import SemanticSearch, SentenceTransformerBackend
+from .visualization import render_standalone_html
 
 
 APP_HTML = r'''<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Thread Parser Archive</title>
 <style>
-:root{--bg:#f5f4ef;--panel:#fff;--ink:#171717;--muted:#666;--line:#ddd;--accent:#222}
+:root{--bg:#f5f4ef;--panel:#fff;--ink:#171717;--muted:#686868;--line:#ddd;--soft:#eceae2}
 *{box-sizing:border-box}body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system;background:var(--bg);color:var(--ink)}
 header{padding:18px 24px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}h1{font-size:20px;margin:0 0 4px}.sub{color:var(--muted);font-size:13px}
-.layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 76px)}aside{border-right:1px solid var(--line);padding:16px;background:#faf9f5}.main{padding:20px;min-width:0}
-input,select,button,textarea{font:inherit;border:1px solid #bbb;border-radius:6px;padding:8px;background:white}button{cursor:pointer}button.primary{background:#222;color:#fff;border-color:#222}
+.layout{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 76px)}aside.nav{border-right:1px solid var(--line);padding:16px;background:#faf9f5}.main{padding:20px;min-width:0}
+input,select,button,textarea{font:inherit;border:1px solid #bbb;border-radius:6px;padding:8px;background:white}button{cursor:pointer}button.primary{background:#222;color:#fff;border-color:#222}button.danger{color:#8a1f1f}
 .stack>*{margin-bottom:8px}.thread{display:block;width:100%;text-align:left;padding:9px;border:0;background:transparent;border-radius:6px}.thread:hover,.thread.active{background:#e9e7df}.thread small{display:block;color:var(--muted)}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.toolbar input{min-width:280px;flex:1}.grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
-.record{border-bottom:1px solid #eee;padding:12px 0}.record:last-child{border-bottom:0}.meta{font-size:12px;color:var(--muted);margin-bottom:6px}.content{white-space:pre-wrap;overflow-wrap:anywhere}.pill{display:inline-block;border:1px solid #ccc;border-radius:999px;padding:2px 7px;font-size:11px;margin:2px}.pill.user{font-weight:700}.tag{background:#efeee8}.hidden{display:none}.empty{color:var(--muted);padding:20px 0}
-pre{white-space:pre-wrap;overflow:auto;background:#f6f6f6;padding:10px;border-radius:6px}.section-title{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:16px 0 8px}.compare-list label{display:block;margin:5px 0}@media(max-width:900px){.layout{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}.grid{grid-template-columns:1fr}.toolbar input{min-width:0}}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.toolbar input[type=text]{min-width:220px;flex:1}.grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+.record{border-bottom:1px solid #eee;padding:12px 0;cursor:pointer}.record:last-child{border-bottom:0}.record:hover{background:#fafafa}.meta{font-size:12px;color:var(--muted);margin-bottom:6px}.content{white-space:pre-wrap;overflow-wrap:anywhere}.pill{display:inline-block;border:1px solid #ccc;border-radius:999px;padding:2px 7px;font-size:11px;margin:2px}.pill.user{font-weight:700}.pill.tag{background:#efeee8}.empty{color:var(--muted);padding:20px 0}
+pre{white-space:pre-wrap;overflow:auto;background:#f6f6f6;padding:10px;border-radius:6px}.section-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:16px 0 8px}.compare-list label{display:block;margin:5px 0}.status{font-size:12px;color:var(--muted);margin:6px 0}.tagline button{padding:2px 6px;margin-left:3px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}aside.nav{border-right:0;border-bottom:1px solid var(--line)}.grid{grid-template-columns:1fr}.toolbar input[type=text]{min-width:0}}
 </style></head>
-<body><header><h1>Thread Parser Archive</h1><div class="sub">Local archive browser · search, filter, tag, collect, compare · parser state remains read-only</div></header>
-<div class="layout"><aside><div class="section-title">Threads</div><div id="threads" class="stack"></div><div class="section-title">Collections</div><div id="collections" class="stack"></div></aside>
-<main class="main"><div class="toolbar"><input id="q" placeholder="Search turns, items, documents"><select id="type"><option value="">all records</option><option>turn</option><option>item</option><option>document</option></select><input id="tagFilter" placeholder="tag filter"><button class="primary" id="searchBtn">Search</button></div>
-<div class="grid"><section class="panel"><div id="context"></div><div id="results"></div></section><aside class="panel"><div id="detail"><div class="empty">Select a record.</div></div></aside></div></main></div>
+<body><header><h1>Thread Parser Archive</h1><div class="sub">Local archive browser · source-preserving search, organization, comparison and path inspection</div></header>
+<div class="layout"><aside class="nav"><div class="section-title">Threads</div><div id="threads" class="stack"></div><div class="section-title">Projects / collections</div><div class="toolbar"><input id="collectionName" type="text" placeholder="new project"><button onclick="createCollection()">+</button></div><div id="collections" class="stack"></div><div id="compareBox"></div></aside>
+<main class="main"><div class="toolbar"><input id="q" type="text" placeholder="Search turns, items, documents, context"><select id="mode"><option value="fulltext">full text</option><option value="semantic">semantic</option></select><select id="type"><option value="">all records</option><option>thread</option><option>turn</option><option>item</option><option>document</option></select><input id="tagFilter" type="text" placeholder="tag filter"><button class="primary" id="searchBtn">Search</button></div><div id="status" class="status"></div>
+<div class="grid"><section class="panel"><div id="context"></div><div id="results"></div></section><section class="panel"><div id="detail"><div class="empty">Select a record.</div></div></section></div></main></div>
 <script>
 let selectedThread='',selectedRecord='';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function api(path,opts){const r=await fetch(path,opts);if(!r.ok)throw new Error(await r.text());return r.json()}
+async function api(path,opts){const r=await fetch(path,opts);const text=await r.text();if(!r.ok)throw new Error(text);return text?JSON.parse(text):{}}
 function pill(text,cls=''){return text?`<span class="pill ${cls}">${esc(text)}</span>`:''}
-async function loadThreads(){const data=await api('/api/threads');const el=document.getElementById('threads');el.innerHTML=data.map(t=>`<button class="thread ${t.thread_id===selectedThread?'active':''}" onclick="chooseThread('${esc(t.thread_id)}')"><b>${esc(t.thread_id)}</b><small>${t.records} records · ${t.turns} turns</small></button>`).join('')||'<div class="empty">No indexed threads.</div>';renderCompare(data)}
-async function loadCollections(){const data=await api('/api/collections');document.getElementById('collections').innerHTML=data.map(c=>`<button class="thread" onclick="showCollection('${esc(c.name)}')"><b>${esc(c.name)}</b><small>${c.members} records</small></button>`).join('')||'<div class="empty">No collections.</div>'}
-async function chooseThread(id){selectedThread=id;await loadThreads();document.getElementById('context').innerHTML=`<h2>${esc(id)}</h2><div class="toolbar"><button onclick="browseThread()">Browse thread</button><button onclick="showThreadProfile()">Profile</button></div>`;await browseThread()}
-async function browseThread(){const q=new URLSearchParams({thread_id:selectedThread,limit:'500'});const rows=await api('/api/records?'+q);renderRows(rows)}
-async function doSearch(){const q=new URLSearchParams({q:document.getElementById('q').value,type:document.getElementById('type').value,tag:document.getElementById('tagFilter').value,thread_id:selectedThread,limit:'200'});const rows=await api('/api/search?'+q);renderRows(rows)}
-function renderRows(rows){const el=document.getElementById('results');el.innerHTML=rows.map(r=>`<article class="record" onclick="showRecord('${esc(r.record_key)}')"><div class="meta">${pill(r.record_type)} ${pill(r.target_id)} ${pill(r.speaker,r.speaker==='USER'?'user':'')} ${pill(r.category)} ${pill(r.authority)} ${pill(r.status)}</div><b>${esc(r.title||r.record_key)}</b><div class="content">${esc((r.content||'').slice(0,650))}</div></article>`).join('')||'<div class="empty">No matches.</div>'}
-async function showRecord(key){selectedRecord=key;const r=await api('/api/record?key='+encodeURIComponent(key));const tags=(r.tags||[]).map(t=>pill(t,'tag')).join(' ');const cols=(r.collections||[]).map(c=>pill(c)).join(' ');document.getElementById('detail').innerHTML=`<div class="meta">${esc(r.record_key)}</div><h3>${esc(r.title)}</h3><div>${tags}</div><pre>${esc(r.content||'')}</pre><div class="section-title">Tags</div><div class="toolbar"><input id="newTag" placeholder="tag"><button onclick="addTag()">Add</button></div><div class="section-title">Collections</div><div>${cols||'none'}</div><div class="toolbar"><input id="newCollection" placeholder="collection"><button onclick="addCollection()">Add</button></div>`}
-async function addTag(){const tag=document.getElementById('newTag').value.trim();if(!tag)return;await api('/api/tag',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({record_key:selectedRecord,tag})});await showRecord(selectedRecord);await loadCollections()}
+function status(text){document.getElementById('status').textContent=text||''}
+async function loadThreads(){const data=await api('/api/threads');const el=document.getElementById('threads');el.innerHTML=data.map(t=>`<button class="thread ${t.thread_id===selectedThread?'active':''}" onclick="chooseThread('${esc(t.thread_id)}')"><b>${esc(t.title||t.thread_id)}</b><small>${esc(t.thread_id)} · ${t.turns} turns · ${t.items} items</small></button>`).join('')||'<div class="empty">No indexed threads.</div>';renderCompare(data)}
+async function loadCollections(){const data=await api('/api/collections');document.getElementById('collections').innerHTML=data.map(c=>`<button class="thread" onclick="showCollection('${esc(c.name)}')"><b>${esc(c.name)}</b><small>${c.members} records · ${esc(c.description||'')}</small></button>`).join('')||'<div class="empty">No projects yet.</div>'}
+async function createCollection(){const name=document.getElementById('collectionName').value.trim();if(!name)return;await api('/api/collection/create',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name})});document.getElementById('collectionName').value='';await loadCollections()}
+async function chooseThread(id){selectedThread=id;await loadThreads();document.getElementById('context').innerHTML=`<h2>${esc(id)}</h2><div class="toolbar"><button onclick="browseThread()">Browse</button><button onclick="showThreadProfile()">Profile</button><button onclick="openPath()">Path / branches</button><button onclick="addThreadToProject()">Add thread to project</button></div>`;await browseThread()}
+async function browseThread(){const q=new URLSearchParams({thread_id:selectedThread,limit:'1000'});const rows=await api('/api/records?'+q);renderRows(rows)}
+async function doSearch(){try{status('Searching…');const mode=document.getElementById('mode').value;const q=new URLSearchParams({q:document.getElementById('q').value,type:document.getElementById('type').value,tag:document.getElementById('tagFilter').value,thread_id:selectedThread,limit:'200'});const endpoint=mode==='semantic'?'/api/semantic?':'/api/search?';const rows=await api(endpoint+q);renderRows(rows);status(`${rows.length} result(s) · ${mode}`)}catch(e){status(String(e))}}
+function renderRows(rows){const el=document.getElementById('results');el.innerHTML=rows.map(r=>`<article class="record" onclick="showRecord('${esc(r.record_key)}')"><div class="meta">${pill(r.record_type)} ${pill(r.target_id)} ${pill(r.speaker,r.speaker==='USER'?'user':'')} ${pill(r.category)} ${pill(r.authority)} ${pill(r.status)} ${r.score!==undefined?pill(Number(r.score).toFixed(3)):''}</div><b>${esc(r.title||r.record_key)}</b><div class="content">${esc((r.content||'').slice(0,750))}</div></article>`).join('')||'<div class="empty">No matches.</div>'}
+async function showRecord(key){selectedRecord=key;const r=await api('/api/record?key='+encodeURIComponent(key));const tags=(r.tags||[]).map(t=>`<span class="tagline">${pill(t,'tag')}<button class="danger" onclick="removeTag('${esc(t)}')">×</button></span>`).join(' ');const cols=(r.collections||[]).map(c=>`<span class="tagline">${pill(c)}<button class="danger" onclick="removeCollection('${esc(c)}')">×</button></span>`).join(' ');document.getElementById('detail').innerHTML=`<div class="meta">${esc(r.record_key)}</div><h3>${esc(r.title)}</h3><div>${tags}</div><pre>${esc(r.content||'')}</pre><div class="section-title">Tags</div><div class="toolbar"><input id="newTag" type="text" placeholder="tag"><button onclick="addTag()">Add</button></div><div class="section-title">Projects / collections</div><div>${cols||'none'}</div><div class="toolbar"><input id="newCollection" type="text" placeholder="project"><button onclick="addCollection()">Add</button></div>`}
+async function addTag(){const tag=document.getElementById('newTag').value.trim();if(!tag)return;await api('/api/tag',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({record_key:selectedRecord,tag})});await showRecord(selectedRecord)}
+async function removeTag(tag){await api('/api/tag/remove',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({record_key:selectedRecord,tag})});await showRecord(selectedRecord)}
 async function addCollection(){const name=document.getElementById('newCollection').value.trim();if(!name)return;await api('/api/collection/add',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({record_key:selectedRecord,name})});await showRecord(selectedRecord);await loadCollections()}
-async function showCollection(name){const rows=await api('/api/collection?name='+encodeURIComponent(name));selectedThread='';document.getElementById('context').innerHTML=`<h2>Collection: ${esc(name)}</h2>`;renderRows(rows);await loadThreads()}
-async function showThreadProfile(){const data=await api('/api/compare?threads='+encodeURIComponent(selectedThread+','+selectedThread));document.getElementById('results').innerHTML=`<pre>${esc(JSON.stringify(data.profiles?.[0]||{},null,2))}</pre>`}
-function renderCompare(threads){let box=document.getElementById('compareBox');if(!box){box=document.createElement('div');box.id='compareBox';document.querySelector('aside').appendChild(box)}box.innerHTML=`<div class="section-title">Compare threads</div><div class="compare-list">${threads.map(t=>`<label><input type="checkbox" value="${esc(t.thread_id)}"> ${esc(t.thread_id)}</label>`).join('')}</div><button onclick="compareSelected()">Compare</button>`}
-async function compareSelected(){const ids=[...document.querySelectorAll('#compareBox input:checked')].map(x=>x.value);if(ids.length<2){alert('Select at least two threads');return}const data=await api('/api/compare?threads='+encodeURIComponent(ids.join(',')));document.getElementById('context').innerHTML='<h2>Multi-thread comparison</h2>';document.getElementById('results').innerHTML=`<pre>${esc(JSON.stringify(data,null,2))}</pre>`}
+async function removeCollection(name){await api('/api/collection/remove',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({record_key:selectedRecord,name})});await showRecord(selectedRecord);await loadCollections()}
+async function addThreadToProject(){const name=prompt('Project / collection name');if(!name)return;const key=`${selectedThread}:thread:${selectedThread}`;await api('/api/collection/add',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({record_key:key,name})});await loadCollections()}
+async function showCollection(name){const rows=await api('/api/collection?name='+encodeURIComponent(name));selectedThread='';document.getElementById('context').innerHTML=`<h2>Project: ${esc(name)}</h2>`;renderRows(rows);await loadThreads()}
+async function showThreadProfile(){const data=await api('/api/profile?thread='+encodeURIComponent(selectedThread));document.getElementById('results').innerHTML=`<pre>${esc(JSON.stringify(data,null,2))}</pre>`}
+function openPath(){window.open('/path?thread_id='+encodeURIComponent(selectedThread),'_blank')}
+function renderCompare(threads){const box=document.getElementById('compareBox');box.innerHTML=`<div class="section-title">Compare threads</div><div class="compare-list">${threads.map(t=>`<label><input type="checkbox" value="${esc(t.thread_id)}"> ${esc(t.title||t.thread_id)}</label>`).join('')}</div><button onclick="compareSelected()">Compare</button>`}
+async function compareSelected(){const ids=[...document.querySelectorAll('#compareBox input:checked')].map(x=>x.value);if(ids.length<2){alert('Select at least two threads');return}const data=await api('/api/compare?threads='+encodeURIComponent(ids.join(',')));selectedThread='';document.getElementById('context').innerHTML='<h2>Multi-thread comparison</h2>';document.getElementById('results').innerHTML=`<pre>${esc(JSON.stringify(data,null,2))}</pre>`;await loadThreads()}
 document.getElementById('searchBtn').addEventListener('click',doSearch);document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch()});loadThreads();loadCollections();
 </script></body></html>'''
 
 
 class ArchiveBrowserHandler(BaseHTTPRequestHandler):
-    server_version = "ThreadParserArchive/0.1"
+    server_version = "ThreadParserArchive/0.2"
 
     @property
     def index(self) -> ArchiveIndex:
         return self.server.archive_index  # type: ignore[attr-defined]
+
+    @property
+    def semantic(self) -> SemanticSearch | None:
+        return getattr(self.server, "semantic_search", None)  # type: ignore[attr-defined]
 
     def log_message(self, format: str, *args: object) -> None:
         if getattr(self.server, "quiet", False):  # type: ignore[attr-defined]
@@ -93,16 +105,16 @@ class ArchiveBrowserHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         q = parse_qs(parsed.query)
         if parsed.path == "/":
-            self._html(APP_HTML)
-            return
+            self._html(APP_HTML); return
         try:
             if parsed.path == "/api/threads":
                 rows = self.index.conn.execute(
-                    """SELECT thread_id,COUNT(*) records,
-                              SUM(CASE WHEN record_type='turn' THEN 1 ELSE 0 END) turns,
-                              SUM(CASE WHEN record_type='item' THEN 1 ELSE 0 END) items,
-                              SUM(CASE WHEN record_type='document' THEN 1 ELSE 0 END) documents
-                       FROM records GROUP BY thread_id ORDER BY thread_id"""
+                    """SELECT r.thread_id,MAX(CASE WHEN r.record_type='thread' THEN r.title ELSE '' END) title,
+                              COUNT(*) records,
+                              SUM(CASE WHEN r.record_type='turn' THEN 1 ELSE 0 END) turns,
+                              SUM(CASE WHEN r.record_type='item' THEN 1 ELSE 0 END) items,
+                              SUM(CASE WHEN r.record_type='document' THEN 1 ELSE 0 END) documents
+                       FROM records r GROUP BY r.thread_id ORDER BY title,r.thread_id"""
                 ).fetchall()
                 self._json([dict(row) for row in rows]); return
             if parsed.path == "/api/records":
@@ -121,6 +133,15 @@ class ArchiveBrowserHandler(BaseHTTPRequestHandler):
                     tag=q.get("tag", [""])[0] or None,
                     limit=min(int(q.get("limit", ["100"])[0]), 1000),
                 )); return
+            if parsed.path == "/api/semantic":
+                if self.semantic is None:
+                    self._json({"error": "semantic search not enabled; start browser with --semantic-model"}, 400); return
+                self._json(self.semantic.search(
+                    q.get("q", [""])[0],
+                    thread_id=q.get("thread_id", [""])[0] or None,
+                    record_type=q.get("type", [""])[0] or None,
+                    limit=min(int(q.get("limit", ["50"])[0]), 200),
+                )); return
             if parsed.path == "/api/record":
                 key = q.get("key", [""])[0]
                 row = self.index.conn.execute("SELECT * FROM records WHERE record_key=?", (key,)).fetchone()
@@ -131,18 +152,23 @@ class ArchiveBrowserHandler(BaseHTTPRequestHandler):
                 payload["collections"] = [r[0] for r in self.index.conn.execute("SELECT collection_name FROM collection_members WHERE record_key=? ORDER BY collection_name", (key,)).fetchall()]
                 self._json(payload); return
             if parsed.path == "/api/collections":
-                rows = self.index.conn.execute(
-                    """SELECT c.name,c.description,COUNT(m.record_key) members FROM collections c
-                       LEFT JOIN collection_members m ON m.collection_name=c.name GROUP BY c.name ORDER BY c.name"""
-                ).fetchall()
-                self._json([dict(row) for row in rows]); return
+                self._json(self.index.collections()); return
             if parsed.path == "/api/collection":
                 self._json(self.index.collection(q.get("name", [""])[0])); return
+            if parsed.path == "/api/profile":
+                self._json(profile_thread(self.index.conn, q.get("thread", [""])[0]).to_dict()); return
             if parsed.path == "/api/compare":
                 ids = [x for x in q.get("threads", [""])[0].split(",") if x]
-                if len(ids) == 1:
-                    ids = ids + ids
                 self._json(compare_threads(self.index.conn, ids)); return
+            if parsed.path == "/path":
+                thread_id = q.get("thread_id", [""])[0]
+                row = self.index.conn.execute(
+                    "SELECT source_run FROM records WHERE thread_id=? ORDER BY CASE WHEN record_type='thread' THEN 0 ELSE 1 END LIMIT 1",
+                    (thread_id,),
+                ).fetchone()
+                if not row:
+                    self._json({"error": "thread not found"}, 404); return
+                self._html(render_standalone_html(row[0])); return
             self._json({"error": "not found"}, 404)
         except (ValueError, KeyError, sqlite3.Error) as exc:
             self._json({"error": str(exc)}, 400)
@@ -152,14 +178,15 @@ class ArchiveBrowserHandler(BaseHTTPRequestHandler):
         try:
             body = self._body()
             if parsed.path == "/api/tag":
-                self.index.add_tag(str(body["record_key"]), str(body["tag"]))
-                self._json({"ok": True}); return
+                self.index.add_tag(str(body["record_key"]), str(body["tag"])); self._json({"ok": True}); return
+            if parsed.path == "/api/tag/remove":
+                self.index.remove_tag(str(body["record_key"]), str(body["tag"])); self._json({"ok": True}); return
             if parsed.path == "/api/collection/add":
-                self.index.add_to_collection(str(body["name"]), str(body["record_key"]))
-                self._json({"ok": True}); return
+                self.index.add_to_collection(str(body["name"]), str(body["record_key"])); self._json({"ok": True}); return
+            if parsed.path == "/api/collection/remove":
+                self.index.remove_from_collection(str(body["name"]), str(body["record_key"])); self._json({"ok": True}); return
             if parsed.path == "/api/collection/create":
-                self.index.create_collection(str(body["name"]), str(body.get("description", "")))
-                self._json({"ok": True}); return
+                self.index.create_collection(str(body["name"]), str(body.get("description", ""))); self._json({"ok": True}); return
             self._json({"error": "not found"}, 404)
         except (ValueError, KeyError, sqlite3.Error, json.JSONDecodeError) as exc:
             self._json({"error": str(exc)}, 400)
@@ -172,14 +199,22 @@ def serve_archive(
     port: int = 8765,
     open_browser: bool = False,
     quiet: bool = False,
+    semantic_model: str | None = None,
 ) -> None:
     index = ArchiveIndex(db_path)
     server = ThreadingHTTPServer((host, port), ArchiveBrowserHandler)
     server.archive_index = index  # type: ignore[attr-defined]
     server.quiet = quiet  # type: ignore[attr-defined]
+    if semantic_model:
+        backend = SentenceTransformerBackend(semantic_model)
+        server.semantic_search = SemanticSearch(index.conn, backend)  # type: ignore[attr-defined]
+    else:
+        server.semantic_search = None  # type: ignore[attr-defined]
     url = f"http://{host}:{port}/"
     print(f"Thread Parser archive browser: {url}")
     print("Local-only by default. Ctrl-C to stop.")
+    if semantic_model:
+        print(f"Semantic search: {semantic_model}")
     if open_browser:
         threading.Timer(0.25, lambda: webbrowser.open(url)).start()
     try:
@@ -196,12 +231,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--open", action="store_true", dest="open_browser")
     parser.add_argument("--quiet", action="store_true")
+    parser.add_argument("--semantic-model", default=None, help="Enable optional local semantic search")
     return parser
 
 
 def main() -> int:
     args = build_parser().parse_args()
-    serve_archive(args.db, host=args.host, port=args.port, open_browser=args.open_browser, quiet=args.quiet)
+    serve_archive(
+        args.db,
+        host=args.host,
+        port=args.port,
+        open_browser=args.open_browser,
+        quiet=args.quiet,
+        semantic_model=args.semantic_model,
+    )
     return 0
 
 
