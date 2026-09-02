@@ -111,6 +111,72 @@ def _branch_id(mapping: dict[str, Any], node_id: str, active: set[str]) -> str:
     return f"branch-{branch_root[:8]}"
 
 
+def _nearest_materialized_parent(
+    mapping: dict[str, Any], node_id: str, materialized: set[str]
+) -> str | None:
+    cursor = mapping.get(node_id, {}).get("parent")
+    seen: set[str] = set()
+    while cursor and cursor in mapping and cursor not in seen:
+        seen.add(cursor)
+        if cursor in materialized:
+            return cursor
+        cursor = mapping[cursor].get("parent")
+    return None
+
+
+def _topology_safe_candidates(
+    mapping: dict[str, Any], candidates: list[tuple[str, dict[str, Any]]], order: dict[str, int]
+) -> list[tuple[str, dict[str, Any]]]:
+    """Topologically order materialized nodes while using timestamps only as a tie-breaker.
+
+    ChatGPT exports can omit create_time on a node. Timestamp-only sorting would assign
+    that node time zero and can place a child before its parent. This Kahn-style ordering
+    guarantees the nearest materialized ancestor is emitted first; among currently-ready
+    nodes, real timestamps and original mapping order preserve chronology as far as the
+    source permits.
+    """
+    by_id = {node_id: node for node_id, node in candidates}
+    materialized = set(by_id)
+    parent_of = {
+        node_id: _nearest_materialized_parent(mapping, node_id, materialized)
+        for node_id in materialized
+    }
+    children: dict[str, list[str]] = {node_id: [] for node_id in materialized}
+    indegree = {node_id: 0 for node_id in materialized}
+    for child, parent in parent_of.items():
+        if parent:
+            children[parent].append(child)
+            indegree[child] += 1
+
+    def ready_key(node_id: str) -> tuple[int, float, int]:
+        msg = (by_id[node_id].get("message") or {})
+        created = msg.get("create_time")
+        if isinstance(created, (int, float)):
+            return (0, float(created), order[node_id])
+        return (1, float("inf"), order[node_id])
+
+    ready = sorted((node_id for node_id, degree in indegree.items() if degree == 0), key=ready_key)
+    output: list[tuple[str, dict[str, Any]]] = []
+    emitted: set[str] = set()
+    while ready:
+        node_id = ready.pop(0)
+        if node_id in emitted:
+            continue
+        emitted.add(node_id)
+        output.append((node_id, by_id[node_id]))
+        for child in sorted(children[node_id], key=ready_key):
+            indegree[child] -= 1
+            if indegree[child] == 0:
+                ready.append(child)
+        ready.sort(key=ready_key)
+
+    # Malformed/cyclic mappings should still remain inspectable rather than disappear.
+    for node_id, node in candidates:
+        if node_id not in emitted:
+            output.append((node_id, node))
+    return output
+
+
 def _chatgpt_export_messages(data: dict[str, Any]) -> tuple[str, list[dict[str, Any]], dict[str, Any]]:
     mapping = data.get("mapping")
     if not isinstance(mapping, dict):
@@ -131,7 +197,7 @@ def _chatgpt_export_messages(data: dict[str, Any]) -> tuple[str, list[dict[str, 
             continue
         candidates.append((node_id, node))
 
-    candidates.sort(key=lambda pair: (((pair[1].get("message") or {}).get("create_time") or 0), order[pair[0]]))
+    candidates = _topology_safe_candidates(mapping, candidates, order)
     messages: list[dict[str, Any]] = []
     for node_id, node in candidates:
         msg = node["message"]
@@ -215,6 +281,20 @@ def parse_markdown_transcript(raw: str) -> list[NormalizedTurn]:
     return normalize_messages(messages)
 
 
+def _load_json_or_jsonl(path: Path, raw: str) -> Any:
+    if path.suffix.lower() == ".jsonl":
+        records: list[Any] = []
+        for line_number, line in enumerate(raw.splitlines(), start=1):
+            if not line.strip():
+                continue
+            try:
+                records.append(json.loads(line))
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"Invalid JSONL record at line {line_number}: {exc.msg}") from exc
+        return records
+    return json.loads(raw)
+
+
 def load_thread_with_archive(path: str | Path) -> tuple[str, list[NormalizedTurn], list[NormalizedTurn], dict[str, Any]]:
     """Load a thread for analysis while retaining the complete source topology.
 
@@ -231,7 +311,7 @@ def load_thread_with_archive(path: str | Path) -> tuple[str, list[NormalizedTurn
     }
 
     if p.suffix.lower() in {".json", ".jsonl"}:
-        data = json.loads(raw)
+        data = _load_json_or_jsonl(p, raw)
         if isinstance(data, dict) and isinstance(data.get("mapping"), dict):
             title, messages, chatgpt_meta = _chatgpt_export_messages(data)
             source_meta.update(chatgpt_meta)
