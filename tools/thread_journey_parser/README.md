@@ -1,150 +1,64 @@
-# Thread Journey Parser v0.3
+# Thread Parser v0.4
 
-A **historical single-thread conversation parser** for reconstructing how work, ideas, authority, decisions, documents, errors, and implementation state evolve from the beginning of a thread to its end.
+A local developer tool for parsing historical AI conversations into **source-preserving, turn-level analytical records**.
 
-It deliberately does **not** implement global memory or automatic canon promotion.
+Thread Parser is not a website product, not a Signomy runtime feature, and not a global memory system. It is intended to live as a standalone developer utility.
 
-## Architectural layers
+Its core job is to reconstruct:
+
+- where a thread started,
+- what happened turn by turn,
+- how the flow continued, pivoted, broke, recovered, or returned,
+- how ideas, decisions, canon candidates, actions, errors, and documents evolved,
+- what was implemented versus merely proposed,
+- where the thread finished,
+- and which exact turns support each conclusion.
+
+It also provides a local archive/search/browser layer across many parsed threads.
+
+## Core architectural rule
 
 ```text
-RAW SOURCE
-ChatGPT / generic JSON / Markdown
+IMMUTABLE RAW SOURCE
         │
         ▼
-IMMUTABLE ARCHIVE EVIDENCE
-raw hash + full conversation tree
+NORMALIZATION
+chronology + parent/child topology
         │
-        ├───────────────┐
-        ▼               ▼
-ACTIVE PATH         ARCHIVE BRANCHES
-interpreted         preserved/searchable
-        │               │
-        └───────┬───────┘
-                ▼
-       CANONICAL CSV FOUNDATION
-                │
-       ┌────────┼─────────┐
-       ▼        ▼         ▼
-   reports    search    graphs/analytics
-       │
-       ▼
-PRIMARY PARSE RESULT
-       │
-       ▼
-MO§ES THIRD-PARTY REVIEW
-read-only annotations; no mutation
+        ▼
+PRIMARY PARSE
+turns + flow + authority + items + evidence
+        │
+        ▼
+CANONICAL ANALYTICAL CSV
+        │
+        ├── reports
+        ├── search
+        ├── tags / projects
+        ├── comparisons
+        ├── path maps
+        └── independent MO§ES review
 ```
 
-## What v0.3 adds
+Raw source is archival evidence. Parser output is derived analytical state. Reports and reviews are projections.
 
-### Full conversation-tree preservation
+## What v0.4 includes
 
-ChatGPT exports retain:
+### Historical import and topology
 
-- source node IDs,
-- parent/child topology,
-- the current active path,
-- abandoned branches,
-- chronological timestamps,
-- branch identifiers.
+- Generic JSON conversations
+- ChatGPT export conversations
+- Markdown transcripts
+- ChatGPT parent/child tree preservation
+- Active path separated from abandoned branches
+- Chronology kept separate from topology
+- Raw source hash and source manifest
 
-The **active path alone** drives continuation, authority, and journey interpretation. Abandoned branches are preserved in the CSV/archive layer but cannot silently influence the main parse.
+Only the active path participates in continuation/authority inference. Inactive branches are preserved for archive/search/path analysis.
 
-### Canonical CSV analytical layer
+### Turn-level parse
 
-Every run now emits `canonical/` containing:
-
-```text
-threads.csv
-turns.csv
-edges.csv
-items.csv
-item_events.csv
-documents.csv
-evidence.csv
-reviews.csv
-tags.csv
-episodes.csv
-schema-manifest.json
-```
-
-Semantics:
-
-- **Raw source** = immutable archival evidence.
-- **CSV bundle** = normalized analytical interchange layer.
-- **Reports** = derived projections.
-- **MO§ES reviews** = independent third-party annotations.
-- **Canon promotion** = disabled.
-
-This lets future search, tagging, dashboards, maps, graphs, decision timelines, Paxel-style analysis, and cross-thread tooling operate on a stable tabular foundation without reparsing the raw archive for every report.
-
-### Authority + evolution
-
-Tracked items preserve lifecycle events such as:
-
-```text
-INTRODUCED
-→ AUTHORITY_LIFT_BY_CONTINUATION
-→ CHALLENGED
-→ CORRECTED
-→ IMPLEMENTED
-→ VERIFIED
-→ SUPERSEDED
-```
-
-Older state is never deleted merely because a later state supersedes it.
-
-### Continuation as evidence
-
-User authority remains primary.
-
-A specific assistant proposal can gain authority when the user clearly builds on it without objection, but this is **scoped behavioral adoption**, not blanket approval of the assistant turn.
-
-Default evidence ordering:
-
-| Source / behavior | Weight |
-|---|---:|
-| User explicit decision/correction/canon statement | 1.00 |
-| Tool evidence | 0.90 |
-| User builds on a specific assistant proposal | 0.75–0.85 |
-| User statement | 0.80 |
-| Assistant implementation/verification report | 0.65 |
-| Assistant suggestion | 0.30 |
-| Assistant inference | 0.15 |
-
-Weights order evidence; they are **not truth probabilities**.
-
-### Independent MO§ES review contract
-
-Each parse emits:
-
-```text
-moses-review-request.json
-```
-
-The packet contains only high-impact parser claims, their lineage, source turns, and review questions under the Six Fold Flame.
-
-MO§ES is architecturally a **third-party reviewer**:
-
-```text
-parser output
-   ↓
-MO§ES review
-   ↓
-reviews.csv / report annotation
-```
-
-It may flag authority inflation, lineage loss, over-compression, unresolved objections, or unverifiable conclusions. It cannot rewrite parser records or promote canon.
-
-An externally produced review response can be imported with:
-
-```bash
-thread-journey-parser thread.json \
-  --out ./thread-output \
-  --moses-review-response ./moses-response.json
-```
-
-## Core turn taxonomy
+Categories include:
 
 - `FOUNDATION`
 - `ACTION`
@@ -163,7 +77,7 @@ thread-journey-parser thread.json \
 - `OPEN_QUESTION`
 - `ARTIFACT`
 
-## Flow taxonomy
+Flow relations include:
 
 - `CONTINUATION`
 - `BUILD_ON`
@@ -174,112 +88,303 @@ thread-journey-parser thread.json \
 - `RECOVERY`
 - `RETURN`
 
-Timestamps support flow interpretation (`rapid`, `same_session_likely`, `session_break`, `multi_day_gap`) but semantic evidence remains primary. Source parent/child topology is preserved independently from timestamp chronology.
+### Authority and evolution
 
-## Documents
+User statements are weighted more heavily than assistant proposals.
 
-Documents/files are first-class records. The parser tracks:
+Continuation is treated as scoped behavioral evidence: if the user builds directly on a specific assistant suggestion without objection, that item can gain authority without converting the entire prior assistant turn into canon.
 
-- introducing turn,
-- introducing actor,
-- references,
-- URI/path when supplied,
-- content hash when inline content is available,
-- content excerpt,
-- document role/status.
-
-## Input formats
-
-### Generic JSON
-
-```json
-{
-  "title": "Example",
-  "messages": [
-    {"role": "user", "content": "We need a parser."},
-    {"role": "assistant", "content": "I would use a turn ledger."},
-    {"role": "user", "content": "Then add flow transitions and build on that."}
-  ]
-}
-```
-
-### JSONL
-
-Newline-delimited message records are accepted as `.jsonl` input.
-
-### ChatGPT export JSON
-
-A single exported conversation object containing `mapping` and `current_node` is supported. v0.3 preserves the full tree while analyzing the active path separately.
-
-### Markdown transcript
+Tracked item evolution may include:
 
 ```text
-[2026-08-23T10:00:00-04:00] User: We need a parser.
-[2026-08-23T10:01:00-04:00] Assistant: I would use a turn ledger.
-[2026-08-23T10:02:00-04:00] User: Then add flow transitions and build on that.
+INTRODUCED
+→ AUTHORITY_LIFT_BY_CONTINUATION
+→ CHALLENGED
+→ IMPLEMENTATION_REPORTED
+→ VERIFIED
+→ SUPERSEDED
 ```
 
-## Run
+Superseded records remain in history.
 
-Inside `agent-universe`:
+Automatic global canon promotion is disabled.
+
+### Rethread-style descriptive extraction
+
+The enrichment layer conservatively extracts source-bound observations:
+
+- `FACT`
+- `PREFERENCE`
+- `CONSTRAINT`
+- `DEFINITION`
+- `OBJECTIVE`
+- `CONTEXT`
+
+These remain `OBSERVED` records. They do not become decisions or canon automatically.
+
+### Documents and evidence
+
+Documents are first-class records with:
+
+- introducing turn
+- references
+- role
+- URI when available
+- optional content excerpt
+- SHA-256 content hash when content is available
+
+Implementation and verification remain separate from proposals/actions.
+
+### Canonical CSV foundation
+
+Each parse can emit:
+
+```text
+canonical/
+├── threads.csv
+├── turns.csv
+├── edges.csv
+├── items.csv
+├── item_events.csv
+├── documents.csv
+├── evidence.csv
+├── reviews.csv
+├── tags.csv
+├── episodes.csv
+└── schema-manifest.json
+```
+
+The CSV layer is the canonical **analytical interchange layer**, not the immutable source of truth.
+
+Spreadsheet formula injection is neutralized in CSV outputs without mutating raw source or the JSON ledger.
+
+### Full-text search
+
+Parsed runs can be indexed into a local SQLite archive:
 
 ```bash
-python -m tools.thread_journey_parser.cli path/to/thread.json --out ./thread-output
+thread-parser-archive index archive.sqlite ./thread-parser-output
+thread-parser-archive search archive.sqlite "migration manifest"
 ```
 
-Standalone installation from the `agent-universe` repository root:
+SQLite FTS5 is used when available, with a LIKE fallback.
+
+Search indexes thread records, turns, extracted items, and documents. Search never reparses or changes meaning.
+
+### Semantic search
+
+Semantic search is optional and local:
 
 ```bash
-pip install ./tools/thread_journey_parser
-thread-journey-parser path/to/thread.json --out ./thread-output
+pip install 'thread-parser[semantic]'
+thread-parser-archive semantic archive.sqlite "where did the architecture change?"
 ```
 
-After extracting `tools/thread_journey_parser/` into its own repository, install from that repository root with `pip install .`.
+The default backend uses `sentence-transformers` and caches embeddings by record/model in SQLite.
 
-Output:
+The core package does not require an embedding dependency.
+
+### Tags and projects / collections
+
+Manual organization is stored separately from parser state:
+
+```bash
+thread-parser-archive tag archive.sqlite THREAD-X:turn:T042 architecture
+thread-parser-archive collection-create archive.sqlite upsilon-step23
+thread-parser-archive collection-add archive.sqlite upsilon-step23 THREAD-X:thread:THREAD-X
+```
+
+Collections may contain entire threads or individual records and can span multiple threads.
+
+### Multi-thread comparison
+
+```bash
+thread-parser-archive compare archive.sqlite THREAD-A THREAD-B --format markdown
+```
+
+Comparison currently reports:
+
+- record / turn / item / document counts
+- category distributions
+- authority distributions
+- status distributions
+- common and unique tags
+- decisions
+- canon updates
+- open actions
+- shared decision/canon vocabulary
+
+Comparison is descriptive. It does not resolve cross-thread canon conflicts.
+
+### Branch and path visualization
+
+Each parser run can emit:
 
 ```text
-thread-output/
-├── source-manifest.json
-├── thread-ledger.json
-├── thread-report.md
-├── moses-review-request.json
-└── canonical/
-    ├── threads.csv
-    ├── turns.csv
-    ├── edges.csv
-    ├── items.csv
-    ├── item_events.csv
-    ├── documents.csv
-    ├── evidence.csv
-    ├── reviews.csv
-    ├── tags.csv
-    ├── episodes.csv
-    └── schema-manifest.json
+maps/
+├── thread-tree.mmd
+├── thread-tree.dot
+├── path-map.md
+├── thread-map.mmd
+├── thread-map.dot
+└── thread-map.html
 ```
 
-## Standalone boundary
+`thread-map.html` is a dependency-free interactive SVG tree:
 
-The entire parser remains contained under:
+- parent/child topology
+- active-path emphasis
+- abandoned branch preservation
+- clickable turns
+- raw text and parser metadata
+- path filtering
+
+### Local archive browser UI
+
+Run:
+
+```bash
+thread-parser-browser archive.sqlite --open
+```
+
+or:
+
+```bash
+thread-parser-archive browse archive.sqlite --open
+```
+
+The browser binds to `127.0.0.1` by default and provides:
+
+- thread browsing
+- full-text search
+- optional semantic search
+- record-type filtering
+- tag filtering
+- raw record inspection
+- manual tag add/remove
+- project / collection creation
+- record membership management
+- entire-thread project membership
+- thread profiles
+- multi-thread comparison
+- direct branch/path visualization
+
+Enable semantic search in the browser with:
+
+```bash
+thread-parser-browser archive.sqlite --semantic-model all-MiniLM-L6-v2 --open
+```
+
+### Append-only run archive
+
+A parse can be frozen with the original raw source and all outputs:
+
+```bash
+thread-parser conversation.json \
+  --out ./runs/latest \
+  --archive-root ./archive
+```
+
+Frozen layout:
 
 ```text
-tools/thread_journey_parser/
+archive/
+└── YYYY-MM-DD/
+    └── THREAD-ID/
+        └── TIMESTAMP/
+            ├── raw/
+            ├── output/
+            └── manifest.json
 ```
 
-It has its own `pyproject.toml`, standard-library-only runtime dependencies, and no Signomy application imports. The directory can be moved to a standalone repository later without untangling marketplace/runtime code.
+Every frozen file receives a SHA-256 hash. Existing runs are never overwritten.
 
-## CSV safety
+## Independent MO§ES third-party review
 
-CSV is an analytical projection, not the raw archive. Cells that could be interpreted as spreadsheet formulas are neutralized when written so opening generated CSVs in spreadsheet software does not execute untrusted thread text. The raw source and ledger retain the exact original text.
+The parser produces a review packet after the primary parse.
 
-## Current limits
+```text
+PRIMARY PARSE
+     │
+     ▼
+freeze/hash review target
+     │
+     ▼
+MO§ES INDEPENDENT REVIEW
+     │
+     ▼
+reviews.csv / report annotation
+```
 
-- Single thread only; no cross-thread canon reconciliation.
-- Search/tag **foundation** exists in CSV but no end-user search UI/index yet.
-- Branches are preserved but only the active path receives full semantic parsing in v0.3.
-- Supersession inference is conservative and reviewable.
-- MO§ES review contract exists; a dedicated remote reviewer tool/service is the next integration step.
-- Automatic canon promotion remains disabled.
-- External documents referenced only by URL/path are not automatically materialized.
+MO§ES does not become parser logic, does not alter the primary parse, and does not promote canon.
 
-See `MOSES-GOVERNANCE-REVIEW.md` for the governance boundary.
+See `MOSES-GOVERNANCE-REVIEW.md`.
+
+## Run the parser
+
+```bash
+thread-parser conversation.json \
+  --out ./thread-parser-output \
+  --index-db ./archive.sqlite \
+  --archive-root ./archive
+```
+
+Primary outputs:
+
+```text
+thread-ledger.json
+thread-report.md
+source-manifest.json
+moses-review-request.json
+canonical/*.csv
+maps/*
+```
+
+## Standalone packaging
+
+The install/package name is already `thread-parser`.
+
+The current temporary repository directory still uses the historical folder name until the tool is moved out of `agent-universe`.
+
+After extraction, the intended standalone shape is approximately:
+
+```text
+thread-parser/
+├── pyproject.toml
+├── README.md
+├── src/thread_parser/
+├── tests/
+├── schemas/
+├── data/
+├── reports/
+└── archive/
+```
+
+## Design references
+
+The architecture borrows useful patterns from several adjacent tools without treating any one as the product model:
+
+- historical memory extraction / state timelines: Rethread-like pattern
+- exact conversation-tree preservation: ChatGPT Browser-like pattern
+- search, tagging, organization, export: ChatLocker-like pattern
+- row-grain analytical reports / episodes: Paxel-like pattern
+
+Thread Parser adds its own core differentiators:
+
+- continuation as evidence
+- turn-by-turn documentation and review
+- authority weighting
+- pivot / deferred-error / recovery tracking
+- item evolution and supersession
+- exact turn citations
+- independent MO§ES review
+
+## Not yet claimed as solved
+
+- perfect semantic interpretation
+- automatic cross-thread canon reconciliation
+- automatic public/private projection policy
+- cryptographic authentication of speaker identity
+- a hosted multi-user product
+
+Those should remain separate decisions from the local parser/archive tool.
