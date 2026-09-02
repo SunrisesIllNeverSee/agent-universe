@@ -18,6 +18,8 @@ class ThreadProfile:
     authorities: dict[str, int]
     statuses: dict[str, int]
     tags: list[str]
+    manual_tags: list[str]
+    parser_tags: list[str]
     decisions: list[dict[str, str]]
     open_actions: list[dict[str, str]]
     canon_updates: list[dict[str, str]]
@@ -44,6 +46,18 @@ def _selected_items(conn: sqlite3.Connection, thread_id: str, category: str, sta
     return [dict(row) for row in conn.execute(sql, params).fetchall()]
 
 
+def _tags_by_source(conn: sqlite3.Connection, thread_id: str) -> tuple[list[str], list[str], list[str]]:
+    rows = conn.execute(
+        """SELECT DISTINCT t.tag,t.source FROM tags t JOIN records r ON r.record_key=t.record_key
+           WHERE r.thread_id=? ORDER BY t.tag,t.source""",
+        (thread_id,),
+    ).fetchall()
+    all_tags = sorted({str(row[0]) for row in rows if row[0]})
+    manual = sorted({str(row[0]) for row in rows if row[0] and str(row[1]) == "manual"})
+    parser = sorted({str(row[0]) for row in rows if row[0] and str(row[1]) != "manual"})
+    return all_tags, manual, parser
+
+
 def profile_thread(conn: sqlite3.Connection, thread_id: str) -> ThreadProfile:
     total = conn.execute("SELECT COUNT(*) FROM records WHERE thread_id=?", (thread_id,)).fetchone()[0]
     by_type = {
@@ -52,14 +66,7 @@ def profile_thread(conn: sqlite3.Connection, thread_id: str) -> ThreadProfile:
             "SELECT record_type,COUNT(*) FROM records WHERE thread_id=? GROUP BY record_type", (thread_id,)
         ).fetchall()
     }
-    tags = [
-        row[0]
-        for row in conn.execute(
-            """SELECT DISTINCT t.tag FROM tags t JOIN records r ON r.record_key=t.record_key
-               WHERE r.thread_id=? ORDER BY t.tag""",
-            (thread_id,),
-        ).fetchall()
-    ]
+    tags, manual_tags, parser_tags = _tags_by_source(conn, thread_id)
     open_actions = [
         dict(row)
         for row in conn.execute(
@@ -81,10 +88,21 @@ def profile_thread(conn: sqlite3.Connection, thread_id: str) -> ThreadProfile:
         authorities=_counter(conn, thread_id, "authority"),
         statuses=_counter(conn, thread_id, "status"),
         tags=tags,
+        manual_tags=manual_tags,
+        parser_tags=parser_tags,
         decisions=decisions,
         open_actions=open_actions,
         canon_updates=canon_updates,
     )
+
+
+def _common_and_unique(tag_sets: dict[str, set[str]]) -> tuple[list[str], dict[str, list[str]]]:
+    common = sorted(set.intersection(*(tags for tags in tag_sets.values()))) if tag_sets else []
+    unique = {
+        thread_id: sorted(tags - set().union(*(other for other_id, other in tag_sets.items() if other_id != thread_id)))
+        for thread_id, tags in tag_sets.items()
+    }
+    return common, unique
 
 
 def compare_threads(conn: sqlite3.Connection, thread_ids: list[str]) -> dict[str, Any]:
@@ -98,12 +116,13 @@ def compare_threads(conn: sqlite3.Connection, thread_ids: list[str]) -> dict[str
     for category in all_categories:
         category_presence[category] = [profile.thread_id for profile in profiles if profile.categories.get(category, 0)]
 
-    tag_sets = {profile.thread_id: set(profile.tags) for profile in profiles}
-    common_tags = sorted(set.intersection(*(tags for tags in tag_sets.values()))) if tag_sets else []
-    unique_tags = {
-        thread_id: sorted(tags - set().union(*(other for other_id, other in tag_sets.items() if other_id != thread_id)))
-        for thread_id, tags in tag_sets.items()
-    }
+    # Human organization tags and parser-generated analytical tags are intentionally
+    # separated. Project comparison defaults to manual tags; parser tags remain visible
+    # as a distinct signal instead of masquerading as human organization choices.
+    manual_sets = {profile.thread_id: set(profile.manual_tags) for profile in profiles}
+    parser_sets = {profile.thread_id: set(profile.parser_tags) for profile in profiles}
+    common_tags, unique_tags = _common_and_unique(manual_sets)
+    common_parser_tags, unique_parser_tags = _common_and_unique(parser_sets)
 
     shared_decision_terms = Counter()
     for profile in profiles:
@@ -118,17 +137,23 @@ def compare_threads(conn: sqlite3.Connection, thread_ids: list[str]) -> dict[str
         shared_decision_terms.update(seen)
 
     return {
-        "comparison_schema": "0.1.0",
+        "comparison_schema": "0.2.0",
         "thread_ids": ids,
         "profiles": [profile.to_dict() for profile in profiles],
         "common_tags": common_tags,
         "unique_tags": unique_tags,
+        "common_parser_tags": common_parser_tags,
+        "unique_parser_tags": unique_parser_tags,
         "category_presence": category_presence,
         "shared_decision_terms": [
             {"term": term, "thread_count": count}
             for term, count in shared_decision_terms.most_common(30)
             if count > 1
         ],
+        "tag_semantics": {
+            "common_tags": "manual organizational tags only",
+            "common_parser_tags": "parser/system-generated analytical tags only",
+        },
         "interpretation_policy": (
             "Comparison is descriptive over indexed parser outputs. It does not reconcile conflicting canon "
             "or promote cross-thread truth."
@@ -147,11 +172,14 @@ def render_markdown(comparison: dict[str, Any]) -> str:
             f"documents: **{profile['document_count']}**"
         )
         lines.append(f"- Decisions: **{len(profile['decisions'])}**; open actions: **{len(profile['open_actions'])}**; canon updates: **{len(profile['canon_updates'])}**")
-        if profile["tags"]:
-            lines.append("- Tags: " + ", ".join(profile["tags"]))
+        if profile["manual_tags"]:
+            lines.append("- Manual tags: " + ", ".join(profile["manual_tags"]))
+        if profile["parser_tags"]:
+            lines.append("- Parser tags: " + ", ".join(profile["parser_tags"]))
         lines.append("")
     lines.extend(["## Cross-thread signals", ""])
-    lines.append("- Common tags: " + (", ".join(comparison["common_tags"]) or "none"))
+    lines.append("- Common manual tags: " + (", ".join(comparison["common_tags"]) or "none"))
+    lines.append("- Common parser tags: " + (", ".join(comparison["common_parser_tags"]) or "none"))
     if comparison["shared_decision_terms"]:
         lines.append("- Shared decision/canon vocabulary: " + ", ".join(item["term"] for item in comparison["shared_decision_terms"][:15]))
     lines.extend(["", "> Comparison is descriptive only; conflicting thread-local state remains unresolved.", ""])
