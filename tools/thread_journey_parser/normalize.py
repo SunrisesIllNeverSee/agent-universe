@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from datetime import datetime, timezone
@@ -85,59 +86,79 @@ def _generic_messages(data: Any) -> tuple[str, list[dict[str, Any]]]:
     raise ValueError("Unsupported generic JSON thread format")
 
 
-def _chatgpt_export(data: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
+def _active_node_ids(mapping: dict[str, Any], current: str | None) -> set[str]:
+    active: set[str] = set()
+    node_id = current
+    while node_id and node_id in mapping and node_id not in active:
+        active.add(node_id)
+        node_id = mapping[node_id].get("parent")
+    return active
+
+
+def _branch_id(mapping: dict[str, Any], node_id: str, active: set[str]) -> str:
+    if node_id in active:
+        return "active"
+    cursor = node_id
+    branch_root = node_id
+    seen: set[str] = set()
+    while cursor and cursor in mapping and cursor not in seen:
+        seen.add(cursor)
+        parent = mapping[cursor].get("parent")
+        branch_root = cursor
+        if parent in active or not parent:
+            break
+        cursor = parent
+    return f"branch-{branch_root[:8]}"
+
+
+def _chatgpt_export_messages(data: dict[str, Any]) -> tuple[str, list[dict[str, Any]], dict[str, Any]]:
     mapping = data.get("mapping")
     if not isinstance(mapping, dict):
         raise ValueError("Not a ChatGPT export conversation")
 
-    ordered_nodes: list[dict[str, Any]] = []
     current = data.get("current_node")
-    if current and current in mapping:
-        seen: set[str] = set()
-        chain: list[dict[str, Any]] = []
-        node_id = current
-        while node_id and node_id in mapping and node_id not in seen:
-            seen.add(node_id)
-            node = mapping[node_id]
-            chain.append(node)
-            node_id = node.get("parent")
-        ordered_nodes = list(reversed(chain))
-    else:
-        ordered_nodes = sorted(
-            mapping.values(),
-            key=lambda n: ((n.get("message") or {}).get("create_time") or 0),
-        )
-
-    messages: list[dict[str, Any]] = []
-    for node in ordered_nodes:
+    active = _active_node_ids(mapping, current if isinstance(current, str) else None)
+    order = {node_id: idx for idx, node_id in enumerate(mapping.keys())}
+    candidates: list[tuple[str, dict[str, Any]]] = []
+    for node_id, node in mapping.items():
         msg = node.get("message")
         if not isinstance(msg, dict):
             continue
         author = msg.get("author") or {}
         role = author.get("role") or "unknown"
         text = _content_to_text(msg.get("content"))
-        if not text.strip() and role not in {"tool", "system"}:
+        if not text.strip() and role not in {"tool", "system", "developer"}:
             continue
+        candidates.append((node_id, node))
+
+    candidates.sort(key=lambda pair: (((pair[1].get("message") or {}).get("create_time") or 0), order[pair[0]]))
+    messages: list[dict[str, Any]] = []
+    for node_id, node in candidates:
+        msg = node["message"]
+        author = msg.get("author") or {}
+        role = author.get("role") or "unknown"
         messages.append({
             "role": role,
-            "content": text,
+            "content": _content_to_text(msg.get("content")),
             "timestamp": msg.get("create_time"),
             "metadata": msg.get("metadata") or {},
+            "_source_node_id": node_id,
+            "_parent_source_node_id": node.get("parent"),
+            "_child_source_node_ids": list(node.get("children") or []),
+            "_branch_id": _branch_id(mapping, node_id, active),
+            "_is_active_path": node_id in active,
         })
-    return str(data.get("title") or "Untitled thread"), messages
 
-
-def load_thread(path: str | Path) -> tuple[str, list[NormalizedTurn]]:
-    p = Path(path)
-    raw = p.read_text(encoding="utf-8")
-    if p.suffix.lower() in {".json", ".jsonl"}:
-        data = json.loads(raw)
-        if isinstance(data, dict) and isinstance(data.get("mapping"), dict):
-            title, messages = _chatgpt_export(data)
-        else:
-            title, messages = _generic_messages(data)
-        return title, normalize_messages(messages)
-    return p.stem, parse_markdown_transcript(raw)
+    meta = {
+        "source_platform": "chatgpt",
+        "source_conversation_id": data.get("id") or data.get("conversation_id"),
+        "active_leaf_source_node_id": current,
+        "source_node_count": len(mapping),
+        "materialized_turn_count": len(messages),
+        "branch_count": len({m["_branch_id"] for m in messages if m["_branch_id"] != "active"}),
+        "node_parents": {node_id: node.get("parent") for node_id, node in mapping.items()},
+    }
+    return str(data.get("title") or "Untitled thread"), messages, meta
 
 
 def normalize_messages(messages: list[dict[str, Any]]) -> list[NormalizedTurn]:
@@ -148,7 +169,7 @@ def normalize_messages(messages: list[dict[str, Any]]) -> list[NormalizedTurn]:
             author = author.get("role") or author.get("name") or "unknown"
         speaker = ROLE_MAP.get(str(author).lower(), str(author).upper())
         text = _content_to_text(msg.get("content") if "content" in msg else msg.get("text"))
-        turn_id = f"T{len(turns)+1:03d}"
+        turn_id = str(msg.get("_turn_id") or f"T{idx:03d}")
         turns.append(NormalizedTurn(
             turn_id=turn_id,
             speaker=speaker,
@@ -156,6 +177,12 @@ def normalize_messages(messages: list[dict[str, Any]]) -> list[NormalizedTurn]:
             timestamp=_timestamp(msg.get("timestamp") or msg.get("create_time") or msg.get("created_at")),
             attachments=_extract_attachments(msg, text),
             raw_index=idx,
+            source_node_id=msg.get("_source_node_id") or msg.get("node_id") or msg.get("id"),
+            parent_source_node_id=msg.get("_parent_source_node_id") or msg.get("parent_node_id") or msg.get("parent_id"),
+            child_source_node_ids=list(msg.get("_child_source_node_ids") or msg.get("child_node_ids") or []),
+            branch_id=str(msg.get("_branch_id") or "active"),
+            is_active_path=bool(msg.get("_is_active_path", True)),
+            sequence_index=idx,
         ))
     return turns
 
@@ -186,3 +213,46 @@ def parse_markdown_transcript(raw: str) -> list[NormalizedTurn]:
     if not messages:
         raise ValueError("Markdown transcript must contain 'User:'/'Assistant:' turn headers")
     return normalize_messages(messages)
+
+
+def load_thread_with_archive(path: str | Path) -> tuple[str, list[NormalizedTurn], list[NormalizedTurn], dict[str, Any]]:
+    """Load a thread for analysis while retaining the complete source topology.
+
+    The primary parser analyzes the active ChatGPT path so abandoned branches cannot
+    accidentally influence continuation/authority. The canonical CSV layer receives
+    all materialized turns and preserves their parent/child topology separately.
+    """
+    p = Path(path)
+    raw = p.read_text(encoding="utf-8")
+    source_meta: dict[str, Any] = {
+        "raw_source_path": str(p),
+        "raw_source_hash": hashlib.sha256(raw.encode("utf-8")).hexdigest(),
+        "source_platform": "markdown" if p.suffix.lower() not in {".json", ".jsonl"} else "generic_json",
+    }
+
+    if p.suffix.lower() in {".json", ".jsonl"}:
+        data = json.loads(raw)
+        if isinstance(data, dict) and isinstance(data.get("mapping"), dict):
+            title, messages, chatgpt_meta = _chatgpt_export_messages(data)
+            source_meta.update(chatgpt_meta)
+            all_turns = normalize_messages(messages)
+            active_turns = [turn for turn in all_turns if turn.is_active_path]
+            if not active_turns:
+                active_turns = all_turns
+            return title, active_turns, all_turns, source_meta
+        title, messages = _generic_messages(data)
+        all_turns = normalize_messages(messages)
+        source_meta["materialized_turn_count"] = len(all_turns)
+        source_meta["branch_count"] = 0
+        return title, all_turns, all_turns, source_meta
+
+    all_turns = parse_markdown_transcript(raw)
+    source_meta["materialized_turn_count"] = len(all_turns)
+    source_meta["branch_count"] = 0
+    return p.stem, all_turns, all_turns, source_meta
+
+
+def load_thread(path: str | Path) -> tuple[str, list[NormalizedTurn]]:
+    """Backward-compatible loader returning the active analytical path."""
+    title, active_turns, _all_turns, _meta = load_thread_with_archive(path)
+    return title, active_turns
