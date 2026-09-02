@@ -45,7 +45,7 @@ ChatGPT exports retain:
 - parent/child topology,
 - the current active path,
 - abandoned branches,
-- chronological sequence,
+- chronological timestamps,
 - branch identifiers.
 
 The **active path alone** drives continuation, authority, and journey interpretation. Abandoned branches are preserved in the CSV/archive layer but cannot silently influence the main parse.
@@ -174,7 +174,7 @@ thread-journey-parser thread.json \
 - `RECOVERY`
 - `RETURN`
 
-Timestamps support flow interpretation (`rapid`, `same_session_likely`, `session_break`, `multi_day_gap`) but semantic evidence remains primary.
+Timestamps support flow interpretation (`rapid`, `same_session_likely`, `session_break`, `multi_day_gap`) but semantic evidence remains primary. Source parent/child topology is preserved independently from timestamp chronology.
 
 ## Documents
 
@@ -203,6 +203,10 @@ Documents/files are first-class records. The parser tracks:
 }
 ```
 
+### JSONL
+
+Newline-delimited message records are accepted as `.jsonl` input.
+
 ### ChatGPT export JSON
 
 A single exported conversation object containing `mapping` and `current_node` is supported. v0.3 preserves the full tree while analyzing the active path separately.
@@ -223,12 +227,14 @@ Inside `agent-universe`:
 python -m tools.thread_journey_parser.cli path/to/thread.json --out ./thread-output
 ```
 
-Standalone installation:
+Standalone installation from the `agent-universe` repository root:
 
 ```bash
-pip install ./thread_journey_parser
+pip install ./tools/thread_journey_parser
 thread-journey-parser path/to/thread.json --out ./thread-output
 ```
+
+After extracting `tools/thread_journey_parser/` into its own repository, install from that repository root with `pip install .`.
 
 Output:
 
@@ -261,6 +267,10 @@ tools/thread_journey_parser/
 ```
 
 It has its own `pyproject.toml`, standard-library-only runtime dependencies, and no Signomy application imports. The directory can be moved to a standalone repository later without untangling marketplace/runtime code.
+
+## CSV safety
+
+CSV is an analytical projection, not the raw archive. Cells that could be interpreted as spreadsheet formulas are neutralized when written so opening generated CSVs in spreadsheet software does not execute untrusted thread text. The raw source and ledger retain the exact original text.
 
 ## Current limits
 
