@@ -122,20 +122,21 @@ def test_complete_organization_schema_is_discoverable() -> None:
     )
     schemas = [json.loads(block) for block in blocks]
     org = next(schema for schema in schemas if schema.get("@type") == "Organization")
-    assert org["name"] == "SIGNOMY"
+    # Search Authority-backed organization entity. SIGNOMY is the platform, not the legal organization.
+    assert org["name"] == "Ello Cello LLC"
     assert org["contactPoint"]["contactType"]
     assert org["contactPoint"]["email"]
     assert org["address"]["@type"] == "PostalAddress"
     assert org["address"]["addressCountry"] == "US"
 
 
-def test_shared_footer_surfaces_developer_links_and_complete_org_graph() -> None:
+def test_shared_footer_surfaces_trust_and_developer_index() -> None:
     footer = (FRONTEND / "_footer.js").read_text(encoding="utf-8")
-    for target in ("/developers", "/openapi.json", "/privacy"):
+    # The footer routes users/agents to the developer index; machine specs are surfaced there.
+    for target in ("/developers", "/privacy", "/sitemap"):
         assert target in footer
-    assert "signomy-org-schema-complete" in footer
-    assert "contactPoint" in footer
-    assert "PostalAddress" in footer
+    assert "https://mos2es.com" in footer
+    assert "Ello Cello LLC" in footer
 
 
 def test_signomy_cli_alias_is_packaged() -> None:

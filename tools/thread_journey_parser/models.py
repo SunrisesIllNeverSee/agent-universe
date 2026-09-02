@@ -21,6 +21,13 @@ class NormalizedTurn:
     timestamp: str | None = None
     attachments: list[Attachment] = field(default_factory=list)
     raw_index: int = 0
+    # Source-topology fields are optional so flat transcripts remain valid.
+    source_node_id: str | None = None
+    parent_source_node_id: str | None = None
+    child_source_node_ids: list[str] = field(default_factory=list)
+    branch_id: str = "active"
+    is_active_path: bool = True
+    sequence_index: int = 0
 
 
 @dataclass

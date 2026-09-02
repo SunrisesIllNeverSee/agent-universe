@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "thread-journey-parser"
-version = "0.2.0"
-description = "Single-thread conversation journey parser with authority, evolution, flow, documents, and turn citations."
+version = "0.3.0"
+description = "Historical conversation parser with canonical CSV, tree topology, authority evolution, continuation, documents, and third-party review contracts."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Ello Cello LLC" }]
