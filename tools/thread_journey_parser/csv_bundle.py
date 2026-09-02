@@ -72,12 +72,26 @@ def _json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
+def _csv_cell(value: Any) -> str:
+    """Serialize analytical CSV safely without changing immutable raw archive data.
+
+    Spreadsheet programs can execute cells beginning with formula markers even when the
+    CSV field is quoted. Prefixing an apostrophe neutralizes those cells when opened in
+    Excel/Sheets. The exact source text remains unchanged in the raw archive and ledger.
+    """
+    text = _json(value)
+    visible = text.lstrip(" \t\r")
+    if visible and visible[0] in {"=", "+", "-", "@"}:
+        return "'" + text
+    return text
+
+
 def _write(path: Path, rows: Iterable[dict[str, Any]], columns: list[str]) -> None:
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=columns, extrasaction="ignore")
         writer.writeheader()
         for row in rows:
-            writer.writerow({column: _json(row.get(column, "")) for column in columns})
+            writer.writerow({column: _csv_cell(row.get(column, "")) for column in columns})
 
 
 def _resolve_parent_turn(turn: NormalizedTurn, all_turns: list[NormalizedTurn], source_meta: dict[str, Any]) -> str:
@@ -308,7 +322,7 @@ def _evidence_rows(ledger: ThreadLedger) -> list[dict[str, Any]]:
             evidence_types.append(("VERIFICATION", "REPORTED_OR_OBSERVED"))
         if "IMPLEMENTED" in turn.categories:
             evidence_types.append(("IMPLEMENTATION", "REPORTED"))
-        for document_id in turn.documents:
+        for _document_id in turn.documents:
             evidence_types.append(("DOCUMENT_REFERENCE", "OBSERVED"))
         for evidence_type, state in evidence_types:
             counter += 1
