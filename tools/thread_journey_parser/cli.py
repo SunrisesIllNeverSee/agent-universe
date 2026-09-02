@@ -5,16 +5,24 @@ import json
 from pathlib import Path
 
 from .analyze import analyze_thread
+from .archive_store import freeze_run
 from .csv_bundle import write_csv_bundle
+from .enrichment import enrich_context_records
 from .evolution import enrich_evolution
 from .normalize import load_thread_with_archive
+from .path_map import write_path_maps
 from .report_v2 import render_report
 from .review_contract import load_review_response, write_moses_review_packet
+from .search_index import ArchiveIndex
+
+
+PARSER_VERSION = "thread-parser-v0.4"
+SCHEMA_VERSION = "0.4.0"
 
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        description="Parse one historical conversation into a cited journey ledger, canonical CSV bundle, and review packet."
+        description="Parse one historical conversation into turn-level evidence, canonical CSV tables, maps, and independent review material."
     )
     p.add_argument("input", help="Thread JSON/ChatGPT export JSON/markdown transcript")
     p.add_argument("--out", default="thread-parser-output", help="Output directory")
@@ -24,6 +32,21 @@ def build_parser() -> argparse.ArgumentParser:
         "--moses-review-response",
         default=None,
         help="Optional JSON response from an independent MO§ES reviewer. Imported as annotations only.",
+    )
+    p.add_argument(
+        "--archive-root",
+        default=None,
+        help="Optional append-only archive root. If set, freezes raw source + complete output after parsing.",
+    )
+    p.add_argument(
+        "--index-db",
+        default=None,
+        help="Optional SQLite archive index. If set, indexes the generated canonical tables for search/tagging/collections.",
+    )
+    p.add_argument(
+        "--no-maps",
+        action="store_true",
+        help="Do not emit Mermaid/DOT/Markdown topology and flow maps.",
     )
     return p
 
@@ -53,15 +76,18 @@ def main() -> int:
     if args.title:
         title = args.title
 
-    ledger = enrich_evolution(analyze_thread(title, active_turns, thread_id=args.thread_id))
-    # Promote the analytical schema version without changing canon semantics.
-    ledger.schema_version = "0.3.0"
-    ledger.metadata["parser"] = "thread-journey-parser-v0.3"
+    ledger = analyze_thread(title, active_turns, thread_id=args.thread_id)
+    ledger = enrich_evolution(ledger)
+    ledger = enrich_context_records(ledger)
+    ledger.schema_version = SCHEMA_VERSION
+    ledger.metadata["parser"] = PARSER_VERSION
     ledger.metadata["archive_turn_count"] = len(all_turns)
     ledger.metadata["branch_count"] = source_meta.get("branch_count", 0)
     ledger.metadata["canon_promotion"] = "disabled"
+    ledger.metadata["primary_parse_scope"] = "active_path_only"
+    ledger.metadata["archive_scope"] = "full_conversation_tree"
 
-    out = Path(args.out)
+    out = Path(args.out).expanduser().resolve()
     out.mkdir(parents=True, exist_ok=True)
     canonical = out / "canonical"
     canonical.mkdir(parents=True, exist_ok=True)
@@ -91,9 +117,31 @@ def main() -> int:
         "archive_turn_count": len(all_turns),
         "branch_count": source_meta.get("branch_count", 0),
         "raw_source_semantics": "immutable archival evidence; never replaced by parser output",
+        "topology_semantics": "full parent/child tree preserved; only active path influences continuation/authority inference",
     }
     source_manifest_path = out / "source-manifest.json"
     source_manifest_path.write_text(json.dumps(source_manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    maps: dict[str, Path] = {}
+    if not args.no_maps:
+        maps = write_path_maps(out)
+
+    indexed = 0
+    if args.index_db:
+        with ArchiveIndex(args.index_db) as index:
+            indexed = index.ingest_run(out)
+
+    frozen: Path | None = None
+    if args.archive_root:
+        frozen = freeze_run(
+            input_path=args.input,
+            run_output=out,
+            archive_root=args.archive_root,
+            thread_id=ledger.thread_id,
+            parser_version=PARSER_VERSION,
+            schema_version=SCHEMA_VERSION,
+            source_meta=source_meta,
+        )
 
     print(f"Parsed active path: {len(active_turns)} turns")
     print(f"Preserved archive: {len(all_turns)} turns across {source_meta.get('branch_count', 0)} branch(es)")
@@ -103,6 +151,12 @@ def main() -> int:
     print(source_manifest_path)
     for path in written.values():
         print(path)
+    for path in maps.values():
+        print(path)
+    if args.index_db:
+        print(f"Indexed {indexed} searchable records into {args.index_db}")
+    if frozen:
+        print(f"Frozen archive run: {frozen}")
     return 0
 
 
