@@ -47,7 +47,7 @@ class ArchiveIndex:
     def __init__(self, db_path: str | Path):
         self.path = Path(db_path).expanduser()
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.conn = sqlite3.connect(self.path)
+        self.conn = sqlite3.connect(self.path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(SCHEMA)
         self._fts = self._ensure_fts()
@@ -106,8 +106,24 @@ class ArchiveIndex:
         run = Path(run_dir).expanduser().resolve()
         canonical = run / "canonical"
         threads = self._read_csv(canonical / "threads.csv")
-        thread_id = threads[0].get("thread_id", "UNKNOWN") if threads else "UNKNOWN"
+        thread = threads[0] if threads else {}
+        thread_id = thread.get("thread_id", "UNKNOWN")
         count = 0
+
+        if thread:
+            self._upsert_record({
+                "record_key": f"{thread_id}:thread:{thread_id}",
+                "thread_id": thread_id,
+                "record_type": "thread",
+                "target_id": thread_id,
+                "title": thread.get("title", thread_id),
+                "content": "\n".join(filter(None, [thread.get("initial_purpose", ""), thread.get("initial_goal", "")])),
+                "category": "THREAD",
+                "authority": "ARCHIVE_METADATA",
+                "status": "INDEXED",
+                "source_run": str(run),
+            })
+            count += 1
 
         for turn in self._read_csv(canonical / "turns.csv"):
             key = f"{thread_id}:turn:{turn.get('turn_id','')}"
@@ -196,12 +212,13 @@ class ArchiveIndex:
             )
             final_params = [query] + params + [limit]
         else:
-            sql = (
-                "SELECT r.* FROM records r WHERE (r.title LIKE ? OR r.content LIKE ?)"
-                + where_extra + " LIMIT ?"
-            )
-            like = f"%{query}%"
-            final_params = [like, like] + params + [limit]
+            query_clause = "1=1" if not query.strip() else "(r.title LIKE ? OR r.content LIKE ?)"
+            sql = "SELECT r.* FROM records r WHERE " + query_clause + where_extra + " LIMIT ?"
+            if query.strip():
+                like = f"%{query}%"
+                final_params = [like, like] + params + [limit]
+            else:
+                final_params = params + [limit]
         return [dict(row) for row in self.conn.execute(sql, final_params).fetchall()]
 
     def add_tag(self, record_key: str, tag: str, source: str = "manual") -> None:
@@ -210,6 +227,10 @@ class ArchiveIndex:
         self.conn.execute(
             "INSERT OR IGNORE INTO tags(record_key,tag,source) VALUES (?,?,?)", (record_key, tag, source)
         )
+        self.conn.commit()
+
+    def remove_tag(self, record_key: str, tag: str) -> None:
+        self.conn.execute("DELETE FROM tags WHERE record_key=? AND tag=?", (record_key, tag))
         self.conn.commit()
 
     def create_collection(self, name: str, description: str = "") -> None:
@@ -230,6 +251,13 @@ class ArchiveIndex:
         )
         self.conn.commit()
 
+    def remove_from_collection(self, name: str, record_key: str) -> None:
+        self.conn.execute(
+            "DELETE FROM collection_members WHERE collection_name=? AND record_key=?",
+            (name, record_key),
+        )
+        self.conn.commit()
+
     def collection(self, name: str) -> list[dict[str, Any]]:
         return [
             dict(row)
@@ -238,6 +266,16 @@ class ArchiveIndex:
                    JOIN records r ON r.record_key=m.record_key
                    WHERE m.collection_name=? ORDER BY r.timestamp, r.record_key""",
                 (name,),
+            ).fetchall()
+        ]
+
+    def collections(self) -> list[dict[str, Any]]:
+        return [
+            dict(row)
+            for row in self.conn.execute(
+                """SELECT c.name,c.description,COUNT(m.record_key) members FROM collections c
+                   LEFT JOIN collection_members m ON m.collection_name=c.name
+                   GROUP BY c.name ORDER BY c.name"""
             ).fetchall()
         ]
 
