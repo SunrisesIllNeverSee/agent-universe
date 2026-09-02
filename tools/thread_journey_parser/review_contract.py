@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 from pathlib import Path
@@ -65,6 +66,9 @@ def build_moses_review_packet(ledger: ThreadLedger, raw_source_hash: str = "") -
         for item in high_impact_items
         for turn_id in item.get("source_turns", []) + item.get("related_turns", [])
     }
+    # The foundation is itself a material transformation and must remain reviewable
+    # even when the thread contains no later high-impact item.
+    turn_ids.update(ledger.foundation.source_turns)
     for flow in flows:
         turn_ids.add(flow["from_turn"])
         turn_ids.add(flow["to_turn"])
@@ -81,7 +85,9 @@ def build_moses_review_packet(ledger: ThreadLedger, raw_source_hash: str = "") -
         if turn.turn_id in turn_ids
     ]
 
-    target = {
+    # Build from live ledger references, then sever every nested reference before hashing
+    # or returning the packet. A caller may mutate the packet without changing the ledger.
+    target = copy.deepcopy({
         "thread_id": ledger.thread_id,
         "parser_schema": ledger.schema_version,
         "foundation": ledger.foundation.__dict__,
@@ -89,13 +95,14 @@ def build_moses_review_packet(ledger: ThreadLedger, raw_source_hash: str = "") -
         "flows": flows,
         "source_turns": source_turns,
         "raw_source_hash": raw_source_hash,
-    }
+    })
+    target_hash = _stable_hash(target)
     return {
         "review_contract_version": REVIEW_CONTRACT_VERSION,
         "reviewer_requested": "MO§ES",
         "relationship": "independent_third_party_review",
         "read_only": True,
-        "review_target_hash": _stable_hash(target),
+        "review_target_hash": target_hash,
         "review_target": target,
         "constitutional_questions": {
             "sovereignty": "Is every material parser claim traceable to the actor/source turn that can legitimately support it?",
@@ -150,9 +157,14 @@ def load_review_response(path: str | Path | None) -> list[dict[str, Any]]:
     if not isinstance(data, dict) or not isinstance(data.get("reviews"), list):
         raise ValueError("MO§ES review response must be a JSON object containing a 'reviews' array")
     reviews: list[dict[str, Any]] = []
-    for review in data["reviews"]:
-        if isinstance(review, dict):
-            normalized = dict(review)
-            normalized.setdefault("reviewer", "MO§ES")
-            reviews.append(normalized)
+    for index, review in enumerate(data["reviews"], start=1):
+        if not isinstance(review, dict):
+            raise ValueError(f"MO§ES review #{index} must be an object")
+        evidence = review.get("review_evidence", [])
+        if not isinstance(evidence, list) or any(not isinstance(turn_id, str) for turn_id in evidence):
+            raise ValueError(f"MO§ES review #{index} review_evidence must be a list of turn-id strings")
+        normalized = copy.deepcopy(review)
+        normalized.setdefault("reviewer", "MO§ES")
+        normalized["review_evidence"] = list(evidence)
+        reviews.append(normalized)
     return reviews
