@@ -71,7 +71,8 @@ def test_archive_index_search_tags_and_collections(tmp_path: Path) -> None:
 
     db = tmp_path / "archive.sqlite3"
     with ArchiveIndex(db) as index:
-        assert index.ingest_run(run) == 3
+        assert index.ingest_run(run) == 4
+        assert index.search("", record_type="thread")[0]["record_key"] == "THREAD-1:thread:THREAD-1"
         results = index.search("conversation tree")
         assert any(row["record_key"] == "THREAD-1:turn:T001" for row in results)
         index.add_tag("THREAD-1:turn:T001", "topology")
@@ -82,7 +83,8 @@ def test_archive_index_search_tags_and_collections(tmp_path: Path) -> None:
         members = index.collection("architecture")
         assert [row["record_key"] for row in members] == ["THREAD-1:item:I-0001"]
         stats = index.stats()
-        assert stats["records"] == 3
+        assert stats["records"] == 4
+        assert stats["by_type"]["thread"] == 1
         assert stats["collections"] == 1
 
 
@@ -150,3 +152,4 @@ def test_package_is_named_thread_parser() -> None:
     assert 'name = "thread-parser"' in text
     assert 'thread-parser = "thread_parser.cli:main"' in text
     assert 'thread-parser-archive = "thread_parser.archive_cli:main"' in text
+    assert 'thread-parser-browser = "thread_parser.browser:main"' in text
