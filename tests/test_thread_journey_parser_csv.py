@@ -2,6 +2,8 @@ import csv
 import json
 from pathlib import Path
 
+import pytest
+
 from tools.thread_journey_parser.analyze import analyze_thread
 from tools.thread_journey_parser.csv_bundle import TABLE_COLUMNS, write_csv_bundle
 from tools.thread_journey_parser.evolution import enrich_evolution
@@ -74,6 +76,47 @@ def test_chatgpt_archive_preserves_tree_without_parsing_abandoned_branch(tmp_pat
     )
 
 
+def test_chatgpt_missing_timestamp_cannot_move_child_before_parent(tmp_path: Path):
+    def msg(role, text, t):
+        return {
+            "author": {"role": role},
+            "content": {"parts": [text]},
+            "create_time": t,
+            "metadata": {},
+        }
+
+    fixture = {
+        "title": "Missing timestamps",
+        "current_node": "n3",
+        "mapping": {
+            "n1": {"parent": None, "children": ["n2"], "message": msg("user", "Root", 10)},
+            "n2": {"parent": "n1", "children": ["n3"], "message": msg("assistant", "No timestamp parent", None)},
+            "n3": {"parent": "n2", "children": [], "message": msg("user", "Timestamped child", 5)},
+        },
+    }
+    source = tmp_path / "missing-time.json"
+    source.write_text(json.dumps(fixture), encoding="utf-8")
+    _title, active, all_turns, _meta = load_thread_with_archive(source)
+    assert [turn.source_node_id for turn in all_turns] == ["n1", "n2", "n3"]
+    assert [turn.source_node_id for turn in active] == ["n1", "n2", "n3"]
+
+
+def test_jsonl_is_parsed_as_newline_delimited_records(tmp_path: Path):
+    source = tmp_path / "thread.jsonl"
+    source.write_text(
+        '\n'.join([
+            json.dumps({"role": "user", "content": "First"}),
+            json.dumps({"role": "assistant", "content": "Second"}),
+        ]),
+        encoding="utf-8",
+    )
+    title, active, archive, meta = load_thread_with_archive(source)
+    assert title == "Untitled thread"
+    assert [turn.content for turn in active] == ["First", "Second"]
+    assert len(archive) == 2
+    assert meta["source_platform"] == "generic_json"
+
+
 def test_csv_bundle_writes_all_canonical_tables(tmp_path: Path):
     ledger, turns = _ledger([
         {"role": "user", "content": "Build the parser and use SPEC.md.", "attachments": [{"name": "SPEC.md", "content": "spec body"}]},
@@ -96,6 +139,17 @@ def test_csv_bundle_writes_all_canonical_tables(tmp_path: Path):
     assert manifest["semantics"]["canon_promotion"] == "disabled"
 
 
+def test_csv_bundle_neutralizes_spreadsheet_formula_cells_without_mutating_raw_ledger(tmp_path: Path):
+    dangerous = '=HYPERLINK("https://example.invalid","click")'
+    ledger, turns = _ledger([{"role": "user", "content": dangerous}])
+    original = ledger.turns[0].raw_text
+    write_csv_bundle(ledger, turns, tmp_path, {"source_platform": "generic_json"})
+    with (tmp_path / "turns.csv").open(encoding="utf-8", newline="") as handle:
+        row = next(csv.DictReader(handle))
+    assert row["raw_text"].startswith("'=")
+    assert ledger.turns[0].raw_text == original == dangerous
+
+
 def test_moses_review_packet_is_independent_and_read_only():
     ledger, _turns = _ledger([
         {"role": "assistant", "content": "I would use a turn ledger."},
@@ -108,6 +162,17 @@ def test_moses_review_packet_is_independent_and_read_only():
     assert "Do not mutate parser output." in packet["required_review_rules"]
     assert "Do not promote parser or reviewer inference into canon." in packet["required_review_rules"]
     assert packet["review_target_hash"]
+
+    original_foundation = list(ledger.foundation.source_turns)
+    packet["review_target"]["foundation"]["source_turns"].append("T999")
+    assert ledger.foundation.source_turns == original_foundation
+
+
+def test_moses_review_packet_always_includes_foundation_source_turn():
+    ledger, _turns = _ledger([{"role": "user", "content": "Hello."}])
+    packet = build_moses_review_packet(ledger)
+    assert ledger.foundation.source_turns == ["T001"]
+    assert [turn["turn_id"] for turn in packet["review_target"]["source_turns"]] == ["T001"]
 
 
 def test_external_review_response_populates_reviews_csv_without_mutating_items(tmp_path: Path):
@@ -137,3 +202,10 @@ def test_external_review_response_populates_reviews_csv_without_mutating_items(t
         rows = list(csv.DictReader(handle))
     assert rows[0]["reviewer"] == "MO§ES"
     assert rows[0]["overall_disposition"] == "WARNING"
+
+
+def test_review_response_rejects_non_string_evidence_entries(tmp_path: Path):
+    response = tmp_path / "bad-review.json"
+    response.write_text(json.dumps({"reviews": [{"review_evidence": [1]}]}), encoding="utf-8")
+    with pytest.raises(ValueError, match="review_evidence"):
+        load_review_response(response)
