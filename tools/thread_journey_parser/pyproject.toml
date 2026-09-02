@@ -3,17 +3,18 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "thread-journey-parser"
-version = "0.3.0"
-description = "Historical conversation parser with canonical CSV, tree topology, authority evolution, continuation, documents, and third-party review contracts."
+name = "thread-parser"
+version = "0.4.0"
+description = "Historical conversation parser with canonical CSV, preserved tree topology, authority evolution, search, organization, and independent review contracts."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Ello Cello LLC" }]
 dependencies = []
 
 [project.scripts]
-thread-journey-parser = "thread_journey_parser.cli:main"
+thread-parser = "thread_parser.cli:main"
+thread-parser-archive = "thread_parser.archive_cli:main"
 
 [tool.setuptools]
-packages = ["thread_journey_parser"]
-package-dir = { thread_journey_parser = "." }
+packages = ["thread_parser"]
+package-dir = { thread_parser = "." }
