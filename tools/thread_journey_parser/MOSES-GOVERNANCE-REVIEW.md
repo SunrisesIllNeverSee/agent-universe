@@ -1,80 +1,116 @@
-# MO§ES™ Governance Review — Thread Journey Parser
+# MO§ES™ Governance Review — Thread Journey Parser v0.3
 
-This review checks the parser against three governance surfaces:
+This document defines the **relationship** between the parser and MO§ES™.
+
+MO§ES is **not parser logic, not source authority, and not the author of the parse**. It is an independent third-party reviewer of high-impact transformations produced by the parser.
+
+```text
+RAW THREAD
+   ↓
+PRIMARY PARSER
+   ↓
+thread ledger + CSV + report
+   ↓
+MO§ES THIRD-PARTY REVIEW
+   ↓
+review annotations only
+```
+
+The review boundary was checked against:
 
 1. the public MO§ES™ constitution and Six Fold Flame at `https://signomy.xyz/moses`,
 2. the runtime governance implementation in `app/moses_core/governance.py`, and
 3. the CIVITAE MCP bridge in `app/mcp_bridge.py`.
 
-The parser is a read/analyze/report tool. It must not manufacture authority, silently rewrite canon, or convert assistant inference into owner-approved truth.
+## Separation of authority
 
-## Six Fold Flame
+The parser determines what it believes the thread contains based on source turns, flow, chronology, documents, evidence, and authority rules.
 
-### I. Sovereignty — PASS
+MO§ES independently examines whether that transformation preserves constitutional properties. Its review may be `SOUND`, `WARNING`, `CONTESTED`, or `UNVERIFIABLE`.
 
-- Every normalized turn retains speaker identity.
-- Every extracted item retains its introducing turn, source turns, and authority class.
-- User statements/corrections/decisions outrank assistant proposals.
-- Behavioral continuation can lift a specific assistant-originated item, but only as `IMPLICITLY_ACCEPTED` thread-local evidence.
+A MO§ES review:
 
-Boundary: the parser does not authenticate real-world identity; it preserves the identity supplied by the source transcript.
+- **may** flag authority inflation,
+- **may** flag missing lineage,
+- **may** flag over-compression,
+- **may** flag unresolved objections incorrectly treated as resolved,
+- **may** flag weak verification,
+- **may not** rewrite parser records,
+- **may not** silently change item authority,
+- **may not** promote anything into global canon.
 
-### II. Compression — PASS WITH CONSTRAINT
+Reviews are stored separately in `reviews.csv` and may be appended to the human report as explicitly labeled third-party annotations.
 
-- The parser compresses turns into summaries and structured records.
-- Raw turn text remains in `thread-ledger.json` so compression is reversible/auditable.
-- Reports cite the exact normalized turns behind compressed claims.
+## Six Fold Flame review questions
 
-Constraint: downstream tools must not discard the raw ledger and retain only the report if evidentiary fidelity matters.
+### I. Sovereignty
 
-### III. Purpose — PASS
+- Is every material conclusion attributable to a source actor/turn?
+- Is user authority distinguishable from assistant suggestion/inference?
+- Did continuation lift only the specific item actually built upon?
 
-The tool has a narrow constitutional purpose: reconstruct one thread's journey, including decisions, ideas, actions, errors, pivots, documents, authority changes, and unresolved work.
+### II. Compression
 
-It intentionally excludes global memory and automatic cross-thread canon promotion.
+- Did the parser preserve the material commitment, distinction, objection, or direction change while compressing the thread?
+- Can the compressed claim be reversed back to the source turns?
 
-### IV. Modularity — PASS
+### III. Purpose
 
-- The parser is isolated under `tools/thread_journey_parser/`.
-- It does not modify Signomy/CIVITAE production runtime.
-- It now carries its own `pyproject.toml`, so the directory can be copied or extracted and installed independently.
+- Does the interpretation serve thread reconstruction rather than introduce unrelated speculation?
 
-### V. Verifiability — PASS
+### IV. Modularity
 
-- Every substantive report claim uses `[T###]` turn citations.
-- Raw turn text is retained.
-- Documents retain introduction/reference turns and optional content hashes.
-- Authority transitions are stored as explicit evolution events rather than inferred only at report time.
-- Parser commentary remains labeled inference, not canon.
+- Are raw evidence, parser inference, authority, outcome evidence, and third-party review separate layers?
 
-### VI. Reciprocal Resonance — CONDITIONAL PASS
+### V. Verifiability
 
-The same ledger/report is designed to be useful to both human operators and agents: humans can audit how a thread evolved; agents can consume the structured JSON state.
+- Can each high-impact claim be checked against turns, documents, tool evidence, implementation evidence, or other cited sources?
 
-This remains conditional because usefulness should be validated against real long threads rather than assumed from schema design.
+### VI. Reciprocal Resonance
 
-## Runtime governance alignment
+- Would another competent reviewer reconstruct substantially the same transition from the supplied evidence?
 
-The runtime's High Integrity mode requires accuracy, source citation, explicit uncertainty, and separation of fact/inference/speculation. The parser implements the same separation through authority classes, turn provenance, confidence values, and explicit `Parser inference — not canon` labeling.
+## Review targets
 
-The runtime also preserves original intent alongside canonical translation (`mode_raw_input`) so translation distortion is auditable. The parser mirrors this principle by freezing the thread foundation from the opening exchange and retaining raw turns even after summarization.
+The v0.3 review packet prioritizes:
 
-## MCP alignment
+- decisions,
+- canon-update candidates,
+- corrections,
+- authority lifts by continuation,
+- pivots,
+- deferred errors,
+- errors/misdirection,
+- implementation claims,
+- verification claims,
+- supersession links,
+- final thread-level compression.
 
-The CIVITAE MCP bridge exposes governance state, uses registered agent identities, and records actions with audit/provenance metadata. The parser does not need to execute through MCP because parsing itself is read-only, but any future write-back operation (for example, publishing a canon update) MUST become a governed action rather than a local parser side effect.
+The packet includes only the source turns needed to review those claims, plus the raw-source hash and parser target hash.
 
-## Non-negotiable enforcement rules
+## Runtime integration rule
 
-1. **No automatic canon promotion.** The parser may produce canon candidates and supersession candidates; a separate authorized process must approve any global canon write.
-2. **Assistant suggestions remain low-authority by default.** They can gain scoped weight only through later user behavior or explicit confirmation.
-3. **Continuation is evidence, not proof.** `IMPLICITLY_ACCEPTED` must remain distinct from `USER_EXPLICIT`.
-4. **Deferred objections survive continuation.** A later turn cannot erase an explicitly deferred error merely because the conversation kept moving.
-5. **Supersession stays auditable.** Older records are retained and linked; they are not deleted or rewritten.
-6. **Documents remain source objects.** Their role and turn provenance must survive summary generation.
-7. **Future write actions require governance.** If the parser is later allowed to alter Signomy canon, tasks, or operator state, that write path must pass MO§ES™ GovernanceState and emit provenance.
+Parsing remains read-only and does not need to execute through MO§ES runtime governance.
+
+The **review** is an external analytical operation. A dedicated remote reviewer/MCP tool can later consume `moses-review-request.json` and return the documented response schema.
+
+If a future system takes a parser or reviewer conclusion and writes it into global canon, tasks, money, governance, or operator state, **that write is a separate governed action** and must pass the relevant authorization/governance path.
+
+## Non-negotiable rules
+
+1. **No automatic canon promotion.** Parser and reviewer produce candidates/annotations only.
+2. **Assistant suggestions remain low-authority by default.**
+3. **Continuation is evidence, not explicit confirmation.**
+4. **Deferred objections survive later continuation until resolved.**
+5. **Supersession preserves history and lineage.**
+6. **Documents remain first-class source objects.**
+7. **Raw archive remains immutable evidence.** CSV/report layers do not replace it.
+8. **Review is independent.** MO§ES annotations cannot mutate the primary parser output.
+9. **Topology and chronology remain distinct.** An abandoned branch cannot contaminate active-path authority simply because it occurred earlier in time.
+10. **Future writes require separate authorization/governance.**
 
 ## Result
 
-**Current parser design: governance-compatible for read-only thread reconstruction.**
+**v0.3 architecture: compatible with MO§ES as an independent constitutional review layer.**
 
-The strongest alignment is with lineage and verifiability. The principal risk is authority inflation: treating inferred continuation or semantic supersession as equivalent to an explicit owner decision. V0.2 therefore keeps those distinctions visible and disables automatic canon promotion.
+The primary remaining integration task is operational rather than conceptual: expose or build a dedicated MO§ES reviewer tool/service that accepts the review packet and returns review records without sharing parser state or write authority.
