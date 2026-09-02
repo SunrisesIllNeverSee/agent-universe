@@ -5,15 +5,19 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "thread-parser"
 version = "0.4.0"
-description = "Historical conversation parser with canonical CSV, preserved tree topology, authority evolution, search, organization, and independent review contracts."
+description = "Historical conversation parser with canonical CSV, preserved tree topology, authority evolution, search, organization, comparison, browser UI, and independent review contracts."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Ello Cello LLC" }]
 dependencies = []
 
+[project.optional-dependencies]
+semantic = ["sentence-transformers>=3.0"]
+
 [project.scripts]
 thread-parser = "thread_parser.cli:main"
 thread-parser-archive = "thread_parser.archive_cli:main"
+thread-parser-browser = "thread_parser.browser:main"
 
 [tool.setuptools]
 packages = ["thread_parser"]
