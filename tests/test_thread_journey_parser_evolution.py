@@ -62,6 +62,8 @@ def test_v2_report_surfaces_authority_evolution_and_current_state():
 def test_subproject_has_independent_package_metadata():
     package_root = Path(__file__).parents[1] / "tools" / "thread_journey_parser"
     config = tomllib.loads((package_root / "pyproject.toml").read_text(encoding="utf-8"))
-    assert config["project"]["name"] == "thread-journey-parser"
-    assert config["project"]["scripts"]["thread-journey-parser"] == "thread_journey_parser.cli:main"
-    assert config["tool"]["setuptools"]["package-dir"]["thread_journey_parser"] == "."
+    assert config["project"]["name"] == "thread-parser"
+    assert config["project"]["scripts"]["thread-parser"] == "thread_parser.cli:main"
+    assert config["project"]["scripts"]["thread-parser-archive"] == "thread_parser.archive_cli:main"
+    assert config["project"]["scripts"]["thread-parser-browser"] == "thread_parser.browser:main"
+    assert config["tool"]["setuptools"]["package-dir"]["thread_parser"] == "."
