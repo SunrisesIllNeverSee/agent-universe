@@ -14,6 +14,7 @@ from .path_map import write_path_maps
 from .report_v2 import render_report
 from .review_contract import load_review_response, write_moses_review_packet
 from .search_index import ArchiveIndex
+from .visualization import write_visualizations
 
 
 PARSER_VERSION = "thread-parser-v0.4"
@@ -46,7 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--no-maps",
         action="store_true",
-        help="Do not emit Mermaid/DOT/Markdown topology and flow maps.",
+        help="Do not emit Mermaid/DOT/Markdown/HTML topology and flow maps.",
     )
     return p
 
@@ -124,7 +125,8 @@ def main() -> int:
 
     maps: dict[str, Path] = {}
     if not args.no_maps:
-        maps = write_path_maps(out)
+        maps.update({f"legacy_{k}": v for k, v in write_path_maps(out).items()})
+        maps.update({f"rich_{k}": v for k, v in write_visualizations(out, out / "maps").items()})
 
     indexed = 0
     if args.index_db:
