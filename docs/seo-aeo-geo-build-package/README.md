@@ -16,6 +16,9 @@
 ```
 seo-aeo-geo-build-package/
 ├── README.md                          ← you are here
+├── keywords/                          ← 500-keyword map (11 rings)
+│   ├── KEYWORD_MAP_500.md             ← full annotated keyword registry
+│   └── KEYWORD_MAP_500.csv            ← machine-readable tracking spreadsheet
 ├── playbook/
 │   └── SEO_GEO_AEO_PLAYBOOK.md        ← 606 lines. The master 7-phase strategy.
 ├── aeo-audit/

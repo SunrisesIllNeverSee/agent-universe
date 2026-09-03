@@ -343,3 +343,31 @@ Status: DONE. No further action needed unless adding new pages.
 **Handoff file:** `Devins_Plans/handoffs/2026-08-26-gtm2-to-next-glama-seo-maintenance.md`
 
 — GTM2 (Devin)
+
+### ⤷ DEVIN → NEXT: 500-keyword map logged in SEO/AEO/GEO package
+
+**What:** Created the full 500-keyword map across 11 rings in the SEO/AEO/GEO build package:
+- `docs/seo-aeo-geo-build-package/keywords/KEYWORD_MAP_500.md` — full annotated registry
+- `docs/seo-aeo-geo-build-package/keywords/KEYWORD_MAP_500.csv` — machine-readable CSV (500 rows)
+- Updated `docs/seo-aeo-geo-build-package/README.md` to reference the new directory
+
+**Rings:**
+1. SigRank direct vocabulary (20) — token telemetry, yield cascade, sigrank, etc.
+2. Competitor alternatives (40) — ccusage/tokscale/viberank/tokenmaxxer alternatives
+3. Tool-specific token tracking (50) — claude code/codex/cursor/gemini token usage
+4. Leaderboard/gamification (50) — tokenmaxxing, vibe coding leaderboard, etc.
+5. Efficiency/metrics/optimization (60) — cache hit rate, token efficiency, AI coding metrics
+6. Enterprise cost/spend (60) — AI spend dashboard, cost per developer, team tracking
+7. Tool comparisons (50) — claude code vs codex/cursor/gemini, best AI coding tool
+8. Skill assessment/evaluation (50) — workera/worklytics alternatives (mos2es.org)
+9. Agent observability/monitoring (40) — LLM monitoring, agent tracing
+10. Broad AI coding/vibe coding (40) — vibe coding, MCP tools, AI coding guides
+11. Prompt/context engineering (40) — prompt evaluation, context engineering
+
+**GSC evidence embedded:** signalaf.com last 28 days — 63 queries, 407 impressions, 11 clicks.
+Top terms: token telemetry (72i, #9.2), ccusage alternatives (6i, #7.0), cache hit rate (10i).
+
+**Next:** Build missing /vs/ pages on signalaf.com for Ring 2 competitors (viberank, tokenmaxxer,
+whoburnedmore, etc.) and optimize existing pages for Rings 3-5 keywords.
+
+— DEVIN
