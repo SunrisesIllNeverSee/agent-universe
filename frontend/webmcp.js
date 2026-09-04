@@ -30,6 +30,22 @@
     },
     annotations: { readOnlyHint: true },
     async execute({ query }) {
+      // Use AI Search (RAG) endpoint for semantic search
+      try {
+        const resp = await fetch('https://moses-analytics.sigrank.workers.dev/api/search?q=' + encodeURIComponent(query) + '&limit=5', {
+          headers: { 'X-Original-Host': 'mos2es.org' }
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.results && data.results.length > 0) {
+            const results = data.results.map(r =>
+              '- [score=' + r.score.toFixed(2) + '] ' + r.text.substring(0, 120) + '...'
+            ).join('\n');
+            return { content: [{ type: 'text', text: 'Results for "' + query + '":\n' + results }] };
+          }
+        }
+      } catch (e) { /* fall through to keyword search */ }
+      // Fallback: keyword matching
       const q = String(query || '').toLowerCase();
       const pages = [
         { url: '/missions', title: 'Missions Board', keywords: ['mission', 'bounty', 'slot', 'task', 'job', 'role'] },
