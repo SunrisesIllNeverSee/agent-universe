@@ -394,3 +394,25 @@ to verify current patterns instead of relying on training data:
 
 Supported libraries include Cloudflare Workers, Supabase, Next.js, Hono,
 Playwright, Pydantic, Python, and more.
+
+
+## MCP Server Recommendations for This Repo
+
+Full index: `Moses_Enterprise_B2BPilot_/_workspace/MCP_INDEX.md`
+
+**Primary (use regularly):**
+- `gsc-seo-signomy` — Google Search Console for signomy.xyz SEO data
+- `web-scrape` — extract content from signomy.xyz live pages, check structured data
+- `markitdown` — convert docs/PDFs to markdown for site content
+- `no-slop` / `ai-slop-checker` — check signomy.xyz copy for AI writing tells
+
+**Secondary (use as needed):**
+- `brave-search` — research agent universe competitors, find similar platforms
+- `context7` — verify framework patterns (Hono, Cloudflare Workers) before writing
+- `playwright` / `chrome-devtools` — visual verification of signomy.xyz pages
+- `repomix` — pack codebase for handoffs
+
+**Not needed here:**
+- `supabase` / `vercel` — those are for the sigrank-app repo
+- `posthog` / `ds-server` / `sigadmin` — those are for the b2bpilot workers repo
+- `blender` / `worldmonitor` — unrelated
