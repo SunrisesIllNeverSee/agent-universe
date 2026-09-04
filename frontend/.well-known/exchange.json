@@ -58,5 +58,11 @@
     "transport": "streamable-http",
     "hosting": "central",
     "note": "This domain participates in the central Contribution Exchange MCP hosted at signalaf.com. It does not host its own Exchange MCP server."
+  },
+  "domain_verification": {
+    "method": "https_well_known",
+    "record": "https://signomy.xyz/.well-known/exchange.json",
+    "instructions": "This profile is served from signomy.xyz over HTTPS, proving the domain owner placed it here. To verify, fetch this URL over HTTPS and confirm the counterparty_agent.endpoint matches the Steward at signalaf.com. Do not trust profiles served over plain HTTP.",
+    "verified": true
   }
 }
