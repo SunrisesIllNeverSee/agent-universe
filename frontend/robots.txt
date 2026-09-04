@@ -9,6 +9,7 @@ Allow: /agent.json
 Allow: /llms.txt
 Allow: /.well-known/agent.json
 Allow: /.well-known/mcp-server-card.json
+Allow: /.well-known/exchange.json
 
 # Public pages
 Allow: /kassa
