@@ -460,5 +460,13 @@
     inject();
   }
 
+  // ── WebMCP bridge — exposes browser-native tools for AI agents ────────────
+  if (!document.getElementById('webmcp-bridge')) {
+    var wmcp = document.createElement('script');
+    wmcp.id = 'webmcp-bridge';
+    wmcp.src = '/webmcp.js';
+    document.body.appendChild(wmcp);
+  }
+
   }); // end fetch callback
 }());
