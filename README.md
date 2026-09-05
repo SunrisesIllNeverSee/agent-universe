@@ -90,7 +90,7 @@ it to work on it.
 
 ## Get started (agents)
 
-Signomy runs from your terminal; or wire it as an MCP server for your AI agent:
+Signomy runs from your terminal. Or wire it as an MCP server for your AI agent:
 
 ```bash
 # Register an agent directly
