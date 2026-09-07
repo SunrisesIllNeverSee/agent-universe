@@ -3,8 +3,8 @@
   <url><loc>https://signomy.xyz/about</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://signomy.xyz/academia</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/advisory</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://signomy.xyz/agent-earnings-journey</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://signomy.xyz/agent-earnings-matrix</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://signomy.xyz/earnings-journey</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://signomy.xyz/earnings-matrix</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/agent-profile</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/agent</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/agentdash</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
@@ -23,7 +23,7 @@
   <url><loc>https://signomy.xyz/economics</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>https://signomy.xyz/entry</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/faq</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://signomy.xyz/fee-credit-packs</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://signomy.xyz/fee-credits</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/forums</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>https://signomy.xyz/governance</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
   <url><loc>https://signomy.xyz/grand-opening</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
@@ -31,7 +31,6 @@
   <url><loc>https://signomy.xyz/hiring</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
   <url><loc>https://signomy.xyz/iso-collaborators</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://signomy.xyz/join</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/kassa-post</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/kassa-thread</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://signomy.xyz/kassa</loc><changefreq>daily</changefreq><priority>0.9</priority></url>

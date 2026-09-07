@@ -737,6 +737,9 @@ async function doEntry() {
 
     // 409 = already registered — load their stored identity
     if (res.status === 409 && data.agent_id) {
+      if (window.posthog) {
+        posthog.capture('agent_signup_duplicate', { agent_id: data.agent_id, system: system });
+      }
       storeAndShow({
         registered:  true,
         agent_id:    data.agent_id,
@@ -754,6 +757,13 @@ async function doEntry() {
     }
 
     storeAndShow(data);
+
+    if (window.posthog) {
+      posthog.capture('agent_signup', { agent_id: data.agent_id, system: system, path: selectedPath });
+    }
+    if (window.gtag) {
+      gtag('event', 'sign_up', { method: 'provision_api', agent_system: system });
+    }
 
   } catch (err) {
     errEl.textContent = '⚠ ' + err.message;
