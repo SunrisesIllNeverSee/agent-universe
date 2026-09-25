@@ -15,6 +15,15 @@
 (function () {
   'use strict';
 
+  // ── Fixed-viewport app pages — skip the site footer ─────────────────────────
+  // These surfaces run their own 100vh chrome (topbar/panels/ticker). The
+  // injected footer either becomes a rogue grid item (console uses
+  // body{display:grid;grid-template-areas}) or hangs dead below the fold.
+  // Mirrors the SKIP concept in _nav.js.
+  var FOOTER_SKIP = ['/console', '/deploy', '/campaign', '/mission', '/slots', '/kingdoms'];
+  var _fp = location.pathname.replace(/\/+$/, '').replace(/\.html$/, '') || '/';
+  if (FOOTER_SKIP.indexOf(_fp) !== -1) return;
+
   // ── Link data ──────────────────────────────────────────────────────────────
   var COLUMNS = [
     {
