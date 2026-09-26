@@ -13,6 +13,7 @@
     { "label": "Portal",        "href": "/portal"        },
     { "label": "Grand Opening", "href": "/grand-opening" },
     { "label": "KA\u00a7\u00a7A",   "href": "/kassa"      },
+    { "label": "Blog",          "href": "/blog"         },
     { "label": "Advisory",     "href": "/advisory"    },
     { "label": "Forums",       "href": "/forums"      }
   ],
@@ -92,9 +93,10 @@
         { "label": "Economics",  "href": "/economics"  },
         { "label": "Treasury",   "href": "/treasury"   },
         { "label": "Vault",      "href": "/vault"      },
+        { "label": "Blog",       "href": "/blog"       },
         { "label": "Academia",   "href": "/academia"   }
       ],
-      "paths": ["/senate", "/governance", "/economics", "/treasury", "/vault", "/vault/gov-001", "/vault/gov-002", "/vault/gov-003", "/vault/gov-004", "/vault/gov-005", "/vault/gov-006", "/academia", "/iso-collaborators", "/products", "/bountyboard", "/hiring", "/services"],
+      "paths": ["/senate", "/governance", "/economics", "/treasury", "/vault", "/vault/gov-001", "/vault/gov-002", "/vault/gov-003", "/vault/gov-004", "/vault/gov-005", "/vault/gov-006", "/academia", "/iso-collaborators", "/products", "/bountyboard", "/hiring", "/services", "/blog"],
       "pages": [
         { "subsection": "Protocol" },
         { "slot": "2.1", "name": "Senate Overview", "route": "/senate",     "file": "senate",     "status": "live", "note": "Constitutional overview. The governing body." },
