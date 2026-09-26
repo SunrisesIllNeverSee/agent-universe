@@ -13,6 +13,7 @@
     { "source": "/economy", "destination": "/economics", "statusCode": 301 },
     { "source": "/civitae-roadmap", "destination": "/portal", "statusCode": 301 },
     { "source": "/join", "destination": "/#collaborate", "statusCode": 301 },
+    { "source": "/lobby", "destination": "/#collaborate", "statusCode": 302 },
     { "source": "/agent-earnings-matrix", "destination": "/earnings-matrix", "statusCode": 301 },
     { "source": "/agent-earnings-journey", "destination": "/earnings-journey", "statusCode": 301 },
     { "source": "/fee-credit-packs", "destination": "/fee-credits", "statusCode": 301 }
