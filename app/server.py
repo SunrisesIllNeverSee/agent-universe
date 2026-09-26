@@ -365,41 +365,6 @@ def create_app(root: Path | None = None) -> FastAPI:
 
         return await call_next(request)
 
-    # ── Velvet Rope gate — protect working-city routes ─────────────
-    # Reading pages are public. Doing pages require an active lobby session.
-    _GATED_PREFIXES = (
-        "/kassa", "/missions", "/forums", "/deploy", "/campaign",
-        "/console", "/command", "/agentdash", "/slots",
-        "/advisory", "/openroles", "/seeds", "/mission",
-    )
-    # API paths that correspond to gated features — let the frontend handle the gate
-    # so we only gate the HTML page serves, not the API endpoints
-    _GATE_EXEMPT_PREFIXES = ("/api/", "/ws/", "/assets/", "/lobby", "/join")
-
-    @app.middleware("http")
-    async def velvet_rope_gate(request: Request, call_next):
-        path = request.url.path
-
-        # Skip API, WebSocket, assets, lobby itself
-        if any(path.startswith(p) for p in _GATE_EXEMPT_PREFIXES):
-            return await call_next(request)
-
-        # Only gate HTML page serves for protected routes
-        if any(path.startswith(p) for p in _GATED_PREFIXES):
-            session_id = request.cookies.get("lobby_session")
-            user_id = request.cookies.get("lobby_uid")
-            if not session_id or not user_id:
-                from starlette.responses import RedirectResponse
-                return RedirectResponse("/lobby")
-
-            # Verify session is actually active
-            info = lobby.status(user_id)
-            if not info or info.status != "active":
-                from starlette.responses import RedirectResponse
-                return RedirectResponse("/lobby")
-
-        return await call_next(request)
-
     # ── Security headers ────────────────────────────────────────────
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
