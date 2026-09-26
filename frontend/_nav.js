@@ -367,13 +367,22 @@
 
   // ── Inject ───────────────────────────────────────────────────────────────────
   function inject() {
-    var nav = document.getElementById('civitae-nav') || document.querySelector('nav');
+    var nav = document.getElementById('civitae-nav');
     if (!nav) {
-      nav = document.createElement('nav');
-      document.body.insertBefore(nav, document.body.firstChild);
+      // Never adopt a page's own <nav> — its nav{} CSS rules would style the
+      // injected chrome (padding → dead band over content; position overrides
+      // → collapsed nav). Build a <div> so tag selectors can't reach it, and
+      // drop it where the page nav was.
+      var adopted = document.querySelector('nav');
+      nav = document.createElement('div');
+      nav.id = 'civitae-nav';
+      if (adopted && adopted.parentNode) {
+        adopted.parentNode.replaceChild(nav, adopted);
+      } else {
+        document.body.insertBefore(nav, document.body.firstChild);
+      }
     }
     while (nav.firstChild) nav.removeChild(nav.firstChild);
-    nav.id = 'civitae-nav';
 
     var currentLayer = getCurrentLayer();
 

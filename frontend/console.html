@@ -668,8 +668,11 @@ body {
 
 <!-- ── Topbar ────────────────────────────────────────────────── -->
 <div class="topbar">
-  <!-- Left: identity breadcrumb -->
-  <a href="/" id="console-wordmark" style="font-family:var(--display);color:var(--gold);font-size:0.95rem;letter-spacing:0.04em;text-decoration:none;flex-shrink:0;">CIVI<em id="console-tae" style="font-style:normal;">TAE</em></a>
+  <!-- Left: identity breadcrumb + site menu -->
+  <div class="site-menu" id="site-menu">
+    <button class="site-menu-btn" id="site-menu-btn" aria-expanded="false" aria-haspopup="true">CIVI<em id="console-tae" style="font-style:normal;">TAE</em><span class="chevron">▾</span></button>
+    <div class="site-dropdown" id="site-dropdown"></div>
+  </div>
   <script>
   (function(){var V=[
     {s:'italic', f:'"Playfair Display",serif', w:'700', l:'0',      c:'#E8EAF0'},
@@ -680,6 +683,30 @@ body {
     {s:'italic', f:'"Playfair Display",serif', w:'900', l:'0',      c:'#C4923A'}
   ];var t=V[Math.floor(Math.random()*V.length)];var e=document.getElementById('console-tae');
   e.style.cssText='font-style:'+t.s+';font-family:'+t.f+';font-weight:'+t.w+';letter-spacing:'+t.l+';color:'+t.c+';';
+
+  // CIVITAE site menu — populated from /api/pages (same source as _nav.js)
+  var btn=document.getElementById('site-menu-btn'),drop=document.getElementById('site-dropdown');
+  btn.addEventListener('click',function(e){e.stopPropagation();var open=drop.classList.toggle('open');btn.classList.toggle('open',open);btn.setAttribute('aria-expanded',String(open));});
+  document.addEventListener('click',function(){drop.classList.remove('open');btn.classList.remove('open');btn.setAttribute('aria-expanded','false');});
+  fetch('/api/pages').then(function(r){return r.json();}).then(function(data){
+    var cols=document.createElement('div');cols.className='dd-cols';
+    (data.layers||[]).forEach(function(layer){
+      var col=document.createElement('div');col.className='dd-col';
+      var h=document.createElement('div');h.className='dd-layer';h.textContent=layer.name;col.appendChild(h);
+      (layer.navLinks||[]).forEach(function(l){
+        var a=document.createElement('a');a.className='dd-link';a.href=l.href;
+        var n=document.createElement('span');n.className='dd-name';n.textContent=l.label;
+        a.appendChild(n);col.appendChild(a);
+      });
+      cols.appendChild(col);
+    });
+    drop.appendChild(cols);
+    var f=document.createElement('div');f.className='dd-footer';
+    f.innerHTML='<a href="/portal">PORTAL DIRECTORY</a><a href="/">&#8592; HOMEPAGE</a>';
+    drop.appendChild(f);
+  }).catch(function(){
+    drop.innerHTML='<div class="dd-footer"><a href="/">&#8592; HOMEPAGE</a></div>';
+  });
   })();
   </script>
   <span class="topbar-sep">›</span>
