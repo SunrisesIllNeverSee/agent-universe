@@ -1,0 +1,101 @@
+{
+  "formations": {
+    "SCOUT": [
+      {
+        "id": "recon-spread",
+        "name": "RECON SPREAD",
+        "description": "Maximum coverage — agents spread across all zones for broad intelligence gathering",
+        "source": "Military — reconnaissance patrol",
+        "positions": [{"row":0,"col":1},{"row":0,"col":6},{"row":2,"col":0},{"row":2,"col":7},{"row":4,"col":3},{"row":4,"col":4}]
+      },
+      {
+        "id": "shadow-line",
+        "name": "SHADOW LINE",
+        "description": "Agents positioned behind the target zone — observe without engaging",
+        "source": "Chess — back rank defense",
+        "positions": [{"row":5,"col":1},{"row":5,"col":3},{"row":5,"col":5},{"row":5,"col":7}]
+      },
+      {
+        "id": "overwatch",
+        "name": "OVERWATCH",
+        "description": "One forward scout, rest positioned high for full visibility",
+        "source": "Military — overwatch position",
+        "positions": [{"row":2,"col":3},{"row":0,"col":1},{"row":0,"col":3},{"row":0,"col":5},{"row":0,"col":7}]
+      },
+      {
+        "id": "lane-sweep",
+        "name": "LANE SWEEP",
+        "description": "Each agent assigned a vertical lane — systematic coverage left to right",
+        "source": "League of Legends — lane assignment",
+        "positions": [{"row":1,"col":0},{"row":1,"col":2},{"row":1,"col":4},{"row":1,"col":6}]
+      }
+    ],
+    "DEFENSE": [
+      {
+        "id": "zone-defense",
+        "name": "ZONE DEFENSE",
+        "description": "Agents cover zones not targets — protect areas of responsibility",
+        "source": "Basketball — zone defense",
+        "positions": [{"row":3,"col":1},{"row":3,"col":3},{"row":3,"col":5},{"row":3,"col":7}]
+      },
+      {
+        "id": "man-to-man",
+        "name": "MAN TO MAN",
+        "description": "Each agent assigned to a specific target — direct coverage, no gaps",
+        "source": "Basketball — man-to-man defense",
+        "positions": [{"row":2,"col":2},{"row":2,"col":5},{"row":4,"col":2},{"row":4,"col":5}]
+      },
+      {
+        "id": "phalanx",
+        "name": "PHALANX",
+        "description": "Tight formation — agents clustered for mutual support and overlapping coverage",
+        "source": "Ancient Greek — phalanx shield wall",
+        "positions": [{"row":3,"col":2},{"row":3,"col":3},{"row":3,"col":4},{"row":3,"col":5},{"row":4,"col":3},{"row":4,"col":4}]
+      },
+      {
+        "id": "castle",
+        "name": "CASTLE",
+        "description": "Primary protected in center, others form defensive perimeter",
+        "source": "Chess — castling for king safety",
+        "positions": [{"row":3,"col":3},{"row":2,"col":2},{"row":2,"col":4},{"row":4,"col":2},{"row":4,"col":4}]
+      }
+    ],
+    "OFFENSE": [
+      {
+        "id": "blitz",
+        "name": "BLITZ",
+        "description": "All agents forward — maximum pressure on target, sprint execution",
+        "source": "Football — blitz rush",
+        "positions": [{"row":0,"col":2},{"row":0,"col":3},{"row":0,"col":4},{"row":0,"col":5},{"row":1,"col":3},{"row":1,"col":4}]
+      },
+      {
+        "id": "pincer",
+        "name": "PINCER",
+        "description": "Split force attacks from two sides — surround and converge on target",
+        "source": "Military — pincer movement",
+        "positions": [{"row":1,"col":0},{"row":2,"col":0},{"row":1,"col":7},{"row":2,"col":7},{"row":0,"col":3},{"row":0,"col":4}]
+      },
+      {
+        "id": "wedge",
+        "name": "WEDGE",
+        "description": "Primary at point, others behind in V — break through defenses",
+        "source": "Military — wedge formation / RPG party",
+        "positions": [{"row":0,"col":3},{"row":1,"col":2},{"row":1,"col":4},{"row":2,"col":1},{"row":2,"col":5}]
+      },
+      {
+        "id": "gank",
+        "name": "GANK",
+        "description": "One agent holds attention, others rotate in from unexpected angles",
+        "source": "League of Legends — gank rotation",
+        "positions": [{"row":2,"col":3},{"row":0,"col":0},{"row":0,"col":7},{"row":4,"col":1},{"row":4,"col":6}]
+      },
+      {
+        "id": "siege",
+        "name": "SIEGE",
+        "description": "Surround target completely — sustained pressure from all directions",
+        "source": "Military — siege warfare / WoW raid positioning",
+        "positions": [{"row":1,"col":3},{"row":1,"col":4},{"row":2,"col":5},{"row":3,"col":5},{"row":4,"col":4},{"row":4,"col":3},{"row":3,"col":2},{"row":2,"col":2}]
+      }
+    ]
+  }
+}
