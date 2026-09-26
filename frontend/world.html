@@ -671,8 +671,7 @@ setInterval(loadData, 8000);
 var _govMode = '';
 var wsRetry = 1000;
 function connectWS() {
-  var proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(proto + '://' + location.host + '/ws');
+  var ws = new WebSocket(window.CIVITAE_WS_BASE + '/ws');
   ws.onopen = function() { wsRetry = 1000; };
   ws.onmessage = function(e) {
     try {
@@ -762,6 +761,7 @@ const clock = new THREE.Clock();
 })();
 </script>
 
+<script src="/assets/_ws.js"></script>
 <script>
   function panelLogin() {
     const raw = (document.getElementById('panel-login-id').value || '').trim();

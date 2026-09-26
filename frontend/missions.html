@@ -425,14 +425,14 @@
   </div>
 </div>
 
+<script src="/assets/_ws.js"></script>
 <script>
 const API = window.CIVITAE_API_ORIGIN || window.location.origin;
 
 // WebSocket with auto-reconnect
 let ws, wsRetry = 1000;
 function connectWS() {
-  const wsBase = API.replace(/^http/, 'ws');
-  ws = new WebSocket(wsBase + '/ws');
+  ws = new WebSocket((window.CIVITAE_WS_BASE || API.replace(/^http/, 'ws')) + '/ws');
   ws.onopen = function() { wsRetry = 1000; };
   ws.onmessage = function(e) {
     try {

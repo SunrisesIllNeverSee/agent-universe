@@ -295,6 +295,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
 <!-- App root — JS fills this -->
 <div id="app"></div>
 
+<script src="/assets/_ws.js"></script>
 <script>
 (function () {
   'use strict';
@@ -686,8 +687,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
 
   // ── WebSocket ────────────────────────────────────────────────────────────
   function connectWS() {
-    var proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    var wsUrl = proto + '//' + window.location.host + '/ws/thread/' + encodeURIComponent(threadId);
+    var wsUrl = window.CIVITAE_WS_BASE + '/ws/thread/' + encodeURIComponent(threadId);
     if (authMode === 'jwt') {
       wsUrl += '?token=' + encodeURIComponent(jwt);
     } else if (authMode === 'magic') {

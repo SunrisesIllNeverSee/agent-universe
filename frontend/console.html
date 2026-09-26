@@ -908,6 +908,7 @@ body {
   </div>
 </div>
 
+<script src="/assets/_ws.js"></script>
 <script>
 'use strict';
 const API = '';
@@ -917,8 +918,7 @@ let feedEvents = [];
 
 // ── WebSocket ─────────────────────────────────────────────────────────
 function connectWS() {
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(proto + '://' + location.host + '/ws');
+  ws = new WebSocket(window.CIVITAE_WS_BASE + '/ws');
 
   ws.onopen = function () {
     setWS('connected');
