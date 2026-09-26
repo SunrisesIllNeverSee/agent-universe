@@ -988,7 +988,7 @@
   renderTiers();
 
   // ── Registry stats ──
-  fetch(API_BASE + '/api/provision/registry')
+  fetch(API_BASE + '/api/agents')
     .then(r => r.json())
     .then(data => {
       const el = document.getElementById('stat-registered');

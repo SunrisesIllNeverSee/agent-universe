@@ -463,7 +463,7 @@
   try {
     const [metricsRes, regRes] = await Promise.allSettled([
       fetch(base + '/api/metrics', { signal: AbortSignal.timeout(5000) }),
-      fetch(base + '/api/provision/registry', { signal: AbortSignal.timeout(5000) }),
+      fetch(base + '/api/agents', { signal: AbortSignal.timeout(5000) }),
     ]);
 
     if (metricsRes.status === 'fulfilled' && metricsRes.value.ok) {
@@ -477,7 +477,7 @@
 
     if (regRes.status === 'fulfilled' && regRes.value.ok) {
       const d = await regRes.value.json();
-      const active = (d.registry || []).filter(r => r.type === 'agent' && r.status === 'active').length;
+      const active = (d.agents || []).filter(r => r.status === 'active').length;
       setMetric('m-agents', 'mb-agents', active, 50);
     }
   } catch (e) { /* API offline — defaults stay */ }

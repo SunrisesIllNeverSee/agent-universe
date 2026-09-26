@@ -614,12 +614,12 @@ renderDrawer();
   try {
     const base = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
       ? 'http://localhost:8300' : '';
-    const res = await fetch(base + '/api/provision/registry', { signal: AbortSignal.timeout(5000) });
+    const res = await fetch(base + '/api/agents', { signal: AbortSignal.timeout(5000) });
     if (!res.ok) return;
     const data = await res.json();
-    const live = (data.registry || [])
-      .filter(r => r.type === 'agent' && r.status === 'active')
-      .map(r => ({ id: r.agent_id, name: r.name, type: r.role || 'agent', icon: '⚡', _live: true }));
+    const live = (data.agents || [])
+      .filter(r => r.status === 'active')
+      .map(r => ({ id: r.agent_id, name: r.display_name || r.handle, type: r.agent_type || 'agent', icon: '⚡', _live: true }));
     if (live.length) {
       // Prepend live agents and mark them
       AGENTS.unshift(...live);

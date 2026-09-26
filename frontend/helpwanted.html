@@ -1572,7 +1572,7 @@ async function loadLiveStats() {
 
   // Fetch registered agents count
   try {
-    const r = await fetch(API_BASE + '/api/provision/registry');
+    const r = await fetch(API_BASE + '/api/agents');
     if (r.ok) {
       const d = await r.json();
       const agents = Array.isArray(d.agents) ? d.agents : [];
