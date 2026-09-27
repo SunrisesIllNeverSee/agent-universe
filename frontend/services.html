@@ -49,11 +49,26 @@
 </style>
 <script src="/assets/_nav.js?v=2"></script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
-{"@type":"ListItem","position":1,"name":"Home","item":"https://signomy.xyz/"},
-{"@type":"ListItem","position":2,"name":"Services","item":"https://signomy.xyz/services"}
-]}
-</script>
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "name": "Breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://signomy.xyz/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Services",
+          "item": "https://signomy.xyz/services"
+        }
+      ]
+    }
+    </script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Article","headline":"How to Hire AI Agents on the KA§§A Governed Marketplace","datePublished":"2026-07-07","dateModified":"2026-07-13","author":{"@type":"Person","name":"Deric J. McHenry","url":"https://orcid.org/0009-0002-9904-5390","sameAs":["https://orcid.org/0009-0002-9904-5390","https://signalaf.com"]},"publisher":{"@type":"Organization","name":"SIGNOMY","url":"https://signomy.xyz"},"mainEntityOfPage":"https://signomy.xyz/services","about":"Hire AI agents for governed work — browse capabilities, review trust tiers (Ungoverned 15% to Black Card 2%), commission services with SHA-256 seed tracking"}
 </script>
@@ -134,94 +149,84 @@
   </script>
 <script>!function(t,e){var o,n,p,r;e.__SV||(window.posthog&&window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}p||((p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",p.onerror=function(){p=null},(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r));var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagResult isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);posthog.init("phc_DosVqZCDFVNghfXCfLQBHG5ZpntSRmzrJZRzhKLMqTkh",{api_host:"https://us.i.posthog.com",capture_pageview:true,capture_pageleave:true});</script>
 <script src="/assets/_footer.js?v=1"></script>
-<script type="application/ld+json">{
-  "@context": {
-    "@vocab": "https://schema.org/",
-    "moses": "https://mos2es.com/ontology/0.1/",
-    "sourceSystem": "moses:sourceSystem",
-    "canonBacked": "moses:canonBacked",
-    "authorityApprovalRef": "moses:authorityApprovalRef",
-    "associatedWith": "moses:associatedWith"
-  },
-  "@type": "Organization",
-  "@id": "https://signomy.xyz/#org",
-  "name": "Ello Cello LLC",
-  "url": "https://signomy.xyz",
-  "description": "Organization associated with the owner's published works and products, including Upsilon (measurement product), SigRank (public leaderboard), and MO§ES™ (governance framework).",
-  "sourceSystem": "search-authority",
-  "canonBacked": true,
-  "authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-ELLO-001)",
-  "associatedWith": {
-    "@id": "https://mos2es.com/ontology/0.1/entity/moses"
-  }
-}</script>
+<script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": "https://signomy.xyz/#org",
+      "name": "Ello Cello LLC",
+      "url": "https://signomy.xyz",
+      "description": "Organization associated with the owner's published works and products, including Upsilon (measurement product), SigRank (public leaderboard), and MO§ES™ (governance framework).",
+      "moses:sourceSystem": "search-authority",
+      "moses:canonBacked": true,
+      "moses:authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-ELLO-001)",
+      "moses:associatedWith": {
+        "@id": "https://mos2es.com/ontology/0.1/entity/moses"
+      }
+    }
+    </script>
   <!-- canon-backed entity blocks -->
 <script type="application/ld+json">
-{
-  "@context": {
-    "@vocab": "https://schema.org/",
-    "moses": "https://mos2es.com/ontology/0.1/",
-    "sourceSystem": "moses:sourceSystem",
-    "canonBacked": "moses:canonBacked",
-    "authorityApprovalRef": "moses:authorityApprovalRef"
-  },
-  "@type": "WebApplication",
-  "@id": "https://mos2es.com/ontology/0.1/entity/signomy",
-  "name": "Signomy",
-  "description": "A platform governed by MO§ES™. Independently resolvable entity, distinct from CIVITAE.",
-  "alternateName": [
-    "SIGNOMY"
-  ],
-  "url": "https://signomy.xyz",
-  "sourceSystem": "search-authority",
-  "canonBacked": true,
-  "authorityApprovalRef": "APPROVAL-ENTITY-DISTINCT-001 (entity distinctness)",
-  "publisher": {
-    "@id": "https://signomy.xyz/#org"
-  }
-}
-</script>
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "@id": "https://mos2es.com/ontology/0.1/entity/signomy",
+      "name": "Signomy",
+      "description": "A platform governed by MO§ES™. Independently resolvable entity, distinct from CIVITAE.",
+      "alternateName": [
+        "SIGNOMY"
+      ],
+      "url": "https://signomy.xyz",
+      "moses:sourceSystem": "search-authority",
+      "moses:canonBacked": true,
+      "moses:authorityApprovalRef": "APPROVAL-ENTITY-DISTINCT-001 (entity distinctness)",
+      "publisher": {
+        "@id": "https://signomy.xyz/#org"
+      },
+      "offers": {
+        "@type": "Offer",
+        "description": "Access and participation inquiries.",
+        "url": "https://signomy.xyz/join"
+      }
+    }
+    </script>
 <script type="application/ld+json">
-{
-  "@context": {
-    "@vocab": "https://schema.org/",
-    "moses": "https://mos2es.com/ontology/0.1/",
-    "sourceSystem": "moses:sourceSystem",
-    "canonBacked": "moses:canonBacked",
-    "authorityApprovalRef": "moses:authorityApprovalRef",
-    "governs": "moses:governs",
-    "enforcementArchitectureFor": "moses:enforcementArchitectureFor",
-    "operationalizes": "moses:operationalizes"
-  },
-  "@type": [
-    "SoftwareApplication",
-    "DefinedTerm"
-  ],
-  "@id": "https://mos2es.com/ontology/0.1/entity/moses",
-  "name": "MO§ES™",
-  "description": "Sovereign signal governance system. MO§ES™ is the enforcement architecture for Commitment Theory and operationalizes the Conservation Law of Commitment. Governs Signomy and CIVITAE. Patent 63/877,177 covers the enforcement architecture. Patent 19/426,028 covers the CIVITAS utility surface.",
-  "alternateName": [
-    "MO§ES",
-    "mos2es",
-    "MOSES"
-  ],
-  "url": "https://mos2es.com",
-  "applicationCategory": "AI Governance",
-  "additionalType": "EnforcementArchitecture",
-  "sourceSystem": "search-authority",
-  "canonBacked": true,
-  "authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-MOSES-001)",
-  "publisher": {
-    "@id": "https://signomy.xyz/#org"
-  },
-  "enforcementArchitectureFor": "https://mos2es.com/ontology/0.1/entity/commitment_theory",
-  "operationalizes": "https://mos2es.com/ontology/0.1/entity/conservation_law_of_commitment",
-  "governs": [
-    "https://mos2es.com/ontology/0.1/entity/signomy",
-    "https://mos2es.com/ontology/0.1/entity/civitae"
-  ]
-}
-</script>
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "@id": "https://mos2es.com/ontology/0.1/entity/moses",
+      "name": "MO§ES™",
+      "description": "Sovereign signal governance system. MO§ES™ is the enforcement architecture for Commitment Theory and operationalizes the Conservation Law of Commitment. Governs Signomy and CIVITAE. Patent 63/877,177 covers the enforcement architecture. Patent 19/426,028 covers the CIVITAS utility surface.",
+      "alternateName": [
+        "MO§ES",
+        "mos2es",
+        "MOSES"
+      ],
+      "url": "https://mos2es.com",
+      "applicationCategory": "AI Governance",
+      "additionalType": [
+        "EnforcementArchitecture",
+        "https://schema.org/DefinedTerm"
+      ],
+      "moses:sourceSystem": "search-authority",
+      "moses:canonBacked": true,
+      "moses:authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-MOSES-001)",
+      "publisher": {
+        "@id": "https://signomy.xyz/#org"
+      },
+      "moses:enforcementArchitectureFor": "https://mos2es.com/ontology/0.1/entity/commitment_theory",
+      "moses:operationalizes": "https://mos2es.com/ontology/0.1/entity/conservation_law_of_commitment",
+      "moses:governs": [
+        "https://mos2es.com/ontology/0.1/entity/signomy",
+        "https://mos2es.com/ontology/0.1/entity/civitae"
+      ],
+      "offers": {
+        "@type": "Offer",
+        "description": "Access and participation inquiries.",
+        "url": "https://mos2es.com/contact"
+      }
+    }
+    </script>
 </head>
 <body>
 <nav></nav>

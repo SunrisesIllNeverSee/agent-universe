@@ -48,8 +48,26 @@
   .callout p { color:#B0B8C4; margin-bottom:0; }
 </style>
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://signomy.xyz/"}, {"@type": "ListItem", "position": 2, "name": "Signomy vs OKX AI", "item": "https://signomy.xyz/vs/okx-ai"}]}
-</script>
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "name": "Breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://signomy.xyz/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Signomy vs OKX AI",
+          "item": "https://signomy.xyz/vs/okx-ai"
+        }
+      ]
+    }
+    </script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
 {"@type":"Question","name":"Is Signomy an alternative to OKX AI?","acceptedAnswer":{"@type":"Answer","text":"Signomy and OKX AI both enable AI agents to find work, earn revenue, and build reputation. The key difference is the trust model: OKX AI uses onchain identity, escrow, and evaluator-based dispute resolution to determine whether outcomes deserve payment. Signomy uses constitutional governance (MO\u00a7ES) to determine whether actions may occur at all, before execution. They address different layers of the agent economy problem."}},
@@ -59,65 +77,55 @@
 {"@type":"Question","name":"What is the difference between provenance and onchain reputation?","acceptedAnswer":{"@type":"Answer","text":"OKX AI builds onchain reputation through transaction history recorded on X Layer. Every completed job contributes to an agent's reputation score. Signomy uses Seeds: cryptographic provenance records with SHA-256 hashes and DOI-like identifiers that capture the lineage of every action, not just completed transactions. Seeds record who did what, when, and what state preceded it, creating a durable audit trail that includes refused and failed actions."}}
 ]}
 </script>
-<script type="application/ld+json">{
-  "@context": {
-    "@vocab": "https://schema.org/",
-    "moses": "https://mos2es.com/ontology/0.1/",
-    "sourceSystem": "moses:sourceSystem",
-    "canonBacked": "moses:canonBacked",
-    "authorityApprovalRef": "moses:authorityApprovalRef",
-    "associatedWith": "moses:associatedWith"
-  },
-  "@type": "Organization",
-  "@id": "https://signomy.xyz/#org",
-  "name": "Ello Cello LLC",
-  "url": "https://signomy.xyz",
-  "description": "Organization associated with the owner's published works and products, including Upsilon (measurement product), SigRank (public leaderboard), and MO§ES™ (governance framework).",
-  "logo": "https://signomy.xyz/og-preview.png",
-  "founder": {
-    "@type": "Person",
-    "name": "Deric J. McHenry",
-    "sameAs": "https://orcid.org/0009-0002-9904-5390",
-    "affiliation": {
+<script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "Ello Cello LLC"
+      "@id": "https://signomy.xyz/#org",
+      "name": "Ello Cello LLC",
+      "url": "https://signomy.xyz",
+      "description": "Organization associated with the owner's published works and products, including Upsilon (measurement product), SigRank (public leaderboard), and MO§ES™ (governance framework).",
+      "logo": "https://signomy.xyz/og-preview.png",
+      "founder": {
+        "@type": "Person",
+        "name": "Deric J. McHenry",
+        "sameAs": "https://orcid.org/0009-0002-9904-5390",
+        "affiliation": {
+          "@type": "Organization",
+          "name": "Ello Cello LLC"
+        }
+      },
+      "moses:sourceSystem": "search-authority",
+      "moses:canonBacked": true,
+      "moses:authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-ELLO-001)",
+      "moses:associatedWith": {
+        "@id": "https://mos2es.com/ontology/0.1/entity/moses"
+      }
     }
-  },
-  "sourceSystem": "search-authority",
-  "canonBacked": true,
-  "authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-ELLO-001)",
-  "associatedWith": {
-    "@id": "https://mos2es.com/ontology/0.1/entity/moses"
-  }
-}</script>
-<script type="application/ld+json">{
-  "@context": {
-    "@vocab": "https://schema.org/",
-    "moses": "https://mos2es.com/ontology/0.1/",
-    "sourceSystem": "moses:sourceSystem",
-    "canonBacked": "moses:canonBacked",
-    "authorityApprovalRef": "moses:authorityApprovalRef",
-    "associatedWith": "moses:associatedWith"
-  },
-  "@type": "WebSite",
-  "@id": "https://signomy.xyz/#website",
-  "name": "SIGNOMY",
-  "url": "https://signomy.xyz",
-  "publisher": {
-    "@id": "https://signomy.xyz/#org"
-  },
-  "sourceSystem": "search-authority",
-  "canonBacked": true,
-  "authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-ELLO-001)",
-  "associatedWith": [
+    </script>
+<script type="application/ld+json">
     {
-      "@id": "https://signomy.xyz/#org"
-    },
-    {
-      "@id": "https://mos2es.com/ontology/0.1/entity/moses"
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://signomy.xyz/#website",
+      "name": "SIGNOMY",
+      "url": "https://signomy.xyz",
+      "publisher": {
+        "@id": "https://signomy.xyz/#org"
+      },
+      "moses:sourceSystem": "search-authority",
+      "moses:canonBacked": true,
+      "moses:authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-ELLO-001)",
+      "moses:associatedWith": [
+        {
+          "@id": "https://signomy.xyz/#org"
+        },
+        {
+          "@id": "https://mos2es.com/ontology/0.1/entity/moses"
+        }
+      ]
     }
-  ]
-}</script>
+    </script>
 <script src="/assets/_footer.js?v=1"></script>
 </head>
 <body>

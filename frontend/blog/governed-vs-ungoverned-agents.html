@@ -56,8 +56,32 @@
   .patent { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--dim); line-height: 1.8; }
 </style>
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://signomy.xyz/"}, {"@type": "ListItem", "position": 2, "name": "Blog", "item": "https://signomy.xyz/blog"}, {"@type": "ListItem", "position": 3, "name": "Governed vs Ungoverned AI Agents", "item": "https://signomy.xyz/blog/governed-vs-ungoverned-agents"}]}
-</script>
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "name": "Breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://signomy.xyz/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Blog",
+          "item": "https://signomy.xyz/blog"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Governed vs Ungoverned AI Agents",
+          "item": "https://signomy.xyz/blog/governed-vs-ungoverned-agents"
+        }
+      ]
+    }
+    </script>
 <script type="application/ld+json">{
   "@context": "https://schema.org",
   "@type": "Article",
@@ -79,65 +103,55 @@
 {"@type":"Question","name":"What audit trail does a governed agent produce?","acceptedAnswer":{"@type":"Answer","text":"A governed agent produces a SHA-256 hash-chained audit trail with DOI tracking on every permitted action. An ungoverned agent produces optional, manual logs at best."}}
 ]}
 </script>
-<script type="application/ld+json">{
-  "@context": {
-    "@vocab": "https://schema.org/",
-    "moses": "https://mos2es.com/ontology/0.1/",
-    "sourceSystem": "moses:sourceSystem",
-    "canonBacked": "moses:canonBacked",
-    "authorityApprovalRef": "moses:authorityApprovalRef",
-    "associatedWith": "moses:associatedWith"
-  },
-  "@type": "Organization",
-  "@id": "https://signomy.xyz/#org",
-  "name": "Ello Cello LLC",
-  "url": "https://signomy.xyz",
-  "description": "Organization associated with the owner's published works and products, including Upsilon (measurement product), SigRank (public leaderboard), and MO§ES™ (governance framework).",
-  "logo": "https://signomy.xyz/og-preview.png",
-  "founder": {
-    "@type": "Person",
-    "name": "Deric J. McHenry",
-    "sameAs": "https://orcid.org/0009-0002-9904-5390",
-    "affiliation": {
+<script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "Ello Cello LLC"
+      "@id": "https://signomy.xyz/#org",
+      "name": "Ello Cello LLC",
+      "url": "https://signomy.xyz",
+      "description": "Organization associated with the owner's published works and products, including Upsilon (measurement product), SigRank (public leaderboard), and MO§ES™ (governance framework).",
+      "logo": "https://signomy.xyz/og-preview.png",
+      "founder": {
+        "@type": "Person",
+        "name": "Deric J. McHenry",
+        "sameAs": "https://orcid.org/0009-0002-9904-5390",
+        "affiliation": {
+          "@type": "Organization",
+          "name": "Ello Cello LLC"
+        }
+      },
+      "moses:sourceSystem": "search-authority",
+      "moses:canonBacked": true,
+      "moses:authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-ELLO-001)",
+      "moses:associatedWith": {
+        "@id": "https://mos2es.com/ontology/0.1/entity/moses"
+      }
     }
-  },
-  "sourceSystem": "search-authority",
-  "canonBacked": true,
-  "authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-ELLO-001)",
-  "associatedWith": {
-    "@id": "https://mos2es.com/ontology/0.1/entity/moses"
-  }
-}</script>
-<script type="application/ld+json">{
-  "@context": {
-    "@vocab": "https://schema.org/",
-    "moses": "https://mos2es.com/ontology/0.1/",
-    "sourceSystem": "moses:sourceSystem",
-    "canonBacked": "moses:canonBacked",
-    "authorityApprovalRef": "moses:authorityApprovalRef",
-    "associatedWith": "moses:associatedWith"
-  },
-  "@type": "WebSite",
-  "@id": "https://signomy.xyz/#website",
-  "name": "SIGNOMY",
-  "url": "https://signomy.xyz",
-  "publisher": {
-    "@id": "https://signomy.xyz/#org"
-  },
-  "sourceSystem": "search-authority",
-  "canonBacked": true,
-  "authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-ELLO-001)",
-  "associatedWith": [
+    </script>
+<script type="application/ld+json">
     {
-      "@id": "https://signomy.xyz/#org"
-    },
-    {
-      "@id": "https://mos2es.com/ontology/0.1/entity/moses"
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://signomy.xyz/#website",
+      "name": "SIGNOMY",
+      "url": "https://signomy.xyz",
+      "publisher": {
+        "@id": "https://signomy.xyz/#org"
+      },
+      "moses:sourceSystem": "search-authority",
+      "moses:canonBacked": true,
+      "moses:authorityApprovalRef": "APPROVAL-2026-08-14-001 (ID-ELLO-001)",
+      "moses:associatedWith": [
+        {
+          "@id": "https://signomy.xyz/#org"
+        },
+        {
+          "@id": "https://mos2es.com/ontology/0.1/entity/moses"
+        }
+      ]
     }
-  ]
-}</script>
+    </script>
 </head>
 <body>
 <main class="hero">
