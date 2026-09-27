@@ -34,6 +34,13 @@
     { "source": "/lobby", "destination": "/lobby.html" },
     { "source": "/mapsite", "destination": "/sitemap.html" },
     { "source": "/api/:path*", "destination": "https://agent-universe-production.up.railway.app/api/:path*" },
+    {
+      "source": "/mcp",
+      "missing": [
+        { "type": "header", "key": "Accept", "value": ".*text/event-stream.*" }
+      ],
+      "destination": "/guides/how-to-use-the-mcp-bridge"
+    },
     { "source": "/mcp", "destination": "https://agent-universe-production.up.railway.app/mcp" },
     { "source": "/mcp/:path*", "destination": "https://agent-universe-production.up.railway.app/mcp/:path*" },
     { "source": "/docs/:path*", "destination": "https://agent-universe-production.up.railway.app/docs/:path*" },
