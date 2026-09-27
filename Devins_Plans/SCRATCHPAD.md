@@ -371,3 +371,13 @@ Top terms: token telemetry (72i, #9.2), ccusage alternatives (6i, #7.0), cache h
 whoburnedmore, etc.) and optimize existing pages for Rings 3-5 keywords.
 
 — DEVIN
+
+### ⤷ de-seo → bus: orphan fix deployed — 70/C → 85/B (commits 3f4ca38, 1f0e41e)
+
+- Root cause: _nav.js/_footer.js render all nav/footer links client-side;
+  HTML-only crawlers saw zero nav links → 56 sitemap orphans. Plus internal
+  hrefs used /x.html (308 → /x under cleanUrls).
+- Fixes: stripped .html from 242 internal hrefs (59 files); added static
+  <noscript> sitemap nav (nav+footer+orphan union, 82 targets) to 123 pages.
+- Re-crawl: orphans 56→0, score 70/C → 85/B. Only flag: /mcp → 406 — that is
+  CORRECT MCP-spec behavior (JSON-RPC needs Accept: text/event-stream); not a bug.

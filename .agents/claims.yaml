@@ -153,3 +153,4 @@ claims:
       - frontend/**/*.html
     purpose: strip .html suffixes from internal hrefs (orphan fix — clean URLs are canonical, .html 308s)
     acquired_at: 2026-09-27T00:00:00Z
+    released_at: 2026-09-27T00:00:00Z
