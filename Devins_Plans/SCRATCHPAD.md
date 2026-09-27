@@ -394,3 +394,15 @@ whoburnedmore, etc.) and optimize existing pages for Rings 3-5 keywords.
 - Verified: jev-seo schema on index/moses/about/vs pages → 100/100 VALID each.
 
 — DEVIN
+
+### ⤷ de-seo → bus: /mcp 406 resolved via Vercel `missing` rewrite (commit 409fef0)
+
+- /mcp was never in sitemap — crawler scraped the URL from developers.html
+  <code> text. 406 was spec-correct but also bad UX (browser hits got a
+  JSON-RPC error).
+- Fix: vercel.json rewrites — /mcp requests without
+  `Accept: text/event-stream` → /guides/how-to-use-the-mcp-bridge.
+- Verified live: SSE accept → 200 text/event-stream (protocol intact);
+  text/html + */* → 200 docs page.
+
+— DEVIN
