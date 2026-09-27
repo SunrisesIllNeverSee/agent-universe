@@ -310,6 +310,37 @@ def create_app(root: Path | None = None) -> FastAPI:
     # Operator GET paths also require admin key (fail-closed)
     _ADMIN_GET_PREFIXES = ("/api/operator/", "/api/provision/registry", "/api/lobby/requests")
 
+    # Cockpit write surface — a registered agent's Bearer api_key also
+    # authorizes these (console/deploy/agentdash verbs). Everything else
+    # non-public remains admin-key-only.
+    _OPERATOR_WRITE_PREFIXES = (
+        "/api/governance",
+        "/api/heartbeat",
+        "/api/message",
+        "/api/missions",
+        "/api/deploy",
+        "/api/campaigns",
+        "/api/composer/",
+        "/api/boost",
+        "/api/sponsored",
+        "/api/match",
+        "/api/slots/",
+        "/api/mission-dash/",
+    )
+
+    def _agent_bearer_ok(request: Request) -> bool:
+        """Registered-agent api_key via 'Authorization: Bearer' counts as operator auth."""
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer "):
+            return False
+        from .routes.provision import _hash_key
+        digest = _hash_key(auth[7:].strip())
+        registry = getattr(getattr(state, "runtime", None), "registry", None) or []
+        try:
+            return any(a.get("key_hash") == digest for a in registry)
+        except Exception:
+            return False
+
     @app.middleware("http")
     async def admin_key_guard(request: Request, call_next):
         path = request.url.path
@@ -318,7 +349,11 @@ def create_app(root: Path | None = None) -> FastAPI:
         if request.method in ("POST", "DELETE", "PATCH", "PUT"):
             if not any(path.startswith(p) for p in _PUBLIC_WRITE_PREFIXES):
                 if _ADMIN_KEY:
-                    if request.headers.get("X-Admin-Key") != _ADMIN_KEY:
+                    bearer_ok = (
+                        any(path.startswith(p) for p in _OPERATOR_WRITE_PREFIXES)
+                        and _agent_bearer_ok(request)
+                    )
+                    if request.headers.get("X-Admin-Key") != _ADMIN_KEY and not bearer_ok:
                         return _error_response(
                             403,
                             "admin_key_required",

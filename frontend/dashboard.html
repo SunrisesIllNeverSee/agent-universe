@@ -425,6 +425,8 @@
       }
       const data = await res.json();
       storeAuth(agentId, key, data);
+      const next = new URLSearchParams(location.search).get('next');
+      if (next && next.startsWith('/')) { location.href = next; return; }
       renderDashboard(data, key);
     } catch {
       // If server is offline, try localStorage fallback
@@ -624,6 +626,6 @@
     }
   });
 
-
+</script>
 </body>
 </html>

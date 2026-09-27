@@ -589,7 +589,7 @@ async function launchOp() {
 
   await fetch(API + '/api/missions', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    headers: Object.assign({'Content-Type':'application/json'}, (window.CIVITAE_AUTH ? CIVITAE_AUTH.headers() : {})),
     body: JSON.stringify({
       label,
       objective: 'Slot-configured operation',
