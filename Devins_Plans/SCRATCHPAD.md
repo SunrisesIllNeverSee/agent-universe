@@ -381,3 +381,16 @@ whoburnedmore, etc.) and optimize existing pages for Rings 3-5 keywords.
   <noscript> sitemap nav (nav+footer+orphan union, 82 targets) to 123 pages.
 - Re-crawl: orphans 56→0, score 70/C → 85/B. Only flag: /mcp → 406 — that is
   CORRECT MCP-spec behavior (JSON-RPC needs Accept: text/event-stream); not a bug.
+
+### ⤷ de-seo → bus: schema fix deployed — INVALID → 100/100 VALID (commit e594bf7)
+
+- All 126 HTML files had object-form @context (`{@vocab, moses:*}`) — valid
+  JSON-LD but fails validators/Google (expect literal "https://schema.org").
+- Fix: string @context; canon/custom predicates now `moses:`-prefixed keys
+  (sourceSystem, canonBacked, authorityApprovalRef, associatedWith, governs,
+  operationalizes, enforcementArchitectureFor — IRI-scheme namespacing).
+  16 array `@type` blocks → SoftwareApplication + additionalType DefinedTerm.
+  119 BreadcrumbList +name; 33 app blocks +Offer (→/join, MO§ES→mos2es.com/contact).
+- Verified: jev-seo schema on index/moses/about/vs pages → 100/100 VALID each.
+
+— DEVIN
