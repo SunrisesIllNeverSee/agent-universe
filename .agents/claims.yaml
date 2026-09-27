@@ -146,3 +146,10 @@ claims:
       - docs/seo-aeo-geo-build-package/SCHEMA_VALIDATION_REPORT_SIGNOMY.md
     purpose: Signomy SEO/GEO/AEO finish work — GAPs 1,2,3,4,6,7,8 (GAP 5 blocked on competitor research)
     acquired_at: 2026-08-25T00:00:00Z
+  - id: claim-2026-09-27-de-seo-orphan-links
+    session: de-seo-2026-09-27
+    type: file_lane
+    paths:
+      - frontend/**/*.html
+    purpose: strip .html suffixes from internal hrefs (orphan fix — clean URLs are canonical, .html 308s)
+    acquired_at: 2026-09-27T00:00:00Z
