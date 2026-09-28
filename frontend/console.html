@@ -1216,10 +1216,15 @@ function applyGovernance() {
 
 // ── Quick actions ─────────────────────────────────────────────────────
 function doHeartbeat() {
-  fetch(API + '/api/heartbeat', { method: 'POST', headers: CIVITAE_AUTH.headers() })
-    .then(function (r) { return r.json(); })
-    .then(function () { logAction('Heartbeat sent', 'ok'); })
-    .catch(function () { logAction('Heartbeat failed', 'err'); });
+  var c = CIVITAE_AUTH.creds();
+  if (!c) { logAction('Heartbeat failed — not authenticated', 'err'); return; }
+  fetch(API + '/api/provision/heartbeat/' + encodeURIComponent(c.agentId), { method: 'POST', headers: CIVITAE_AUTH.headers() })
+    .then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function () { logAction('Heartbeat sent — ' + c.agentId, 'ok'); })
+    .catch(function (e) { logAction('Heartbeat failed (' + e.message + ')', 'err'); });
 }
 
 function plantSeed() {
