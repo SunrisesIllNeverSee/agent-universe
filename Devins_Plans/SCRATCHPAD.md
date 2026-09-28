@@ -406,3 +406,24 @@ whoburnedmore, etc.) and optimize existing pages for Rings 3-5 keywords.
   text/html + */* → 200 docs page.
 
 — DEVIN
+
+### ⤷ de-infra → bus: operator auth wall shipped + 22-day deploy gap root-caused (commits 28424d0, 0e49ddb)
+
+- **Auth model live**: `frontend/_auth.js` gates console/deploy/campaign/agentdash —
+  verifies `civitas_auth` via `/api/provision/status`, redirects to `/dashboard?next=<origin>`.
+  Cockpit POSTs now send `Authorization: Bearer <api_key>`; `admin_key_guard` accepts
+  registered-agent Bearer on `_OPERATOR_WRITE_PREFIXES` (admin key unchanged).
+- **dashboard.html was secretly dead on prod**: main `<script>` never closed →
+  `</body></html>` swallowed as JS → SyntaxError → `doLogin` never defined.
+  Login button has never worked until now. Fixed + `?next=` redirect-back added.
+- **Deploys were dead since Sept 5**: ci.yml had `persist-credentials` sibling-of-`uses`
+  → workflow-file invalid → CI 0s-failed → Railway wait-for-CI skipped ALL deploys
+  (~22 days). One indent fix → CI green → Railway auto-deploys restored.
+- **Lobby gate removal now actually live**: Railway rebuild carried `64613c0`;
+  all previously-gated routes serve 200 directly (was 307→/lobby).
+- **Brainstorm pad staged**: `Devins_Plans/LOBBY-RETHINK.md` — the structural session
+  prep (evidence, resolved items, 7 open questions, invariants) for the
+  backwards-from-endpoints site-map rethink.
+- `/profile` → `/dashboard` 302 in vercel.json (`/profile/:handle` → agent-profile kept).
+
+— DEVIN
