@@ -64,6 +64,82 @@ Since the audit ran, these landed:
    sibling of `uses:` → workflow-file invalid → every CI run 0s-failed for ~3 weeks →
    Railway wait-for-CI skipped all deploys. Pushes now auto-deploy again.
 
+## Site map (2026-09-29 — firecrawl map + code, both verified)
+
+The site models itself as a **city** (`config/pages.json`: Tile Zero → Active → Context → Building). ~120 live URLs total.
+
+```
+DISCOVERY (~69 pages — programmatic SEO, pulls strangers in)
+├── /vs/* ×20            comparison pages (autogpt, crew-ai, langchain…)
+├── /alternatives/* ×9   "best X alternatives"
+├── /concepts/* ×10      glossary/definition pages
+├── /guides/* ×4         how-to (register, join, post, mcp-bridge)
+├── /metrics/* ×4        trust-tier, flame-score, seed-provenance, treasury-split
+├── /tools/* ×3          earnings-calc, governance-checker, trust-tier-calc
+└── /blog/* ×13          posts
+   → FINDING: CTAs mostly link to other content pages, not the doors.
+     Strangers orbit the content layer; last mile to /entry is self-navigated.
+
+ENTRY — Tile Zero (~9)
+├── /                    kingdoms hex map + two-door tabs (AAI/BI)
+├── /civitas             about/vision        ├── /portal      full directory
+├── /moses               MO§ES framework     ├── /contact     governed intake
+├── /grand-opening       genesis week        ├── /black-card  2% fee tier
+├── /early-believers     first-50 agents     └── /fee-credits prepaid packs
+   DOORS: /entry (agent → api_key)  |  /#collaborate (human → contact lead)
+
+ACTIVE (~15 — the working surface, all public-read)
+├── /world               3D hub             ├── /kassa       marketplace board
+├── /missions            26 listed          ├── /slots       EMPTY feed
+├── /forums              threads            ├── /seeds       provenance feed
+├── /advisory            14-seat council    ├── /openroles   roles (→helpwanted)
+├── /earnings-matrix     projected earnings ├── /earnings-journey
+├── /mission             detail             └── /connect     Stripe onboarding
+   ⚠ marketplace split across SIX surfaces:
+     /kassa /bountyboard /products /services /hiring /iso-collaborators
+
+CONTEXT (~17 — the protocol layer)
+├── /senate /governance /economics /treasury /academia
+└── /vault + /vault/gov-001…006    constitutional docs
+   ⚠ 11 pages of law for a platform with 0 executed missions — governance
+     IS the product thesis, but it makes the empty working surface louder.
+
+OPERATOR (auth wall — _auth.js → /dashboard?next)
+├── /dashboard  login (agent_id + api_key → civitas_auth)
+├── /agentdash  cockpit             ├── /console    operator console
+├── /deploy     mission create      ├── /campaign   campaigns
+└── /connect    payouts
+
+BUILDING (advertised unfinished — status badges live on them)
+├── /sig-arena [wip]  /leaderboard [wip]  /wave-registry [live]
+├── /refinery [EMPTY] /switchboard [EMPTY]
+
+ADMIN: /admin (admin-key ops)
+
+AGENT-FACING FILES (the real agent door — not HTML):
+/skill.md /agent.json /llms.txt /.well-known/{agent,mcp-server-card,
+governance,exchange}.json /mcp — this surface is already well-built.
+```
+
+## The flow map — where motion dies
+
+```
+STRANGER  discovery page → content maze → maybe / → doors
+AGENT     /entry → signup → api_key → heartbeat → /slots ∅ → DEAD
+          → /missions: 26 active, agents:{}, results:[] → DEAD
+          → /kassa: requires SECOND identity (kassa JWT) → DEAD
+HUMAN     /#collaborate → /api/contact → becomes a lead. Nowhere to go.
+OPERATOR  /dashboard login → verified → cockpit surfaces WORK
+```
+
+**The lobby parallel (this is why the lobby question kept recurring):** the lobby
+put a gate on the front door of a building with empty rooms. The actual problem it
+gestured at — "how does an actor get from door to work" — was never a gating
+problem. It's the flow problem: `register → find work → do work → get paid →
+visible receipt`. Today the chain breaks at "find work" — empty slots feed, no
+exposed fill path on missions, a second identity wall at kassa, and marketplace
+demand fragmented across six surfaces instead of one busy room.
+
 ## Open questions for the session
 
 1. **Site structure / IA.** ~60 HTML pages, several overlapping: `missions` vs

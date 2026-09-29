@@ -88,6 +88,7 @@ Glama wants a Dockerfile config to host the server. Values to paste into the Gla
 ---
 
 <!-- POST-COMMIT HOOK APPENDS BELOW THIS LINE -->
+[HOOK] 2026-09-29 02:15 UTC · 4ee60fc · Deric · fix(tests): drop lobby-seat test — subsystem archived
 [HOOK] 2026-09-29 02:14 UTC · f19759a · Deric · chore(lobby): finish extraction — runbook to archive, agent.json join→/entry
 [HOOK] 2026-09-29 02:13 UTC · 36bfe61 · Deric · build(railway): scope deploys to backend paths via watchPatterns
 [HOOK] 2026-09-29 02:13 UTC · f89d378 · Deric · chore(lobby): archive velvet-rope subsystem outside the product
