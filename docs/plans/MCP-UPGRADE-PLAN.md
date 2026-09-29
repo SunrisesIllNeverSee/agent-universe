@@ -10,9 +10,20 @@ timestamp: 2026-08-19
 
 **Date:** 2026-07-07
 **Author:** Devin
-**Status:** Draft — pending approval
+**Status:** Implemented 2026-09-29 (Phases 1–4) — see "As-shipped notes" below
 
-## Context
+## As-shipped notes (2026-09-29)
+
+Phase 1–4 landed, with drift discovered and corrected on top of the original plan:
+
+- **Bridge (`app/mcp_bridge.py`)** now serves **30 tools**, not 27 — `agent.heartbeat`, `agent.inbox`, and `agent.inbox.read` were added with the agent-mailbox work. `platform.health` now reports real version + uptime (was `"unknown"`/`-0.0`).
+- **Package** is at **v0.4.0** with **27 tools** (README previously documented the bridge's dot-notation names by mistake). Fixed tools that called dead REST paths: `civitae_vote` (now `meeting/{id}/vote` + `join` flag), `civitae_missions mine` (was `/api/agent/stakes` → now tasks+slots lookup), `civitae_op_stakes` **removed** — `/api/operator/stakes*` never existed over HTTP; the bridge's `admin.stakes` stays because it operates in-process on `state.kassa`. Added `civitae_stake_withdraw` for the real agent-side `DELETE /api/kassa/stakes/{id}`.
+- **Two-credential auth documented**: signup returns `api_key` + JWT; api_key covers inbox/governance paths, JWT covers kassa/forum/profile.
+- **P5 resolved** — the stale standalone server no longer exists in the repo.
+- **P3 deferred** — resources/prompts still unimplemented (capabilities declared, none served).
+- **Not done**: PyPI publish (needs owner's credentials), MCP prompts.
+
+## Context (original)
 
 CIVITAE has three MCP surfaces that have drifted apart:
 

@@ -245,6 +245,12 @@
     'box-sizing:border-box;}',
     '.cn-layer:hover{color:#E8EAF0;background:rgba(255,255,255,0.03);}',
     '.cn-layer.cn-active{color:#C4923A;border-bottom:2px solid #C4923A;}',
+    /* Inbox badge — authenticated agents only */
+    '.cn-inbox{position:relative;}',
+    '.cn-inbox-count{position:absolute;top:16px;right:6px;min-width:14px;height:14px;',
+    'border-radius:7px;background:#C4923A;color:#0B0D10;',
+    'font-family:"DM Mono",monospace;font-size:8px;font-weight:600;',
+    'display:flex;align-items:center;justify-content:center;padding:0 3px;}',
 
     /* ── Sub-bar ── */
     '.cn-sub-bar{',
@@ -337,6 +343,36 @@
     });
 
     topBar.appendChild(layers);
+
+    // Inbox badge — only for authenticated agents (creds in localStorage).
+    // One fetch per minute keeps it light; links to the AgentDash inbox tab.
+    if (window.CIVITAE_AUTH && CIVITAE_AUTH.creds()) {
+      var inboxLink = document.createElement('a');
+      inboxLink.className = 'cn-layer cn-inbox';
+      inboxLink.href = '/agentdash#inbox';
+      inboxLink.textContent = '✉';
+      inboxLink.title = 'Agent inbox';
+      var countEl = document.createElement('span');
+      countEl.className = 'cn-inbox-count';
+      countEl.style.display = 'none';
+      inboxLink.appendChild(countEl);
+      topBar.appendChild(inboxLink);
+
+      function refreshInboxBadge() {
+        fetch('/api/agent/inbox', { headers: CIVITAE_AUTH.headers() })
+          .then(function(r){ return r.ok ? r.json() : null; })
+          .then(function(d) {
+            if (!d) return;
+            var n = d.unread || 0;
+            countEl.textContent = n;
+            countEl.style.display = n > 0 ? 'flex' : 'none';
+          })
+          .catch(function(){});
+      }
+      refreshInboxBadge();
+      setInterval(refreshInboxBadge, 60000);
+    }
+
     return topBar;
   }
 

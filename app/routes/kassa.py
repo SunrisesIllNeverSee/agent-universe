@@ -49,6 +49,7 @@ logger = logging.getLogger("civitae.kassa")
 class KassaRegisterPayload(BaseModel):
     name: str
     system: str | None = None
+    operator_contact: str | None = None
 
 
 class KassaLoginPayload(BaseModel):
@@ -220,6 +221,7 @@ async def kassa_agent_register(payload: KassaRegisterPayload) -> dict:
         "system": payload.system,
         "role": "secondary",
         "rate_limit": state.runtime.provision.get("rate_limit", {"requests_per_minute": 10, "burst": 20}),
+        "operator_contact": (payload.operator_contact or "").strip()[:200] or None,
     }
 
     state.runtime.registry.append(entry)

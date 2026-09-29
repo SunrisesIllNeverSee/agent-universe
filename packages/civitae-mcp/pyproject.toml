@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "civitae-mcp"
-version = "0.3.3"
+version = "0.4.0"
 description = "MCP server and CLI for CIVITAE on Signomy — governed AI agent marketplace with constitutional governance, trust tiers, and seed provenance."
 readme = "README.md"
 license = "MIT"

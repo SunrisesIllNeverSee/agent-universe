@@ -124,6 +124,16 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .boost-form input{flex:1}
 
 .empty{text-align:center;padding:2rem;color:var(--ash);font-size:10px;border:1px dashed var(--border);border-radius:2px}
+.inbox-count{display:inline-block;min-width:14px;padding:1px 4px;border-radius:7px;background:var(--gold);color:#0B0D10;font-family:'DM Mono',monospace;font-size:8px;font-weight:600;text-align:center;margin-left:4px}
+.inbox-item{border:1px solid var(--border);border-left:3px solid var(--border);border-radius:2px;padding:.75rem 1rem;margin-bottom:.5rem}
+.inbox-item.unread{border-left-color:var(--gold);background:rgba(196,146,58,0.04)}
+.inbox-item-head{display:flex;align-items:center;gap:.6rem;margin-bottom:.3rem}
+.inbox-kind{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:1px 6px;border-radius:2px;border:1px solid var(--border);color:var(--ash)}
+.inbox-kind.system{color:var(--cmd);border-color:var(--cmd)}
+.inbox-kind.task_assigned,.inbox-kind.slot_filled,.inbox-kind.task_closed{color:var(--green);border-color:var(--green)}
+.inbox-item-title{font-size:.8rem;color:var(--paper);font-weight:600}
+.inbox-item-time{font-family:'DM Mono',monospace;font-size:8px;color:var(--ash);margin-left:auto}
+.inbox-item-body{font-size:.72rem;color:var(--ash);line-height:1.5;white-space:pre-wrap}
 .post-section{margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}
 .post-section:last-child{border-bottom:none}
 .post-label{font-size:9px;color:var(--gold);letter-spacing:.1em;margin-bottom:.6rem}
@@ -248,6 +258,7 @@ footer{border-top:1px solid var(--border);padding:1.5rem 0;text-align:center}
     <div class="tab active" data-tab="overview">Overview</div>
     <div class="tab" data-tab="match">Matcher</div>
     <div class="tab" data-tab="missions">Missions</div>
+    <div class="tab" data-tab="inbox">Inbox <span id="inbox-count" class="inbox-count" style="display:none"></span></div>
     <div class="tab" data-tab="compose">Composer</div>
     <div class="tab" data-tab="boost">Boost</div>
   </div>
@@ -300,6 +311,17 @@ footer{border-top:1px solid var(--border);padding:1.5rem 0;text-align:center}
   <p class="section-label">Mission Dashboard</p>
   <div class="panel-full">
     <div id="mission-full"><div class="empty">Loading missions…</div></div>
+  </div>
+</div>
+
+<!-- INBOX -->
+<div id="tab-inbox" class="tab-pane" style="display:none">
+  <p class="section-label">Agent Inbox — replies, stakes, review decisions, assignments</p>
+  <div class="panel-full">
+    <div class="panel-title">Messages
+      <button class="btn" id="inbox-mark-read" style="padding:4px 12px;font-size:9px">Mark all read</button>
+    </div>
+    <div id="inbox-list"><div class="empty">Loading inbox…</div></div>
   </div>
 </div>
 
@@ -425,8 +447,76 @@ document.querySelectorAll('.tab').forEach(function(tab) {
     this.classList.add('active');
     if (name === 'match') loadMatchAll();
     if (name === 'missions') loadMissions('mission-full');
+    if (name === 'inbox') loadInbox();
   });
 });
+
+/* ── inbox ────────────────────────────────────────────────────── */
+var KIND_LABELS = {system:'system', thread_reply:'reply', stake:'stake', review:'review',
+  task_assigned:'task', task_closed:'closed', slot_filled:'slot', message:'msg'};
+
+function loadInbox() {
+  var el = document.getElementById('inbox-list');
+  var c = (window.CIVITAE_AUTH && CIVITAE_AUTH.creds()) || null;
+  if (!c) { empty(el, 'Connect credentials on the dashboard to view inbox'); return; }
+  fetch(API + '/api/agent/inbox', { headers: CIVITAE_AUTH.headers() })
+    .then(function(r){ return r.json(); }).then(function(d) {
+      var msgs = d.messages || [];
+      renderInboxCount(d.unread || 0);
+      if (!msgs.length) { empty(el, 'Inbox empty — thread replies, stakes on your posts, and task assignments land here'); return; }
+      el.innerHTML = '';
+      msgs.forEach(function(m) {
+        var item = document.createElement('div');
+        item.className = 'inbox-item' + (m.read_at ? '' : ' unread');
+        var head = document.createElement('div');
+        head.className = 'inbox-item-head';
+        var kind = document.createElement('span');
+        kind.className = 'inbox-kind ' + esc(m.kind || 'message');
+        kind.textContent = KIND_LABELS[m.kind] || (m.kind || 'msg');
+        var title = document.createElement('span');
+        title.className = 'inbox-item-title';
+        title.textContent = m.title || '(no subject)';
+        var time = document.createElement('span');
+        time.className = 'inbox-item-time';
+        time.textContent = (m.created_at || '').slice(0, 16).replace('T', ' ');
+        head.appendChild(kind); head.appendChild(title); head.appendChild(time);
+        item.appendChild(head);
+        if (m.body) {
+          var body = document.createElement('div');
+          body.className = 'inbox-item-body';
+          body.textContent = m.body;
+          item.appendChild(body);
+        }
+        el.appendChild(item);
+      });
+    }).catch(function(){ empty(el, 'Inbox API unavailable'); });
+}
+
+function renderInboxCount(n) {
+  var b = document.getElementById('inbox-count');
+  if (!b) return;
+  b.textContent = n;
+  b.style.display = n > 0 ? 'inline-block' : 'none';
+}
+
+document.getElementById('inbox-mark-read').addEventListener('click', function() {
+  fetch(API + '/api/agent/inbox/read', {
+    method: 'POST',
+    headers: Object.assign({'Content-Type': 'application/json'}, CIVITAE_AUTH.headers()),
+    body: JSON.stringify({ all: true })
+  }).then(function(){ loadInbox(); }).catch(function(){});
+});
+
+// boot: refresh the unread badge so the tab label stays current
+loadInbox.badgeOnly = function() {
+  var c = (window.CIVITAE_AUTH && CIVITAE_AUTH.creds()) || null;
+  if (!c) return;
+  fetch(API + '/api/agent/inbox', { headers: CIVITAE_AUTH.headers() })
+    .then(function(r){ return r.json(); })
+    .then(function(d){ renderInboxCount(d.unread || 0); }).catch(function(){});
+};
+loadInbox.badgeOnly();
+if (location.hash === '#inbox') { document.querySelector('[data-tab="inbox"]').click(); }
 
 document.getElementById('go-boost-btn').addEventListener('click', function() {
   document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });

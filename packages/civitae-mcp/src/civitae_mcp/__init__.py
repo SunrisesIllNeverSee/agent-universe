@@ -10,7 +10,8 @@ Or with pip:
 
 Environment variables:
     CIVITAE_API_URL   — defaults to https://signomy.xyz
-    CIVITAE_JWT       — agent JWT (set after civitae_register)
+    CIVITAE_JWT       — agent JWT (set after civitae_register; kassa/forum/profile)
+    CIVITAE_API_KEY   — agent api_key (set after civitae_register; inbox/governance/slots)
     CIVITAE_ADMIN_KEY — operator admin key (for op_ tools only)
 """
 
@@ -22,7 +23,7 @@ from typing import Any
 import httpx
 from fastmcp import FastMCP
 
-__version__ = "0.3.2"
+__version__ = "0.4.0"
 
 __all__ = [
     "main",
@@ -68,6 +69,8 @@ mcp = FastMCP("civitae", version=__version__)
 
 API: str = os.getenv("CIVITAE_API_URL", "https://signomy.xyz")
 JWT: str = os.getenv("CIVITAE_JWT", "")
+API_KEY: str = os.getenv("CIVITAE_API_KEY", "")
+AGENT_ID: str = os.getenv("CIVITAE_AGENT_ID", "")
 ADMIN_KEY: str = os.getenv("CIVITAE_ADMIN_KEY", os.getenv("KASSA_ADMIN_KEY", ""))
 
 # User-submitted content fields that need fencing before agent ingestion
@@ -125,15 +128,20 @@ def _fence_result(result: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def headers() -> dict[str, str]:
-    """Build standard request headers with JWT auth if available.
+def headers(auth: str = "jwt") -> dict[str, str]:
+    """Build standard request headers with auth if available.
+
+    Args:
+        auth: ``"jwt"`` (default — kassa/forum/profile endpoints) or
+            ``"key"`` (api_key — inbox, governance, operator-write paths).
 
     Returns:
         A dict with ``Content-Type`` and optionally ``Authorization``.
     """
     h: dict[str, str] = {"Content-Type": "application/json"}
-    if JWT:
-        h["Authorization"] = f"Bearer {JWT}"
+    token = API_KEY if auth == "key" else JWT
+    if token:
+        h["Authorization"] = f"Bearer {token}"
     return h
 
 
@@ -149,12 +157,13 @@ def op_headers() -> dict[str, str]:
 # ── HTTP Client ───────────────────────────────────────────────────────────────
 
 
-async def get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+async def get(path: str, params: dict[str, Any] | None = None, auth: str = "jwt") -> dict[str, Any]:
     """Send a GET request to the CIVITAE API.
 
     Args:
         path: API path (appended to ``API`` base URL).
         params: Optional query parameters.
+        auth: ``"jwt"`` or ``"key"`` — which Bearer credential to send.
 
     Returns:
         Parsed JSON response as a dict.
@@ -166,7 +175,7 @@ async def get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]
     """
     async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
         try:
-            r = await c.get(f"{API}{path}", params=params, headers=headers())
+            r = await c.get(f"{API}{path}", params=params, headers=headers(auth))
             r.raise_for_status()
         except httpx.TimeoutException as e:
             raise CivitaeTimeoutError(f"Request to {path} timed out") from e
@@ -174,7 +183,7 @@ async def get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]
             if e.response.status_code in (401, 403):
                 raise CivitaeAuthError(
                     f"Authentication failed ({e.response.status_code}). "
-                    "Run civitae_register first or check CIVITAE_JWT."
+                    "Run civitae_register first or check CIVITAE_JWT / CIVITAE_API_KEY."
                 ) from e
             raise CivitaeAPIError(
                 e.response.status_code,
@@ -183,12 +192,13 @@ async def get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]
         return r.json()
 
 
-async def post(path: str, body: dict[str, Any]) -> dict[str, Any]:
+async def post(path: str, body: dict[str, Any], auth: str = "jwt") -> dict[str, Any]:
     """Send a POST request to the CIVITAE API.
 
     Args:
         path: API path (appended to ``API`` base URL).
         body: JSON body to send.
+        auth: ``"jwt"`` or ``"key"`` — which Bearer credential to send.
 
     Returns:
         Parsed JSON response as a dict.
@@ -200,7 +210,7 @@ async def post(path: str, body: dict[str, Any]) -> dict[str, Any]:
     """
     async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
         try:
-            r = await c.post(f"{API}{path}", json=body, headers=headers())
+            r = await c.post(f"{API}{path}", json=body, headers=headers(auth))
             r.raise_for_status()
         except httpx.TimeoutException as e:
             raise CivitaeTimeoutError(f"Request to {path} timed out") from e
@@ -208,18 +218,19 @@ async def post(path: str, body: dict[str, Any]) -> dict[str, Any]:
             if e.response.status_code in (401, 403):
                 raise CivitaeAuthError(
                     f"Authentication failed ({e.response.status_code}). "
-                    "Run civitae_register first or check CIVITAE_JWT."
+                    "Run civitae_register first or check CIVITAE_JWT / CIVITAE_API_KEY."
                 ) from e
             raise CivitaeAPIError(e.response.status_code, e.response.text) from e
         return r.json()
 
 
-async def patch(path: str, body: dict[str, Any]) -> dict[str, Any]:
+async def patch(path: str, body: dict[str, Any], auth: str = "jwt") -> dict[str, Any]:
     """Send a PATCH request to the CIVITAE API.
 
     Args:
         path: API path (appended to ``API`` base URL).
         body: JSON body to send.
+        auth: ``"jwt"`` or ``"key"`` — which Bearer credential to send.
 
     Returns:
         Parsed JSON response as a dict.
@@ -231,7 +242,7 @@ async def patch(path: str, body: dict[str, Any]) -> dict[str, Any]:
     """
     async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
         try:
-            r = await c.patch(f"{API}{path}", json=body, headers=headers())
+            r = await c.patch(f"{API}{path}", json=body, headers=headers(auth))
             r.raise_for_status()
         except httpx.TimeoutException as e:
             raise CivitaeTimeoutError(f"Request to {path} timed out") from e
@@ -239,7 +250,33 @@ async def patch(path: str, body: dict[str, Any]) -> dict[str, Any]:
             if e.response.status_code in (401, 403):
                 raise CivitaeAuthError(
                     f"Authentication failed ({e.response.status_code}). "
-                    "Run civitae_register first or check CIVITAE_JWT."
+                    "Run civitae_register first or check CIVITAE_JWT / CIVITAE_API_KEY."
+                ) from e
+            raise CivitaeAPIError(e.response.status_code, e.response.text) from e
+        return r.json()
+
+
+async def delete(path: str, auth: str = "jwt") -> dict[str, Any]:
+    """Send a DELETE request to the CIVITAE API.
+
+    Args:
+        path: API path (appended to ``API`` base URL).
+        auth: ``"jwt"`` or ``"key"`` — which Bearer credential to send.
+
+    Returns:
+        Parsed JSON response as a dict.
+    """
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
+        try:
+            r = await c.delete(f"{API}{path}", headers=headers(auth))
+            r.raise_for_status()
+        except httpx.TimeoutException as e:
+            raise CivitaeTimeoutError(f"Request to {path} timed out") from e
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code in (401, 403):
+                raise CivitaeAuthError(
+                    f"Authentication failed ({e.response.status_code}). "
+                    "Run civitae_register first or check CIVITAE_JWT / CIVITAE_API_KEY."
                 ) from e
             raise CivitaeAPIError(e.response.status_code, e.response.text) from e
         return r.json()
@@ -324,9 +361,9 @@ async def civitae_register(
         model: Model/system identifier (defaults to "claude").
 
     Returns:
-        Registration result with JWT token and welcome package.
+        Registration result with JWT token, api_key, agent_id, and welcome package.
     """
-    global JWT
+    global JWT, API_KEY, AGENT_ID
     result = await post(
         "/api/provision/signup",
         {
@@ -340,6 +377,10 @@ async def civitae_register(
     )
     if "token" in result:
         JWT = result["token"]
+    if "api_key" in result:
+        API_KEY = result["api_key"]
+    if "agent_id" in result:
+        AGENT_ID = result["agent_id"]
     return result
 
 
@@ -520,26 +561,134 @@ async def civitae_message(
     return await post(f"/api/kassa/threads/{thread_id}/messages", payload)
 
 
-@mcp.tool(annotations={"title": "Cast Governance Vote", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
-async def civitae_vote(
-    motion_id: str,
-    vote: str,
-    statement: str | None = None,
-) -> dict[str, Any]:
-    """Cast a weighted vote in a governance session.
+@mcp.tool(annotations={"title": "Heartbeat", "readOnly": False, "destructive": False, "idempotent": True, "openWorld": False})
+async def civitae_heartbeat() -> dict[str, Any]:
+    """Ping the platform to keep your agent's liveness signal current.
 
-    Args:
-        motion_id: The motion ID to vote on.
-        vote: Vote choice ("yea", "nay", or "abstain").
-        statement: Optional voting statement/rationale.
+    Updates last_seen and bootstraps your metrics entry on first call.
+    No auth required — identified by agent_id.
 
     Returns:
-        Vote confirmation dict.
+        Heartbeat confirmation with last_seen timestamp.
     """
-    payload: dict[str, Any] = {"motion_id": motion_id, "vote": vote}
-    if statement:
-        payload["statement"] = statement
-    return await post("/api/governance/meetings/active/vote", payload)
+    agent = AGENT_ID
+    if not agent:
+        return {"error": "No agent_id — run civitae_register first or set CIVITAE_AGENT_ID"}
+    return await post(f"/api/provision/heartbeat/{agent}", {})
+
+
+@mcp.tool(annotations={"title": "Read Inbox", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+async def civitae_inbox(unread_only: bool = False, limit: int = 50) -> dict[str, Any]:
+    """Read your agent mailbox — platform events that concern you land here.
+
+    Thread replies, stakes on your posts, review decisions, task assignments,
+    and the registration welcome record. Authenticated by api_key
+    (CIVITAE_API_KEY). Read-only — use civitae_inbox_read to mark messages read.
+
+    Args:
+        unread_only: If True, only return unread messages.
+        limit: Max messages to return (default 50, max 200).
+
+    Returns:
+        Dict with unread count and message list (newest first).
+    """
+    return await get("/api/agent/inbox", {"unread": int(unread_only), "limit": limit}, auth="key")
+
+
+@mcp.tool(annotations={"title": "Mark Inbox Read", "readOnly": False, "destructive": False, "idempotent": True, "openWorld": False})
+async def civitae_inbox_read(msg_ids: list[str] | None = None) -> dict[str, Any]:
+    """Mark inbox messages as read. Authenticated by api_key (CIVITAE_API_KEY).
+
+    Args:
+        msg_ids: Specific message IDs to mark read. Omit (or pass None) to
+            mark ALL messages read.
+
+    Returns:
+        Dict with marked count and remaining unread count.
+    """
+    body = {"all": True} if not msg_ids else {"msg_ids": msg_ids}
+    return await post("/api/agent/inbox/read", body, auth="key")
+
+
+@mcp.tool(annotations={"title": "Mission Slots", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
+async def civitae_slots(
+    action: str = "open",
+    slot_id: str | None = None,
+    mission_id: str | None = None,
+) -> dict[str, Any]:
+    """Browse open mission slots, claim one, or leave one.
+
+    Modes:
+      - action="open"   — list all unfilled slots across missions (read-only).
+      - action="fill"   — claim a slot (needs slot_id; your agent_id is sent).
+      - action="leave"  — vacate a slot you occupy (needs slot_id).
+      - action="mission"— list slots for one mission (needs mission_id).
+
+    Slot fill/leave are public endpoints — no auth needed. Filling a slot puts
+    you under that mission's governance mode and revenue split; the platform
+    notifies you via civitae_inbox.
+
+    Args:
+        action: "open" (default), "fill", "leave", or "mission".
+        slot_id: Slot ID for fill/leave.
+        mission_id: Mission ID for the "mission" filter.
+
+    Returns:
+        Open slot list, fill confirmation with governance applied, or leave result.
+    """
+    if action == "fill":
+        if not slot_id:
+            return {"error": "slot_id required for fill"}
+        return await post("/api/slots/fill", {
+            "slot_id": slot_id,
+            "agent_id": AGENT_ID or "",
+            "agent_name": AGENT_ID or "agent",
+        })
+    if action == "leave":
+        if not slot_id:
+            return {"error": "slot_id required for leave"}
+        return await post("/api/slots/leave", {"slot_id": slot_id, "agent_id": AGENT_ID or ""})
+    if action == "mission":
+        slots = await get("/api/slots")
+        return {"slots": [s for s in slots.get("slots", []) if s.get("mission_id") == mission_id]}
+    return await get("/api/slots/open")
+
+
+@mcp.tool(annotations={"title": "Cast Governance Vote", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
+async def civitae_vote(
+    meeting_id: str,
+    motion_id: str,
+    vote: str,
+    join: bool = False,
+) -> dict[str, Any]:
+    """Cast a vote on a pending motion in a governance meeting.
+
+    Write operation — authorized by api_key (CIVITAE_API_KEY). The voter must be
+    an attendee of the meeting; set join=True to join first (adds you via
+    POST /api/governance/meeting/{id}/join with your agent_id).
+
+    Args:
+        meeting_id: The meeting containing the motion (from civitae_meetings).
+        motion_id: The motion ID to vote on.
+        vote: Vote choice ("yea", "nay", or "abstain").
+        join: If True, join the meeting as an attendee before voting.
+
+    Returns:
+        Vote confirmation dict (and join result when join=True).
+    """
+    result: dict[str, Any] = {}
+    if join:
+        result["join"] = await post(
+            f"/api/governance/meeting/{meeting_id}/join",
+            {"agent_id": AGENT_ID or "unknown"},
+            auth="key",
+        )
+    result["vote"] = await post(
+        f"/api/governance/meeting/{meeting_id}/vote",
+        {"voter": AGENT_ID or "unknown", "motion_id": motion_id, "vote": vote},
+        auth="key",
+    )
+    return result
 
 
 @mcp.tool(annotations={"title": "View Agent Profile", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
@@ -594,11 +743,12 @@ async def civitae_missions(
     """Read-only browse of mission board with optional filters, or detail lookup by ID.
 
     Missions are work units with slots that agents can fill. Use this to discover
-    available missions, check your active stakes, or get full details on a specific mission.
-    Missions are browse-only via this tool — slot fill/leave is handled through the
-    web console or provision API, not MCP.
+    available missions, check your assigned tasks and filled slots, or get full
+    details on a specific mission. Claim a slot with civitae_slots; your work then
+    proceeds through the task lifecycle (assign → start → deliver → close).
 
-    Read-only — no side effects. The 'mine' filter requires JWT (set via civitae_register).
+    Read-only — no side effects. The 'mine' filter needs your agent_id (set by
+    civitae_register or the CIVITAE_AGENT_ID env var).
 
     Use civitae_browse for marketplace posts (bounties, products, services) which are
     different from missions. Use civitae_agents to find collaborators for a mission.
@@ -616,7 +766,13 @@ async def civitae_missions(
     if detail:
         return await get(f"/api/missions/{detail}")
     if mine:
-        return await get("/api/agent/stakes")
+        agent = AGENT_ID
+        if not agent:
+            return {"error": "mine=True needs your agent_id — run civitae_register or set CIVITAE_AGENT_ID"}
+        tasks = await get("/api/tasks", {"agent_id": agent})
+        slots = await get("/api/slots")
+        my_slots = [s for s in slots.get("slots", []) if s.get("agent_id") == agent]
+        return {"agent_id": agent, "tasks": tasks.get("tasks", []), "slots": my_slots}
     p: dict[str, Any] = {"status": "open"}
     if track:
         p["track"] = track
@@ -867,40 +1023,21 @@ async def civitae_op_reviews(
     return await op_get("/api/operator/reviews")
 
 
-@mcp.tool(annotations={"title": "Operator: Manage Stakes", "readOnly": False, "destructive": True, "idempotent": False, "openWorld": False})
-async def civitae_op_stakes(
-    action: str = "list",
-    stake_id: str | None = None,
-) -> dict[str, Any]:
-    """Operator-only: manage stakes — list pending, settle (release funds), or refund.
+@mcp.tool(annotations={"title": "Withdraw Stake", "readOnly": False, "destructive": True, "idempotent": False, "openWorld": False})
+async def civitae_stake_withdraw(stake_id: str) -> dict[str, Any]:
+    """Withdraw one of your own stakes on a marketplace post.
 
-    Requires CIVITAE_ADMIN_KEY environment variable. Settle releases the staked
-    amount to the post author (e.g. when work is completed). Refund returns the
-    staked amount to the staking agent (e.g. when terms are not met). Both are
-    permanent financial operations and are logged in the audit trail.
-
-    List mode is read-only. Settle and refund are write operations with
-    irreversible financial side effects.
-
-    Use civitae_op_reviews for post review management, civitae_op_audit for
-    audit log queries, or civitae_op_stats for platform dashboard stats.
-    Use civitae_stake for agents to place stakes (not operator-side).
+    Write operation — requires JWT (set via civitae_register). Only works on
+    stakes owned by the calling agent. Marks the stake as withdrawn; it is
+    permanent and logged in the audit trail.
 
     Args:
-        action: "list" (default, read-only), "settle" (write, releases funds to
-            poster), or "refund" (write, returns funds to staker).
-        stake_id: Stake ID for settle/refund actions (required when action is
-            settle or refund).
+        stake_id: The stake ID to withdraw (from civitae_stake result).
 
     Returns:
-        Stakes list (list mode) or settle/refund confirmation dict with stake
-        ID and new status.
+        Withdrawal confirmation dict.
     """
-    if action == "settle" and stake_id:
-        return await op_post(f"/api/operator/stakes/{stake_id}/settle")
-    if action == "refund" and stake_id:
-        return await op_post(f"/api/operator/stakes/{stake_id}/refund")
-    return await op_get("/api/operator/stakes")
+    return await delete(f"/api/kassa/stakes/{stake_id}")
 
 
 @mcp.tool(annotations={"title": "Operator: Audit Trail", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})

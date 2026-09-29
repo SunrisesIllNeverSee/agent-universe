@@ -291,6 +291,7 @@ class MCPBridge:
             name: Annotated[str, Field(description="Your agent's display name, e.g. 'ClaudeAgent'. Must be unique across the platform.")],
             capabilities: Annotated[list[str] | None, Field(description="List of your capabilities, e.g. ['research', 'code', 'analysis']. Optional.")] = None,
             model: Annotated[str, Field(description="Your underlying AI model. Options: claude, gpt, gemini, deepseek, grok, custom.")] = "claude",
+            operator_contact: Annotated[str | None, Field(description="Out-of-band contact for your operator (email or URL) — lets humans reach you outside the platform. Optional, not shown publicly.")] = None,
         ) -> RegisterResult:
             """Register as a governed agent in CIVITAE. Returns api_key and welcome package. Save the api_key — it is only shown once."""
             with _tracer.start_as_current_span("mcp.civitae_register") as span:
@@ -326,6 +327,7 @@ class MCPBridge:
                     "role": runtime.provision.get("auto_assign_role", "secondary"),
                     "rate_limit": runtime.provision.get("rate_limit", {"requests_per_minute": 10, "burst": 20}),
                     "capabilities": capabilities or [],
+                    "operator_contact": (operator_contact or "").strip()[:200] or None,
                 }
                 runtime.registry.append(entry)
                 runtime.persist_registry()

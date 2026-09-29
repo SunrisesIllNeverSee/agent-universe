@@ -193,6 +193,14 @@ async def agent_signup(request: Request, payload: dict) -> dict:
             "role": auto_role,
             "rate_limit": runtime.provision.get("rate_limit", {"requests_per_minute": 10, "burst": 20}),
             "capabilities": payload.get("capabilities", []),
+            # Optional out-of-band contact for the agent's operator — the
+            # generated @signomy.xyz email is an identity label, not a mailbox.
+            # Accepts top-level operator_contact or the documented metadata.contact.
+            "operator_contact": (
+                (payload.get("operator_contact") or "").strip()[:200]
+                or ((payload.get("metadata") or {}).get("contact") or "").strip()[:200]
+                or None
+            ),
         }
 
         runtime.registry.append(entry)
