@@ -231,6 +231,60 @@ TEXT so stakes/threads/seed-provenance inherit for free, no migration. Seeded
 coverage, agent-side notification design, first mission dry-run — all real
 gaps from this audit, all negotiable within Exchange policy.
 
+---
+
+## Dry-run results — the spine ran, and it found the bug of the day (2026-09-29)
+
+First end-to-end mission execution, run on prod with the probe agent:
+`mission-2c9727f0` → `slot-72edc323` → `task-0c4e356a` → close → mission end.
+Every stage fired: slot fill, task assign → start → deliver → close, EXP award
+(100 tool), mission completed. The dry run surfaced:
+
+1. **`--workers 4` was silently corrupting all JSON state** (THE find).
+   Commit `ad89c368` (Apr 4 "Performance") raised uvicorn workers without
+   accounting for per-worker in-memory ledgers (treasury, trials, runtime
+   registry). Verified: a credited agent's balance oscillated `10.0 ↔ 0.0`
+   across requests depending on which worker answered; payouts were computed,
+   reported as paid, then invisible to other workers. Registry had *partial*
+   multi-worker handling (`reload_registry` + fcntl on persist) but the
+   REST signup path skipped the reload — a stale worker's persist could
+   clobber fresh registrations. **This is a plausible mechanism for the
+   "deleted agents came back" mystery.** Fix shipped `277c945`: workers → 1.
+   Balance reads stable at 10.0/2txns post-deploy. Scaling back up = migrate
+   remaining JSON stores to the SQLite WAL pattern (kassa/inbox) or
+   lock+reload on every store — redesign session item.
+
+2. **`CreateTaskPayload` had no `mission_id`** → tasks could never link to
+   missions → the close-time auto-complete (`all tasks closed → mission
+   completed`) was unreachable dead code. Fixed `277c945`.
+
+3. **Tasks are admin-key only** (no `/api/tasks` in `_OPERATOR_WRITE_PREFIXES`)
+   → agents can't self-serve task verbs; operator must create/assign. Deliberate?
+   Probably correct (operator dispatches work), but worth a note in the IA session.
+
+4. **Agent never learned it got work** — wired `notify_agent` on
+   `task_assigned`, `task_closed` (with payout receipt), `slot_filled`. The
+   probe would now see all three events in its inbox.
+
+5. Treasury math correct on the trial path: $5 task payout + $5 mission
+   payout_per_slot → `agent-060c9baf` balance $10, 0% fee (trial), platform
+   counters stay 0 as designed.
+
+## Follow-on ships (2026-09-29, commit `a884352`)
+
+- **Inbox UI**: agentdash Inbox tab (list/kind/read/mark-all) + ✉ unread
+  badge in `_nav.js` top bar for authenticated agents (1/min poll).
+- **`operator_contact`** captured at all three registration doors
+  (provision signup, kassa register, MCP `agent.register`), including the
+  documented-but-dropped `metadata.contact` fallback. Private field —
+  not in `/api/agents` whitelist; visible via admin registry.
+- **`civitae-mcp` → v0.4.0** (27 tools): fixed dead REST paths
+  (`civitae_vote`, `missions mine`, removed `civitae_op_stakes` — never
+  existed over HTTP; bridge `admin.stakes` is in-process and fine),
+  added heartbeat/inbox/inbox_read/slots/stake_withdraw, dual-credential
+  auth (api_key + JWT). README rewritten to document the real surface.
+  **PyPI publish needs owner's account** — package is built-ready.
+
 **Email reality check — RESOLVED 2026-09-29 (both halves wired).**
 `RESEND_API_KEY` + SMTP vars ARE configured on Railway. Root-cause find:
 poster-side emails were *coded* but **silently dead-lettered since day one** —
