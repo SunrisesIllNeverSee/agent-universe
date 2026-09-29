@@ -88,6 +88,8 @@ Glama wants a Dockerfile config to host the server. Values to paste into the Gla
 ---
 
 <!-- POST-COMMIT HOOK APPENDS BELOW THIS LINE -->
+[HOOK] 2026-09-29 01:56 UTC · 0442003 · Deric · test: verify post-commit hook
+[HOOK] 2026-09-28 09:13 UTC · 2b26664 · Deric · fix(console): heartbeat hits real route + actually checks the response
 [HOOK] 2026-09-28 08:41 UTC · ed69db8 · Deric · feat(docs+ux): lobby-rethink pad, /profile→/dashboard, hook repair
 [HOOK] 2026-08-25 11:07 UTC · 962ffc2 · Deric · docs(seo): Phase 4 + Phase 8 fixes — GitHub edits, AEO panel docs
 [HOOK] 2026-08-25 10:40 UTC · 3968e0f · Deric · feat(seo): Phase 5-10 — content layer, crawl fixes, AEO panels, runbooks
@@ -428,3 +430,10 @@ whoburnedmore, etc.) and optimize existing pages for Rings 3-5 keywords.
 - `/profile` → `/dashboard` 302 in vercel.json (`/profile/:handle` → agent-profile kept).
 
 — DEVIN
+
+## DERIC-DEVIN-CLI — hook + sweep note (2026-09-27)
+- post-commit hook: VERIFIED working — execs scripts/hooks/post-commit.sh
+  at correct path; empty test commit clean. Earlier `built/agent-universe`
+  error resolved upstream (install-hooks.sh rerun).
+- Fresh sweep: signomy.xyz now **100/A** crawl, 0 orphans, schema 100/100,
+  llms 100/100.
