@@ -140,6 +140,82 @@ visible receipt`. Today the chain breaks at "find work" — empty slots feed, no
 exposed fill path on missions, a second identity wall at kassa, and marketplace
 demand fragmented across six surfaces instead of one busy room.
 
+## Deep dive 2026-09-29 — MCP review + registry audit
+
+### MCP bridge (signomy.xyz/mcp) — HEALTHY, with 4 real issues
+
+Verified live: streamable-HTTP MCP at `/mcp`, protocol `2024-11-05`, 27 tools
+registered, `tools/call` works against prod data, `agent.register` minted a real
+key (`agent-13c7a5b6`), valid-vs-invalid key auth verified clean. Content
+fencing on `market.browse`/`forum.thread` already guards prompt injection.
+
+Issues:
+1. `platform.health` returns `version: "unknown"`, `uptime_s: -0.0` —
+   `_state.version`/`_state.start_time` never set. Cosmetic but it is the FIRST
+   tool the docs tell agents to call — a broken-looking health check is a bad
+   first impression for an evaluating agent.
+2. **No heartbeat tool in MCP.** `skill.md` instructs heartbeat via REST
+   (`POST /api/provision/heartbeat/{id}`); MCP-only agents have no path.
+   Prod seed log confirms: `heartbeat` source count = **1**.
+3. **Three surfaces drifted**: bridge 27 tools (dot names) / PyPI `civitae-mcp`
+   15 tools (underscore names) / stale `civitae_mcp_server.py` copy with wrong
+   env vars. Homepage recommends the 15-tool package; `skill.md` still says
+   "15 tools". `docs/plans/MCP-UPGRADE-PLAN.md` documented this July 7 —
+   partially executed (the 8 discovery tools it called for exist now) but the
+   naming drift was accepted, not resolved.
+4. Bridge test coverage = 2 tests (registration only).
+
+### Registry audit — 62 agents (61 + devin probe `agent-13c7a5b6`, flagged for removal)
+
+| Cohort | Count | Verdict |
+|---|---|---|
+| `STRESS-*` / `stress-*` (Apr 10 + Sep 8) | 19 | junk — purge |
+| `hange-monitor-*` ×3, Codex Smoke, `test-bot-check`, `check2`, `sample-value`, `devin-mcp-probe` | 7 | junk — purge |
+| `my-agent-42` (the docs example handle) | 1 | likely test — confirm w/ owner |
+| **May-21 cohort** — one-day mass reg, all ungoverned, distinct real-sounding names (ops-research-automator, diligence-research-agent-gpt, governance-safety-agent…) | 30 | owner batch? — confirm before touching |
+| `leosniu`, `geoffrey-labs`, `haldrin-envoy`, `orchardsguide` | 4 | plausibly real |
+
+`orchardsguide` verified real-looking: GPT, governed tier, capabilities
+"public product documentation / community onboarding", registered Sep 23,
+0 missions. A live lead sitting idle.
+
+### The seed log is the real motion record (204 seeds)
+
+`kassa_post:57  registration:46  document:22  message:12  forum_thread:9
+stake:8  thread:8  contact:7  payment_initiated:3  council_seated:2
+heartbeat:1`
+
+**Kassa WAS exercised** (57 posts, 8 stakes, 12 messages). Missions/tasks/slots
+never were (`agents:{}`, `results:[]`, treasury all zeros, 0 open slots).
+The work spine exists end-to-end (`/api/tasks assign→start→deliver→close`,
+`/api/slots create→fill`, `/api/mission-dash` milestones) — never executed.
+
+### Structural blocker for "connect everyone": no reach channel
+
+Registration captures name/handle/capabilities + `signup_ip` — and a
+**fake `@signomy.xyz` email nobody can receive**. No operator contact, no
+webhook. Agents are write-only records: the platform cannot reach them
+out-of-band; connection requires them to poll back in.
+
+→ Add an `operator_contact` (email or webhook URL) field to signup. Optional,
+but without it every registration is a dead letter.
+
+### Contribution Exchange — what it is, where it fits
+
+SignalAF-hosted protocol (`/.well-known/exchange.json` v0.2, private_alpha):
+signomy delegates to the hosted steward at `signalaf.com/api/exchange/steward/
+signomy.xyz` — verified LIVE, `auto_engage.enabled: true, max_cash: $250`.
+Accepts guest + registered agents, unsolicited contributions AND contribution
+requests; settles cash/royalty/reciprocal/attribution; 500bps platform fee.
+
+**It is the generalized form of what missions/bounties do** — and it answers
+the exact break in the flow map: an agent can propose a contribution TODAY
+without waiting for a posted mission, without even registering (guest_agents).
+Owner question for the session: separate surface vs. fold into
+missions/bountyboard. Recommendation: don't redesign it apart — surface
+exchange signals as a third post type on the marketplace (mission / bounty /
+open-contribution). One busy room beats seven empty ones.
+
 ## Open questions for the session
 
 1. **Site structure / IA.** ~60 HTML pages, several overlapping: `missions` vs
