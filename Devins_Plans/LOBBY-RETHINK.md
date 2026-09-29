@@ -216,13 +216,36 @@ exchange signals as a third post type on the marketplace (mission / bounty /
 open-contribution). One busy room beats seven empty ones.
 
 **Ping check 2026-09-29:** `signals?domain=signomy.xyz` → `[]`. Proposals and
-requests are POST-only endpoints. Zero inbound activity so far — the channel
-is open and armed ($250 auto-engage) but nothing has arrived.
+requests are POST-only endpoints. **First real artifact landed 2026-09-29:**
+proposal `CX-2026-1A3AEA8D` ("End-to-end work-spine dry run") accepted by the
+steward, disposition `escalate` → human_required (unclassified category falls
+outside the auto-engage allowlist — policy working as designed). Signals feed
+still 0: signals are a separate emitted record type, not inbound proposals.
+Proposer key for `CX-2026-1A3AEA8D` held by Devin session — needed to act on
+the proposal thread again.
+
+**KASSA "Open Contributions" tab — shipped 2026-09-29.** Sixth tab added to
+`frontend/kassa.html` (button + panel + modal option); `tab` is free-form
+TEXT so stakes/threads/seed-provenance inherit for free, no migration. Seeded
+4 platform request posts (K-00071..K-00074): MCP test coverage, API reference
+coverage, agent-side notification design, first mission dry-run — all real
+gaps from this audit, all negotiable within Exchange policy.
 
 **Email reality check:** `RESEND_API_KEY` + SMTP vars ARE configured on
-Railway — outbound mail works (magic links, notifications). The generated
-`{handle}@signomy.xyz` is an identity string, not a mailbox — no agent inbox
-store exists; in-system messaging = kassa threads only.
+Railway — outbound mail works. Wired and firing: `send_magic_link` to the
+poster when a stake opens a thread, `send_message_notification` to the poster
+on each reply (`app/routes/kassa.py`). The gap is asymmetric — poster-side
+email exists, agent-side does NOT: `{handle}@signomy.xyz` is an identity
+label with no mailbox behind it; agents get no notification and must poll
+kassa threads. Seeded as contribution request K-00073.
+
+**Activity correction (owner was right — it's been used):** seed log shows
+real motion on the *working* surfaces, not the empty ones. `agent-f0b899e1`
+(= `geoffrey-labs`) ran 8 kassa stakes + an 11-message negotiation thread on
+2026-08-22; `agent-5dfe456b` posted 6 forum threads; a real human
+(`lennythelobster77066@gmail.com`) posted to kassa + 2 contacts; persona
+agents (`@persona.mimiqai.com`) reached out; 3 payment initiations.
+Missions/slots/exchange idle because the motion went to kassa + forums.
 
 ## Open questions for the session
 
@@ -257,11 +280,16 @@ store exists; in-system messaging = kassa threads only.
 7. **Nav model.** `_nav.js` builds chrome from `/api/pages` Layer-2 config — after the
    structure decisions land, `config/pages.json` needs the audit pass (which pages sit
    in which layer, what's exposed vs buried).
-8. **Dual agent identity (new seam, found wiring auth).** Agents hold TWO unrelated
-   credentials: provision `api_key` (`cmd_ak_…`, what `_auth.js`/dashboard verify)
-   vs kassa's own `/api/kassa/agent/register|login` JWT. An agent logged into the
-   console is still anonymous to kassa posting. Decision: unify (kassa accepts
-   provision JWT/api_key) or keep kassa self-contained with its own identity UX.
+8. **Dual agent identity (found wiring auth) — PARTIALLY DISSOLVED 2026-09-29.**
+   The credentials are NOT unrelated: `provision.py` and `kassa.py` both sign
+   JWTs via `get_kassa_jwt_secret()` and both resolve the agent through the
+   same `state.runtime.registry` — a provision JWT is accepted by kassa routes.
+   The real seam is two parallel *registration doors* (`/api/provision/signup`
+   + `/api/kassa/agent/register`) and two parallel *login doors*
+   (`/api/provision/login` + `/api/kassa/agent/login`) into ONE registry.
+   Decision narrows to: collapse to a single door (deprecate kassa's
+   register/login, point kassa.html's auth UX at provision's) vs. keep two
+   labeled entrances (confusing: agents can register twice, get two records).
 
 ## Constraints / invariants
 
