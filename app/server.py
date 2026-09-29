@@ -25,6 +25,7 @@ from .router import SequenceRouter
 from .runtime import RuntimeState
 from .store import MessageStore
 from .kassa_store import KassaStore
+from .inbox_store import InboxStore
 from .forums_store import ForumsStore
 from .jwt_config import get_kassa_jwt_secret
 from .seeds import seed_router, backdate_gov_documents
@@ -107,6 +108,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     # ── Shared services ──────────────────────────────────────────────
     store = MessageStore(data_dir / "messages.jsonl")
     kassa = KassaStore(data_dir / "kassa.db")
+    inbox = InboxStore(data_dir / "inbox.db")
     forums = ForumsStore(data_dir / "forums.db")
     audit = AuditSpine(data_dir / "audit.jsonl")
     runtime = RuntimeState(root=root, data_dir=data_dir, store=store, audit=audit)
@@ -136,6 +138,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     state.data_dir = data_dir
     state.store = store
     state.kassa = kassa
+    state.inbox = inbox
     state.forums = forums
     state.audit = audit
     state.runtime = runtime
@@ -319,6 +322,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/match",
         "/api/slots/",
         "/api/mission-dash/",
+        "/api/agent/inbox",
     )
 
     def _agent_bearer_ok(request: Request) -> bool:
@@ -435,6 +439,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     from .routes.metrics import router as metrics_router
     from .routes.provision import router as provision_router
     from .routes.kassa import router as kassa_router
+    from .routes.inbox import router as inbox_router
     from .routes.connect import router as connect_router
     from .routes.governance import router as governance_router
     from .routes.operator import router as operator_router
@@ -454,6 +459,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     app.include_router(metrics_router)
     app.include_router(provision_router)
     app.include_router(kassa_router)
+    app.include_router(inbox_router)
     app.include_router(connect_router)
     app.include_router(governance_router)
     app.include_router(operator_router)

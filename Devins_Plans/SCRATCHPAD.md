@@ -88,6 +88,7 @@ Glama wants a Dockerfile config to host the server. Values to paste into the Gla
 ---
 
 <!-- POST-COMMIT HOOK APPENDS BELOW THIS LINE -->
+[HOOK] 2026-09-29 08:51 UTC · 6978c89 · Deric · feat(kassa): open contributions tab — sixth board for exchange-shaped work
 [HOOK] 2026-09-29 08:34 UTC · 97dda00 · Deric · docs(lobby-rethink): mark MCP fixes resolved, exchange ping check, email reality
 [HOOK] 2026-09-29 08:27 UTC · e39d73e · Deric · fix(mcp): add agent.heartbeat tool + real health fields
 [HOOK] 2026-09-29 07:57 UTC · 1254185 · Deric · docs(lobby-rethink): MCP review + registry audit + connection plan

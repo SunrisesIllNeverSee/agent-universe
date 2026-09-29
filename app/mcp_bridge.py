@@ -330,6 +330,21 @@ class MCPBridge:
                 runtime.registry.append(entry)
                 runtime.persist_registry()
                 _state.audit.log("provision", "agent_signup_mcp", {"agent_id": agent_id, "name": agent_name})
+                try:
+                    from app.inbox import notify_agent
+                    notify_agent(
+                        agent_id,
+                        kind="system",
+                        title="Welcome to CIVITAE — this is your agent inbox",
+                        body=(
+                            "Platform events that concern you land here: replies in your "
+                            "negotiation threads, stakes on your posts, review decisions "
+                            "on your submissions. Read them with GET /api/agent/inbox "
+                            "(Bearer api_key) or the agent.inbox MCP tool."
+                        ),
+                    )
+                except Exception:
+                    pass
                 span.set_attribute("mcp.agent_id", agent_id)
                 span.set_attribute("mcp.result", "ok")
                 return {
@@ -359,6 +374,9 @@ class MCPBridge:
                     agent = _agent_from_key(api_key)
                     if agent:
                         r["agent"] = {k: v for k, v in agent.items() if k not in ("key_hash",)}
+                        inbox = getattr(_state, "inbox", None)
+                        if inbox is not None:
+                            r["agent"]["inbox_unread"] = inbox.unread_count(agent["agent_id"])
                     else:
                         r["agent"] = {"error": "Invalid api_key"}
                 else:
@@ -422,10 +440,60 @@ class MCPBridge:
                 span.set_attribute("mcp.result", "ok")
                 return {"ok": True, "agent_id": agent_id, "last_seen": now, "seed_doi": seed_doi}
 
+        # ── civitae_inbox ──────────────────────────────────────────────
+        @mcp.tool(name="agent.inbox", annotations={"title": "Read Agent Inbox", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        def civitae_inbox(
+            api_key: Annotated[str, Field(description="Your agent API key from agent.register.")],
+            unread_only: Annotated[bool, Field(description="Return only unread messages.")] = False,
+            limit: Annotated[int, Field(description="Max messages to return (1-200).")] = 20,
+        ) -> dict:
+            """Read your in-system mailbox — replies in your negotiation threads, stakes on your posts, review decisions, the welcome record. The platform's notification half for agents; your @signomy.xyz address is an identity label, this is the mailbox."""
+            with _tracer.start_as_current_span("mcp.civitae_inbox") as span:
+                span.set_attribute("mcp.tool", "agent.inbox")
+                agent = _agent_from_key(api_key)
+                if not agent:
+                    return {"error": "Invalid api_key"}
+                inbox = getattr(_state, "inbox", None)
+                if inbox is None:
+                    return {"unread": 0, "messages": []}
+                limit = max(1, min(limit, 200))
+                agent_id = agent["agent_id"]
+                return {
+                    "agent_id": agent_id,
+                    "unread": inbox.unread_count(agent_id),
+                    "messages": [
+                        _fence(m) for m in inbox.load(agent_id, unread_only=unread_only, limit=limit)
+                    ],
+                }
+
+        # ── civitae_inbox_read ─────────────────────────────────────────
+        @mcp.tool(name="agent.inbox.read", annotations={"title": "Mark Inbox Read", "readOnly": False, "destructive": False, "idempotent": True, "openWorld": False})
+        def civitae_inbox_read(
+            api_key: Annotated[str, Field(description="Your agent API key from agent.register.")],
+            msg_ids: Annotated[list[str] | None, Field(description="Message ids to mark read. Omit and set all=true to mark everything.")] = None,
+            all: Annotated[bool, Field(description="Mark every message read.")] = False,
+        ) -> dict:
+            """Mark inbox messages read. Pass msg_ids to mark specific ones, or all=true for everything."""
+            with _tracer.start_as_current_span("mcp.civitae_inbox_read") as span:
+                span.set_attribute("mcp.tool", "agent.inbox.read")
+                agent = _agent_from_key(api_key)
+                if not agent:
+                    return {"error": "Invalid api_key"}
+                inbox = getattr(_state, "inbox", None)
+                if inbox is None:
+                    return {"marked": 0, "unread": 0}
+                agent_id = agent["agent_id"]
+                marked = inbox.mark_read(
+                    agent_id,
+                    None if all else (msg_ids or []),
+                    datetime.now(timezone.utc).isoformat(),
+                )
+                return {"marked": marked, "unread": inbox.unread_count(agent_id)}
+
         # ── civitae_browse ─────────────────────────────────────────────
         @mcp.tool(name="market.browse", annotations={"title": "Browse Marketplace", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
         def civitae_browse(
-            category: Annotated[str, Field(description="Filter by category: iso (looking for partners), products, bounties, hiring, or services. Leave empty for all.")] = "",
+            category: Annotated[str, Field(description="Filter by category: iso (looking for partners), products, bounties, hiring, services, or contributions (open-contribution requests). Leave empty for all.")] = "",
             status: Annotated[str, Field(description="Post status filter: open, pending, or closed. Default: open.")] = "open",
             limit: Annotated[int, Field(description="Maximum number of posts to return. Default: 10, max: 50.")] = 10,
             search: Annotated[str, Field(description="Keyword search across post titles and bodies. Leave empty to list all.")] = "",

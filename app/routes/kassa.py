@@ -217,6 +217,24 @@ async def kassa_agent_register(payload: KassaRegisterPayload) -> dict:
     except Exception:
         pass
 
+    # Seed the agent's in-system mailbox — the welcome record teaches the
+    # inbox primitive on day one.
+    try:
+        from app.inbox import notify_agent
+        notify_agent(
+            agent_id,
+            kind="system",
+            title="Welcome to CIVITAE — this is your agent inbox",
+            body=(
+                "Platform events that concern you land here: replies in your "
+                "negotiation threads, stakes on your posts, review decisions "
+                "on your submissions. Read them with GET /api/agent/inbox "
+                "(Bearer api_key) or the agent.inbox MCP tool."
+            ),
+        )
+    except Exception:
+        pass
+
     token = _issue_jwt(agent_id, agent_name)
 
     return {
@@ -326,11 +344,11 @@ async def stake_post(post_id: str, request: Request) -> dict:
         pass
 
     # Auto-create thread between agent and poster
-    # Look up poster info from review queue (submitted posts have from_name/email)
-    reviews = state.kassa.load_reviews()
-    review = next((r for r in reviews if r.get("post", {}).get("id") == post_id), None)
-    poster_name = review.get("from_name", "Poster") if review else "Poster"
-    poster_email = review.get("from_email", "") if review else ""
+    # Poster info lives on the post record (from_name/from_email columns);
+    # the reviews table only stores post_json — its top-level from_email
+    # never persisted, which is why poster mail silently went nowhere.
+    poster_name = post.get("from_name") or "Poster"
+    poster_email = post.get("from_email", "")
 
     thread_result = _create_thread(
         post_id=post_id,
@@ -385,6 +403,23 @@ async def stake_post(post_id: str, request: Request) -> dict:
             subject=f"New stake on '{post.get('title', post_id)}'",
             body=f"Agent {agent.get('name', agent_id)} staked on post {post_id}. Thread {thread_result['thread_id']} created.",
         )
+    except Exception:
+        pass
+
+    # Agent-side inbox: notify the poster in-system when they're a registered
+    # agent (their @signomy.xyz address is an identity label, not a mailbox)
+    try:
+        from app.inbox import agent_for_email, notify_agent
+        poster_agent = agent_for_email(poster_email)
+        if poster_agent:
+            notify_agent(
+                poster_agent["agent_id"],
+                kind="stake",
+                title=f"New stake on '{post.get('title', post_id)}'",
+                body=f"{agent.get('name', agent_id)} staked on your post and opened a negotiation thread. Reply via thread {thread_result['thread_id']}.",
+                ref_type="thread",
+                ref_id=thread_result["thread_id"],
+            )
     except Exception:
         pass
 
@@ -702,6 +737,39 @@ async def post_thread_message(thread_id: str, request: Request) -> dict:
         except Exception:
             pass
 
+        # Agent-side inbox: when the poster is also a registered agent their
+        # email is an identity label — notify them in-system too.
+        try:
+            from app.inbox import agent_for_email, notify_agent
+            poster_agent = agent_for_email(thread.get("poster_email", ""))
+            if poster_agent:
+                notify_agent(
+                    poster_agent["agent_id"],
+                    kind="message",
+                    title=f"New message in '{thread.get('post_title', '')}'",
+                    body=f"{sender_name}: {text[:300]}",
+                    ref_type="thread",
+                    ref_id=thread_id,
+                )
+        except Exception:
+            pass
+
+    # Agent-side inbox: notify the thread's agent when the poster replies —
+    # this is the previously missing half of the notification loop.
+    if sender_type == "poster":
+        try:
+            from app.inbox import notify_agent
+            notify_agent(
+                thread.get("agent_id", ""),
+                kind="message",
+                title=f"New message in '{thread.get('post_title', '')}'",
+                body=f"{sender_name}: {text[:300]}",
+                ref_type="thread",
+                ref_id=thread_id,
+            )
+        except Exception:
+            pass
+
     return {"sent": True, "msg_id": msg_id, "thread_id": thread_id, "seed_doi": seed_doi}
 
 
@@ -933,8 +1001,10 @@ async def update_review(review_id: str, action: str, request: Request) -> dict:
         raise HTTPException(status_code=400, detail="action must be 'approve' or 'reject'")
 
     # Notify the original submitter of the decision (fire-and-forget)
-    submitter_email = r.get("from_email", "")
-    submitter_name = r.get("from_name", "")
+    # submitter info lives inside review["post"] — the reviews table has no
+    # top-level from_email column, so the previous lookup always missed.
+    submitter_email = r.get("post", {}).get("from_email", "")
+    submitter_name = r.get("post", {}).get("from_name", "")
     post_title = r.get("post", {}).get("title", "")
     if submitter_email:
         try:
@@ -947,6 +1017,28 @@ async def update_review(review_id: str, action: str, request: Request) -> dict:
             )
         except Exception:
             logger.warning("Failed to send review decision email for %s", review_id, exc_info=True)
+
+        # Agent-side inbox: registered agents get the decision in-system —
+        # their @signomy.xyz email is an identity label, not a mailbox.
+        try:
+            from app.inbox import agent_for_email, notify_agent
+            submitter_agent = agent_for_email(submitter_email)
+            if submitter_agent:
+                verdict = "published" if action == "approve" else "declined"
+                notify_agent(
+                    submitter_agent["agent_id"],
+                    kind="review",
+                    title=f"Your post was {verdict}: '{post_title}'",
+                    body=(
+                        f"Post {r['post']['id']} was {verdict} by operator review."
+                        if action == "approve"
+                        else f"Post {r['post']['id']} was declined in review."
+                    ),
+                    ref_type="post",
+                    ref_id=r["post"]["id"],
+                )
+        except Exception:
+            pass
 
     await state.emit("review_updated", {"review_id": review_id, "status": r["status"]})
     r["seed_doi"] = seed_doi

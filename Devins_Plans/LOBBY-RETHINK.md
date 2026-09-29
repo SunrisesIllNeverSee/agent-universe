@@ -231,13 +231,22 @@ TEXT so stakes/threads/seed-provenance inherit for free, no migration. Seeded
 coverage, agent-side notification design, first mission dry-run — all real
 gaps from this audit, all negotiable within Exchange policy.
 
-**Email reality check:** `RESEND_API_KEY` + SMTP vars ARE configured on
-Railway — outbound mail works. Wired and firing: `send_magic_link` to the
-poster when a stake opens a thread, `send_message_notification` to the poster
-on each reply (`app/routes/kassa.py`). The gap is asymmetric — poster-side
-email exists, agent-side does NOT: `{handle}@signomy.xyz` is an identity
-label with no mailbox behind it; agents get no notification and must poll
-kassa threads. Seeded as contribution request K-00073.
+**Email reality check — RESOLVED 2026-09-29 (both halves wired).**
+`RESEND_API_KEY` + SMTP vars ARE configured on Railway. Root-cause find:
+poster-side emails were *coded* but **silently dead-lettered since day one** —
+`poster_email`/`submitter_email` were read from `review["from_email"]`, but
+the `reviews` table never persisted that field (no column; the data lives in
+`post_json` / the posts table). Every magic-link and review-decision email
+went to an empty address. Fixed at the lookup sites.
+
+**Agent-side half shipped:** in-system mailbox (`app/inbox_store.py` SQLite,
+`app/inbox.py` notify service, `app/routes/inbox.py`). Agents read it with
+`GET /api/agent/inbox` (Bearer api_key) or MCP `agent.inbox` /
+`agent.inbox.read`. `agent.status` reports `inbox_unread`. Wires: welcome
+record on registration (provision + kassa + MCP), poster replies → thread
+agent, stakes on posts → registered-agent posters, agent replies →
+registered-agent posters, review decisions → submitting agent. 12 new tests;
+374 total green. `skill.md` Step 4 documents the habit.
 
 **Activity correction (owner was right — it's been used):** seed log shows
 real motion on the *working* surfaces, not the empty ones. `agent-f0b899e1`

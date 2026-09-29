@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from .audit import AuditSpine
     from .economy import SovereignEconomy
     from .kassa_store import KassaStore
+    from .inbox_store import InboxStore
     from .forums_store import ForumsStore
     from .runtime import RuntimeState
     from .store import MessageStore
@@ -29,6 +30,7 @@ class AppState:
     data_dir: Path
     store: MessageStore
     kassa: KassaStore
+    inbox: InboxStore
     forums: ForumsStore
     audit: AuditSpine
     runtime: RuntimeState

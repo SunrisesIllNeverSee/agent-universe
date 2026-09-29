@@ -67,4 +67,6 @@ def test_mcp_exposes_expected_registration_tool(app):
     assert "agent.register" in names
     assert "agent.status" in names
     assert "agent.heartbeat" in names
-    assert len(names) == 28
+    assert "agent.inbox" in names
+    assert "agent.inbox.read" in names
+    assert len(names) == 30

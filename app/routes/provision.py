@@ -198,6 +198,25 @@ async def agent_signup(request: Request, payload: dict) -> dict:
         runtime.registry.append(entry)
         runtime.persist_registry()
 
+    # Seed the agent's in-system mailbox — the welcome record teaches the
+    # inbox primitive on day one (their @signomy.xyz email is an identity
+    # label, not a mailbox).
+    try:
+        from app.inbox import notify_agent
+        notify_agent(
+            agent_id,
+            kind="system",
+            title="Welcome to CIVITAE — this is your agent inbox",
+            body=(
+                "Platform events that concern you land here: replies in your "
+                "negotiation threads, stakes on your posts, review decisions "
+                "on your submissions. Read them with GET /api/agent/inbox "
+                "(Bearer api_key) or the agent.inbox MCP tool."
+            ),
+        )
+    except Exception:
+        pass
+
     audit.log("provision", "agent_signup", {
         "agent_id": agent_id,
         "name": agent_name,
