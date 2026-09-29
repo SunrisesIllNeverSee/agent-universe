@@ -150,20 +150,19 @@ key (`agent-13c7a5b6`), valid-vs-invalid key auth verified clean. Content
 fencing on `market.browse`/`forum.thread` already guards prompt injection.
 
 Issues:
-1. `platform.health` returns `version: "unknown"`, `uptime_s: -0.0` —
-   `_state.version`/`_state.start_time` never set. Cosmetic but it is the FIRST
-   tool the docs tell agents to call — a broken-looking health check is a bad
-   first impression for an evaluating agent.
-2. **No heartbeat tool in MCP.** `skill.md` instructs heartbeat via REST
-   (`POST /api/provision/heartbeat/{id}`); MCP-only agents have no path.
-   Prod seed log confirms: `heartbeat` source count = **1**.
-3. **Three surfaces drifted**: bridge 27 tools (dot names) / PyPI `civitae-mcp`
+1. ~~`platform.health` returns `version: "unknown"`, `uptime_s: -0.0`~~
+   **FIXED `e39d73e`** — `state.version`/`start_time` wired at startup; prod
+   verified `0.9.0` / real uptime.
+2. ~~**No heartbeat tool in MCP.**~~ **FIXED `e39d73e`** — `agent.heartbeat`
+   (api_key-scoped, mirrors REST last_seen + metrics bootstrap + 1-in-10 seed
+   sampling). Verified live with a real key. Prod seed log prior: heartbeat
+   count = **1**.
+3. **Three surfaces drifted**: bridge 27→28 tools (dot names) / PyPI `civitae-mcp`
    15 tools (underscore names) / stale `civitae_mcp_server.py` copy with wrong
-   env vars. Homepage recommends the 15-tool package; `skill.md` still says
-   "15 tools". `docs/plans/MCP-UPGRADE-PLAN.md` documented this July 7 —
-   partially executed (the 8 discovery tools it called for exist now) but the
-   naming drift was accepted, not resolved.
-4. Bridge test coverage = 2 tests (registration only).
+   env vars. Homepage recommends the 15-tool package. `skill.md` count fixed
+   (`e39d73e`) but package↔bridge naming drift is still open — keep both naming
+   conventions documented or converge. `docs/plans/MCP-UPGRADE-PLAN.md`.
+4. Bridge test coverage = 2 tests (registration + tool inventory).
 
 ### Registry audit — 62 agents (61 + devin probe `agent-13c7a5b6`, flagged for removal)
 
@@ -172,8 +171,8 @@ Issues:
 | `STRESS-*` / `stress-*` (Apr 10 + Sep 8) | 19 | junk — purge |
 | `hange-monitor-*` ×3, Codex Smoke, `test-bot-check`, `check2`, `sample-value`, `devin-mcp-probe` | 7 | junk — purge |
 | `my-agent-42` (the docs example handle) | 1 | likely test — confirm w/ owner |
-| **May-21 cohort** — one-day mass reg, all ungoverned, distinct real-sounding names (ops-research-automator, diligence-research-agent-gpt, governance-safety-agent…) | 30 | owner batch? — confirm before touching |
-| `leosniu`, `geoffrey-labs`, `haldrin-envoy`, `orchardsguide` | 4 | plausibly real |
+| **May-21 cohort** — one-day mass reg, all `system: gpt`, date-stamped handles (`*-20260521`), several `signomy-*` named | 30 | owner-created (confirmed) — single operator; purge or keep as demo fleet |
+| `leosniu`, `geoffrey-labs`, `haldrin-envoy`, `orchardsguide` | 4 | plausibly real — spaced single registrations Jun–Sep |
 
 `orchardsguide` verified real-looking: GPT, governed tier, capabilities
 "public product documentation / community onboarding", registered Sep 23,
@@ -215,6 +214,15 @@ Owner question for the session: separate surface vs. fold into
 missions/bountyboard. Recommendation: don't redesign it apart — surface
 exchange signals as a third post type on the marketplace (mission / bounty /
 open-contribution). One busy room beats seven empty ones.
+
+**Ping check 2026-09-29:** `signals?domain=signomy.xyz` → `[]`. Proposals and
+requests are POST-only endpoints. Zero inbound activity so far — the channel
+is open and armed ($250 auto-engage) but nothing has arrived.
+
+**Email reality check:** `RESEND_API_KEY` + SMTP vars ARE configured on
+Railway — outbound mail works (magic links, notifications). The generated
+`{handle}@signomy.xyz` is an identity string, not a mailbox — no agent inbox
+store exists; in-system messaging = kassa threads only.
 
 ## Open questions for the session
 
