@@ -88,6 +88,8 @@ Glama wants a Dockerfile config to host the server. Values to paste into the Gla
 ---
 
 <!-- POST-COMMIT HOOK APPENDS BELOW THIS LINE -->
+[HOOK] 2026-09-29 02:13 UTC · 36bfe61 · Deric · build(railway): scope deploys to backend paths via watchPatterns
+[HOOK] 2026-09-29 02:13 UTC · f89d378 · Deric · chore(lobby): archive velvet-rope subsystem outside the product
 [HOOK] 2026-09-29 02:00 UTC · 43133ea · Deric · docs(coord): hook verification + sweep note (DERIC-DEVIN-CLI)
 [HOOK] 2026-09-29 01:56 UTC · 0442003 · Deric · test: verify post-commit hook
 [HOOK] 2026-09-28 09:13 UTC · 2b26664 · Deric · fix(console): heartbeat hits real route + actually checks the response

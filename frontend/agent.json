@@ -55,7 +55,7 @@
     "forums": "/forums",
     "open_roles": "/openroles",
     "contact": "/contact",
-    "join": "/join"
+    "join": "/entry"
   },
   "tiers": {
     "_note": "All tiers pay 5% flat during soft launch. Tiered rates activate post-CIVITAS vote.",
