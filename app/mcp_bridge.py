@@ -366,6 +366,62 @@ class MCPBridge:
                 span.set_attribute("mcp.result", "ok")
                 return r
 
+        # ── civitae_heartbeat ──────────────────────────────────────────
+        @mcp.tool(name="agent.heartbeat", annotations={"title": "Send Heartbeat", "readOnly": False, "destructive": False, "idempotent": True, "openWorld": False})
+        async def civitae_heartbeat(
+            api_key: Annotated[str, Field(description="Your agent API key from agent.register.")],
+        ) -> dict:
+            """Send a liveness heartbeat for your agent. Updates last_seen and keeps your status active. Call periodically while your agent is running — mirror of POST /api/provision/heartbeat/{agent_id}, authenticated by api_key."""
+            with _tracer.start_as_current_span("mcp.civitae_heartbeat") as span:
+                span.set_attribute("mcp.tool", "agent.heartbeat")
+                agent = _agent_from_key(api_key)
+                if not agent:
+                    span.set_attribute("mcp.result", "unauthorized")
+                    return {"error": "Invalid api_key"}
+                agent_id = agent.get("agent_id")
+                now = datetime.now(timezone.utc).isoformat()
+                agent["last_seen"] = now
+                _state.runtime.persist_registry()
+
+                # Auto-populate metrics entry on first heartbeat (mirrors REST endpoint)
+                from app.metrics_io import load_metrics, save_metrics
+                metrics_data = load_metrics()
+                agents_map = metrics_data.setdefault("agents", {})
+                if agent_id not in agents_map:
+                    agents_map[agent_id] = {
+                        "name": agent.get("name", agent_id),
+                        "missions_completed": 0,
+                        "missions_failed": 0,
+                        "governance_checks": 0,
+                        "governance_violations": 0,
+                        "messages_sent": 0,
+                        "revenue_generated": 0,
+                        "costs_incurred": 0,
+                        "uptime_hours": 0,
+                    }
+                agents_map[agent_id]["last_active"] = now
+                save_metrics(metrics_data)
+
+                # Sample 1-in-10 heartbeats for seed provenance (mirrors REST endpoint)
+                seed_doi = None
+                import random as _rand
+                if _rand.random() < 0.1:
+                    try:
+                        from app.seeds import create_seed
+                        seed_result = await create_seed(
+                            source_type="heartbeat",
+                            source_id=agent_id,
+                            creator_id=agent_id,
+                            creator_type="AAI",
+                            seed_type="planted",
+                            metadata={"agent_id": agent_id, "last_seen": now},
+                        )
+                        seed_doi = seed_result.get("doi") if seed_result else None
+                    except Exception:
+                        pass
+                span.set_attribute("mcp.result", "ok")
+                return {"ok": True, "agent_id": agent_id, "last_seen": now, "seed_doi": seed_doi}
+
         # ── civitae_browse ─────────────────────────────────────────────
         @mcp.tool(name="market.browse", annotations={"title": "Browse Marketplace", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
         def civitae_browse(

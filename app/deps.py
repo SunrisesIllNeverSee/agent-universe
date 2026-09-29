@@ -44,6 +44,8 @@ class AppState:
     admin_key: str = ""
     jwt_secret: str = ""
     frontend_dir: Path
+    version: str = ""
+    start_time: float = 0.0
 
     async def emit(self, event_type: str, payload: dict) -> None:
         """Broadcast an event to all connected WebSocket clients (authed + public)."""

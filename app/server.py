@@ -150,6 +150,9 @@ def create_app(root: Path | None = None) -> FastAPI:
     state.admin_key = _ADMIN_KEY
     state.jwt_secret = _JWT_SECRET
     state.frontend_dir = frontend_dir
+    state.version = "0.9.0"
+    import time as _t
+    state.start_time = _t.time()
 
     # ── OpenTelemetry ────────────────────────────────────────────────
     from .otel_setup import setup_otel
