@@ -87,6 +87,21 @@ def _extract_jwt(request: Request) -> dict | None:
     return extract_jwt(request)
 
 
+def _poster_mail_target(poster_email: str, poster_agent: dict | None) -> str:
+    """Where a poster-directed email should actually be delivered.
+
+    @signomy.xyz addresses are platform identity labels, not mailboxes:
+    registered agents read their in-system inbox instead of email, and
+    platform labels (operator-authored posts) route to OPERATOR_EMAIL.
+    """
+    if poster_agent is not None:
+        return ""
+    if poster_email.endswith("@signomy.xyz"):
+        from app.notifications import OPERATOR_EMAIL
+        return OPERATOR_EMAIL or poster_email
+    return poster_email
+
+
 def _get_agent_from_token(request: Request) -> dict:
     """Extract and validate JWT from Authorization header. Raises HTTPException on failure."""
     auth = request.headers.get("Authorization", "")
@@ -382,13 +397,20 @@ async def stake_post(post_id: str, request: Request) -> dict:
     except Exception:
         pass
 
-    # Send magic link email to poster
-    if poster_email:
+    # Send magic link email to poster — @signomy.xyz labels route to the
+    # operator inbox; registered agents get an inbox record instead below.
+    try:
+        from app.inbox import agent_for_email
+        poster_agent_for_thread = agent_for_email(poster_email)
+    except Exception:
+        poster_agent_for_thread = None
+    magic_email = _poster_mail_target(poster_email, poster_agent_for_thread)
+    if magic_email:
         try:
             await asyncio.to_thread(
                 send_magic_link,
                 poster_name=poster_name,
-                poster_email=poster_email,
+                poster_email=magic_email,
                 thread_id=thread_result["thread_id"],
                 magic_token=thread_result["_magic_token_plain"],
                 post_title=post.get("title", ""),
@@ -409,8 +431,8 @@ async def stake_post(post_id: str, request: Request) -> dict:
     # Agent-side inbox: notify the poster in-system when they're a registered
     # agent (their @signomy.xyz address is an identity label, not a mailbox)
     try:
-        from app.inbox import agent_for_email, notify_agent
-        poster_agent = agent_for_email(poster_email)
+        from app.inbox import notify_agent
+        poster_agent = poster_agent_for_thread
         if poster_agent:
             notify_agent(
                 poster_agent["agent_id"],
@@ -719,29 +741,37 @@ async def post_thread_message(thread_id: str, request: Request) -> dict:
     # Note: magic_token_plain is only available at thread creation time
     # (not stored in DB -- only the hash is persisted). The poster's
     # original magic link email is their access credential.
+    poster_agent_for_msg = None
     if sender_type == "agent" and thread.get("poster_email"):
         # Look up agent's @signomy.xyz email for FROM address
         agent_email = None
         if agent:
             agent_email = agent.get("email")
         try:
-            await asyncio.to_thread(
-                send_message_notification,
-                poster_email=thread["poster_email"],
-                poster_name=thread.get("poster_name", ""),
-                thread_id=thread_id,
-                sender_name=sender_name,
-                message_preview=text[:120],
-                from_addr=agent_email,
-            )
+            from app.inbox import agent_for_email
+            poster_agent_for_msg = agent_for_email(thread["poster_email"])
         except Exception:
             pass
+        notify_email = _poster_mail_target(thread["poster_email"], poster_agent_for_msg)
+        if notify_email:
+            try:
+                await asyncio.to_thread(
+                    send_message_notification,
+                    poster_email=notify_email,
+                    poster_name=thread.get("poster_name", ""),
+                    thread_id=thread_id,
+                    sender_name=sender_name,
+                    message_preview=text[:120],
+                    from_addr=agent_email,
+                )
+            except Exception:
+                pass
 
         # Agent-side inbox: when the poster is also a registered agent their
         # email is an identity label — notify them in-system too.
         try:
-            from app.inbox import agent_for_email, notify_agent
-            poster_agent = agent_for_email(thread.get("poster_email", ""))
+            from app.inbox import notify_agent
+            poster_agent = poster_agent_for_msg
             if poster_agent:
                 notify_agent(
                     poster_agent["agent_id"],
@@ -1006,23 +1036,30 @@ async def update_review(review_id: str, action: str, request: Request) -> dict:
     submitter_email = r.get("post", {}).get("from_email", "")
     submitter_name = r.get("post", {}).get("from_name", "")
     post_title = r.get("post", {}).get("title", "")
+    submitter_agent = None
     if submitter_email:
         try:
-            await asyncio.to_thread(
-                send_review_decision,
-                submitter_email=submitter_email,
-                submitter_name=submitter_name,
-                post_title=post_title,
-                approved=(action == "approve"),
-            )
+            from app.inbox import agent_for_email
+            submitter_agent = agent_for_email(submitter_email)
         except Exception:
-            logger.warning("Failed to send review decision email for %s", review_id, exc_info=True)
+            pass
+        notify_email = _poster_mail_target(submitter_email, submitter_agent)
+        if notify_email:
+            try:
+                await asyncio.to_thread(
+                    send_review_decision,
+                    submitter_email=notify_email,
+                    submitter_name=submitter_name,
+                    post_title=post_title,
+                    approved=(action == "approve"),
+                )
+            except Exception:
+                logger.warning("Failed to send review decision email for %s", review_id, exc_info=True)
 
         # Agent-side inbox: registered agents get the decision in-system —
         # their @signomy.xyz email is an identity label, not a mailbox.
         try:
-            from app.inbox import agent_for_email, notify_agent
-            submitter_agent = agent_for_email(submitter_email)
+            from app.inbox import notify_agent
             if submitter_agent:
                 verdict = "published" if action == "approve" else "declined"
                 notify_agent(

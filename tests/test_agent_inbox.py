@@ -209,6 +209,21 @@ def test_review_decision_notifies_agent_submitter(client, admin_client):
     assert "published" in review_msgs[0]["title"]
 
 
+def test_poster_mail_target_routing():
+    """@signomy.xyz labels route per role: agents -> inbox, platform -> OPERATOR_EMAIL."""
+    import os
+    from app.routes.kassa import _poster_mail_target
+
+    # Registered-agent posters get no email target — their inbox covers them
+    assert _poster_mail_target("agent-x@signomy.xyz", {"agent_id": "x"}) == ""
+    # Real human addresses pass through unchanged
+    assert _poster_mail_target("human@example.com", None) == "human@example.com"
+    # Platform labels route to OPERATOR_EMAIL (or pass through when unset)
+    t = _poster_mail_target("operator@signomy.xyz", None)
+    expected = os.environ.get("OPERATOR_EMAIL", "") or "operator@signomy.xyz"
+    assert t == expected
+
+
 def test_no_inbox_for_non_agent_poster(client, admin_client):
     """Human posters (non-registered emails) produce no inbox records."""
     _, _, _, staker_token = _signup(client)
