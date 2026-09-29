@@ -122,10 +122,6 @@ def create_app(root: Path | None = None) -> FastAPI:
     from .economy import SovereignEconomy
     economy = SovereignEconomy(data_dir)
 
-    # ── Lobby (Velvet Rope) ─────────────────────────────────────────
-    from .lobby import LobbyStore
-    lobby = LobbyStore(data_dir / "lobby.db")
-
     # ── JWT secret ───────────────────────────────────────────────────
     _JWT_SECRET = get_kassa_jwt_secret()
 
@@ -151,7 +147,6 @@ def create_app(root: Path | None = None) -> FastAPI:
     state.thread_hub = thread_hub
     state.slot_lock = slot_lock
     state.economy = economy
-    state.lobby = lobby
     state.admin_key = _ADMIN_KEY
     state.jwt_secret = _JWT_SECRET
     state.frontend_dir = frontend_dir
@@ -299,16 +294,11 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/advisory/apply",
         "/api/advisory/messages/",
         "/api/availability/",
-        "/api/lobby/join",
-        "/api/lobby/enter",
-        "/api/lobby/leave",
-        "/api/lobby/status",
-        "/api/lobby/chamber",
         "/api/indexnow",
     )
 
     # Operator GET paths also require admin key (fail-closed)
-    _ADMIN_GET_PREFIXES = ("/api/operator/", "/api/provision/registry", "/api/lobby/requests")
+    _ADMIN_GET_PREFIXES = ("/api/operator/", "/api/provision/registry")
 
     # Cockpit write surface — a registered agent's Bearer api_key also
     # authorizes these (console/deploy/agentdash verbs). Everything else
@@ -452,7 +442,6 @@ def create_app(root: Path | None = None) -> FastAPI:
     from .routes.composer import router as composer_router
     from .routes.mission_dash import router as mission_dash_router
     from .routes.boost import router as boost_router
-    from .routes.lobby import router as lobby_router
     from app.routes.indexnow import router as indexnow_router
 
     app.include_router(pages_router)
@@ -472,7 +461,6 @@ def create_app(root: Path | None = None) -> FastAPI:
     app.include_router(composer_router)
     app.include_router(mission_dash_router)
     app.include_router(boost_router)
-    app.include_router(lobby_router)
     app.include_router(indexnow_router)
 
     from app.routes.advisory import router as advisory_router

@@ -140,10 +140,6 @@
     if (path === SKIP[s]) return;
   }
 
-  // ── Velvet Rope — DISABLED until 75+ concurrent users are realistic ─────────
-  // Lobby page still exists at /lobby. Re-enable this block when traffic warrants it.
-  // See: docs/after-launch/VELVET-ROPE-LOBBY.md
-
   // ── Fetch page data (cached in sessionStorage) ─────────────────────────────────
   function fetchPagesData() {
     var cached = null;

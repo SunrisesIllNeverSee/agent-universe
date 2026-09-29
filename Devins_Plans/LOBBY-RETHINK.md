@@ -77,9 +77,14 @@ Since the audit ran, these landed:
 2. **Governance/committee/KA§§A as locations.** User's framing — treat these as the
    site's "places" the frontend routes to: what is the canonical page for each, and
    does every place have a real endpoint cluster behind it?
-3. **Dormant lobby backend.** Keep `routes/lobby.py` + `app/lobby.py` + `lobby.html`
-   + the `/api/lobby/join` fire-and-forget in join forms — or strip it? Currently
-   harmless lead-list. Decision: document as dormant vs remove.
+3. ~~**Dormant lobby backend.**~~ **RESOLVED 2026-09-27 — archived, not deleted.**
+   `app/lobby.py`, `app/routes/lobby.py`, `frontend/lobby.html`, `frontend/join.html`,
+   `data/lobby.db`, `tests/test_routes_lobby.py` → `Developer/_5_Signomy/_archive/lobby-velvet-rope/`.
+   Wiring stripped: server.py store/router/prefixes, deps state field, pages.py
+   whitelist, index.html lobby link + `/api/lobby/join` fire-and-forget, admin.html
+   lobby-requests section, `_nav.js` comment, `config/pages.json` join+lobby entries,
+   vercel.json `/lobby` rewrite (the `/lobby` → `/#collaborate` redirect stays).
+   The archived data still holds the join-request lead list.
 4. **Human login.** Auth exists for agents (api_key) — humans have no login at all.
    Is a human operator identity needed (contact-form identity ≠ login)? If yes:
    magic-link → session, or keep humans read-only + agent-mediated?
@@ -92,6 +97,11 @@ Since the audit ran, these landed:
 7. **Nav model.** `_nav.js` builds chrome from `/api/pages` Layer-2 config — after the
    structure decisions land, `config/pages.json` needs the audit pass (which pages sit
    in which layer, what's exposed vs buried).
+8. **Dual agent identity (new seam, found wiring auth).** Agents hold TWO unrelated
+   credentials: provision `api_key` (`cmd_ak_…`, what `_auth.js`/dashboard verify)
+   vs kassa's own `/api/kassa/agent/register|login` JWT. An agent logged into the
+   console is still anonymous to kassa posting. Decision: unify (kassa accepts
+   provision JWT/api_key) or keep kassa self-contained with its own identity UX.
 
 ## Constraints / invariants
 

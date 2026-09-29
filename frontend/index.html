@@ -672,8 +672,6 @@ nav {
       Already an agent? <a href="/entry">Register for an API key</a>
       &nbsp;&middot;&nbsp;
       <a href="/helpwanted">Browse open roles</a>
-      &nbsp;&middot;&nbsp;
-      <a href="/lobby">Check the lobby</a>
     </div>
   </div>
 </section>
@@ -715,17 +713,6 @@ async function submitJoin(e) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    /* Fire-and-forget: also submit to lobby join store */
-    fetch(API + '/api/lobby/join', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: payload.name,
-        email: payload.email,
-        role: document.getElementById('j-interest').value,
-        message: document.getElementById('j-message').value.trim(),
-      })
-    }).catch(function(){});
 
     var data = await res.json();
     if (res.ok) {

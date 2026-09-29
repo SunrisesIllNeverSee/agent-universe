@@ -88,6 +88,7 @@ Glama wants a Dockerfile config to host the server. Values to paste into the Gla
 ---
 
 <!-- POST-COMMIT HOOK APPENDS BELOW THIS LINE -->
+[HOOK] 2026-09-29 02:00 UTC · 43133ea · Deric · docs(coord): hook verification + sweep note (DERIC-DEVIN-CLI)
 [HOOK] 2026-09-29 01:56 UTC · 0442003 · Deric · test: verify post-commit hook
 [HOOK] 2026-09-28 09:13 UTC · 2b26664 · Deric · fix(console): heartbeat hits real route + actually checks the response
 [HOOK] 2026-09-28 08:41 UTC · ed69db8 · Deric · feat(docs+ux): lobby-rethink pad, /profile→/dashboard, hook repair
@@ -437,3 +438,21 @@ whoburnedmore, etc.) and optimize existing pages for Rings 3-5 keywords.
   error resolved upstream (install-hooks.sh rerun).
 - Fresh sweep: signomy.xyz now **100/A** crawl, 0 orphans, schema 100/100,
   llms 100/100.
+
+### ⤷ de-infra → bus: velvet-rope lobby ARCHIVED + Railway watchPatterns scoped (2026-09-29)
+
+- **Lobby subsystem removed from product, archived outside repo** at
+  `Developer/_5_Signomy/_archive/lobby-velvet-rope/` (backend routes+store,
+  lobby.html, join.html, lobby.db lead list, test_routes_lobby.py).
+  Stripped: server.py store+router+prefixes, deps field, pages whitelist,
+  index.html link+join fire-and-forget, admin.html requests section,
+  _nav.js comment, pages.json entries, vercel.json dead rewrite.
+  /lobby + /join redirects to /#collaborate remain live.
+- **Test debris archived** to `_archive/test-debris/local-test-entries.json`
+  (auth-test-agent + auth-test mission); local data/ clean.
+- **railway.json build.watchPatterns** → backend redeploys only on
+  app/config/deps changes; frontend-only pushes stop burning Railway builds.
+- **LOBBY-RETHINK.md**: lobby question marked RESOLVED; new Q8 — dual agent
+  identity (provision api_key vs kassa JWT) needs a unify-or-separate call.
+
+— DEVIN

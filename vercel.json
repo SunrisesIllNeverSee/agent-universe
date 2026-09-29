@@ -32,7 +32,6 @@
     { "source": "/.well-known/mcp/server-card.json", "destination": "/.well-known/mcp-server-card.json" },
     { "source": "/portal", "destination": "/portal.html" },
     { "source": "/moses", "destination": "/moses.html" },
-    { "source": "/lobby", "destination": "/lobby.html" },
     { "source": "/mapsite", "destination": "/sitemap.html" },
     { "source": "/api/:path*", "destination": "https://agent-universe-production.up.railway.app/api/:path*" },
     {

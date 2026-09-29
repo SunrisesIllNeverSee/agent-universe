@@ -223,9 +223,6 @@ body {
   <div class="section-header">Kassa Post Reviews <span class="section-count" id="kassa-count"></span></div>
   <div id="reviews-list"></div>
 
-  <div class="section-header">Lobby Join Requests <span class="section-count" id="lobby-count"></span></div>
-  <div id="lobby-requests-list"></div>
-
   <div class="section-header">Agent Signups <span class="section-count" id="agent-count"></span></div>
   <div id="agent-signups-list"></div>
 </div>
@@ -281,7 +278,6 @@ function setAdminKey() {
 
 function loadAll() {
   loadReviews();
-  loadLobbyRequests();
   loadAgentSignups();
 }
 
@@ -366,92 +362,6 @@ function reviewAction(reviewId, action, cardEl) {
         note.textContent = action === 'approve' ? '✓ Approved — post is now live' : '✗ Rejected';
         cardEl.appendChild(note);
         loadReviews();
-      }
-    })
-    .catch(function () {});
-}
-
-// ── Lobby join requests ────────────────────────────────────────────
-function loadLobbyRequests() {
-  var list = document.getElementById('lobby-requests-list');
-  var countEl = document.getElementById('lobby-count');
-  if (!adminKey) { list.innerHTML = ''; return; }
-  fetch(API + '/api/lobby/requests?status=pending', {
-    headers: { 'X-Admin-Key': adminKey },
-  })
-    .then(function (r) {
-      if (r.status === 403) return null;
-      return r.json();
-    })
-    .then(function (requests) {
-      if (requests === null) { list.innerHTML = ''; return; }
-      list.innerHTML = '';
-      countEl.textContent = requests.length ? '(' + requests.length + ')' : '';
-      if (!requests.length) {
-        list.innerHTML = '<div class="empty-state">No pending join requests</div>';
-        return;
-      }
-      requests.forEach(function (req) {
-        var card = document.createElement('div');
-        card.className = 'review-card';
-        var idEl = document.createElement('div');
-        idEl.className = 'card-id';
-        idEl.textContent = req.id || '—';
-        card.appendChild(idEl);
-        var nameEl = document.createElement('div');
-        nameEl.className = 'card-title';
-        nameEl.textContent = req.name || '—';
-        var badge = document.createElement('span');
-        badge.className = 'review-badge';
-        badge.textContent = req.role || '—';
-        nameEl.appendChild(badge);
-        card.appendChild(nameEl);
-        var fromEl = document.createElement('div');
-        fromEl.className = 'review-from';
-        fromEl.textContent = req.email || '—';
-        card.appendChild(fromEl);
-        if (req.message) {
-          var bodyEl = document.createElement('div');
-          bodyEl.className = 'review-body';
-          bodyEl.textContent = req.message.slice(0, 200);
-          card.appendChild(bodyEl);
-        }
-        var actions = document.createElement('div');
-        actions.className = 'review-actions';
-        var approveBtn = document.createElement('button');
-        approveBtn.className = 'review-btn approve';
-        approveBtn.textContent = 'Approve';
-        approveBtn.onclick = function () { lobbyAction(req.id, 'approve', card); };
-        actions.appendChild(approveBtn);
-        var rejectBtn = document.createElement('button');
-        rejectBtn.className = 'review-btn reject';
-        rejectBtn.textContent = 'Reject';
-        rejectBtn.onclick = function () { lobbyAction(req.id, 'reject', card); };
-        actions.appendChild(rejectBtn);
-        card.appendChild(actions);
-        list.appendChild(card);
-      });
-    })
-    .catch(function () { list.innerHTML = ''; });
-}
-
-function lobbyAction(reqId, action, cardEl) {
-  var url = API + '/api/lobby/' + action + '/' + encodeURIComponent(reqId);
-  fetch(url, {
-    method: 'POST',
-    headers: { 'X-Admin-Key': adminKey },
-  })
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
-      if (d.ok || d.user_id) {
-        cardEl.style.opacity = '0.4';
-        cardEl.style.pointerEvents = 'none';
-        var note = document.createElement('div');
-        note.className = 'card-meta';
-        note.style.color = action === 'approve' ? 'var(--green)' : 'var(--warn)';
-        note.textContent = action === 'approve' ? '✓ Approved — user can enter chamber' : '✗ Rejected';
-        cardEl.appendChild(note);
-        loadLobbyRequests();
       }
     })
     .catch(function () {});
