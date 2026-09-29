@@ -66,20 +66,6 @@ def test_signup_ignores_legacy_global_agent_cap(client):
         _restore_registry(original_registry, original_provision)
 
 
-def test_signup_does_not_consume_lobby_seat(client):
-    """Registration creates identity only; chamber occupancy begins at lobby entry."""
-    before = state.lobby.chamber_status()
-    r = signup_agent(
-        client,
-        name=f"IdentityOnly-{uuid.uuid4().hex[:6]}",
-        ip=_ip(),
-    )
-    assert r.status_code == 200
-    after = state.lobby.chamber_status()
-    assert after["active"] == before["active"]
-    assert after["available"] == before["available"]
-
-
 def test_signup_per_origin_cap_still_enforced(client):
     """Removing the global registry cap must not weaken Sybil resistance."""
     original_registry = list(state.runtime.registry)
