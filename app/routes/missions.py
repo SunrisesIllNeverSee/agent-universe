@@ -93,6 +93,7 @@ class CreateTaskPayload(BaseModel):
     payout: float = 0.0
     operation_id: str | None = None
     campaign_id: str | None = None
+    mission_id: str | None = None
     created_by: str = "operator"
 
 
@@ -502,6 +503,7 @@ async def create_task(payload: CreateTaskPayload) -> dict:
         "assigned_agent": None,
         "operation_id": payload.operation_id,
         "campaign_id": payload.campaign_id,
+        "mission_id": payload.mission_id,
         "status": "open",
         "deliverable": "",
         "created_by": payload.created_by,
@@ -576,6 +578,15 @@ async def assign_task(task_id: str, payload: AssignTaskPayload) -> dict:
     _save_tasks(tasks)
     state.audit.log("mission", "task_assigned", {"task_id": task_id, "agent_id": agent_id})
     await state.emit("task_assigned", {"task_id": task_id, "agent_id": agent_id})
+    try:
+        from app.inbox import notify_agent
+        notify_agent(agent_id, "task_assigned",
+                     f"Task assigned: {task.get('title', task_id)}",
+                     f"You were assigned task {task_id}: {task.get('title', '')}. "
+                     f"Objective: {task.get('objective', '')}. Deliver via POST /api/tasks/{task_id}/deliver.",
+                     ref_type="task", ref_id=task_id)
+    except Exception:
+        pass
     try:
         await create_seed(source_type="task_assigned", source_id=task_id, creator_id=agent_id, creator_type="AAI", seed_type="touched", metadata={"mission_id": task.get("mission_id", "")})
     except Exception:
@@ -661,6 +672,17 @@ async def close_task(task_id: str, payload: CloseTaskPayload) -> dict:
         "payout": task["payout"],
     })
     await state.emit("task_closed", {"task_id": task_id, "agent_id": agent_id, "exp": task["exp_reward"]})
+    if agent_id:
+        try:
+            from app.inbox import notify_agent
+            net = (payout_result.get("fee_breakdown") or {}).get("net_to_agent")
+            notify_agent(agent_id, "task_closed",
+                         f"Task closed: {task.get('title', task_id)}",
+                         f"Task {task_id} closed. EXP awarded: {task['exp_reward']} ({task.get('track', 'tool')} track)."
+                         + (f" Payout: ${net:.2f} credited to treasury balance." if isinstance(net, (int, float)) else ""),
+                         ref_type="task", ref_id=task_id)
+        except Exception:
+            pass
     seed_doi = None
     try:
         seed_result = await create_seed(
@@ -848,6 +870,17 @@ async def fill_slot(payload: FillSlotPayload) -> dict:
         "governance": slot["governance"],
     })
     await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+
+    try:
+        from app.inbox import notify_agent
+        notify_agent(agent_id, "slot_filled",
+                     f"Slot filled: {slot['role']} on {slot['mission_label'] or slot['mission_id']}",
+                     f"You filled slot {slot_id} ({slot['grid_ref']}, {slot['role']}) on mission "
+                     f"{slot['mission_id']}. Governance applied: {slot['governance']['mode']} / "
+                     f"{slot['governance']['posture']}. Revenue split: {slot['revenue_split_pct']}%.",
+                     ref_type="slot", ref_id=slot_id)
+    except Exception:
+        pass
 
     try:
         await create_seed(
