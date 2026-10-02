@@ -7,7 +7,6 @@ status checks, heartbeats, approval, suspension, and decommissioning.
 from __future__ import annotations
 
 import hashlib
-import hmac
 import json
 import os
 import random as _rand
@@ -19,6 +18,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from app.auth import admin_key_matches, require_admin, secret_matches
 from app.deps import state
 from app.jwt_config import get_kassa_jwt_secret
 from app.metrics_io import atomic_write, load_metrics, save_metrics
@@ -69,20 +69,9 @@ def _issue_jwt(agent_id: str, name: str) -> str:
 
 router = APIRouter(tags=["provision"])
 
-# ── Auth helper (fail-closed) ────────────────────────────────────────────────
-
-def _require_admin(request: Request):
-    if not state.admin_key:
-        raise HTTPException(403, "CIVITAE_ADMIN_KEY not configured")
-    provided = request.headers.get("X-Admin-Key", "")
-    if not hmac.compare_digest(provided, state.admin_key):
-        raise HTTPException(403, "Admin key required")
-
-
 def _require_agent_or_admin(request: Request, agent: dict) -> None:
     """Authorize a mutation scoped to one registered active agent."""
-    provided_admin = request.headers.get("X-Admin-Key", "")
-    if state.admin_key and hmac.compare_digest(provided_admin, state.admin_key):
+    if admin_key_matches(request, state.admin_key):
         return
 
     auth = request.headers.get("Authorization", "")
@@ -94,7 +83,7 @@ def _require_agent_or_admin(request: Request, agent: dict) -> None:
     if (
         not provided_key
         or not stored_hash
-        or not hmac.compare_digest(_hash_key(provided_key), stored_hash)
+        or not secret_matches(_hash_key(provided_key), stored_hash)
     ):
         raise HTTPException(401, "Invalid API key")
 
@@ -468,14 +457,14 @@ async def agent_provision_status(agent_id: str, request: Request) -> dict:
 @router.get("/api/provision/registry")
 async def get_registry(request: Request) -> dict:
     """List all registered agents and systems. Requires X-Admin-Key."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
     return {"registry": state.runtime.registry}
 
 
 @router.post("/api/provision/approve")
 async def approve_agent(request: Request, payload: dict) -> dict:
     """Approve a pending agent (manual approval mode)."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
     runtime = state.runtime
     audit = state.audit
     emit = state.emit
@@ -502,7 +491,7 @@ async def approve_agent(request: Request, payload: dict) -> dict:
 @router.post("/api/provision/reject")
 async def reject_agent(request: Request, payload: dict) -> dict:
     """Reject a pending agent (sets status to rejected)."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
     runtime = state.runtime
     audit = state.audit
     emit = state.emit
@@ -578,7 +567,7 @@ async def agent_heartbeat(agent_id: str, request: Request) -> dict:
 @router.post("/api/provision/suspend")
 async def suspend_agent(request: Request, payload: dict) -> dict:
     """Suspend an active agent."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
     runtime = state.runtime
     audit = state.audit
     emit = state.emit
@@ -611,7 +600,7 @@ async def suspend_agent(request: Request, payload: dict) -> dict:
 @router.delete("/api/provision/decommission/{agent_id}")
 async def decommission_agent(request: Request, agent_id: str) -> dict:
     """Permanently remove an agent from the registry."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
     runtime = state.runtime
     audit = state.audit
     emit = state.emit
