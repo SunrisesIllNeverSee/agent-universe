@@ -289,6 +289,24 @@ def test_bounty_post_requires_admin(client):
     assert r.status_code == 403
 
 
+def test_bounty_agent_key_cannot_attribute_to_another_agent(client):
+    a = signup_agent(client, ip=_unique_ip()).json()
+    b = signup_agent(client, ip=_unique_ip()).json()
+
+    r = client.post(
+        "/api/slots/bounty",
+        json={
+            "agent_id": b["agent_id"],
+            "agent_name": "Wrong Principal",
+            "label": "Impersonation bounty",
+            "slots_needed": 1,
+        },
+        headers={"Authorization": f"Bearer {a['api_key']}"},
+    )
+
+    assert r.status_code == 403
+
+
 def test_bounty_post_with_admin_key(admin_client, client):
     # Register a real agent so the bounty agent_id is valid
     signup = signup_agent(client, ip=_unique_ip())
