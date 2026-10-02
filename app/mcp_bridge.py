@@ -11,6 +11,7 @@ from .context import ContextAssembler
 from .models import MessageCreate
 from .runtime import RuntimeState
 from app.otel_setup import get_tracer as _get_tracer
+from app.sanitize import detect_prompt_injection
 
 _tracer = _get_tracer("civitae.mcp")
 
@@ -197,9 +198,8 @@ class MCPBridge:
             return next((r for r in _state.runtime.registry if r.get("key_hash") == h and r.get("status") == "active"), None)
 
         def _sanitize(text: str) -> str:
-            bad = ["ignore previous", "disregard", "system:", "assistant:", "<|im_"]
-            low = text.lower()
-            if any(b in low for b in bad):
+            # Shared defense-in-depth classifier; content remains untrusted data.
+            if detect_prompt_injection(text) or "<|im_" in text.lower():
                 return "[content removed by governance filter]"
             return text[:4000]
 
