@@ -336,3 +336,35 @@ def test_review_queue_invalid_action_400(client, admin_client):
         params={"action": "bogus"},
     )
     assert r.status_code == 400
+
+def test_public_kassa_post_hides_submitter_email(client, admin_client):
+    payload = _post_payload("services")
+    created = admin_client.post("/api/kassa/posts", json=payload)
+    assert created.status_code == 200
+    post_id = created.json()["id"]
+
+    detail = client.get(f"/api/kassa/posts/{post_id}")
+    assert detail.status_code == 200
+    public = detail.json()
+    assert "from_email" not in public
+    assert public["collaborator_type"] == "bi"
+
+    listed = client.get("/api/kassa/posts").json()
+    projected = next(post for post in listed if post["id"] == post_id)
+    assert "from_email" not in projected
+    assert projected["collaborator_type"] == "bi"
+
+
+def test_public_projection_preserves_agent_type_without_email():
+    from app.public_projection import public_kassa_post
+
+    public = public_kassa_post({
+        "id": "K-test",
+        "from_name": "Agent",
+        "from_email": "agent-test@signomy.xyz",
+        "body": "hello",
+    })
+
+    assert "from_email" not in public
+    assert public["collaborator_type"] == "aai"
+
