@@ -60,3 +60,26 @@ def test_route_local_admin_rejection_uses_shared_security_log(client, caplog):
     assert any("admin_auth_rejected" in message for message in messages)
     assert all(wrong not in message for message in messages)
     assert all(ip not in message for message in messages)
+
+
+def test_global_admin_success_is_logged_without_secret_or_raw_ip(client, caplog):
+    ip = _ip()
+    caplog.set_level(logging.INFO, logger="civitae.security")
+
+    response = client.get(
+        "/api/operator/stats",
+        headers={
+            "X-Admin-Key": "test-admin-key-12345",
+            "x-forwarded-for": ip,
+        },
+    )
+
+    assert response.status_code == 200
+    messages = [
+        record.getMessage()
+        for record in caplog.records
+        if record.name == "civitae.security"
+    ]
+    assert any("admin_auth_ok" in message for message in messages)
+    assert all("test-admin-key-12345" not in message for message in messages)
+    assert all(ip not in message for message in messages)
