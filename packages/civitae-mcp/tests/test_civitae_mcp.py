@@ -322,6 +322,35 @@ class TestToolContractParity:
                 )
 
     @pytest.mark.asyncio
+    async def test_browse_normalizes_bare_list_response(self) -> None:
+        mock_get = AsyncMock(
+            return_value=[{"id": "K-1", "title": "Untrusted title", "status": "open"}]
+        )
+        with patch.object(civitae_mcp, "get", mock_get):
+            async with Client(civitae_mcp.mcp) as client:
+                result = await client.call_tool("civitae_browse", {})
+
+        data = result.structured_content
+        assert data["count"] == 1
+        assert "[USER_CONTENT_START]" in data["posts"][0]["title"]
+
+    @pytest.mark.asyncio
+    async def test_operator_review_list_normalizes_bare_list_response(self) -> None:
+        mock_get = AsyncMock(return_value=[{"review_id": "rev-K-1", "status": "pending"}])
+        with patch.object(civitae_mcp, "op_get", mock_get):
+            async with Client(civitae_mcp.mcp) as client:
+                result = await client.call_tool(
+                    "civitae_op_reviews",
+                    {"action": "list"},
+                )
+
+        data = result.structured_content
+        assert data == {
+            "reviews": [{"review_id": "rev-K-1", "status": "pending"}],
+            "count": 1,
+        }
+
+    @pytest.mark.asyncio
     async def test_post_supplies_required_agent_identity(self) -> None:
         mock_post = AsyncMock(return_value={"ok": True})
         with (
