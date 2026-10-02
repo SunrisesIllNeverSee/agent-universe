@@ -200,3 +200,40 @@ def test_admin_guard_error_is_structured_json(client) -> None:
     assert error["code"] == "admin_key_required"
     assert error["message"]
     assert error["hint"]
+
+def test_cockpit_bearer_rejects_suspended_agent(client, admin_client) -> None:
+    """ST-003: suspension revokes the global cockpit Bearer authorization path."""
+    import uuid
+    from tests.conftest import signup_agent
+
+    signup = signup_agent(
+        client,
+        name=f"CockpitAuth-{uuid.uuid4().hex[:8]}",
+        ip=f"10.55.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}",
+    )
+    assert signup.status_code == 200
+    data = signup.json()
+    headers = {"Authorization": f"Bearer {data['api_key']}"}
+
+    active = client.post("/api/deploy", json={}, headers=headers)
+    assert active.status_code == 200
+
+    suspended = admin_client.post(
+        "/api/provision/suspend",
+        json={"agent_id": data["agent_id"]},
+    )
+    assert suspended.status_code == 200
+
+    blocked = client.post("/api/deploy", json={}, headers=headers)
+    assert blocked.status_code == 403
+    assert blocked.json()["error"]["code"] == "admin_key_required"
+
+
+def test_cockpit_bearer_rejects_unknown_key(client) -> None:
+    blocked = client.post(
+        "/api/deploy",
+        json={},
+        headers={"Authorization": "Bearer cmd_ak_not-a-real-key"},
+    )
+    assert blocked.status_code == 403
+
