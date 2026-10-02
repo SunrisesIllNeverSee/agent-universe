@@ -12,10 +12,11 @@ import secrets
 from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from app.auth import require_agent_claim
 from app.deps import state
 from app.metrics_io import atomic_write, load_metrics
 from app.otel_setup import get_tracer as _get_tracer
@@ -105,13 +106,19 @@ async def governance_sessions() -> dict:
 
 
 @router.post("/api/governance/meeting")
-async def call_meeting(payload: CallMeetingPayload) -> dict:
+async def call_meeting(payload: CallMeetingPayload, request: Request) -> dict:
     """Call a meeting. Requires a caller (agent_id) and subject."""
     caller = sanitize_name(payload.caller, max_length=80)
     subject = sanitize_text(payload.subject)
     quorum = payload.quorum
     if not caller or not subject:
         return JSONResponse({"error": "caller and subject required"}, status_code=400)
+    require_agent_claim(
+        request,
+        caller,
+        registry=state.runtime.registry,
+        admin_key=state.admin_key,
+    )
     meetings = _load_meetings()
     meeting = {
         "id": f"mtg-{secrets.token_hex(4)}",
@@ -166,11 +173,17 @@ async def get_meeting(meeting_id: str) -> dict:
 
 
 @router.post("/api/governance/meeting/{meeting_id}/join")
-async def join_meeting(meeting_id: str, payload: JoinMeetingPayload) -> dict:
+async def join_meeting(meeting_id: str, payload: JoinMeetingPayload, request: Request) -> dict:
     """Agent joins a meeting as attendee."""
     agent_id = payload.agent_id
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
+    require_agent_claim(
+        request,
+        agent_id,
+        registry=state.runtime.registry,
+        admin_key=state.admin_key,
+    )
     meetings = _load_meetings()
     meeting = next((m for m in meetings if m["id"] == meeting_id), None)
     if not meeting:
@@ -206,12 +219,18 @@ async def join_meeting(meeting_id: str, payload: JoinMeetingPayload) -> dict:
 
 
 @router.post("/api/governance/meeting/{meeting_id}/motion")
-async def propose_motion(meeting_id: str, payload: ProposeMotionPayload) -> dict:
+async def propose_motion(meeting_id: str, payload: ProposeMotionPayload, request: Request) -> dict:
     """Propose a motion in a meeting. Requires quorum."""
     proposer = sanitize_name(payload.proposer, max_length=80)
     motion_text = sanitize_text(payload.motion)
     if not proposer or not motion_text:
         return JSONResponse({"error": "proposer and motion required"}, status_code=400)
+    require_agent_claim(
+        request,
+        proposer,
+        registry=state.runtime.registry,
+        admin_key=state.admin_key,
+    )
     meetings = _load_meetings()
     meeting = next((m for m in meetings if m["id"] == meeting_id), None)
     if not meeting:
@@ -258,13 +277,19 @@ async def propose_motion(meeting_id: str, payload: ProposeMotionPayload) -> dict
 
 
 @router.post("/api/governance/meeting/{meeting_id}/vote")
-async def cast_vote(meeting_id: str, payload: CastVotePayload) -> dict:
+async def cast_vote(meeting_id: str, payload: CastVotePayload, request: Request) -> dict:
     """Cast a vote on a pending motion. Votes: yea, nay, abstain."""
     voter = sanitize_name(payload.voter, max_length=80)
     motion_id = payload.motion_id
     vote = payload.vote.lower().strip()
     if not voter or not motion_id or vote not in ("yea", "nay", "abstain"):
         return JSONResponse({"error": "voter, motion_id, and vote (yea/nay/abstain) required"}, status_code=400)
+    require_agent_claim(
+        request,
+        voter,
+        registry=state.runtime.registry,
+        admin_key=state.admin_key,
+    )
     meetings = _load_meetings()
     meeting = next((m for m in meetings if m["id"] == meeting_id), None)
     if not meeting:
@@ -322,7 +347,7 @@ async def cast_vote(meeting_id: str, payload: CastVotePayload) -> dict:
 
 
 @router.post("/api/governance/meeting/{meeting_id}/adjourn")
-async def adjourn_meeting(meeting_id: str, payload: AdjournMeetingPayload | None = None) -> dict:
+async def adjourn_meeting(meeting_id: str, request: Request, payload: AdjournMeetingPayload | None = None) -> dict:
     """Adjourn a meeting. Only the caller or by majority vote."""
     meetings = _load_meetings()
     meeting = next((m for m in meetings if m["id"] == meeting_id), None)
@@ -330,6 +355,12 @@ async def adjourn_meeting(meeting_id: str, payload: AdjournMeetingPayload | None
         return JSONResponse({"error": "Meeting not found"}, status_code=404)
     if meeting["status"] != "open":
         return JSONResponse({"error": "Meeting already adjourned"}, status_code=409)
+    require_agent_claim(
+        request,
+        str(meeting.get("caller") or ""),
+        registry=state.runtime.registry,
+        admin_key=state.admin_key,
+    )
     meeting["status"] = "adjourned"
     meeting["adjourned_at"] = datetime.now(UTC).isoformat()
     meeting["minutes"].append({
