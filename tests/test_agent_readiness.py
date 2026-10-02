@@ -77,6 +77,30 @@ def test_openapi_json_is_function_calling_ready() -> None:
     assert set(error["required"]) == {"code", "message", "hint"}
 
 
+def test_openapi_operations_resolve_to_live_fastapi_routes(app) -> None:
+    """Published operations must not advertise removed or renamed REST paths."""
+    spec = json.loads((FRONTEND / "openapi.json").read_text(encoding="utf-8"))
+    live: set[tuple[str, str]] = set()
+    for route in app.routes:
+        path = getattr(route, "path", None)
+        methods = getattr(route, "methods", None)
+        if not path or not methods:
+            continue
+        for method in methods:
+            live.add((method.upper(), path))
+
+    ghosts: list[str] = []
+    for path, path_item in spec["paths"].items():
+        for method in path_item:
+            upper = method.upper()
+            if upper not in {"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"}:
+                continue
+            if (upper, path) not in live:
+                ghosts.append(f"{upper} {path}")
+
+    assert ghosts == [], f"OpenAPI advertises non-live operations: {ghosts}"
+
+
 def test_openapi_json_and_yaml_are_both_published() -> None:
     assert (FRONTEND / "openapi.json").is_file()
     yaml_text = (FRONTEND / "openapi.yaml").read_text(encoding="utf-8")
