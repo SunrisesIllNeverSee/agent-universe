@@ -7,6 +7,7 @@ All endpoint logic lives in app/routes/*.py — this file is infrastructure only
 from __future__ import annotations
 
 import asyncio
+import hmac
 import logging
 import os
 from pathlib import Path
@@ -334,7 +335,12 @@ def create_app(root: Path | None = None) -> FastAPI:
         digest = _hash_key(auth[7:].strip())
         registry = getattr(getattr(state, "runtime", None), "registry", None) or []
         try:
-            return any(a.get("key_hash") == digest for a in registry)
+            return any(
+                a.get("status") == "active"
+                and bool(a.get("key_hash"))
+                and hmac.compare_digest(a["key_hash"], digest)
+                for a in registry
+            )
         except Exception:
             return False
 
