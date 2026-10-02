@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
+from fastmcp import Client
 
 import civitae_mcp
 from civitae_mcp import (
@@ -19,6 +20,7 @@ from civitae_mcp import (
     CivitaeTimeoutError,
     _fence_post,
     _fence_result,
+    _path_segment,
     headers,
     op_headers,
 )
@@ -227,6 +229,177 @@ class TestHTTPErrorHandling:
             pytest.raises(CivitaeTimeoutError),
         ):
             await civitae_mcp.get("/test")
+
+
+# ── Live server contract parity ───────────────────────────────────────────────
+
+
+class TestToolContractParity:
+    """Tool calls must match the current SIGNOMY REST contract."""
+
+    @pytest.mark.asyncio
+    async def test_heartbeat_uses_agent_api_key_and_is_non_idempotent(self) -> None:
+        mock_post = AsyncMock(return_value={"ok": True})
+        with (
+            patch.object(civitae_mcp, "AGENT_ID", "agent-123"),
+            patch.object(civitae_mcp, "post", mock_post),
+        ):
+            async with Client(civitae_mcp.mcp) as client:
+                await client.call_tool("civitae_heartbeat", {})
+
+        mock_post.assert_awaited_once_with(
+            "/api/provision/heartbeat/agent-123",
+            {},
+            auth="key",
+        )
+
+    @pytest.mark.asyncio
+    async def test_slot_fill_uses_agent_api_key(self) -> None:
+        mock_post = AsyncMock(return_value={"filled": True})
+        with (
+            patch.object(civitae_mcp, "AGENT_ID", "agent-123"),
+            patch.object(civitae_mcp, "AGENT_NAME", "Test Agent"),
+            patch.object(civitae_mcp, "post", mock_post),
+        ):
+            async with Client(civitae_mcp.mcp) as client:
+                await client.call_tool(
+                    "civitae_slots",
+                    {"action": "fill", "slot_id": "slot-1"},
+                )
+
+        mock_post.assert_awaited_once_with(
+            "/api/slots/fill",
+            {
+                "slot_id": "slot-1",
+                "agent_id": "agent-123",
+                "agent_name": "Test Agent",
+            },
+            auth="key",
+        )
+
+    @pytest.mark.asyncio
+    async def test_profile_uses_canonical_agent_route(self) -> None:
+        mock_get = AsyncMock(return_value={"agent_id": "agent-123"})
+        with (
+            patch.object(civitae_mcp, "AGENT_ID", "agent-123"),
+            patch.object(civitae_mcp, "get", mock_get),
+        ):
+            async with Client(civitae_mcp.mcp) as client:
+                await client.call_tool("civitae_profile", {})
+
+        mock_get.assert_awaited_once_with("/api/agents/agent-123")
+
+    @pytest.mark.asyncio
+    async def test_profile_update_uses_canonical_agent_route(self) -> None:
+        mock_patch = AsyncMock(return_value={"ok": True})
+        with (
+            patch.object(civitae_mcp, "AGENT_ID", "agent-123"),
+            patch.object(civitae_mcp, "patch", mock_patch),
+        ):
+            async with Client(civitae_mcp.mcp) as client:
+                await client.call_tool(
+                    "civitae_profile",
+                    {"update": True, "name": "Renamed"},
+                )
+
+        mock_patch.assert_awaited_once_with(
+            "/api/agents/agent-123",
+            {"display_name": "Renamed"},
+        )
+
+    @pytest.mark.asyncio
+    async def test_status_uses_current_governance_meetings_route(self) -> None:
+        async def fake_get(path: str, *args: object, **kwargs: object) -> dict:
+            if path == "/api/governance/meetings":
+                return {"meetings": [{"id": "mtg-1", "status": "open"}]}
+            raise AssertionError(f"unexpected path: {path}")
+
+        with patch.object(civitae_mcp, "get", side_effect=fake_get):
+            async with Client(civitae_mcp.mcp) as client:
+                await client.call_tool(
+                    "civitae_status",
+                    {"me": False, "governance": True},
+                )
+
+    @pytest.mark.asyncio
+    async def test_browse_normalizes_bare_list_response(self) -> None:
+        mock_get = AsyncMock(
+            return_value=[{"id": "K-1", "title": "Untrusted title", "status": "open"}]
+        )
+        with patch.object(civitae_mcp, "get", mock_get):
+            async with Client(civitae_mcp.mcp) as client:
+                result = await client.call_tool("civitae_browse", {})
+
+        data = result.structured_content
+        assert data["count"] == 1
+        assert "[USER_CONTENT_START]" in data["posts"][0]["title"]
+
+    @pytest.mark.asyncio
+    async def test_operator_review_list_normalizes_bare_list_response(self) -> None:
+        mock_get = AsyncMock(return_value=[{"review_id": "rev-K-1", "status": "pending"}])
+        with patch.object(civitae_mcp, "op_get", mock_get):
+            async with Client(civitae_mcp.mcp) as client:
+                result = await client.call_tool(
+                    "civitae_op_reviews",
+                    {"action": "list"},
+                )
+
+        data = result.structured_content
+        assert data == {
+            "reviews": [{"review_id": "rev-K-1", "status": "pending"}],
+            "count": 1,
+        }
+
+    @pytest.mark.asyncio
+    async def test_post_supplies_required_agent_identity(self) -> None:
+        mock_post = AsyncMock(return_value={"ok": True})
+        with (
+            patch.object(civitae_mcp, "AGENT_ID", "agent-123"),
+            patch.object(civitae_mcp, "AGENT_NAME", "Test Agent"),
+            patch.object(civitae_mcp, "AGENT_EMAIL", "test-agent@signomy.xyz"),
+            patch.object(civitae_mcp, "post", mock_post),
+        ):
+            async with Client(civitae_mcp.mcp) as client:
+                await client.call_tool(
+                    "civitae_post",
+                    {
+                        "title": "Need help",
+                        "category": "services",
+                        "body": "Looking for a collaborator",
+                    },
+                )
+
+        body = mock_post.await_args.args[1]
+        assert body["from_name"] == "Test Agent"
+        assert body["from_email"] == "test-agent@signomy.xyz"
+
+    @pytest.mark.asyncio
+    async def test_operator_review_uses_patch_contract(self) -> None:
+        mock_patch = AsyncMock(return_value={"status": "approved"})
+        with patch.object(civitae_mcp, "op_patch", mock_patch):
+            async with Client(civitae_mcp.mcp) as client:
+                await client.call_tool(
+                    "civitae_op_reviews",
+                    {"action": "approve", "post_id": "K-00001"},
+                )
+
+        mock_patch.assert_awaited_once_with(
+            "/api/operator/reviews/rev-K-00001",
+            params={"action": "approve"},
+        )
+
+
+class TestPathSegments:
+    def test_rejects_path_separators(self) -> None:
+        with pytest.raises(ValueError):
+            _path_segment("../admin", "id")
+        with pytest.raises(ValueError):
+            _path_segment("a/b", "id")
+
+    def test_encodes_non_path_characters(self) -> None:
+        assert _path_segment("Agent Name", "id") == "Agent%20Name"
+
+
 
 
 # ── __all__ and public API ────────────────────────────────────────────────────

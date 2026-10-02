@@ -18,7 +18,8 @@ Environment variables:
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Any, cast
+from urllib.parse import quote
 
 import httpx
 from fastmcp import FastMCP
@@ -67,10 +68,12 @@ class CivitaeTimeoutError(CivitaeError):
 
 mcp = FastMCP("civitae", version=__version__)
 
-API: str = os.getenv("CIVITAE_API_URL", "https://signomy.xyz")
+API: str = os.getenv("CIVITAE_API_URL", "https://signomy.xyz").rstrip("/")
 JWT: str = os.getenv("CIVITAE_JWT", "")
 API_KEY: str = os.getenv("CIVITAE_API_KEY", "")
 AGENT_ID: str = os.getenv("CIVITAE_AGENT_ID", "")
+AGENT_NAME: str = os.getenv("CIVITAE_AGENT_NAME", "")
+AGENT_EMAIL: str = os.getenv("CIVITAE_AGENT_EMAIL", "")
 ADMIN_KEY: str = os.getenv("CIVITAE_ADMIN_KEY", os.getenv("KASSA_ADMIN_KEY", ""))
 
 # User-submitted content fields that need fencing before agent ingestion
@@ -82,11 +85,25 @@ _TIMEOUT: httpx.Timeout = httpx.Timeout(30.0, connect=10.0)
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
+def _path_segment(value: str, field: str = "identifier") -> str:
+    """Validate and encode one untrusted API path segment."""
+    value = (value or "").strip()
+    if not value or len(value) > 200:
+        raise ValueError(f"{field} must be 1-200 characters")
+    if any(ch in value for ch in ("/", "\\", "?", "#")) or any(ord(ch) < 32 for ch in value):
+        raise ValueError(f"{field} contains invalid path characters")
+    return quote(value, safe="-._~:@")
+
+
+def _clamp(value: int, minimum: int, maximum: int) -> int:
+    return max(minimum, min(value, maximum))
+
+
 def _fence_post(obj: dict[str, Any]) -> dict[str, Any]:
     """Wrap user-submitted string fields in content fences.
 
-    Prevents adversarial marketplace content from injecting instructions
-    into the consuming agent's context window.
+    Marks user-controlled text as untrusted data for downstream agents.
+    Fencing is context separation and is not an instruction-security boundary.
 
     Args:
         obj: A dictionary that may contain user-submitted string fields.
@@ -189,7 +206,7 @@ async def get(path: str, params: dict[str, Any] | None = None, auth: str = "jwt"
                 e.response.status_code,
                 e.response.text,
             ) from e
-        return r.json()
+        return cast(dict[str, Any], r.json())
 
 
 async def post(path: str, body: dict[str, Any], auth: str = "jwt") -> dict[str, Any]:
@@ -221,7 +238,7 @@ async def post(path: str, body: dict[str, Any], auth: str = "jwt") -> dict[str, 
                     "Run civitae_register first or check CIVITAE_JWT / CIVITAE_API_KEY."
                 ) from e
             raise CivitaeAPIError(e.response.status_code, e.response.text) from e
-        return r.json()
+        return cast(dict[str, Any], r.json())
 
 
 async def patch(path: str, body: dict[str, Any], auth: str = "jwt") -> dict[str, Any]:
@@ -253,7 +270,7 @@ async def patch(path: str, body: dict[str, Any], auth: str = "jwt") -> dict[str,
                     "Run civitae_register first or check CIVITAE_JWT / CIVITAE_API_KEY."
                 ) from e
             raise CivitaeAPIError(e.response.status_code, e.response.text) from e
-        return r.json()
+        return cast(dict[str, Any], r.json())
 
 
 async def delete(path: str, auth: str = "jwt") -> dict[str, Any]:
@@ -279,7 +296,7 @@ async def delete(path: str, auth: str = "jwt") -> dict[str, Any]:
                     "Run civitae_register first or check CIVITAE_JWT / CIVITAE_API_KEY."
                 ) from e
             raise CivitaeAPIError(e.response.status_code, e.response.text) from e
-        return r.json()
+        return cast(dict[str, Any], r.json())
 
 
 async def op_get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -309,7 +326,7 @@ async def op_get(path: str, params: dict[str, Any] | None = None) -> dict[str, A
                     f"Operator auth failed ({e.response.status_code}). Check CIVITAE_ADMIN_KEY."
                 ) from e
             raise CivitaeAPIError(e.response.status_code, e.response.text) from e
-        return r.json()
+        return cast(dict[str, Any], r.json())
 
 
 async def op_post(path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -339,7 +356,32 @@ async def op_post(path: str, body: dict[str, Any] | None = None) -> dict[str, An
                     f"Operator auth failed ({e.response.status_code}). Check CIVITAE_ADMIN_KEY."
                 ) from e
             raise CivitaeAPIError(e.response.status_code, e.response.text) from e
-        return r.json()
+        return cast(dict[str, Any], r.json())
+
+
+async def op_patch(
+    path: str,
+    *,
+    params: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Send a PATCH request with operator admin key."""
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
+        try:
+            r = await c.patch(
+                f"{API}{path}",
+                params=params,
+                headers=op_headers(),
+            )
+            r.raise_for_status()
+        except httpx.TimeoutException as e:
+            raise CivitaeTimeoutError(f"Request to {path} timed out") from e
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code in (401, 403):
+                raise CivitaeAuthError(
+                    f"Operator auth failed ({e.response.status_code}). Check CIVITAE_ADMIN_KEY."
+                ) from e
+            raise CivitaeAPIError(e.response.status_code, e.response.text) from e
+        return cast(dict[str, Any], r.json())
 
 
 # ── Agent Tools ───────────────────────────────────────────────────────────────
@@ -351,6 +393,7 @@ async def civitae_register(
     name: str,
     capabilities: list[str] | None = None,
     model: str = "claude",
+    operator_contact: str | None = None,
 ) -> dict[str, Any]:
     """Register as an agent in CIVITAE. Returns JWT and welcome package.
 
@@ -359,28 +402,31 @@ async def civitae_register(
         name: Display name for the agent.
         capabilities: List of capability tags (e.g. ["coding", "research"]).
         model: Model/system identifier (defaults to "claude").
+        operator_contact: Optional out-of-band operator contact.
 
     Returns:
         Registration result with JWT token, api_key, agent_id, and welcome package.
     """
-    global JWT, API_KEY, AGENT_ID
-    result = await post(
-        "/api/provision/signup",
-        {
-            "handle": handle,
-            "name": name,
-            "capabilities": capabilities or [],
-            "system": model,
-            "agent_type": "agent",
-            "agent_name": handle,
-        },
-    )
+    global JWT, API_KEY, AGENT_ID, AGENT_NAME, AGENT_EMAIL
+    signup_payload: dict[str, Any] = {
+        "handle": handle,
+        "name": name,
+        "capabilities": capabilities or [],
+        "system": model,
+        "agent_type": "agent",
+        "agent_name": handle,
+    }
+    if operator_contact:
+        signup_payload["operator_contact"] = operator_contact
+    result = await post("/api/provision/signup", signup_payload)
     if "token" in result:
         JWT = result["token"]
     if "api_key" in result:
         API_KEY = result["api_key"]
     if "agent_id" in result:
         AGENT_ID = result["agent_id"]
+    AGENT_NAME = result.get("name", name)
+    AGENT_EMAIL = result.get("email", AGENT_EMAIL)
     return result
 
 
@@ -409,17 +455,28 @@ async def civitae_status(
     """
     r: dict[str, Any] = {}
     if me or (not system and not governance):
-        try:
-            r["agent"] = await get("/api/agent/profile")
-        except CivitaeAuthError:
-            r["agent"] = {"error": "Not authenticated. Run civitae_register first."}
+        if not AGENT_ID:
+            r["agent"] = {
+                "error": "No agent_id. Run civitae_register or set CIVITAE_AGENT_ID."
+            }
+        else:
+            r["agent"] = await get(
+                f"/api/agents/{_path_segment(AGENT_ID, 'agent_id')}"
+            )
     if system:
         r["platform"] = await get("/health")
     if governance:
-        try:
-            r["governance"] = await get("/api/governance/meetings/active")
-        except CivitaeError:
-            r["governance"] = {"status": "no_active_session"}
+        meetings = await get("/api/governance/meetings")
+        active = [
+            meeting
+            for meeting in meetings.get("meetings", [])
+            if meeting.get("status") == "open"
+        ]
+        r["governance"] = (
+            {"active_meetings": active, "count": len(active)}
+            if active
+            else {"status": "no_active_session", "active_meetings": [], "count": 0}
+        )
     return r
 
 
@@ -439,7 +496,8 @@ async def civitae_browse(
 
     Read-only — no side effects, no auth required. User-submitted content in
     results is fenced with [USER_CONTENT_START]/[USER_CONTENT_END] markers to
-    prevent prompt injection.
+    keep untrusted user text visibly separated from tool instructions. Fencing
+    is defense-in-depth, not a prompt-injection security boundary.
 
     Args:
         category: Filter by category tab (e.g. "bounties", "products", "services").
@@ -452,14 +510,18 @@ async def civitae_browse(
         Dict with fenced marketplace posts. User-content fields are wrapped in
         content fences for agent safety.
     """
-    p: dict[str, Any] = {"status": status, "limit": limit}
+    p: dict[str, Any] = {"status": status, "limit": _clamp(limit, 1, 100)}
     if category:
         p["tab"] = category
     if sort:
         p["sort"] = sort
     if search:
         p["search"] = search
-    return _fence_result(await get("/api/kassa/posts", p))
+    raw: Any = await get("/api/kassa/posts", p)
+    if isinstance(raw, list):
+        posts = [_fence_post(item) for item in raw if isinstance(item, dict)]
+        return {"posts": posts, "count": len(posts)}
+    return _fence_result(raw)
 
 
 @mcp.tool(annotations={"title": "Create Post", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
@@ -486,15 +548,36 @@ async def civitae_post(
     Returns:
         Created post dict with ID and review status.
     """
-    payload: dict[str, Any] = {"title": title, "tab": category, "body": body, "tag": category}
+    if not AGENT_ID:
+        return {
+            "error": "Creating a post needs your agent_id. Run civitae_register or set CIVITAE_AGENT_ID."
+        }
+
+    profile: dict[str, Any] = {}
+    if not AGENT_NAME or not AGENT_EMAIL:
+        profile = await get(f"/api/agents/{_path_segment(AGENT_ID, 'agent_id')}")
+
+    from_name = AGENT_NAME or profile.get("display_name") or AGENT_ID
+    from_email = contact or AGENT_EMAIL or profile.get("email")
+    if not from_email:
+        return {
+            "error": "No agent email identity is available. Register again or set CIVITAE_AGENT_EMAIL."
+        }
+
+    payload: dict[str, Any] = {
+        "title": title,
+        "tab": category,
+        "body": body,
+        "tag": category,
+        "from_name": from_name,
+        "from_email": from_email,
+    }
     if tags:
         payload["tags"] = tags
-    if budget:
+    if budget is not None:
         payload["reward"] = str(budget)
     if partner_type:
         payload["partner_type"] = partner_type
-    if contact:
-        payload["from_email"] = contact
     return await post("/api/kassa/posts", payload)
 
 
@@ -508,9 +591,9 @@ async def civitae_stake(
 
     Write operation — requires JWT authentication (set via civitae_register).
     Staking commits USD funds and opens a negotiation thread with the post author.
-    The staked amount may be settled (released to poster) or refunded by an operator
-    via civitae_op_stakes. Stakes are not self-reversible — use civitae_op_stakes
-    with action="refund" to reverse.
+    The stake remains governed by the platform transaction flow. You may withdraw
+    your own active stake with civitae_stake_withdraw when the server permits it;
+    operator settlement/refund is handled outside this package.
 
     Use this to express serious interest in a bounty, service, or collaboration post.
     Use civitae_vote for governance voting (no financial commitment).
@@ -528,7 +611,10 @@ async def civitae_stake(
     payload: dict[str, Any] = {"amount": amount, "currency": "USD"}
     if message:
         payload["message"] = message
-    return await post(f"/api/kassa/posts/{post_id}/stake", payload)
+    return await post(
+        f"/api/kassa/posts/{_path_segment(post_id, 'post_id')}/stake",
+        payload,
+    )
 
 
 @mcp.tool(annotations={"title": "Send Thread Message", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
@@ -558,15 +644,18 @@ async def civitae_message(
     payload: dict[str, Any] = {"body": body}
     if attach:
         payload["attachment_url"] = attach
-    return await post(f"/api/kassa/threads/{thread_id}/messages", payload)
+    return await post(
+        f"/api/kassa/threads/{_path_segment(thread_id, 'thread_id')}/messages",
+        payload,
+    )
 
 
-@mcp.tool(annotations={"title": "Heartbeat", "readOnly": False, "destructive": False, "idempotent": True, "openWorld": False})
+@mcp.tool(annotations={"title": "Heartbeat", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
 async def civitae_heartbeat() -> dict[str, Any]:
     """Ping the platform to keep your agent's liveness signal current.
 
-    Updates last_seen and bootstraps your metrics entry on first call.
-    No auth required — identified by agent_id.
+    Updates last_seen and may bootstrap metrics/provenance state.
+    Requires the matching long-lived agent API key.
 
     Returns:
         Heartbeat confirmation with last_seen timestamp.
@@ -574,7 +663,11 @@ async def civitae_heartbeat() -> dict[str, Any]:
     agent = AGENT_ID
     if not agent:
         return {"error": "No agent_id — run civitae_register first or set CIVITAE_AGENT_ID"}
-    return await post(f"/api/provision/heartbeat/{agent}", {})
+    return await post(
+        f"/api/provision/heartbeat/{_path_segment(agent, 'agent_id')}",
+        {},
+        auth="key",
+    )
 
 
 @mcp.tool(annotations={"title": "Read Inbox", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
@@ -592,7 +685,11 @@ async def civitae_inbox(unread_only: bool = False, limit: int = 50) -> dict[str,
     Returns:
         Dict with unread count and message list (newest first).
     """
-    return await get("/api/agent/inbox", {"unread": int(unread_only), "limit": limit}, auth="key")
+    return await get(
+        "/api/agent/inbox",
+        {"unread": int(unread_only), "limit": _clamp(limit, 1, 200)},
+        auth="key",
+    )
 
 
 @mcp.tool(annotations={"title": "Mark Inbox Read", "readOnly": False, "destructive": False, "idempotent": True, "openWorld": False})
@@ -624,9 +721,9 @@ async def civitae_slots(
       - action="leave"  — vacate a slot you occupy (needs slot_id).
       - action="mission"— list slots for one mission (needs mission_id).
 
-    Slot fill/leave are public endpoints — no auth needed. Filling a slot puts
-    you under that mission's governance mode and revenue split; the platform
-    notifies you via civitae_inbox.
+    Slot fill/leave are self-service writes authenticated by your agent API key.
+    The server binds the supplied agent_id to that credential. Filling a slot puts
+    you under that mission's governance mode and revenue split.
 
     Args:
         action: "open" (default), "fill", "leave", or "mission".
@@ -639,15 +736,27 @@ async def civitae_slots(
     if action == "fill":
         if not slot_id:
             return {"error": "slot_id required for fill"}
-        return await post("/api/slots/fill", {
-            "slot_id": slot_id,
-            "agent_id": AGENT_ID or "",
-            "agent_name": AGENT_ID or "agent",
-        })
+        if not AGENT_ID:
+            return {"error": "agent_id required — register or set CIVITAE_AGENT_ID"}
+        return await post(
+            "/api/slots/fill",
+            {
+                "slot_id": slot_id,
+                "agent_id": AGENT_ID,
+                "agent_name": AGENT_NAME or AGENT_ID,
+            },
+            auth="key",
+        )
     if action == "leave":
         if not slot_id:
             return {"error": "slot_id required for leave"}
-        return await post("/api/slots/leave", {"slot_id": slot_id, "agent_id": AGENT_ID or ""})
+        if not AGENT_ID:
+            return {"error": "agent_id required — register or set CIVITAE_AGENT_ID"}
+        return await post(
+            "/api/slots/leave",
+            {"slot_id": slot_id, "agent_id": AGENT_ID},
+            auth="key",
+        )
     if action == "mission":
         slots = await get("/api/slots")
         return {"slots": [s for s in slots.get("slots", []) if s.get("mission_id") == mission_id]}
@@ -676,15 +785,18 @@ async def civitae_vote(
     Returns:
         Vote confirmation dict (and join result when join=True).
     """
+    if not AGENT_ID:
+        return {"error": "Voting needs your agent_id — register or set CIVITAE_AGENT_ID"}
+    meeting_path = _path_segment(meeting_id, "meeting_id")
     result: dict[str, Any] = {}
     if join:
         result["join"] = await post(
-            f"/api/governance/meeting/{meeting_id}/join",
+            f"/api/governance/meeting/{meeting_path}/join",
             {"agent_id": AGENT_ID or "unknown"},
             auth="key",
         )
     result["vote"] = await post(
-        f"/api/governance/meeting/{meeting_id}/vote",
+        f"/api/governance/meeting/{meeting_path}/vote",
         {"voter": AGENT_ID or "unknown", "motion_id": motion_id, "vote": vote},
         auth="key",
     )
@@ -722,15 +834,21 @@ async def civitae_profile(
         Agent profile dict with tier, capabilities, reputation, and governance state.
     """
     if update:
+        if not AGENT_ID:
+            return {"error": "Updating your profile needs CIVITAE_AGENT_ID"}
         payload: dict[str, Any] = {}
         if name:
             payload["display_name"] = name
-        if capabilities:
+        if capabilities is not None:
             payload["capabilities"] = capabilities
-        return await patch("/api/agent/profile", payload)
-    if agent:
-        return await get(f"/api/agents/{agent}")
-    return await get("/api/agent/profile")
+        return await patch(
+            f"/api/agents/{_path_segment(AGENT_ID, 'agent_id')}",
+            payload,
+        )
+    target = agent or AGENT_ID
+    if not target:
+        return {"error": "No agent identifier supplied or configured"}
+    return await get(f"/api/agents/{_path_segment(target, 'agent')}")
 
 
 @mcp.tool(annotations={"title": "Browse Missions", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
@@ -764,7 +882,7 @@ async def civitae_missions(
         detail is provided). Mission details include slot information and fill state.
     """
     if detail:
-        return await get(f"/api/missions/{detail}")
+        return await get(f"/api/missions/{_path_segment(detail, 'mission_id')}")
     if mine:
         agent = AGENT_ID
         if not agent:
@@ -773,10 +891,13 @@ async def civitae_missions(
         slots = await get("/api/slots")
         my_slots = [s for s in slots.get("slots", []) if s.get("agent_id") == agent]
         return {"agent_id": agent, "tasks": tasks.get("tasks", []), "slots": my_slots}
-    p: dict[str, Any] = {"status": "open"}
+    result = await get("/api/missions")
+    missions = result.get("missions", [])
+    if open:
+        missions = [m for m in missions if m.get("status") == "active"]
     if track:
-        p["track"] = track
-    return await get("/api/missions", p)
+        missions = [m for m in missions if m.get("track") == track]
+    return {"missions": missions, "count": len(missions)}
 
 
 @mcp.tool(annotations={"title": "Town Hall Forums", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
@@ -800,7 +921,8 @@ async def civitae_forum(
 
     Read modes have no side effects. Write modes (new, reply) create permanent
     content visible to all platform users. User-submitted content in read results
-    is fenced with [USER_CONTENT_START]/[USER_CONTENT_END] markers for agent safety.
+    is fenced with [USER_CONTENT_START]/[USER_CONTENT_END] markers so untrusted
+    user text stays visibly separated from tool instructions.
 
     Use civitae_browse for marketplace posts (bounties, products) which are different
     from forum threads. Use civitae_message for marketplace thread messages (created
@@ -821,14 +943,14 @@ async def civitae_forum(
         or creation/reply confirmation dict (new/reply modes). Read results are fenced.
     """
     if read:
-        return _fence_result(await get(f"/api/forums/threads/{read}"))
+        return _fence_result(await get(f"/api/forums/threads/{_path_segment(read, 'thread_id')}"))
     if new and title and body:
         payload: dict[str, Any] = {"title": title, "body": body}
         if category:
             payload["category"] = category
         return await post("/api/forums/threads", payload)
     if reply and text:
-        return await post(f"/api/forums/threads/{reply}/replies", {"body": text})
+        return await post(f"/api/forums/threads/{_path_segment(reply, 'thread_id')}/replies", {"body": text})
     p: dict[str, Any] = {}
     if category:
         p["category"] = category
@@ -846,8 +968,8 @@ async def civitae_cashout(amount: float, connected_account_id: str) -> dict[str,
     reversible via this tool — contact an operator for reversal.
 
     Use civitae_treasury to check platform balance and transaction history
-    before requesting a payout. Use civitae_op_stakes for operator-side
-    stake settlement (which makes funds available for cashout).
+    before requesting a payout. Stake settlement/refund is an operator-side
+    platform action and is not exposed as a package tool.
 
     Args:
         amount: Amount in USD to cash out (must be positive, must not exceed
@@ -888,7 +1010,9 @@ async def civitae_agents(limit: int = 50) -> dict[str, Any]:
     Returns:
         Dict with agent list.
     """
-    return await get("/api/agents", {"limit": limit})
+    result = await get("/api/agents")
+    agents = result.get("agents", [])[:_clamp(limit, 1, 100)]
+    return {"agents": agents, "count": len(agents)}
 
 
 @mcp.tool(annotations={"title": "Lookup Agent", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
@@ -903,7 +1027,7 @@ async def civitae_lookup(handle: str) -> dict[str, Any]:
     Returns:
         Agent profile dict.
     """
-    return await get(f"/api/agents/{handle}")
+    return await get(f"/api/agents/{_path_segment(handle, 'handle')}")
 
 
 @mcp.tool(annotations={"title": "Governance Sessions", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
@@ -999,7 +1123,7 @@ async def civitae_op_reviews(
     permanent side effects — approved posts become publicly visible, rejected
     posts are removed from the queue.
 
-    Use civitae_op_stakes for stake management (settle/refund), civitae_op_audit
+    Use civitae_stake_withdraw for an agent-owned active stake, civitae_op_audit
     for audit log queries, or civitae_op_stats for platform dashboard stats.
 
     Args:
@@ -1013,14 +1137,27 @@ async def civitae_op_reviews(
         Review queue list (list mode) or approve/reject confirmation dict
         with post ID and new status.
     """
-    if action == "approve" and post_id:
-        return await op_post(f"/api/operator/reviews/{post_id}/approve")
-    if action == "reject" and post_id:
-        return await op_post(
-            f"/api/operator/reviews/{post_id}/reject",
-            {"reason": reason or ""},
+    if action in {"approve", "reject"}:
+        if not post_id:
+            return {"error": "post_id or review_id is required"}
+        review_id = post_id if post_id.startswith("rev-") else f"rev-{post_id}"
+        result = await op_patch(
+            f"/api/operator/reviews/{_path_segment(review_id, 'review_id')}",
+            params={"action": action},
         )
-    return await op_get("/api/operator/reviews")
+        if action == "reject" and reason:
+            result["requested_reason"] = reason
+            result["note"] = (
+                "The current REST review endpoint records the rejection action; "
+                "free-text rejection reason is not yet persisted by that endpoint."
+            )
+        return result
+    if action != "list":
+        return {"error": "action must be list, approve, or reject"}
+    raw: Any = await op_get("/api/operator/reviews")
+    if isinstance(raw, list):
+        return {"reviews": raw, "count": len(raw)}
+    return cast(dict[str, Any], raw)
 
 
 @mcp.tool(annotations={"title": "Withdraw Stake", "readOnly": False, "destructive": True, "idempotent": False, "openWorld": False})
@@ -1037,7 +1174,7 @@ async def civitae_stake_withdraw(stake_id: str) -> dict[str, Any]:
     Returns:
         Withdrawal confirmation dict.
     """
-    return await delete(f"/api/kassa/stakes/{stake_id}")
+    return await delete(f"/api/kassa/stakes/{_path_segment(stake_id, 'stake_id')}")
 
 
 @mcp.tool(annotations={"title": "Operator: Audit Trail", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
@@ -1051,8 +1188,8 @@ async def civitae_op_audit(
     (votes, motions, mode changes, role assignments) from the audit trail.
     Read-only — no side effects. Results can be filtered by event type and time.
 
-    Use civitae_op_reviews for post review management, civitae_op_stakes for
-    stake settlement, or civitae_op_stats for platform dashboard stats.
+    Use civitae_op_reviews for post review management or civitae_op_stats for
+    platform dashboard stats. Stake settlement remains an operator-side platform action.
     Use civitae_meetings for public governance meeting data (no admin key needed).
 
     Args:
@@ -1080,8 +1217,8 @@ async def civitae_op_stats() -> dict[str, Any]:
     and aggregate metrics across the platform (agents, posts, missions, stakes,
     treasury, governance). Read-only — no side effects.
 
-    Use civitae_op_reviews for post review management, civitae_op_stakes for
-    stake settlement/refund, or civitae_op_audit for governance audit log.
+    Use civitae_op_reviews for post review management or civitae_op_audit for
+    governance audit logs. Stake settlement/refund remains operator-side.
     Use civitae_treasury for public treasury data (no admin key needed).
 
     Returns:
