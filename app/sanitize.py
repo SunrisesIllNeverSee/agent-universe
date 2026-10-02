@@ -28,7 +28,7 @@ _INJECTION_PATTERNS = [
     r"pretend\s+(you\s+are|you're|that)",
     r"jailbreak",
     r"dan\s+mode",
-    r"(?m)^\s*(system|assistant|developer)\s*:\s*",
+    r"^\s*(system|assistant|developer)\s*:\s*",
 ]
 
 _INJECTION_RE = re.compile("|".join(_INJECTION_PATTERNS), re.IGNORECASE | re.MULTILINE)
