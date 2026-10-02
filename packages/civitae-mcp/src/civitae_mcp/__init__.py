@@ -1157,7 +1157,7 @@ async def civitae_op_reviews(
     raw: Any = await op_get("/api/operator/reviews")
     if isinstance(raw, list):
         return {"reviews": raw, "count": len(raw)}
-    return raw
+    return cast(dict[str, Any], raw)
 
 
 @mcp.tool(annotations={"title": "Withdraw Stake", "readOnly": False, "destructive": True, "idempotent": False, "openWorld": False})
