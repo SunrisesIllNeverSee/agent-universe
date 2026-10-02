@@ -16,6 +16,30 @@ def test_health_returns_ok(client):
     assert "ts" in data
 
 
+
+def test_readiness_reports_initialized_dependencies(client):
+    r = client.get("/api/ready")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["ready"] is True
+    assert all(data["checks"].values())
+
+
+def test_readiness_returns_503_when_mcp_not_ready(client):
+    from app.deps import state
+
+    original = state.mcp_ready
+    try:
+        state.mcp_ready = False
+        r = client.get("/api/ready")
+        assert r.status_code == 503
+        data = r.json()
+        assert data["ready"] is False
+        assert data["checks"]["mcp"] is False
+    finally:
+        state.mcp_ready = original
+
+
 def test_state_returns_snapshot(client):
     r = client.get("/api/state")
     assert r.status_code == 200
