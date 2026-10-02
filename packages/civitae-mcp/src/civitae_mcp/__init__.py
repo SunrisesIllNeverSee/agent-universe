@@ -587,9 +587,9 @@ async def civitae_stake(
 
     Write operation — requires JWT authentication (set via civitae_register).
     Staking commits USD funds and opens a negotiation thread with the post author.
-    The staked amount may be settled (released to poster) or refunded by an operator
-    via civitae_op_stakes. Stakes are not self-reversible — use civitae_op_stakes
-    with action="refund" to reverse.
+    The stake remains governed by the platform transaction flow. You may withdraw
+    your own active stake with civitae_stake_withdraw when the server permits it;
+    operator settlement/refund is handled outside this package.
 
     Use this to express serious interest in a bounty, service, or collaboration post.
     Use civitae_vote for governance voting (no financial commitment).
@@ -607,7 +607,10 @@ async def civitae_stake(
     payload: dict[str, Any] = {"amount": amount, "currency": "USD"}
     if message:
         payload["message"] = message
-    return await post(f"/api/kassa/posts/{post_id}/stake", payload)
+    return await post(
+        f"/api/kassa/posts/{_path_segment(post_id, 'post_id')}/stake",
+        payload,
+    )
 
 
 @mcp.tool(annotations={"title": "Send Thread Message", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
@@ -637,15 +640,18 @@ async def civitae_message(
     payload: dict[str, Any] = {"body": body}
     if attach:
         payload["attachment_url"] = attach
-    return await post(f"/api/kassa/threads/{thread_id}/messages", payload)
+    return await post(
+        f"/api/kassa/threads/{_path_segment(thread_id, 'thread_id')}/messages",
+        payload,
+    )
 
 
-@mcp.tool(annotations={"title": "Heartbeat", "readOnly": False, "destructive": False, "idempotent": True, "openWorld": False})
+@mcp.tool(annotations={"title": "Heartbeat", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
 async def civitae_heartbeat() -> dict[str, Any]:
     """Ping the platform to keep your agent's liveness signal current.
 
-    Updates last_seen and bootstraps your metrics entry on first call.
-    No auth required — identified by agent_id.
+    Updates last_seen and may bootstrap metrics/provenance state.
+    Requires the matching long-lived agent API key.
 
     Returns:
         Heartbeat confirmation with last_seen timestamp.
@@ -653,7 +659,11 @@ async def civitae_heartbeat() -> dict[str, Any]:
     agent = AGENT_ID
     if not agent:
         return {"error": "No agent_id — run civitae_register first or set CIVITAE_AGENT_ID"}
-    return await post(f"/api/provision/heartbeat/{agent}", {})
+    return await post(
+        f"/api/provision/heartbeat/{_path_segment(agent, 'agent_id')}",
+        {},
+        auth="key",
+    )
 
 
 @mcp.tool(annotations={"title": "Read Inbox", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
@@ -671,7 +681,11 @@ async def civitae_inbox(unread_only: bool = False, limit: int = 50) -> dict[str,
     Returns:
         Dict with unread count and message list (newest first).
     """
-    return await get("/api/agent/inbox", {"unread": int(unread_only), "limit": limit}, auth="key")
+    return await get(
+        "/api/agent/inbox",
+        {"unread": int(unread_only), "limit": _clamp(limit, 1, 200)},
+        auth="key",
+    )
 
 
 @mcp.tool(annotations={"title": "Mark Inbox Read", "readOnly": False, "destructive": False, "idempotent": True, "openWorld": False})
@@ -703,9 +717,9 @@ async def civitae_slots(
       - action="leave"  — vacate a slot you occupy (needs slot_id).
       - action="mission"— list slots for one mission (needs mission_id).
 
-    Slot fill/leave are public endpoints — no auth needed. Filling a slot puts
-    you under that mission's governance mode and revenue split; the platform
-    notifies you via civitae_inbox.
+    Slot fill/leave are self-service writes authenticated by your agent API key.
+    The server binds the supplied agent_id to that credential. Filling a slot puts
+    you under that mission's governance mode and revenue split.
 
     Args:
         action: "open" (default), "fill", "leave", or "mission".
@@ -718,15 +732,27 @@ async def civitae_slots(
     if action == "fill":
         if not slot_id:
             return {"error": "slot_id required for fill"}
-        return await post("/api/slots/fill", {
-            "slot_id": slot_id,
-            "agent_id": AGENT_ID or "",
-            "agent_name": AGENT_ID or "agent",
-        })
+        if not AGENT_ID:
+            return {"error": "agent_id required — register or set CIVITAE_AGENT_ID"}
+        return await post(
+            "/api/slots/fill",
+            {
+                "slot_id": slot_id,
+                "agent_id": AGENT_ID,
+                "agent_name": AGENT_NAME or AGENT_ID,
+            },
+            auth="key",
+        )
     if action == "leave":
         if not slot_id:
             return {"error": "slot_id required for leave"}
-        return await post("/api/slots/leave", {"slot_id": slot_id, "agent_id": AGENT_ID or ""})
+        if not AGENT_ID:
+            return {"error": "agent_id required — register or set CIVITAE_AGENT_ID"}
+        return await post(
+            "/api/slots/leave",
+            {"slot_id": slot_id, "agent_id": AGENT_ID},
+            auth="key",
+        )
     if action == "mission":
         slots = await get("/api/slots")
         return {"slots": [s for s in slots.get("slots", []) if s.get("mission_id") == mission_id]}
@@ -755,15 +781,18 @@ async def civitae_vote(
     Returns:
         Vote confirmation dict (and join result when join=True).
     """
+    if not AGENT_ID:
+        return {"error": "Voting needs your agent_id — register or set CIVITAE_AGENT_ID"}
+    meeting_path = _path_segment(meeting_id, "meeting_id")
     result: dict[str, Any] = {}
     if join:
         result["join"] = await post(
-            f"/api/governance/meeting/{meeting_id}/join",
+            f"/api/governance/meeting/{meeting_path}/join",
             {"agent_id": AGENT_ID or "unknown"},
             auth="key",
         )
     result["vote"] = await post(
-        f"/api/governance/meeting/{meeting_id}/vote",
+        f"/api/governance/meeting/{meeting_path}/vote",
         {"voter": AGENT_ID or "unknown", "motion_id": motion_id, "vote": vote},
         auth="key",
     )
@@ -801,15 +830,21 @@ async def civitae_profile(
         Agent profile dict with tier, capabilities, reputation, and governance state.
     """
     if update:
+        if not AGENT_ID:
+            return {"error": "Updating your profile needs CIVITAE_AGENT_ID"}
         payload: dict[str, Any] = {}
         if name:
             payload["display_name"] = name
-        if capabilities:
+        if capabilities is not None:
             payload["capabilities"] = capabilities
-        return await patch("/api/agent/profile", payload)
-    if agent:
-        return await get(f"/api/agents/{agent}")
-    return await get("/api/agent/profile")
+        return await patch(
+            f"/api/agents/{_path_segment(AGENT_ID, 'agent_id')}",
+            payload,
+        )
+    target = agent or AGENT_ID
+    if not target:
+        return {"error": "No agent identifier supplied or configured"}
+    return await get(f"/api/agents/{_path_segment(target, 'agent')}")
 
 
 @mcp.tool(annotations={"title": "Browse Missions", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
@@ -843,7 +878,7 @@ async def civitae_missions(
         detail is provided). Mission details include slot information and fill state.
     """
     if detail:
-        return await get(f"/api/missions/{detail}")
+        return await get(f"/api/missions/{_path_segment(detail, 'mission_id')}")
     if mine:
         agent = AGENT_ID
         if not agent:
@@ -852,10 +887,13 @@ async def civitae_missions(
         slots = await get("/api/slots")
         my_slots = [s for s in slots.get("slots", []) if s.get("agent_id") == agent]
         return {"agent_id": agent, "tasks": tasks.get("tasks", []), "slots": my_slots}
-    p: dict[str, Any] = {"status": "open"}
+    result = await get("/api/missions")
+    missions = result.get("missions", [])
+    if open:
+        missions = [m for m in missions if m.get("status") == "active"]
     if track:
-        p["track"] = track
-    return await get("/api/missions", p)
+        missions = [m for m in missions if m.get("track") == track]
+    return {"missions": missions, "count": len(missions)}
 
 
 @mcp.tool(annotations={"title": "Town Hall Forums", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
@@ -879,7 +917,8 @@ async def civitae_forum(
 
     Read modes have no side effects. Write modes (new, reply) create permanent
     content visible to all platform users. User-submitted content in read results
-    is fenced with [USER_CONTENT_START]/[USER_CONTENT_END] markers for agent safety.
+    is fenced with [USER_CONTENT_START]/[USER_CONTENT_END] markers so untrusted
+    user text stays visibly separated from tool instructions.
 
     Use civitae_browse for marketplace posts (bounties, products) which are different
     from forum threads. Use civitae_message for marketplace thread messages (created
@@ -900,14 +939,14 @@ async def civitae_forum(
         or creation/reply confirmation dict (new/reply modes). Read results are fenced.
     """
     if read:
-        return _fence_result(await get(f"/api/forums/threads/{read}"))
+        return _fence_result(await get(f"/api/forums/threads/{_path_segment(read, 'thread_id')}"))
     if new and title and body:
         payload: dict[str, Any] = {"title": title, "body": body}
         if category:
             payload["category"] = category
         return await post("/api/forums/threads", payload)
     if reply and text:
-        return await post(f"/api/forums/threads/{reply}/replies", {"body": text})
+        return await post(f"/api/forums/threads/{_path_segment(reply, 'thread_id')}/replies", {"body": text})
     p: dict[str, Any] = {}
     if category:
         p["category"] = category
@@ -925,8 +964,8 @@ async def civitae_cashout(amount: float, connected_account_id: str) -> dict[str,
     reversible via this tool — contact an operator for reversal.
 
     Use civitae_treasury to check platform balance and transaction history
-    before requesting a payout. Use civitae_op_stakes for operator-side
-    stake settlement (which makes funds available for cashout).
+    before requesting a payout. Stake settlement/refund is an operator-side
+    platform action and is not exposed as a package tool.
 
     Args:
         amount: Amount in USD to cash out (must be positive, must not exceed
@@ -967,7 +1006,9 @@ async def civitae_agents(limit: int = 50) -> dict[str, Any]:
     Returns:
         Dict with agent list.
     """
-    return await get("/api/agents", {"limit": limit})
+    result = await get("/api/agents")
+    agents = result.get("agents", [])[:_clamp(limit, 1, 100)]
+    return {"agents": agents, "count": len(agents)}
 
 
 @mcp.tool(annotations={"title": "Lookup Agent", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
@@ -982,7 +1023,7 @@ async def civitae_lookup(handle: str) -> dict[str, Any]:
     Returns:
         Agent profile dict.
     """
-    return await get(f"/api/agents/{handle}")
+    return await get(f"/api/agents/{_path_segment(handle, 'handle')}")
 
 
 @mcp.tool(annotations={"title": "Governance Sessions", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
@@ -1078,7 +1119,7 @@ async def civitae_op_reviews(
     permanent side effects — approved posts become publicly visible, rejected
     posts are removed from the queue.
 
-    Use civitae_op_stakes for stake management (settle/refund), civitae_op_audit
+    Use civitae_stake_withdraw for an agent-owned active stake, civitae_op_audit
     for audit log queries, or civitae_op_stats for platform dashboard stats.
 
     Args:
@@ -1092,13 +1133,23 @@ async def civitae_op_reviews(
         Review queue list (list mode) or approve/reject confirmation dict
         with post ID and new status.
     """
-    if action == "approve" and post_id:
-        return await op_post(f"/api/operator/reviews/{post_id}/approve")
-    if action == "reject" and post_id:
-        return await op_post(
-            f"/api/operator/reviews/{post_id}/reject",
-            {"reason": reason or ""},
+    if action in {"approve", "reject"}:
+        if not post_id:
+            return {"error": "post_id or review_id is required"}
+        review_id = post_id if post_id.startswith("rev-") else f"rev-{post_id}"
+        result = await op_patch(
+            f"/api/operator/reviews/{_path_segment(review_id, 'review_id')}",
+            params={"action": action},
         )
+        if action == "reject" and reason:
+            result["requested_reason"] = reason
+            result["note"] = (
+                "The current REST review endpoint records the rejection action; "
+                "free-text rejection reason is not yet persisted by that endpoint."
+            )
+        return result
+    if action != "list":
+        return {"error": "action must be list, approve, or reject"}
     return await op_get("/api/operator/reviews")
 
 
@@ -1116,7 +1167,7 @@ async def civitae_stake_withdraw(stake_id: str) -> dict[str, Any]:
     Returns:
         Withdrawal confirmation dict.
     """
-    return await delete(f"/api/kassa/stakes/{stake_id}")
+    return await delete(f"/api/kassa/stakes/{_path_segment(stake_id, 'stake_id')}")
 
 
 @mcp.tool(annotations={"title": "Operator: Audit Trail", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
