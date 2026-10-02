@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import os
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 from fastmcp import FastMCP
@@ -67,10 +68,12 @@ class CivitaeTimeoutError(CivitaeError):
 
 mcp = FastMCP("civitae", version=__version__)
 
-API: str = os.getenv("CIVITAE_API_URL", "https://signomy.xyz")
+API: str = os.getenv("CIVITAE_API_URL", "https://signomy.xyz").rstrip("/")
 JWT: str = os.getenv("CIVITAE_JWT", "")
 API_KEY: str = os.getenv("CIVITAE_API_KEY", "")
 AGENT_ID: str = os.getenv("CIVITAE_AGENT_ID", "")
+AGENT_NAME: str = os.getenv("CIVITAE_AGENT_NAME", "")
+AGENT_EMAIL: str = os.getenv("CIVITAE_AGENT_EMAIL", "")
 ADMIN_KEY: str = os.getenv("CIVITAE_ADMIN_KEY", os.getenv("KASSA_ADMIN_KEY", ""))
 
 # User-submitted content fields that need fencing before agent ingestion
@@ -82,11 +85,25 @@ _TIMEOUT: httpx.Timeout = httpx.Timeout(30.0, connect=10.0)
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
+def _path_segment(value: str, field: str = "identifier") -> str:
+    """Validate and encode one untrusted API path segment."""
+    value = (value or "").strip()
+    if not value or len(value) > 200:
+        raise ValueError(f"{field} must be 1-200 characters")
+    if any(ch in value for ch in ("/", "\\", "?", "#")) or any(ord(ch) < 32 for ch in value):
+        raise ValueError(f"{field} contains invalid path characters")
+    return quote(value, safe="-._~:@")
+
+
+def _clamp(value: int, minimum: int, maximum: int) -> int:
+    return max(minimum, min(value, maximum))
+
+
 def _fence_post(obj: dict[str, Any]) -> dict[str, Any]:
     """Wrap user-submitted string fields in content fences.
 
-    Prevents adversarial marketplace content from injecting instructions
-    into the consuming agent's context window.
+    Marks user-controlled text as untrusted data for downstream agents.
+    Fencing is context separation and is not an instruction-security boundary.
 
     Args:
         obj: A dictionary that may contain user-submitted string fields.
