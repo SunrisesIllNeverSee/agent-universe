@@ -70,3 +70,38 @@ def test_mcp_exposes_expected_registration_tool(app):
     assert "agent.inbox" in names
     assert "agent.inbox.read" in names
     assert len(names) == 30
+
+def test_mcp_api_key_lookup_does_not_reload_registry(client, monkeypatch):
+    """ST-007: authenticated MCP lookup stays in-memory in single-worker production."""
+    from app.deps import state
+    from tests.conftest import signup_agent
+
+    response = signup_agent(
+        client,
+        name=f"MCP Lookup {uuid.uuid4().hex[:8]}",
+        ip=f"10.44.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}",
+    )
+    assert response.status_code == 200
+    api_key = response.json()["api_key"]
+
+    reload_calls = 0
+    original_reload = state.runtime.reload_registry
+
+    def counted_reload():
+        nonlocal reload_calls
+        reload_calls += 1
+        return original_reload()
+
+    monkeypatch.setattr(state.runtime, "reload_registry", counted_reload)
+
+    mcp = state.mcp_bridge.build_fastmcp()
+    result = asyncio.run(
+        mcp.call_tool(
+            "agent.inbox",
+            {"api_key": api_key, "limit": 1},
+        )
+    )
+
+    assert result is not None
+    assert reload_calls == 0
+
