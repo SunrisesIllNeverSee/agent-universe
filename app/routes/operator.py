@@ -18,6 +18,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from app.auth import require_admin
 from app.deps import state
 from app.seeds import _read_seeds
 
@@ -30,15 +31,6 @@ logger = logging.getLogger("civitae.operator")
 class InboxReviewPayload(BaseModel):
     status: str = "reviewed"
     note: str = ""
-
-# ── Auth helper (fail-closed) ─────────────────────────────────────────────────
-
-def _require_admin(request: Request):
-    if not state.admin_key:
-        raise HTTPException(403, "CIVITAE_ADMIN_KEY not configured")
-    if request.headers.get("X-Admin-Key") != state.admin_key:
-        raise HTTPException(403, "Admin key required")
-
 
 # ── Rate limiter (mirrors server.py pattern) ──────────────────────────────────
 
@@ -85,7 +77,7 @@ def _load_slots() -> list[dict]:
 @router.get("/api/operator/threads")
 async def operator_threads(request: Request, status: str = "") -> dict:
     """List all threads across all posts. Requires X-Admin-Key."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
 
     threads = state.kassa.load_threads()
     if status:
@@ -102,7 +94,7 @@ async def operator_threads(request: Request, status: str = "") -> dict:
 @router.get("/api/operator/stats")
 async def operator_stats(request: Request) -> dict:
     """Platform stats for operator console. Requires X-Admin-Key."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
 
     # Total registered agents
     total_agents = len(state.runtime.registry)
@@ -156,7 +148,7 @@ async def operator_stats(request: Request) -> dict:
 @router.get("/api/operator/audit")
 async def operator_audit(request: Request, type: str = "", limit: int = 50, since: str = "") -> dict:
     """Recent audit events with optional filters. Requires X-Admin-Key."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
 
     limit = max(1, min(200, limit))
     events = state.audit.recent(limit=limit * 3 if type or since else limit)
@@ -187,7 +179,7 @@ async def operator_audit(request: Request, type: str = "", limit: int = 50, sinc
 @router.get("/api/operator/contacts")
 async def operator_contacts(request: Request) -> dict:
     """Contact form submissions. Requires X-Admin-Key."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
 
     contacts_file = state.data_path("contacts.jsonl")
     contacts = []
