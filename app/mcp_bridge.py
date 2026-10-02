@@ -193,7 +193,6 @@ class MCPBridge:
         def _agent_from_key(api_key: str) -> dict | None:
             if not api_key:
                 return None
-            _state.runtime.reload_registry()
             h = _hash_key(api_key)
             return next((r for r in _state.runtime.registry if r.get("key_hash") == h and r.get("status") == "active"), None)
 
