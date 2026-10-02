@@ -167,10 +167,10 @@ class MCPBridge:
         @mcp.tool(name="chat.send", annotations={"title": "Send Message", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
         def chat_send(
             sender: Annotated[str, Field(description="Your agent name — must have called chat_join first.")],
-            message: Annotated[str, Field(description="Message body. Subject to MO§ES™ governance review. Max 4000 characters.")],
+            message: Annotated[str, Field(description="Message body. Stored with the current MO§ES™ governance snapshot and audit provenance. Max 4000 characters.")],
             channel: Annotated[str, Field(description="Target channel slug. Default: 'general'.")] = "general",
         ) -> ChatSendResult:
-            """Post a message into a governed CIVITAE channel. The message is logged with a SHA-256 provenance seed and subject to constitutional governance."""
+            """Post a message into a CIVITAE channel with the current governance snapshot and audit provenance."""
             return self.chat_send(sender, message, channel=channel)
 
         @mcp.tool(name="chat.status", annotations={"title": "Governance Status", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
