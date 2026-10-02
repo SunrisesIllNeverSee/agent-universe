@@ -8,9 +8,15 @@ Note: All governance POST endpoints are admin-gated.
 """
 import uuid
 
+from tests.conftest import signup_agent
+
 
 def _caller():
     return f"agent-{uuid.uuid4().hex[:6]}"
+
+
+def _ip():
+    return f"10.77.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}"
 
 
 def test_list_meetings_empty(client):
@@ -114,6 +120,86 @@ def test_full_meeting_lifecycle(admin_client):
     if motions:
         passed = [m for m in motions if m["id"] == motion_id]
         assert passed[0]["status"] == "passed"
+
+
+def test_agent_key_cannot_call_meeting_as_another_agent(client):
+    a = signup_agent(client, ip=_ip()).json()
+    b = signup_agent(client, ip=_ip()).json()
+
+    r = client.post(
+        "/api/governance/meeting",
+        json={"caller": b["agent_id"], "subject": "Impersonation probe", "quorum": 1},
+        headers={"Authorization": f"Bearer {a['api_key']}"},
+    )
+
+    assert r.status_code == 403
+
+
+def test_agent_governance_identity_is_bound_to_api_key(client):
+    a = signup_agent(client, ip=_ip()).json()
+    b = signup_agent(client, ip=_ip()).json()
+    a_headers = {"Authorization": f"Bearer {a['api_key']}"}
+    b_headers = {"Authorization": f"Bearer {b['api_key']}"}
+
+    create = client.post(
+        "/api/governance/meeting",
+        json={"caller": a["agent_id"], "subject": "Bound identity", "quorum": 2},
+        headers=a_headers,
+    )
+    assert create.status_code == 200
+    meeting_id = create.json()["id"]
+
+    wrong_join = client.post(
+        f"/api/governance/meeting/{meeting_id}/join",
+        json={"agent_id": b["agent_id"]},
+        headers=a_headers,
+    )
+    assert wrong_join.status_code == 403
+
+    join = client.post(
+        f"/api/governance/meeting/{meeting_id}/join",
+        json={"agent_id": b["agent_id"]},
+        headers=b_headers,
+    )
+    assert join.status_code == 200
+
+    motion = client.post(
+        f"/api/governance/meeting/{meeting_id}/motion",
+        json={"proposer": a["agent_id"], "motion": "Bind actor identity"},
+        headers=a_headers,
+    )
+    assert motion.status_code == 200
+    motion_id = motion.json()["id"]
+
+    wrong_vote = client.post(
+        f"/api/governance/meeting/{meeting_id}/vote",
+        json={"voter": b["agent_id"], "motion_id": motion_id, "vote": "yea"},
+        headers=a_headers,
+    )
+    assert wrong_vote.status_code == 403
+
+    vote = client.post(
+        f"/api/governance/meeting/{meeting_id}/vote",
+        json={"voter": b["agent_id"], "motion_id": motion_id, "vote": "yea"},
+        headers=b_headers,
+    )
+    assert vote.status_code == 200
+
+    wrong_adjourn = client.post(
+        f"/api/governance/meeting/{meeting_id}/adjourn",
+        json={},
+        headers=b_headers,
+    )
+    assert wrong_adjourn.status_code == 403
+
+    adjourn = client.post(
+        f"/api/governance/meeting/{meeting_id}/adjourn",
+        json={},
+        headers=a_headers,
+    )
+    assert adjourn.status_code == 200
+
+
 
 
 def test_governance_sessions(client):

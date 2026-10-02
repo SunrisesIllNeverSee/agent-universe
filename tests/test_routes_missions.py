@@ -110,12 +110,12 @@ def test_slots_create_requires_admin(client):
     assert r.status_code == 403
 
 
-def test_slot_fill_requires_registered_agent(client):
+def test_slot_fill_requires_agent_auth(client):
     r = client.post("/api/slots/fill", json={
         "slot_id": "slot-nonexistent",
         "agent_id": "ghost-agent-xyz",
     })
-    assert r.status_code == 403
+    assert r.status_code == 401
 
 
 def test_slot_fill_missing_agent_id_400(client):
@@ -126,12 +126,14 @@ def test_slot_fill_missing_agent_id_400(client):
 def test_slot_fill_nonexistent_slot_404(client):
     # Register real agent first
     signup = signup_agent(client, ip=_unique_ip())
-    agent_id = signup.json()["agent_id"]
+    data = signup.json()
+    agent_id = data["agent_id"]
 
-    r = client.post("/api/slots/fill", json={
-        "slot_id": "slot-does-not-exist-xyz",
-        "agent_id": agent_id,
-    })
+    r = client.post(
+        "/api/slots/fill",
+        json={"slot_id": "slot-does-not-exist-xyz", "agent_id": agent_id},
+        headers={"Authorization": f"Bearer {data['api_key']}"},
+    )
     assert r.status_code == 404
 
 
@@ -158,16 +160,54 @@ def test_slot_full_lifecycle(client, admin_client):
 
     # Register agent
     signup = signup_agent(client, ip=_unique_ip())
-    agent_id = signup.json()["agent_id"]
+    data = signup.json()
+    agent_id = data["agent_id"]
+    headers = {"Authorization": f"Bearer {data['api_key']}"}
 
     # Fill
-    fill = client.post("/api/slots/fill", json={"slot_id": slot_id, "agent_id": agent_id})
+    fill = client.post(
+        "/api/slots/fill",
+        json={"slot_id": slot_id, "agent_id": agent_id},
+        headers=headers,
+    )
     assert fill.status_code == 200
     assert fill.json()["filled"] is True
 
     # Leave
-    leave = client.post("/api/slots/leave", json={"slot_id": slot_id, "agent_id": agent_id})
+    leave = client.post(
+        "/api/slots/leave",
+        json={"slot_id": slot_id, "agent_id": agent_id},
+        headers=headers,
+    )
     assert leave.status_code == 200
+
+
+def test_slot_fill_rejects_claiming_another_agent(client):
+    a = signup_agent(client, ip=_unique_ip()).json()
+    b = signup_agent(client, ip=_unique_ip()).json()
+
+    r = client.post(
+        "/api/slots/fill",
+        json={"slot_id": "slot-does-not-matter", "agent_id": b["agent_id"]},
+        headers={"Authorization": f"Bearer {a['api_key']}"},
+    )
+
+    assert r.status_code == 403
+
+
+def test_slot_leave_rejects_claiming_another_agent(client):
+    a = signup_agent(client, ip=_unique_ip()).json()
+    b = signup_agent(client, ip=_unique_ip()).json()
+
+    r = client.post(
+        "/api/slots/leave",
+        json={"slot_id": "slot-does-not-matter", "agent_id": b["agent_id"]},
+        headers={"Authorization": f"Bearer {a['api_key']}"},
+    )
+
+    assert r.status_code == 403
+
+
 
 
 # ── Campaigns ─────────────────────────────────────────────────────────────────
@@ -246,6 +286,24 @@ def test_bounty_post_requires_admin(client):
         "label": "Ghost bounty",
         "slots_needed": 2,
     })
+    assert r.status_code == 403
+
+
+def test_bounty_agent_key_cannot_attribute_to_another_agent(client):
+    a = signup_agent(client, ip=_unique_ip()).json()
+    b = signup_agent(client, ip=_unique_ip()).json()
+
+    r = client.post(
+        "/api/slots/bounty",
+        json={
+            "agent_id": b["agent_id"],
+            "agent_name": "Wrong Principal",
+            "label": "Impersonation bounty",
+            "slots_needed": 1,
+        },
+        headers={"Authorization": f"Bearer {a['api_key']}"},
+    )
+
     assert r.status_code == 403
 
 

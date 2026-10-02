@@ -16,11 +16,12 @@ import secrets as _secrets_mod
 from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Any
 
+from app.auth import require_agent_claim
 from app.deps import state
 from app.metrics_io import atomic_write
 from app.otel_setup import get_tracer as _get_tracer
@@ -830,7 +831,7 @@ async def list_open_slots() -> dict:
 
 
 @router.post("/api/slots/fill")
-async def fill_slot(payload: FillSlotPayload) -> dict:
+async def fill_slot(payload: FillSlotPayload, request: Request) -> dict:
     """Agent claims an open slot. Gets auto-governed."""
 
     slot_id = payload.slot_id
@@ -839,6 +840,12 @@ async def fill_slot(payload: FillSlotPayload) -> dict:
 
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
+    require_agent_claim(
+        request,
+        agent_id,
+        registry=state.runtime.registry,
+        admin_key=state.admin_key,
+    )
     registered = next((r for r in state.runtime.registry if r.get("agent_id") == agent_id), None)
     if not registered:
         return JSONResponse(
@@ -909,10 +916,18 @@ async def fill_slot(payload: FillSlotPayload) -> dict:
 
 
 @router.post("/api/slots/leave")
-async def leave_slot(payload: LeaveSlotPayload) -> dict:
+async def leave_slot(payload: LeaveSlotPayload, request: Request) -> dict:
     """Agent leaves a slot — opens it back up. Caller must be the occupant."""
     slot_id = payload.slot_id
     requesting_agent = payload.agent_id
+    if not requesting_agent:
+        return JSONResponse({"error": "agent_id required"}, status_code=400)
+    require_agent_claim(
+        request,
+        requesting_agent,
+        registry=state.runtime.registry,
+        admin_key=state.admin_key,
+    )
     async with state.slot_lock:
         slots = _load_slots()
         slot = next((s for s in slots if s["id"] == slot_id), None)
@@ -947,10 +962,18 @@ async def leave_slot(payload: LeaveSlotPayload) -> dict:
 
 
 @router.post("/api/slots/bounty")
-async def post_bounty(payload: PostBountyPayload) -> dict:
+async def post_bounty(payload: PostBountyPayload, request: Request) -> dict:
     """Agent posts a bounty — creates a mission with slots and itself as Primary."""
 
     agent_id = payload.agent_id
+    if not agent_id:
+        return JSONResponse({"error": "agent_id required"}, status_code=400)
+    require_agent_claim(
+        request,
+        agent_id,
+        registry=state.runtime.registry,
+        admin_key=state.admin_key,
+    )
     agent_name = payload.agent_name or agent_id
     label = payload.label or f"BOUNTY-{_secrets_mod.token_hex(3).upper()}"
     description = payload.description

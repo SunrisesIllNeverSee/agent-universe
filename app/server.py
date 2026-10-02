@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from .auth import admin_key_matches, log_admin_rejection, log_admin_success, secret_matches
+from .auth import active_agent_from_bearer, admin_key_matches, log_admin_rejection, log_admin_success
 from .audit import AuditSpine
 from .context import ContextAssembler
 from .mcp_bridge import MCPBridge
@@ -329,20 +329,14 @@ def create_app(root: Path | None = None) -> FastAPI:
     )
 
     def _agent_bearer_ok(request: Request) -> bool:
-        """Registered-agent api_key via 'Authorization: Bearer' counts as operator auth."""
-        auth = request.headers.get("Authorization", "")
-        if not auth.startswith("Bearer "):
-            return False
-        from .routes.provision import _hash_key
-        digest = _hash_key(auth[7:].strip())
+        """Resolve and attach the active agent principal for cockpit Bearer auth."""
         registry = getattr(getattr(state, "runtime", None), "registry", None) or []
         try:
-            return any(
-                a.get("status") == "active"
-                and bool(a.get("key_hash"))
-                and secret_matches(a["key_hash"], digest)
-                for a in registry
-            )
+            principal = active_agent_from_bearer(request, registry)
+            if principal is None:
+                return False
+            request.state.agent_principal = principal
+            return True
         except Exception:
             return False
 
