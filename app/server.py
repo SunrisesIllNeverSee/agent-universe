@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from .auth import admin_key_matches, log_admin_rejection, secret_matches
+from .auth import admin_key_matches, log_admin_rejection, log_admin_success, secret_matches
 from .audit import AuditSpine
 from .context import ContextAssembler
 from .mcp_bridge import MCPBridge
@@ -164,8 +164,10 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     # ── Build FastMCP and its Starlette sub-app (mounted below at /mcp) ─
     # Lives in the same uvicorn process so it's reachable on the public Railway port.
+    state.mcp_ready = False
     _mcp = mcp_bridge.build_fastmcp()
     _mcp_app = _mcp.streamable_http_app()
+    state.mcp_ready = True
 
     # ── FastAPI app with combined lifespan (MCP session manager + backdate) ──
     from contextlib import asynccontextmanager
@@ -356,7 +358,8 @@ def create_app(root: Path | None = None) -> FastAPI:
                         any(path.startswith(p) for p in _OPERATOR_WRITE_PREFIXES)
                         and _agent_bearer_ok(request)
                     )
-                    if not admin_key_matches(request, _ADMIN_KEY) and not bearer_ok:
+                    admin_ok = admin_key_matches(request, _ADMIN_KEY)
+                    if not admin_ok and not bearer_ok:
                         log_admin_rejection(request, "invalid")
                         return _error_response(
                             403,
@@ -364,6 +367,8 @@ def create_app(root: Path | None = None) -> FastAPI:
                             "A valid administrator key is required for this operation.",
                             "Supply X-Admin-Key only from an authorized operator environment.",
                         )
+                    if admin_ok:
+                        log_admin_success(request)
                 else:
                     if _DEV_MODE:
                         # Local dev: allow localhost requests without admin key
@@ -405,6 +410,7 @@ def create_app(root: Path | None = None) -> FastAPI:
                     "A valid administrator key is required for this operation.",
                     "Supply X-Admin-Key only from an authorized operator environment.",
                 )
+            log_admin_success(request)
 
         return await call_next(request)
 

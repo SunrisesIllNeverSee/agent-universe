@@ -1,8 +1,8 @@
 """Shared authentication primitives for operator/admin boundaries.
 
-This module intentionally owns comparison and rejection telemetry only.
-It does not decide which routes are admin-only; route/middleware policy stays
-where it is today.
+This module owns constant-time comparison plus privacy-safe success/failure
+telemetry. It does not decide which routes are admin-only; route/middleware
+policy stays where it is today.
 """
 from __future__ import annotations
 
@@ -16,9 +16,10 @@ from fastapi import HTTPException, Request
 
 
 _security_logger = logging.getLogger("civitae.security")
-_REJECTION_LOG_WINDOW_S: Final[float] = 60.0
-_REJECTION_CACHE_MAX: Final[int] = 2048
+_AUTH_LOG_WINDOW_S: Final[float] = 60.0
+_AUTH_CACHE_MAX: Final[int] = 2048
 _rejection_log_times: dict[str, float] = {}
+_success_log_times: dict[str, float] = {}
 
 
 def secret_matches(provided: str | None, expected: str | None) -> bool:
@@ -50,17 +51,17 @@ def log_admin_rejection(request: Request, reason: str) -> None:
 
     # Bound memory and remove old throttle entries. Logging is attacker-triggerable,
     # so this cache must not grow without limit.
-    if len(_rejection_log_times) >= _REJECTION_CACHE_MAX:
-        cutoff = now - (_REJECTION_LOG_WINDOW_S * 5)
+    if len(_rejection_log_times) >= _AUTH_CACHE_MAX:
+        cutoff = now - (_AUTH_LOG_WINDOW_S * 5)
         stale = [k for k, seen in _rejection_log_times.items() if seen < cutoff]
         for stale_key in stale:
             _rejection_log_times.pop(stale_key, None)
-        if len(_rejection_log_times) >= _REJECTION_CACHE_MAX:
+        if len(_rejection_log_times) >= _AUTH_CACHE_MAX:
             # Telemetry must never become an availability problem.
             _rejection_log_times.clear()
 
     last = _rejection_log_times.get(key)
-    if last is not None and now - last < _REJECTION_LOG_WINDOW_S:
+    if last is not None and now - last < _AUTH_LOG_WINDOW_S:
         return
     _rejection_log_times[key] = now
 
@@ -73,6 +74,33 @@ def log_admin_rejection(request: Request, reason: str) -> None:
     )
 
 
+def log_admin_success(request: Request) -> None:
+    """Emit throttled successful operator-auth telemetry without raw secrets/IPs."""
+    now = time.monotonic()
+    fingerprint = client_fingerprint(request)
+    key = f"{fingerprint}:{request.method}:{request.url.path}"
+
+    if len(_success_log_times) >= _AUTH_CACHE_MAX:
+        cutoff = now - (_AUTH_LOG_WINDOW_S * 5)
+        stale = [k for k, seen in _success_log_times.items() if seen < cutoff]
+        for stale_key in stale:
+            _success_log_times.pop(stale_key, None)
+        if len(_success_log_times) >= _AUTH_CACHE_MAX:
+            _success_log_times.clear()
+
+    last = _success_log_times.get(key)
+    if last is not None and now - last < _AUTH_LOG_WINDOW_S:
+        return
+    _success_log_times[key] = now
+
+    _security_logger.info(
+        "admin_auth_ok method=%s path=%s client=%s",
+        request.method,
+        request.url.path,
+        fingerprint,
+    )
+
+
 def require_admin(request: Request, expected: str | None) -> None:
     """Fail-closed admin authorization with privacy-safe rejection telemetry."""
     if not expected:
@@ -81,3 +109,4 @@ def require_admin(request: Request, expected: str | None) -> None:
     if not admin_key_matches(request, expected):
         log_admin_rejection(request, "invalid")
         raise HTTPException(403, "Admin key required")
+    log_admin_success(request)

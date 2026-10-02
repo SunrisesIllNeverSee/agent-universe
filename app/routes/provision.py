@@ -20,8 +20,9 @@ from fastapi.responses import JSONResponse
 
 from app.auth import admin_key_matches, require_admin, secret_matches
 from app.deps import state
-from app.jwt_config import get_kassa_jwt_secret
+from app.jwt_config import issue_agent_jwt
 from app.metrics_io import atomic_write, load_metrics, save_metrics
+from app.rate_limit import RATE_STORES as _rate_stores, check_rate_limit as _shared_check_rate_limit
 from app.otel_setup import get_tracer as _get_tracer
 from app.sanitize import sanitize_text as sanitize
 from app.seeds import create_seed
@@ -49,7 +50,6 @@ class IssueAgentKeyPayload(BaseModel):
     requested_by: str = "operator"
 
 # ── JWT helpers (shared secret with kassa) ──────────────────────────────────
-_JWT_SECRET = get_kassa_jwt_secret()
 _JWT_EXPIRY_HOURS = 24
 
 
@@ -58,14 +58,7 @@ def _hash_key(key: str) -> str:
 
 
 def _issue_jwt(agent_id: str, name: str) -> str:
-    from datetime import timedelta
-    payload = {
-        "sub": agent_id,
-        "name": name,
-        "iat": datetime.now(UTC),
-        "exp": datetime.now(UTC) + timedelta(hours=_JWT_EXPIRY_HOURS),
-    }
-    return pyjwt.encode(payload, _JWT_SECRET, algorithm="HS256")
+    return issue_agent_jwt(agent_id, name, expiry_hours=_JWT_EXPIRY_HOURS)
 
 router = APIRouter(tags=["provision"])
 
@@ -91,28 +84,11 @@ def _require_agent_or_admin(request: Request, agent: dict) -> None:
         raise HTTPException(403, f"Agent status: {agent.get('status')}")
 
 
-# ── Rate limiter (mirrors server.py pattern) ─────────────────────────────────
-
-_rate_stores: dict[str, dict] = {}
+# ── Shared in-process rate limiter ───────────────────────────────────────────
 
 
 def _check_rate_limit(request: Request, bucket_name: str, max_hits: int, window_s: int = 3600):
-    """Enforce per-IP rate limit. Raises 429 if exceeded."""
-    fwd = request.headers.get("x-forwarded-for", "")
-    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
-    ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:16]
-    now = _time.time()
-    if bucket_name not in _rate_stores:
-        _rate_stores[bucket_name] = {}
-    bucket = _rate_stores[bucket_name]
-    # Evict stale entries
-    _rate_stores[bucket_name] = {k: v for k, v in bucket.items() if v and now - v[-1] < window_s}
-    bucket = _rate_stores[bucket_name]
-    recent = [t for t in bucket.get(ip_hash, []) if now - t < window_s]
-    if len(recent) >= max_hits:
-        raise HTTPException(status_code=429, detail=f"Rate limit: {max_hits} requests per hour")
-    recent.append(now)
-    bucket[ip_hash] = recent
+    return _shared_check_rate_limit(request, bucket_name, max_hits, window_s)
 
 
 # ── Data helpers ─────────────────────────────────────────────────────────────

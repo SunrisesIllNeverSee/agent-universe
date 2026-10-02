@@ -31,7 +31,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from app.auth import admin_key_matches, require_admin
 from app.deps import state
-from app.jwt_config import get_kassa_jwt_secret
+from app.jwt_config import issue_agent_jwt
 from app.sanitize import sanitize_text, sanitize_name, detect_prompt_injection
 from app.seeds import create_seed
 from app.public_projection import public_kassa_post
@@ -42,6 +42,7 @@ from app.notifications import (
     send_review_decision,
 )
 from app.models import KassaContact, KassaPostCreate
+from app.rate_limit import RATE_STORES as _rate_stores, check_rate_limit as _shared_check_rate_limit
 from pydantic import BaseModel
 
 router = APIRouter(tags=["kassa"])
@@ -60,7 +61,6 @@ class KassaLoginPayload(BaseModel):
 
 # ── JWT config ───────────────────────────────────────────────────────────────
 
-_JWT_SECRET = get_kassa_jwt_secret()
 _JWT_EXPIRY_HOURS = 24
 
 
@@ -71,14 +71,7 @@ def _hash_key(key: str) -> str:
 
 
 def _issue_jwt(agent_id: str, name: str) -> str:
-    payload = {
-        "sub": agent_id,
-        "name": name,
-        "iat": datetime.now(UTC),
-        "exp": datetime.now(UTC) + timedelta(hours=_JWT_EXPIRY_HOURS),
-    }
-    return pyjwt.encode(payload, _JWT_SECRET, algorithm="HS256")
-
+    return issue_agent_jwt(agent_id, name, expiry_hours=_JWT_EXPIRY_HOURS)
 
 def _verify_jwt(token: str) -> dict | None:
     from app.jwt_config import verify_jwt
@@ -119,28 +112,11 @@ def _get_agent_from_token(request: Request) -> dict:
     return agent
 
 
-# ── Rate limiter (mirrors server.py pattern) ────────────────────────────────
-
-_rate_stores: dict[str, dict] = {}
+# ── Shared in-process rate limiter ───────────────────────────────────────────
 
 
 def _check_rate_limit(request: Request, bucket_name: str, max_hits: int, window_s: int = 3600):
-    """Enforce per-IP rate limit. Raises 429 if exceeded."""
-    fwd = request.headers.get("x-forwarded-for", "")
-    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
-    ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:16]
-    now = _time.time()
-    if bucket_name not in _rate_stores:
-        _rate_stores[bucket_name] = {}
-    bucket = _rate_stores[bucket_name]
-    # Evict stale entries
-    _rate_stores[bucket_name] = {k: v for k, v in bucket.items() if v and now - v[-1] < window_s}
-    bucket = _rate_stores[bucket_name]
-    recent = [t for t in bucket.get(ip_hash, []) if now - t < window_s]
-    if len(recent) >= max_hits:
-        raise HTTPException(status_code=429, detail=f"Rate limit: {max_hits} requests per hour")
-    recent.append(now)
-    bucket[ip_hash] = recent
+    return _shared_check_rate_limit(request, bucket_name, max_hits, window_s)
 
 
 # ── Notify email (contact inbox) ────────────────────────────────────────────

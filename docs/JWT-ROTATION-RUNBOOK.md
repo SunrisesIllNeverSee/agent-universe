@@ -63,12 +63,22 @@ secret is checked (faster decode path).
 
 ## How It Works
 
-`app/jwt_config.py` → `verify_jwt(token)`:
-1. Try decode with `KASSA_JWT_SECRET` (current) -- fast path
-2. If that fails, try `KASSA_JWT_SECRET_PREV` (previous) -- grace period
-3. If both fail, return None (invalid/expired token)
+`app/jwt_config.py` now issues scoped agent-session tokens with:
 
-Signing (`_issue_jwt`) always uses `KASSA_JWT_SECRET` (current).
+- `iss=https://signomy.xyz`
+- `aud=civitae-agent`
+- `sub=<agent_id>`
+- `iat`
+- `exp` (24-hour TTL)
+
+Verification:
+1. Try scoped decode with `KASSA_JWT_SECRET` (current).
+2. If that fails, try `KASSA_JWT_SECRET_PREV` (previous) for zero-downtime secret rotation.
+3. During the Phase 2 migration only, an already-issued token without `iss`/`aud` may pass if its `iat` predates the fixed migration cutoff and its original `exp` is still valid.
+4. A token that supplies the wrong issuer or audience is never allowed through the legacy fallback.
+5. If no current/previous-secret validation path succeeds, the token is invalid.
+
+Signing always uses the current `KASSA_JWT_SECRET`.
 
 ## Zero-Downtime Guarantee
 
