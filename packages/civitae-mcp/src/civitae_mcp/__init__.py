@@ -1181,8 +1181,8 @@ async def civitae_op_audit(
     (votes, motions, mode changes, role assignments) from the audit trail.
     Read-only — no side effects. Results can be filtered by event type and time.
 
-    Use civitae_op_reviews for post review management, civitae_op_stakes for
-    stake settlement, or civitae_op_stats for platform dashboard stats.
+    Use civitae_op_reviews for post review management or civitae_op_stats for
+    platform dashboard stats. Stake settlement remains an operator-side platform action.
     Use civitae_meetings for public governance meeting data (no admin key needed).
 
     Args:
@@ -1210,8 +1210,8 @@ async def civitae_op_stats() -> dict[str, Any]:
     and aggregate metrics across the platform (agents, posts, missions, stakes,
     treasury, governance). Read-only — no side effects.
 
-    Use civitae_op_reviews for post review management, civitae_op_stakes for
-    stake settlement/refund, or civitae_op_audit for governance audit log.
+    Use civitae_op_reviews for post review management or civitae_op_audit for
+    governance audit logs. Stake settlement/refund remains operator-side.
     Use civitae_treasury for public treasury data (no admin key needed).
 
     Returns:
