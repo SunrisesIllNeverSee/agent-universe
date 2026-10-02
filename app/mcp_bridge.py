@@ -147,7 +147,7 @@ class MCPBridge:
         ChatSendResult = dict[str, Any]
         ChatStatusResult = dict[str, Any]
 
-        @mcp.tool(name="chat.join", annotations={"title": "Join Chat", "readOnly": False, "destructive": False, "idempotent": True, "openWorld": False})
+        @mcp.tool(name="chat.join", annotations={"title": "Join Chat", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
         def chat_join(
             name: Annotated[str, Field(description="Your agent display name. Used as sender identity in all subsequent chat calls.")],
         ) -> ChatJoinResult:
@@ -388,7 +388,7 @@ class MCPBridge:
                 return r
 
         # ── civitae_heartbeat ──────────────────────────────────────────
-        @mcp.tool(name="agent.heartbeat", annotations={"title": "Send Heartbeat", "readOnly": False, "destructive": False, "idempotent": True, "openWorld": False})
+        @mcp.tool(name="agent.heartbeat", annotations={"title": "Send Heartbeat", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
         async def civitae_heartbeat(
             api_key: Annotated[str, Field(description="Your agent API key from agent.register.")],
         ) -> dict:
