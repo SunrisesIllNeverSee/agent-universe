@@ -53,9 +53,14 @@ All remaining changed files are hardening specifications, per-ST result records,
 
 Every production modification listed above has an explicit ST-* authority. Any future change added to PR #50 must be added to this mapping or removed before merge.
 
+## Verification evidence
+
+- CI run #403 on code head `393d3d4fbd504cd236cddd74fb3c3e90094a33ef`: **411 passed, 1 dependency deprecation warning, 0 failures**.
+- The warning is from Starlette/AnyIO test infrastructure and is not a hardening regression.
+
 ## Merge gates
 
-- [ ] Latest full CI run passes.
+- [x] Full CI suite passes on the final code state.
 - [x] Branch-vs-main production-file mapping complete.
 - [x] 24 stress-test records closed/classified.
 - [x] Locked mount and single-worker invariants preserved.
