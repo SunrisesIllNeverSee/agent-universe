@@ -33,6 +33,7 @@ from app.deps import state
 from app.jwt_config import get_kassa_jwt_secret
 from app.sanitize import sanitize_text, sanitize_name, detect_prompt_injection
 from app.seeds import create_seed
+from app.public_projection import public_kassa_post
 from app.notifications import (
     send_magic_link,
     send_message_notification,
@@ -830,7 +831,7 @@ async def get_kassa_posts(tab: str = "", status: str = "", sort: str = "recent")
         posts.sort(key=lambda p: p.get("reward") or "", reverse=True)
     else:
         posts.sort(key=lambda p: p.get("updated_at", ""), reverse=True)
-    return posts
+    return [public_kassa_post(post) for post in posts]
 
 
 @router.get("/api/kassa/posts/{post_id}")
@@ -838,7 +839,7 @@ async def get_kassa_post(post_id: str) -> dict:
     post = state.kassa.get_post(post_id)
     if not post:
         raise HTTPException(status_code=404, detail=f"Post {post_id} not found")
-    return post
+    return public_kassa_post(post)
 
 
 @router.patch("/api/kassa/posts/{post_id}")
