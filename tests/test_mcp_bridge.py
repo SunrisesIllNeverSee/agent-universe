@@ -145,7 +145,7 @@ def test_mcp_market_browse_projects_private_contact_and_clamps_limit(app, monkey
             )
 
     result = asyncio.run(call_browse())
-    data = result.data.model_dump() if hasattr(result.data, "model_dump") else result.data
+    data = result.structured_content
     assert data["count"] == 50
     assert len(data["posts"]) == 50
     assert all("from_email" not in post for post in data["posts"])
@@ -168,7 +168,7 @@ def test_mcp_leaderboard_clamps_limit(app):
             )
 
     result = asyncio.run(call_leaderboard())
-    data = result.data.model_dump() if hasattr(result.data, "model_dump") else result.data
+    data = result.structured_content
     assert data["count"] <= 100
 
 def test_mcp_runtime_matches_public_server_card(app):
