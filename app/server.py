@@ -164,8 +164,10 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     # ── Build FastMCP and its Starlette sub-app (mounted below at /mcp) ─
     # Lives in the same uvicorn process so it's reachable on the public Railway port.
+    state.mcp_ready = False
     _mcp = mcp_bridge.build_fastmcp()
     _mcp_app = _mcp.streamable_http_app()
+    state.mcp_ready = True
 
     # ── FastAPI app with combined lifespan (MCP session manager + backdate) ──
     from contextlib import asynccontextmanager
