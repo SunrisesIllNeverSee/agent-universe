@@ -393,6 +393,7 @@ async def civitae_register(
     name: str,
     capabilities: list[str] | None = None,
     model: str = "claude",
+    operator_contact: str | None = None,
 ) -> dict[str, Any]:
     """Register as an agent in CIVITAE. Returns JWT and welcome package.
 
@@ -401,28 +402,31 @@ async def civitae_register(
         name: Display name for the agent.
         capabilities: List of capability tags (e.g. ["coding", "research"]).
         model: Model/system identifier (defaults to "claude").
+        operator_contact: Optional out-of-band operator contact.
 
     Returns:
         Registration result with JWT token, api_key, agent_id, and welcome package.
     """
-    global JWT, API_KEY, AGENT_ID
-    result = await post(
-        "/api/provision/signup",
-        {
-            "handle": handle,
-            "name": name,
-            "capabilities": capabilities or [],
-            "system": model,
-            "agent_type": "agent",
-            "agent_name": handle,
-        },
-    )
+    global JWT, API_KEY, AGENT_ID, AGENT_NAME, AGENT_EMAIL
+    signup_payload: dict[str, Any] = {
+        "handle": handle,
+        "name": name,
+        "capabilities": capabilities or [],
+        "system": model,
+        "agent_type": "agent",
+        "agent_name": handle,
+    }
+    if operator_contact:
+        signup_payload["operator_contact"] = operator_contact
+    result = await post("/api/provision/signup", signup_payload)
     if "token" in result:
         JWT = result["token"]
     if "api_key" in result:
         API_KEY = result["api_key"]
     if "agent_id" in result:
         AGENT_ID = result["agent_id"]
+    AGENT_NAME = result.get("name", name)
+    AGENT_EMAIL = result.get("email", AGENT_EMAIL)
     return result
 
 
@@ -451,17 +455,28 @@ async def civitae_status(
     """
     r: dict[str, Any] = {}
     if me or (not system and not governance):
-        try:
-            r["agent"] = await get("/api/agent/profile")
-        except CivitaeAuthError:
-            r["agent"] = {"error": "Not authenticated. Run civitae_register first."}
+        if not AGENT_ID:
+            r["agent"] = {
+                "error": "No agent_id. Run civitae_register or set CIVITAE_AGENT_ID."
+            }
+        else:
+            r["agent"] = await get(
+                f"/api/agents/{_path_segment(AGENT_ID, 'agent_id')}"
+            )
     if system:
         r["platform"] = await get("/health")
     if governance:
-        try:
-            r["governance"] = await get("/api/governance/meetings/active")
-        except CivitaeError:
-            r["governance"] = {"status": "no_active_session"}
+        meetings = await get("/api/governance/meetings")
+        active = [
+            meeting
+            for meeting in meetings.get("meetings", [])
+            if meeting.get("status") == "open"
+        ]
+        r["governance"] = (
+            {"active_meetings": active, "count": len(active)}
+            if active
+            else {"status": "no_active_session", "active_meetings": [], "count": 0}
+        )
     return r
 
 
@@ -481,7 +496,8 @@ async def civitae_browse(
 
     Read-only — no side effects, no auth required. User-submitted content in
     results is fenced with [USER_CONTENT_START]/[USER_CONTENT_END] markers to
-    prevent prompt injection.
+    keep untrusted user text visibly separated from tool instructions. Fencing
+    is defense-in-depth, not a prompt-injection security boundary.
 
     Args:
         category: Filter by category tab (e.g. "bounties", "products", "services").
@@ -494,7 +510,7 @@ async def civitae_browse(
         Dict with fenced marketplace posts. User-content fields are wrapped in
         content fences for agent safety.
     """
-    p: dict[str, Any] = {"status": status, "limit": limit}
+    p: dict[str, Any] = {"status": status, "limit": _clamp(limit, 1, 100)}
     if category:
         p["tab"] = category
     if sort:
@@ -528,15 +544,36 @@ async def civitae_post(
     Returns:
         Created post dict with ID and review status.
     """
-    payload: dict[str, Any] = {"title": title, "tab": category, "body": body, "tag": category}
+    if not AGENT_ID:
+        return {
+            "error": "Creating a post needs your agent_id. Run civitae_register or set CIVITAE_AGENT_ID."
+        }
+
+    profile: dict[str, Any] = {}
+    if not AGENT_NAME or not AGENT_EMAIL:
+        profile = await get(f"/api/agents/{_path_segment(AGENT_ID, 'agent_id')}")
+
+    from_name = AGENT_NAME or profile.get("display_name") or AGENT_ID
+    from_email = contact or AGENT_EMAIL or profile.get("email")
+    if not from_email:
+        return {
+            "error": "No agent email identity is available. Register again or set CIVITAE_AGENT_EMAIL."
+        }
+
+    payload: dict[str, Any] = {
+        "title": title,
+        "tab": category,
+        "body": body,
+        "tag": category,
+        "from_name": from_name,
+        "from_email": from_email,
+    }
     if tags:
         payload["tags"] = tags
-    if budget:
+    if budget is not None:
         payload["reward"] = str(budget)
     if partner_type:
         payload["partner_type"] = partner_type
-    if contact:
-        payload["from_email"] = contact
     return await post("/api/kassa/posts", payload)
 
 
