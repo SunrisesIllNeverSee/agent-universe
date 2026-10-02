@@ -7,7 +7,6 @@ All endpoint logic lives in app/routes/*.py — this file is infrastructure only
 from __future__ import annotations
 
 import asyncio
-import hmac
 import logging
 import os
 from pathlib import Path
@@ -19,6 +18,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from .auth import admin_key_matches, log_admin_rejection, secret_matches
 from .audit import AuditSpine
 from .context import ContextAssembler
 from .mcp_bridge import MCPBridge
@@ -338,7 +338,7 @@ def create_app(root: Path | None = None) -> FastAPI:
             return any(
                 a.get("status") == "active"
                 and bool(a.get("key_hash"))
-                and hmac.compare_digest(a["key_hash"], digest)
+                and secret_matches(a["key_hash"], digest)
                 for a in registry
             )
         except Exception:
@@ -356,7 +356,8 @@ def create_app(root: Path | None = None) -> FastAPI:
                         any(path.startswith(p) for p in _OPERATOR_WRITE_PREFIXES)
                         and _agent_bearer_ok(request)
                     )
-                    if request.headers.get("X-Admin-Key") != _ADMIN_KEY and not bearer_ok:
+                    if not admin_key_matches(request, _ADMIN_KEY) and not bearer_ok:
+                        log_admin_rejection(request, "invalid")
                         return _error_response(
                             403,
                             "admin_key_required",
@@ -369,6 +370,7 @@ def create_app(root: Path | None = None) -> FastAPI:
                         fwd = request.headers.get("x-forwarded-for", "")
                         host = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "")
                         if host not in ("127.0.0.1", "::1", "localhost"):
+                            log_admin_rejection(request, "not_configured")
                             return _error_response(
                                 403,
                                 "admin_key_not_configured",
@@ -377,6 +379,7 @@ def create_app(root: Path | None = None) -> FastAPI:
                             )
                     else:
                         # Production: no admin key = blocked
+                        log_admin_rejection(request, "not_configured")
                         return _error_response(
                             403,
                             "admin_key_not_configured",
@@ -387,13 +390,15 @@ def create_app(root: Path | None = None) -> FastAPI:
         # Guard operator GET endpoints (sensitive data)
         if request.method == "GET" and any(path.startswith(p) for p in _ADMIN_GET_PREFIXES):
             if not _ADMIN_KEY:
+                log_admin_rejection(request, "not_configured")
                 return _error_response(
                     403,
                     "admin_key_not_configured",
                     "Administrator access is not configured for this environment.",
                     "Use a documented public endpoint or contact the operator.",
                 )
-            if request.headers.get("X-Admin-Key") != _ADMIN_KEY:
+            if not admin_key_matches(request, _ADMIN_KEY):
+                log_admin_rejection(request, "invalid")
                 return _error_response(
                     403,
                     "admin_key_required",
