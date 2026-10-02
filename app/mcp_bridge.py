@@ -508,11 +508,12 @@ class MCPBridge:
                 span.set_attribute("mcp.status", status)
                 span.set_attribute("mcp.limit", limit)
                 limit = max(1, min(int(limit), 50))
-                posts = _state.kassa.load_posts(tab=category, status=status)
-                if search:
-                    sq = search.lower()
-                    posts = [p for p in posts if sq in p.get("title", "").lower() or sq in p.get("body", "").lower()]
-                posts = posts[:limit]
+                posts = _state.kassa.load_posts(
+                    tab=category,
+                    status=status,
+                    search=search,
+                    limit=limit,
+                )
                 span.set_attribute("mcp.posts_returned", len(posts))
                 span.set_attribute("mcp.result", "ok")
                 return {"posts": [_fence(public_kassa_post(p)) for p in posts], "count": len(posts)}
