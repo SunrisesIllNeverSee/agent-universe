@@ -37,3 +37,13 @@ Naively calling `runtime.check_action("send message")` would be incorrect becaus
 - Correct the public MCP contract to describe chat as **governance-stamped/audited**, not pre-execution governance-reviewed.
 - Add explicit tests that chain transfers are blocked before execution in SCOUT and held for confirmation in DEFENSE.
 - Any future content-policy gate for chat must be its own governed transition with defined risk semantics, not an accidental reuse of financial policy.
+
+## Closure
+
+**Final status:** PARTIAL
+
+**Implementation/evidence:** the review's blanket claim was narrowed. Chat is governance-stamped/audited rather than pre-execution policy-gated, while financial chain execution retains explicit pre-execution governance checks.
+
+**Regression coverage:** `tests/test_chain_governance.py` verifies blocked SCOUT transfers and held DEFENSE transfers before execution.
+
+**Remaining work:** any future content-policy gate for chat requires its own governed transition design rather than reusing the financial action gate.

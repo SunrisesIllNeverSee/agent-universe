@@ -25,3 +25,13 @@ Add a regression test proving:
 1. first read advances cursor
 2. second read without a client cursor does not replay the same messages
 3. the cursor exists in the persisted cursor file.
+
+## Closure
+
+**Final status:** DISPROVED
+
+**Implementation/evidence:** server-side cursor persistence already provides bounded recovery when a client omits or loses its local cursor.
+
+**Regression coverage:** `tests/test_mcp_bridge.py::test_chat_read_uses_and_persists_server_cursor`.
+
+**Decision:** no new cursor store or duplicate server-side state required.

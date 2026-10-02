@@ -24,3 +24,13 @@ Regression coverage now requires the public Vercel `/mcp` rule to point directly
 ```python
 app.mount("", _mcp_app)
 ```
+
+## Closure
+
+**Final status:** INTENTIONAL
+
+**Implementation/evidence:** FastMCP remains root-mounted at the parent application because the child application already owns `/mcp`. The public Vercel proxy remains mapped directly to the Railway `/mcp` endpoint.
+
+**Regression coverage:** `tests/test_agent_readiness.py::test_mcp_protocol_route_always_proxies_to_backend` plus MCP contract tests.
+
+**Decision:** do not change `app.mount("", _mcp_app)` without a reproduced transport/path failure.

@@ -44,3 +44,13 @@ Hardening action:
 2. Add regression/static tests for the critical first-party render paths.
 3. Clarify sanitizer documentation so future code does not assume every storage ingress is escaped.
 4. Revisit storage canonicalization only as a migration with data-compatibility tests.
+
+## Closure
+
+**Final status:** PARTIAL
+
+**Implementation/evidence:** no first-party XSS exploit was reproduced. Existing render-boundary escaping/textContent behavior was preserved and explicit regression/static coverage was added instead of adding a new sanitization dependency or rewriting storage semantics.
+
+**Regression coverage:** `tests/test_frontend_content_rendering.py` and `tests/test_sanitize.py`.
+
+**Remaining work:** any future frontend sink that renders user content must preserve explicit escaping/textContent guarantees.

@@ -43,32 +43,41 @@ For every stress test:
 
 ## Work queue
 
-| ID | Area | Stress test | Initial state |
-|---|---|---|---|
-| ST-001 | Identity | REST heartbeat authorization and side effects | TESTING |
-| ST-002 | Identity | API-key rotation invalidates old key and activates new key | TESTING |
-| ST-003 | Security | Admin auth coverage/bypass matrix | QUEUED |
-| ST-004 | Security | Admin authentication audit trail | QUEUED |
-| ST-005 | Identity | API key vs JWT privilege matrix and documentation drift | QUEUED |
-| ST-006 | Identity | JWT expiry, issuer/audience, and cross-surface compatibility | QUEUED |
-| ST-007 | Performance | MCP API-key lookup disk reload/O(n) behavior | QUEUED |
-| ST-008 | Content | Stored/rendered HTML/XSS handling | QUEUED |
-| ST-009 | Content | Prompt-injection normalization/fencing behavior | QUEUED |
-| ST-010 | Abuse | Rate-limit correctness, memory bounds, restart semantics | QUEUED |
-| ST-011 | Abuse | Open MCP discovery harvesting/flood resistance | QUEUED |
-| ST-012 | Deploy | Startup validation with corrupt/missing state | QUEUED |
-| ST-013 | Deploy | Health endpoint independence and MCP readiness | QUEUED |
-| ST-014 | Deploy | Multi-worker state integrity | INTENTIONAL |
-| ST-015 | MCP | Public endpoint/mount/path contract | INTENTIONAL |
-| ST-016 | MCP | 30-tool smoke/contract validation | QUEUED |
-| ST-017 | MCP | Tool version/deprecation contract | QUEUED |
-| ST-018 | MCP | Discovery hot-path scalability/caching | QUEUED |
-| ST-019 | MCP | Cursor loss/recovery semantics | QUEUED |
-| ST-020 | Governance | Governance decision occurs before irreversible persistence | QUEUED |
-| ST-021 | Reliability | Retry/idempotency/error semantics for MCP writes | QUEUED |
-| ST-022 | Deploy | Rollback and release verification procedure | QUEUED |
-| ST-023 | Architecture | `create_app` modularization value vs regression risk | QUEUED |
-| ST-024 | Secrets | Production secret presence/rotation/fail-closed behavior | QUEUED |
+| ID | Area | Stress test | Initial | Current |
+|---|---|---|---|---|
+| ST-001 | Identity | REST heartbeat authorization and side effects | TESTING | FIXED |
+| ST-002 | Identity | API-key rotation invalidates old key and activates new key | TESTING | FIXED |
+| ST-003 | Security | Admin auth coverage/bypass matrix | QUEUED | FIXED |
+| ST-004 | Security | Admin authentication audit trail | QUEUED | FIXED |
+| ST-005 | Identity | API key vs JWT privilege matrix and documentation drift | QUEUED | PARTIAL |
+| ST-006 | Identity | JWT expiry, issuer/audience, and cross-surface compatibility | QUEUED | PARTIAL / DEFERRED |
+| ST-007 | Performance | MCP API-key lookup disk reload/O(n) behavior | QUEUED | FIXED |
+| ST-008 | Content | Stored/rendered HTML/XSS handling | QUEUED | PARTIAL |
+| ST-009 | Content | Prompt-injection normalization/fencing behavior | QUEUED | PARTIAL |
+| ST-010 | Abuse | Rate-limit correctness, memory bounds, restart semantics | QUEUED | PARTIAL |
+| ST-011 | Abuse | Open MCP discovery harvesting/flood resistance | QUEUED | FIXED |
+| ST-012 | Deploy | Startup validation with corrupt/missing state | QUEUED | PARTIAL |
+| ST-013 | Deploy | Health endpoint independence and MCP readiness | QUEUED | DISPROVED |
+| ST-014 | Deploy | Multi-worker state integrity | INTENTIONAL | INTENTIONAL |
+| ST-015 | MCP | Public endpoint/mount/path contract | INTENTIONAL | INTENTIONAL |
+| ST-016 | MCP | 30-tool smoke/contract validation | QUEUED | FIXED |
+| ST-017 | MCP | Tool version/deprecation contract | QUEUED | PARTIAL |
+| ST-018 | MCP | Discovery hot-path scalability/caching | QUEUED | PARTIAL |
+| ST-019 | MCP | Cursor loss/recovery semantics | QUEUED | DISPROVED |
+| ST-020 | Governance | Governance decision occurs before irreversible persistence | QUEUED | PARTIAL |
+| ST-021 | Reliability | Retry/idempotency/error semantics for MCP writes | QUEUED | FIXED |
+| ST-022 | Deploy | Rollback and release verification procedure | QUEUED | FIXED |
+| ST-023 | Architecture | `create_app` modularization value vs regression risk | QUEUED | DISPROVED / DEFERRED |
+| ST-024 | Secrets | Production secret presence/rotation/fail-closed behavior | QUEUED | PARTIAL |
+
+### Closure summary
+
+- **FIXED:** ST-001, ST-002, ST-003, ST-004, ST-007, ST-011, ST-016, ST-021, ST-022
+- **PARTIAL / bounded hardening:** ST-005, ST-006, ST-008, ST-009, ST-010, ST-012, ST-017, ST-018, ST-020, ST-024
+- **DISPROVED / no implementation required:** ST-013, ST-019
+- **INTENTIONAL behavior preserved:** ST-014, ST-015
+- **DEFERRED refactor:** ST-023
+- **Merge gate:** full CI must pass and the final branch-vs-main audit must show no undocumented production changes.
 
 ## Locked invariants during this program
 

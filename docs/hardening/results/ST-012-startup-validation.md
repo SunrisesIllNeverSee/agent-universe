@@ -36,3 +36,13 @@ Some domain JSON files are intentionally loaded by their owning route/store rath
 **PARTIAL. Preserve the existing fail-fast boot path.**
 
 Do not add a second validator that reparses the same state or constructs another FastMCP instance. Add targeted startup tests for truly authoritative dependencies and document optional/degraded state separately.
+
+## Closure
+
+**Final status:** PARTIAL
+
+**Implementation/evidence:** existing fail-fast startup behavior was preserved rather than duplicated. Targeted tests now prove corrupt authoritative configuration fails startup and Railway production refuses an ephemeral JWT secret.
+
+**Regression coverage:** `tests/test_startup_hardening.py`.
+
+**Remaining work:** classify any newly added startup dependency as authoritative vs optional before deciding whether failure should block boot.

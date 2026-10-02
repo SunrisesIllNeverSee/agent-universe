@@ -81,3 +81,13 @@ A blanket `Retry-After` response is not appropriate for ambiguous committed writ
 2. Publish the retry/reconciliation rule in the agent-facing MCP documentation.
 3. Add CI coverage for the two annotation invariants.
 4. Do not add generic automatic write retries.
+
+## Closure
+
+**Final status:** FIXED
+
+**Implementation/evidence:** unsafe idempotency annotations were corrected and agent-facing retry guidance now distinguishes bounded retries for reads from reconciliation-first behavior for ambiguous writes.
+
+**Regression coverage:** `tests/test_mcp_bridge.py::test_mcp_non_idempotent_lifecycle_annotations`.
+
+**Merge verification:** implementation is present on PR #50; full-suite CI and final branch-vs-main audit remain mandatory merge gates.

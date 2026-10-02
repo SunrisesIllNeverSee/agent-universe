@@ -27,3 +27,13 @@ That means the public result cap did not bound database work.
 - Keep the public result cap from ST-011.
 - Do not add a generic 5-minute cache to leaderboard/browse until measurement demonstrates it is needed.
 - Preserve immediate visibility of registry/status changes over speculative cache speed.
+
+## Closure
+
+**Final status:** PARTIAL
+
+**Implementation/evidence:** the measured KA§§A discovery hot path now pushes search and limit into SQLite. Generic time-based caches were intentionally not added without measurement.
+
+**Regression coverage:** MCP browse contract tests exercise bounded result behavior; store behavior remains covered by the KA§§A test suite.
+
+**Remaining work:** benchmark larger registries/posts before adding any further cache or indexing layer.

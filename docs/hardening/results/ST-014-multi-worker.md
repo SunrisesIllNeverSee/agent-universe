@@ -22,3 +22,13 @@ Some registry operations now use file locks, but registry locking alone does not
 **Preserve one worker.**
 
 Horizontal/multi-worker scaling is blocked on a storage/coordination redesign plus an explicit cross-worker integrity suite. Performance pressure does not override correctness.
+
+## Closure
+
+**Final status:** INTENTIONAL
+
+**Implementation/evidence:** Railway remains single-worker because current authoritative JSON/in-memory state is not safe for independent multi-process writers.
+
+**Regression/guardrail:** the work order explicitly prohibits increasing workers until storage/locking semantics are redesigned and the multi-worker integrity test passes.
+
+**Decision:** preserve `--workers 1`.

@@ -55,3 +55,13 @@ Vercel and Railway are separate failure domains.
 ## Decision
 
 **CONFIRMED process gap.** Add an operator runbook and a reusable public MCP verification script. Keep the script out of ordinary CI because it depends on live production/network state; run it after deployment or from an authorized release environment.
+
+## Closure
+
+**Final status:** FIXED
+
+**Implementation/evidence:** an operator release/rollback runbook and a read-only public MCP verification script were added. The verifier checks health, public server-card metadata, runtime tool count, critical tools, and runtime/card synchronization.
+
+**Regression/ops coverage:** `docs/hardening/RELEASE-VERIFY-ROLLBACK.md` and `scripts/verify_public_mcp.py`.
+
+**Remaining work:** run the public verifier after production deployment from a network-capable authorized environment; it is intentionally not a normal offline CI test.

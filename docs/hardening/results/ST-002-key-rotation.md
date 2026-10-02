@@ -63,3 +63,13 @@ Add tests for:
 ## Decision
 
 **CONFIRMED. Implement immediately.**
+
+## Closure
+
+**Final status:** FIXED
+
+**Implementation/evidence:** rotation now updates `key_prefix`, replaces the authoritative `key_hash`, persists the registry before returning the secret, and leaves the raw key out of audit records.
+
+**Regression coverage:** `tests/test_routes_provision.py` proves the old key is invalidated, the new key works, persistence survives reload, and heartbeat follows the rotated authority.
+
+**Merge verification:** implementation is present on PR #50; full-suite CI and final branch-vs-main audit remain mandatory merge gates.

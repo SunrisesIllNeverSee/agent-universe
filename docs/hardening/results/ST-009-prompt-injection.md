@@ -51,3 +51,13 @@ Encoded/obfuscated arbitrary payloads (base64/ROT13/etc.) cannot be reliably cla
 ## Decision
 
 **PARTIAL.** Consolidate MCP detection onto the shared detector rather than maintaining two divergent rule sets. Add Unicode/zero-width normalization before detection, but keep fencing as a separate delivery mechanism and explicitly document that it is not an instruction-security guarantee.
+
+## Closure
+
+**Final status:** PARTIAL
+
+**Implementation/evidence:** prompt-injection detection is consolidated on the shared detector with Unicode/zero-width normalization. User-content fencing remains a context-separation aid only; it is explicitly not treated as a security boundary or guarantee.
+
+**Regression coverage:** `tests/test_sanitize.py` covers Unicode compatibility forms, zero-width/soft-hyphen obfuscation, role markers, and benign system-language controls.
+
+**Remaining work:** treat detection as defense-in-depth and keep untrusted content out of privileged instruction channels.

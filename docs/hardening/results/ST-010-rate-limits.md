@@ -41,3 +41,13 @@ Persisting rate-limit hits into the current JSON/file state would add write ampl
 - Treat restart reset and proxy trust as documented limitations.
 - Centralization may be considered under ST-023 if it reduces duplicated security logic without changing behavior.
 - Add boundary/eviction tests before any future limiter rewrite.
+
+## Closure
+
+**Final status:** PARTIAL
+
+**Implementation/evidence:** the current in-memory limiter is intentionally retained for the single-worker deployment. Redis/disk persistence was not added. Boundary, stale-eviction, and forwarded-client behavior are now regression-tested.
+
+**Regression coverage:** `tests/test_rate_limit_contract.py`.
+
+**Remaining work:** restart reset and trusted-proxy assumptions remain documented limitations; redesign only when deployment/storage architecture changes.

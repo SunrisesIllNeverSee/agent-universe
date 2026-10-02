@@ -64,3 +64,13 @@ Add tests for:
 ## Decision
 
 **CONFIRMED. Implement.**
+
+## Closure
+
+**Final status:** FIXED
+
+**Implementation/evidence:** REST heartbeat now requires the matching active agent API key or operator admin key before any liveness, metrics, or provenance mutation.
+
+**Regression coverage:** `tests/test_routes_provision.py` covers missing auth, foreign keys, valid agent keys, admin access, and post-rotation behavior.
+
+**Merge verification:** implementation is present on PR #50; full-suite CI and final branch-vs-main audit remain mandatory merge gates.

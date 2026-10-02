@@ -58,3 +58,13 @@ The credential split is intentional enough to preserve. A broad auth rewrite wou
 - Fix concrete privilege/bypass defects as separate ST items.
 - Improve credential documentation after the endpoint matrix is complete.
 - Do not collapse API keys and JWTs into one credential.
+
+## Closure
+
+**Final status:** PARTIAL
+
+**Implementation/evidence:** the three credential classes remain intentionally separate. Concrete privilege defects are fixed under ST-001/ST-003, while broader unification was rejected.
+
+**Regression coverage:** credential-specific route tests remain distributed across provision, inbox, KA§§A, forum, economy, and agent-readiness suites.
+
+**Remaining work:** maintain the documented privilege matrix as new endpoints are added; do not collapse API keys, JWTs, and operator admin keys without a separate migration design.

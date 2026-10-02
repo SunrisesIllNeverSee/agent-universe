@@ -59,8 +59,8 @@ def log_admin_rejection(request: Request, reason: str) -> None:
             # Telemetry must never become an availability problem.
             _rejection_log_times.clear()
 
-    last = _rejection_log_times.get(key, 0.0)
-    if now - last < _REJECTION_LOG_WINDOW_S:
+    last = _rejection_log_times.get(key)
+    if last is not None and now - last < _REJECTION_LOG_WINDOW_S:
         return
     _rejection_log_times[key] = now
 

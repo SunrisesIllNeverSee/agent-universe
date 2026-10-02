@@ -57,7 +57,8 @@ def sanitize_for_agent(text: str) -> str:
 
     Wraps in a [USER_CONTENT] fence so the agent's runtime can distinguish
     platform-provided instructions from user-submitted marketplace content.
-    Does not modify the text — the fence is the safety boundary.
+    Does not modify the text. The fence is a context-separation aid, not a
+    security boundary or a guarantee against prompt injection.
     """
     if not text:
         return text

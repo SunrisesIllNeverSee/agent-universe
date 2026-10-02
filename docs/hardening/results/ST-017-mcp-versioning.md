@@ -37,3 +37,13 @@ For a public hosted tool/schema:
 - incompatible rename/removal/required-field change: major contract increment
 - breaking removal requires a documented migration/deprecation period
 - documentation-only corrections: patch increment when they change the published contract description materially
+
+## Closure
+
+**Final status:** PARTIAL
+
+**Implementation/evidence:** hosted contract version authority is documented and `server.json` must match the public MCP server card. Package release versions remain independent and must not be advertised before publication.
+
+**Regression coverage:** `tests/test_agent_readiness.py::test_hosted_mcp_contract_versions_match`.
+
+**Remaining work:** apply the documented deprecation policy when the first breaking hosted contract change is proposed.

@@ -58,3 +58,13 @@ The credential comparison should be constant-time where practical.
 ## Decision
 
 **CONFIRMED. Implement narrowly in the global bearer resolver.**
+
+## Closure
+
+**Final status:** FIXED
+
+**Implementation/evidence:** the global cockpit Bearer resolver now requires a matching key hash on an agent whose status is `active`; suspension therefore revokes this authorization path consistently.
+
+**Regression coverage:** `tests/test_agent_readiness.py::test_cockpit_bearer_rejects_suspended_agent`.
+
+**Merge verification:** implementation is present on PR #50; full-suite CI and final branch-vs-main audit remain mandatory merge gates.

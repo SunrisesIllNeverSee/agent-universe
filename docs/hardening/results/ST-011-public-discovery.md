@@ -53,3 +53,13 @@ This conflicts with first-party copy stating that direct contact details are sha
 ## Decision
 
 **CONFIRMED. Implement.**
+
+## Closure
+
+**Final status:** FIXED
+
+**Implementation/evidence:** public KA§§A responses now pass through a dedicated projection that strips private routing/contact fields while preserving a non-sensitive collaborator type. Public MCP list limits are hard-clamped.
+
+**Regression coverage:** `tests/test_routes_kassa.py` verifies REST projection; `tests/test_mcp_bridge.py` verifies MCP projection and list bounds.
+
+**Merge verification:** implementation is present on PR #50; full-suite CI and final branch-vs-main audit remain mandatory merge gates.

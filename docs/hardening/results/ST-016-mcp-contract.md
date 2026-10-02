@@ -33,3 +33,13 @@ No missing or extra advertised tools and exactly seven resources.
 ## Decision
 
 Add contract synchronization to CI. This is preferred over relying on manual metadata review after tool changes.
+
+## Closure
+
+**Final status:** FIXED
+
+**Implementation/evidence:** runtime tools, public server-card tools, endpoint, transport, and resources are now checked together so contract drift is caught in CI.
+
+**Regression coverage:** `tests/test_mcp_bridge.py::test_mcp_runtime_matches_public_server_card` verifies 30 tools and 7 resources.
+
+**Merge verification:** implementation is present on PR #50; full-suite CI and final branch-vs-main audit remain mandatory merge gates.

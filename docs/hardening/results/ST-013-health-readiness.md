@@ -27,3 +27,13 @@ Therefore rebuilding MCP inside every health request would:
 - Keep `/health` cheap.
 - Verify the public `/mcp` transport separately in release/rollback procedure ST-022.
 - If a distinct readiness endpoint is ever needed, it should inspect already-created dependencies rather than rebuilding them.
+
+## Closure
+
+**Final status:** DISPROVED
+
+**Implementation/evidence:** the proposed health redesign was not adopted. The current liveness endpoint remains intentionally cheap and does not construct or probe a new FastMCP instance on every request.
+
+**Regression coverage:** existing health/readiness tests plus the startup and MCP contract suites protect the intended separation.
+
+**Decision:** no production behavior change required.

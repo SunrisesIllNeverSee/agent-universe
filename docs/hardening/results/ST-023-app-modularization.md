@@ -68,3 +68,11 @@ Those should be extracted only when the associated security tests define their b
 **DISPROVED as an immediate hardening refactor.**
 
 Do not reorganize `create_app()` in this program. Prefer narrow behavior-preserving extraction where it removes duplicated security logic and is regression-tested.
+
+## Closure
+
+**Final status:** DISPROVED / DEFERRED
+
+**Implementation/evidence:** no demonstrated hardening defect required a broad `create_app` split, so the proposed refactor was not performed.
+
+**Decision:** preserve current structure. Revisit only when a concrete coupling/testability defect justifies the regression cost.

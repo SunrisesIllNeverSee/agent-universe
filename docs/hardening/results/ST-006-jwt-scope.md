@@ -41,3 +41,13 @@ Tokens have no explicit `aud`/`iss` boundary. That is only a security gain if CI
 - The "JWTs are non-expiring / production secret is not hardened" claim is **disproved** for active issuance paths.
 - Audience/issuer claims remain a **future compatibility-hardening option**, not an emergency patch.
 - Dead MCP JWT helper should be removed only in a low-risk cleanup/refactor batch, not as part of a live auth change.
+
+## Closure
+
+**Final status:** PARTIAL / DEFERRED
+
+**Implementation/evidence:** active JWT issuance already expires tokens and production refuses an ephemeral secret. Audience/issuer scoping was not introduced because it would be a compatibility migration rather than an emergency security fix.
+
+**Regression coverage:** existing JWT/config tests plus `tests/test_startup_hardening.py` protect production-secret fail-closed behavior.
+
+**Remaining work:** if audience/issuer claims are adopted, migrate every issuer and verifier together under a dedicated compatibility test plan.

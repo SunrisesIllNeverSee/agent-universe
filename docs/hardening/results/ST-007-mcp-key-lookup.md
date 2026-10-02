@@ -36,3 +36,13 @@ Post-fix requirement: zero reloads from `_agent_from_key`; key rotation and stat
 ## Decision
 
 **CONFIRMED narrowly. Remove the per-auth disk reload; retain simple in-memory scan.**
+
+## Closure
+
+**Final status:** FIXED
+
+**Implementation/evidence:** authenticated MCP key resolution no longer reloads the registry from disk on every lookup; the current single-worker deployment uses the authoritative in-memory registry and retains the simple scan.
+
+**Regression coverage:** `tests/test_mcp_bridge.py::test_mcp_api_key_lookup_does_not_reload_registry`.
+
+**Merge verification:** implementation is present on PR #50; full-suite CI and final branch-vs-main audit remain mandatory merge gates.

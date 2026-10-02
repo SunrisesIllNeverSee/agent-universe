@@ -34,3 +34,13 @@ Authentication failures are security telemetry, not constitutional business acti
 ## Decision
 
 **PARTIAL. Implement security telemetry, not unbounded provenance writes.**
+
+## Closure
+
+**Final status:** FIXED
+
+**Implementation/evidence:** shared admin-auth primitives now emit throttled, privacy-safe rejection telemetry using a hashed client fingerprint and never log supplied secrets. The first-event throttling edge case found by CI was corrected so the first rejection is always emitted.
+
+**Regression coverage:** `tests/test_auth_hardening.py` covers global and route-local rejection logging plus secret non-disclosure.
+
+**Merge verification:** implementation is present on PR #50; full-suite CI and final branch-vs-main audit remain mandatory merge gates.

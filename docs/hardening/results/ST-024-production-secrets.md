@@ -41,3 +41,13 @@ Admin-key comparisons are duplicated across middleware and route modules, mostly
 ## Decision
 
 **PARTIAL.** Preserve the current production failure modes; consolidate comparison/logging behavior without rearchitecting authentication.
+
+## Closure
+
+**Final status:** PARTIAL
+
+**Implementation/evidence:** production JWT secret handling already fails closed; secret comparisons/admin helpers were consolidated and raw credentials remain excluded from security telemetry.
+
+**Regression coverage:** `tests/test_auth_hardening.py` and `tests/test_startup_hardening.py`.
+
+**Remaining work:** operational rotation procedures should be exercised during a planned credential-rotation drill, not invented inside this hardening patch.
