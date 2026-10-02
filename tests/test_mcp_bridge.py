@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import json
 import uuid
+from pathlib import Path
 
 
 def test_mcp_registration_ignores_legacy_registered_identity_cap(app):
@@ -152,4 +154,26 @@ def test_mcp_leaderboard_clamps_limit(app):
     )
 
     assert result.data["count"] <= 100
+
+def test_mcp_runtime_matches_public_server_card(app):
+    """ST-016: complete hosted runtime/card/resource contract must stay synchronized."""
+    from app.deps import state
+
+    mcp = state.mcp_bridge.build_fastmcp()
+    runtime_tools = asyncio.run(mcp.list_tools())
+    runtime_names = {tool.name for tool in runtime_tools}
+
+    root = Path(__file__).resolve().parents[1]
+    card = json.loads(
+        (root / "frontend" / ".well-known" / "mcp-server-card.json").read_text(encoding="utf-8")
+    )
+    advertised_names = {tool["name"] for tool in card["capabilities"]["tools"]}
+
+    assert runtime_names == advertised_names
+    assert len(runtime_names) == 30
+    assert card["url"] == "https://signomy.xyz/mcp"
+    assert card["transport"] == "streamable-http"
+
+    resources = asyncio.run(mcp.list_resources())
+    assert len(resources) == 7
 
