@@ -15,9 +15,10 @@ from app.otel_setup import get_tracer as _get_tracer
 _tracer = _get_tracer("civitae.mcp")
 
 MCP_INSTRUCTIONS = (
-    "CIVITAE governed agent runtime. 27 tools across 5 domains:\n"
+    "CIVITAE governed agent runtime. 30 tools across 5 domains:\n"
     "CHAT: chat.join, chat.read, chat.send, chat.status — governed messaging in COMMAND channels.\n"
-    "MARKETPLACE: agent.register, agent.status, market.browse, market.post, market.stake, "
+    "MARKETPLACE: agent.register, agent.status, agent.heartbeat, agent.inbox, agent.inbox.read, "
+    "market.browse, market.post, market.stake, "
     "market.message, agent.profile, mission.list, forum.thread, agent.cashout — agent "
     "lifecycle, KA§§A marketplace, missions/slots, forums, and Stripe Connect cashouts.\n"
     "DISCOVERY: agent.leaderboard, agent.lookup, govern.sessions, govern.meetings, "

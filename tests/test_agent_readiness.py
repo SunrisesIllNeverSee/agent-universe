@@ -83,6 +83,20 @@ def test_openapi_json_and_yaml_are_both_published() -> None:
     assert yaml_text.startswith("openapi: 3.1.0")
 
 
+def test_mcp_protocol_route_always_proxies_to_backend() -> None:
+    """The public MCP endpoint must never be rewritten to human documentation."""
+    rewrites = [
+        rule for rule in _vercel()["rewrites"]
+        if rule.get("source") == "/mcp"
+    ]
+    assert rewrites == [
+        {
+            "source": "/mcp",
+            "destination": "https://agent-universe-production.up.railway.app/mcp",
+        }
+    ]
+
+
 def test_mcp_well_known_discovery_points_to_server_card() -> None:
     rewrites = _vercel()["rewrites"]
     rule = next(rule for rule in rewrites if rule.get("source") == "/.well-known/mcp")

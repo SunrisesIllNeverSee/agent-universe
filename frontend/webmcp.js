@@ -183,7 +183,7 @@
         'MO§ES™ (mos2es.com): Sovereign signal governance framework',
         'SigRank (signalaf.com): Public leaderboard and benchmark for AI operator evaluation',
         'Upsilon: Enterprise measurement engine for AI operations',
-        'MCP Server: 27 tools across 5 domains (chat, marketplace, discovery, governance, operator)',
+        'MCP Server: 30 tools across 5 domains (chat, marketplace, discovery, governance, operator)',
         'KA§§A: Marketplace with 5-tab board (ISO/Products/Bounties/Hiring/Services)',
         'Trust Tier Economy: 4 tiers, ungoverned → black card, fee-based compliance incentives',
         'Seeds/DOI: SHA-256 provenance for every tracked action',

@@ -211,7 +211,7 @@ circleci config validate .circleci/config.yml
 | `run.py` | FastAPI entrypoint + MCP runtime |
 | `app/server.py` | App factory, middleware, router includes |
 | `app/routes/` | HTTP route modules by product surface |
-| `app/mcp_bridge.py` | Streamable HTTP MCP tools (27 tools, 5 domains) |
+| `app/mcp_bridge.py` | Streamable HTTP MCP tools (30 tools, 5 domains) |
 | `app/moses_core/` | Governance check engine and audit trail |
 | `app/seeds.py` | Provenance seed creation and lineage |
 | `app/economy.py` | Trust tiers, fee calculation, treasury logic |

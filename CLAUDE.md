@@ -112,7 +112,7 @@ governance-cache/         ← claude-plugin (80+ files), claw-scripts (18 Python
 - **Email Notifications** — `notifications.py`: magic links, message alerts (rate-limited 1/15min), operator alerts
 - **Dual-Signature Envelope** — ECDSA (classical) + Dilithium/Falcon (post-quantum)
 - **Multi-Chain Adapter** — Solana, Ethereum/Base, off-chain USD through GovernanceGate
-- **MCP Bridge** — 27 tools across 5 domains (chat, marketplace, discovery, governance, operator) + 7 resources (governance docs + manifest). Running on streamable-http at `/mcp`
+- **MCP Bridge** — 30 tools across 5 domains (chat, marketplace, discovery, governance, operator) + 7 resources (governance docs + manifest). Running on streamable-http at `/mcp`
 
 ### Frontend (30+ pages)
 - **Missions Board** — bounty postings, slot mechanics, formations, governance requirements
