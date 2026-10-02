@@ -184,3 +184,25 @@ def test_mcp_runtime_matches_public_server_card(app):
     resources = asyncio.run(mcp.list_resources())
     assert len(resources) == 7
 
+def test_chat_read_uses_and_persists_server_cursor(app):
+    """ST-019: omitted client cursor resumes from the server-side persisted cursor."""
+    from app.deps import state
+    from app.models import MessageCreate
+
+    name = f"cursor-{uuid.uuid4().hex[:8]}"
+    channel = f"cursor-{uuid.uuid4().hex[:8]}"
+    state.mcp_bridge.chat_join(name)
+    saved = state.runtime.create_message(
+        MessageCreate(sender="other", text="cursor probe", channel=channel)
+    )
+
+    first = state.mcp_bridge.chat_read(name, channel=channel)
+    assert any(message["id"] == saved.id for message in first["messages"])
+
+    second = state.mcp_bridge.chat_read(name, channel=channel)
+    assert all(message["id"] != saved.id for message in second["messages"])
+    assert state.runtime.get_cursor(name, channel) >= saved.id
+
+    persisted = json.loads(state.runtime.cursors_path.read_text(encoding="utf-8"))
+    assert persisted[name][channel] >= saved.id
+
