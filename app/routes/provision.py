@@ -18,9 +18,11 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from app.auth import admin_key_matches, require_admin, secret_matches
 from app.deps import state
-from app.jwt_config import get_kassa_jwt_secret
+from app.jwt_config import issue_agent_jwt
 from app.metrics_io import atomic_write, load_metrics, save_metrics
+from app.rate_limit import RATE_STORES as _rate_stores, check_rate_limit as _shared_check_rate_limit
 from app.otel_setup import get_tracer as _get_tracer
 from app.sanitize import sanitize_text as sanitize
 from app.seeds import create_seed
@@ -48,7 +50,6 @@ class IssueAgentKeyPayload(BaseModel):
     requested_by: str = "operator"
 
 # ── JWT helpers (shared secret with kassa) ──────────────────────────────────
-_JWT_SECRET = get_kassa_jwt_secret()
 _JWT_EXPIRY_HOURS = 24
 
 
@@ -57,48 +58,37 @@ def _hash_key(key: str) -> str:
 
 
 def _issue_jwt(agent_id: str, name: str) -> str:
-    from datetime import timedelta
-    payload = {
-        "sub": agent_id,
-        "name": name,
-        "iat": datetime.now(UTC),
-        "exp": datetime.now(UTC) + timedelta(hours=_JWT_EXPIRY_HOURS),
-    }
-    return pyjwt.encode(payload, _JWT_SECRET, algorithm="HS256")
+    return issue_agent_jwt(agent_id, name, expiry_hours=_JWT_EXPIRY_HOURS)
 
 router = APIRouter(tags=["provision"])
 
-# ── Auth helper (fail-closed) ────────────────────────────────────────────────
+def _require_agent_or_admin(request: Request, agent: dict) -> None:
+    """Authorize a mutation scoped to one registered active agent."""
+    if admin_key_matches(request, state.admin_key):
+        return
 
-def _require_admin(request: Request):
-    if not state.admin_key:
-        raise HTTPException(403, "CIVITAE_ADMIN_KEY not configured")
-    if request.headers.get("X-Admin-Key") != state.admin_key:
-        raise HTTPException(403, "Admin key required")
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(401, "Agent API key required")
+
+    provided_key = auth[7:].strip()
+    stored_hash = agent.get("key_hash", "")
+    if (
+        not provided_key
+        or not stored_hash
+        or not secret_matches(_hash_key(provided_key), stored_hash)
+    ):
+        raise HTTPException(401, "Invalid API key")
+
+    if agent.get("status") != "active":
+        raise HTTPException(403, f"Agent status: {agent.get('status')}")
 
 
-# ── Rate limiter (mirrors server.py pattern) ─────────────────────────────────
-
-_rate_stores: dict[str, dict] = {}
+# ── Shared in-process rate limiter ───────────────────────────────────────────
 
 
 def _check_rate_limit(request: Request, bucket_name: str, max_hits: int, window_s: int = 3600):
-    """Enforce per-IP rate limit. Raises 429 if exceeded."""
-    fwd = request.headers.get("x-forwarded-for", "")
-    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
-    ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:16]
-    now = _time.time()
-    if bucket_name not in _rate_stores:
-        _rate_stores[bucket_name] = {}
-    bucket = _rate_stores[bucket_name]
-    # Evict stale entries
-    _rate_stores[bucket_name] = {k: v for k, v in bucket.items() if v and now - v[-1] < window_s}
-    bucket = _rate_stores[bucket_name]
-    recent = [t for t in bucket.get(ip_hash, []) if now - t < window_s]
-    if len(recent) >= max_hits:
-        raise HTTPException(status_code=429, detail=f"Rate limit: {max_hits} requests per hour")
-    recent.append(now)
-    bucket[ip_hash] = recent
+    return _shared_check_rate_limit(request, bucket_name, max_hits, window_s)
 
 
 # ── Data helpers ─────────────────────────────────────────────────────────────
@@ -355,6 +345,8 @@ async def issue_agent_key(payload: IssueAgentKeyPayload) -> dict:
 
     new_key = f"cmd_ak_{secrets.token_hex(8)}"
     agent["key_prefix"] = new_key[:12] + "***"
+    agent["key_hash"] = _hash_key(new_key)
+    runtime.persist_registry()
 
     audit.log("provision", "key_rotated", {
         "agent_id": agent_id,
@@ -441,14 +433,14 @@ async def agent_provision_status(agent_id: str, request: Request) -> dict:
 @router.get("/api/provision/registry")
 async def get_registry(request: Request) -> dict:
     """List all registered agents and systems. Requires X-Admin-Key."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
     return {"registry": state.runtime.registry}
 
 
 @router.post("/api/provision/approve")
 async def approve_agent(request: Request, payload: dict) -> dict:
     """Approve a pending agent (manual approval mode)."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
     runtime = state.runtime
     audit = state.audit
     emit = state.emit
@@ -475,7 +467,7 @@ async def approve_agent(request: Request, payload: dict) -> dict:
 @router.post("/api/provision/reject")
 async def reject_agent(request: Request, payload: dict) -> dict:
     """Reject a pending agent (sets status to rejected)."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
     runtime = state.runtime
     audit = state.audit
     emit = state.emit
@@ -493,14 +485,19 @@ async def reject_agent(request: Request, payload: dict) -> dict:
 
 
 @router.post("/api/provision/heartbeat/{agent_id}")
-async def agent_heartbeat(agent_id: str) -> dict:
-    """Update agent last_seen timestamp. Keeps liveness signal current.
-    Also auto-bootstraps a metrics entry if one doesn't exist yet."""
+async def agent_heartbeat(agent_id: str, request: Request) -> dict:
+    """Update an authenticated agent's last_seen timestamp.
+
+    Accepts the matching agent API key via Bearer auth or an operator admin key.
+    Also auto-bootstraps a metrics entry if one doesn't exist yet.
+    """
     runtime = state.runtime
 
     agent = next((r for r in runtime.registry if r.get("agent_id") == agent_id), None)
     if not agent:
         return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
+    _require_agent_or_admin(request, agent)
+
     now = datetime.now(UTC).isoformat()
     agent["last_seen"] = now
     runtime.persist_registry()
@@ -546,7 +543,7 @@ async def agent_heartbeat(agent_id: str) -> dict:
 @router.post("/api/provision/suspend")
 async def suspend_agent(request: Request, payload: dict) -> dict:
     """Suspend an active agent."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
     runtime = state.runtime
     audit = state.audit
     emit = state.emit
@@ -579,7 +576,7 @@ async def suspend_agent(request: Request, payload: dict) -> dict:
 @router.delete("/api/provision/decommission/{agent_id}")
 async def decommission_agent(request: Request, agent_id: str) -> dict:
     """Permanently remove an agent from the registry."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
     runtime = state.runtime
     audit = state.audit
     emit = state.emit

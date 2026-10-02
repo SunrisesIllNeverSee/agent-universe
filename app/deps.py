@@ -48,6 +48,7 @@ class AppState:
     frontend_dir: Path
     version: str = ""
     start_time: float = 0.0
+    mcp_ready: bool = False
 
     async def emit(self, event_type: str, payload: dict) -> None:
         """Broadcast an event to all connected WebSocket clients (authed + public)."""

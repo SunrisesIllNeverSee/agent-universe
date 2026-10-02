@@ -1,9 +1,10 @@
 """
 Input sanitization for user-submitted content.
 
-Prevents XSS by escaping HTML entities at the storage boundary.
-The frontend renders content as innerHTML in several places (forums,
-kassa posts, thread messages), so we escape before persisting.
+Provides HTML escaping for REST storage paths and prompt-injection detection
+for agent-facing content. First-party frontends must still render untrusted
+content with textContent or explicit escaping; not every ingress (notably MCP)
+stores pre-escaped HTML.
 
 Also provides prompt injection detection for agent-facing content —
 prevents adversarial instructions in marketplace posts or messages
@@ -11,6 +12,7 @@ from hijacking agent context windows.
 """
 import html
 import re
+import unicodedata
 
 # Patterns that signal prompt injection attempts in agent-facing content
 _INJECTION_PATTERNS = [
@@ -26,16 +28,28 @@ _INJECTION_PATTERNS = [
     r"pretend\s+(you\s+are|you're|that)",
     r"jailbreak",
     r"dan\s+mode",
+    r"^\s*(system|assistant|developer)\s*:\s*",
 ]
 
-_INJECTION_RE = re.compile("|".join(_INJECTION_PATTERNS), re.IGNORECASE)
+_INJECTION_RE = re.compile("|".join(_INJECTION_PATTERNS), re.IGNORECASE | re.MULTILINE)
+
+
+def _normalize_for_detection(text: str) -> str:
+    """Normalize common visual/control obfuscation before pattern matching."""
+    normalized = unicodedata.normalize("NFKC", text)
+    # Remove characters commonly used to split instruction keywords invisibly.
+    return re.sub(r"[\u00ad\u200b-\u200f\u2060\ufeff]", "", normalized)
 
 
 def detect_prompt_injection(text: str) -> bool:
-    """Return True if text contains prompt injection patterns."""
+    """Return True for known instruction-override patterns.
+
+    This is defense-in-depth classification, not a guarantee that arbitrary
+    untrusted text is safe to treat as instructions.
+    """
     if not text:
         return False
-    return bool(_INJECTION_RE.search(text))
+    return bool(_INJECTION_RE.search(_normalize_for_detection(text)))
 
 
 def sanitize_for_agent(text: str) -> str:
@@ -43,7 +57,8 @@ def sanitize_for_agent(text: str) -> str:
 
     Wraps in a [USER_CONTENT] fence so the agent's runtime can distinguish
     platform-provided instructions from user-submitted marketplace content.
-    Does not modify the text — the fence is the safety boundary.
+    Does not modify the text. The fence is a context-separation aid, not a
+    security boundary or a guarantee against prompt injection.
     """
     if not text:
         return text

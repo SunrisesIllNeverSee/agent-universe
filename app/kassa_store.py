@@ -190,7 +190,14 @@ class KassaStore:
 
     # ── POSTS ──────────────────────────────────────────────────────────────
 
-    def load_posts(self, tab: str = "", status: str = "") -> list[dict]:
+    def load_posts(
+        self,
+        tab: str = "",
+        status: str = "",
+        *,
+        search: str = "",
+        limit: int | None = None,
+    ) -> list[dict]:
         with self._lock:
             sql = "SELECT * FROM posts WHERE 1=1"
             params: list = []
@@ -200,7 +207,14 @@ class KassaStore:
             if status:
                 sql += " AND status = ?"
                 params.append(status)
+            if search:
+                pattern = f"%{search.lower()}%"
+                sql += " AND (LOWER(title) LIKE ? OR LOWER(body) LIKE ?)"
+                params.extend([pattern, pattern])
             sql += " ORDER BY created_at DESC"
+            if limit is not None:
+                sql += " LIMIT ?"
+                params.append(max(1, int(limit)))
             rows = self._conn.execute(sql, params).fetchall()
             return self._rows_to_list(rows)
 

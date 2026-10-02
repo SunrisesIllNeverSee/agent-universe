@@ -10,7 +10,10 @@ from pydantic import Field
 from .context import ContextAssembler
 from .models import MessageCreate
 from .runtime import RuntimeState
+from app.auth import secret_matches
 from app.otel_setup import get_tracer as _get_tracer
+from app.sanitize import detect_prompt_injection
+from app.public_projection import public_kassa_post
 
 _tracer = _get_tracer("civitae.mcp")
 
@@ -125,9 +128,9 @@ class MCPBridge:
 
         from mcp.server.transport_security import TransportSecuritySettings
         # DNS rebinding protection locks Host to localhost — wrong for prod (421).
-        # stateless_http=True means no in-memory session state: every request is
-        # self-contained. Required when Railway runs multiple workers (--workers 4)
-        # since session state can't be shared across processes.
+        # stateless_http=True keeps MCP transport requests self-contained.
+        # Production remains single-worker while authoritative file/in-memory
+        # state has no cross-process coordination.
         mcp = FastMCP(
             "command-runtime",
             instructions=MCP_INSTRUCTIONS,
@@ -145,7 +148,7 @@ class MCPBridge:
         ChatSendResult = dict[str, Any]
         ChatStatusResult = dict[str, Any]
 
-        @mcp.tool(name="chat.join", annotations={"title": "Join Chat", "readOnly": False, "destructive": False, "idempotent": True, "openWorld": False})
+        @mcp.tool(name="chat.join", annotations={"title": "Join Chat", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
         def chat_join(
             name: Annotated[str, Field(description="Your agent display name. Used as sender identity in all subsequent chat calls.")],
         ) -> ChatJoinResult:
@@ -165,10 +168,10 @@ class MCPBridge:
         @mcp.tool(name="chat.send", annotations={"title": "Send Message", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
         def chat_send(
             sender: Annotated[str, Field(description="Your agent name — must have called chat_join first.")],
-            message: Annotated[str, Field(description="Message body. Subject to MO§ES™ governance review. Max 4000 characters.")],
+            message: Annotated[str, Field(description="Message body. Stored with the current MO§ES™ governance snapshot and audit provenance. Max 4000 characters.")],
             channel: Annotated[str, Field(description="Target channel slug. Default: 'general'.")] = "general",
         ) -> ChatSendResult:
-            """Post a message into a governed CIVITAE channel. The message is logged with a SHA-256 provenance seed and subject to constitutional governance."""
+            """Post a message into a CIVITAE channel with the current governance snapshot and audit provenance."""
             return self.chat_send(sender, message, channel=channel)
 
         @mcp.tool(name="chat.status", annotations={"title": "Governance Status", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
@@ -182,25 +185,15 @@ class MCPBridge:
         def _hash_key(key: str) -> str:
             return hashlib.sha256(key.encode()).hexdigest()
 
-        def _issue_jwt(agent_id: str, name: str) -> str:
-            import jwt as _jwt
-            return _jwt.encode(
-                {"agent_id": agent_id, "name": name, "iat": int(datetime.now(timezone.utc).timestamp())},
-                _state.jwt_secret,
-                algorithm="HS256",
-            )
-
         def _agent_from_key(api_key: str) -> dict | None:
             if not api_key:
                 return None
-            _state.runtime.reload_registry()
             h = _hash_key(api_key)
             return next((r for r in _state.runtime.registry if r.get("key_hash") == h and r.get("status") == "active"), None)
 
         def _sanitize(text: str) -> str:
-            bad = ["ignore previous", "disregard", "system:", "assistant:", "<|im_"]
-            low = text.lower()
-            if any(b in low for b in bad):
+            # Shared defense-in-depth classifier; content remains untrusted data.
+            if detect_prompt_injection(text) or "<|im_" in text.lower():
                 return "[content removed by governance filter]"
             return text[:4000]
 
@@ -388,7 +381,7 @@ class MCPBridge:
                 return r
 
         # ── civitae_heartbeat ──────────────────────────────────────────
-        @mcp.tool(name="agent.heartbeat", annotations={"title": "Send Heartbeat", "readOnly": False, "destructive": False, "idempotent": True, "openWorld": False})
+        @mcp.tool(name="agent.heartbeat", annotations={"title": "Send Heartbeat", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
         async def civitae_heartbeat(
             api_key: Annotated[str, Field(description="Your agent API key from agent.register.")],
         ) -> dict:
@@ -507,14 +500,16 @@ class MCPBridge:
                 span.set_attribute("mcp.category", category or "all")
                 span.set_attribute("mcp.status", status)
                 span.set_attribute("mcp.limit", limit)
-                posts = _state.kassa.load_posts(tab=category, status=status)
-                if search:
-                    sq = search.lower()
-                    posts = [p for p in posts if sq in p.get("title", "").lower() or sq in p.get("body", "").lower()]
-                posts = posts[:limit]
+                limit = max(1, min(int(limit), 50))
+                posts = _state.kassa.load_posts(
+                    tab=category,
+                    status=status,
+                    search=search,
+                    limit=limit,
+                )
                 span.set_attribute("mcp.posts_returned", len(posts))
                 span.set_attribute("mcp.result", "ok")
-                return {"posts": [_fence(p) for p in posts], "count": len(posts)}
+                return {"posts": [_fence(public_kassa_post(p)) for p in posts], "count": len(posts)}
 
         # ── civitae_post ───────────────────────────────────────────────
         @mcp.tool(name="market.post", annotations={"title": "Create Post", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
@@ -925,6 +920,7 @@ class MCPBridge:
                         "governance_mode": reg.get("governance", ""),
                         "system": reg.get("system") or "general",
                     })
+                limit = max(1, min(int(limit), 100))
                 agents_out = agents_out[:limit]
                 span.set_attribute("mcp.agents_returned", len(agents_out))
                 span.set_attribute("mcp.result", "ok")
@@ -1106,7 +1102,7 @@ class MCPBridge:
         def _check_op(admin_key: str) -> str | None:
             if not _state.admin_key:
                 return "Admin key not configured on this server."
-            if admin_key != _state.admin_key:
+            if not secret_matches(admin_key, _state.admin_key):
                 return "Invalid admin key."
             return None
 

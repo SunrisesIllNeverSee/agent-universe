@@ -19,6 +19,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
+from app.auth import require_admin
 from app.deps import state
 from app.otel_setup import get_tracer as _get_tracer
 from app.seeds import create_seed
@@ -58,16 +59,6 @@ class ConnectProductPayload(BaseModel):
     price_cents: int = 0
     currency: str = "usd"
     connected_account_id: str = ""
-
-
-# ── Auth helper (fail-closed) ──────────────────────────────────────────────
-
-def _require_admin(request: Request):
-    """Fail-closed admin check — rejects if key is unset OR mismatched."""
-    if not state.admin_key:
-        raise HTTPException(403, "CIVITAE_ADMIN_KEY not configured")
-    if request.headers.get("X-Admin-Key") != state.admin_key:
-        raise HTTPException(403, "Admin key required")
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -140,7 +131,7 @@ async def mpp_credit(request: Request) -> dict:
 
     Body: { "agent_id": "...", "amount": 10.00, "reason": "..." }
     """
-    _require_admin(request)
+    require_admin(request, state.admin_key)
 
     gate = state.runtime.check_action("manual credit")
     if not gate["permitted"]:

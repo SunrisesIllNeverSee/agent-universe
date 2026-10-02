@@ -18,6 +18,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from app.auth import require_admin
 from app.deps import state
 from app.seeds import create_seed
 
@@ -160,10 +161,7 @@ async def apply_for_seat(payload: SeatApplicationPayload) -> dict:
 @router.post("/api/advisory/seat")
 async def seat_member(request: Request, payload: SeatMemberPayload) -> dict:
     """Operator approves and seats a council member. Requires admin key."""
-    if not state.admin_key:
-        raise HTTPException(403, "CIVITAE_ADMIN_KEY not configured")
-    if request.headers.get("X-Admin-Key") != state.admin_key:
-        raise HTTPException(403, "Admin key required")
+    require_admin(request, state.admin_key)
 
     seat_id = payload.seat_id.strip()
     name = payload.name.strip()

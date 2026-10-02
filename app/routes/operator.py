@@ -18,8 +18,10 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from app.auth import require_admin
 from app.deps import state
 from app.seeds import _read_seeds
+from app.rate_limit import RATE_STORES as _rate_stores, check_rate_limit as _shared_check_rate_limit
 
 UTC = timezone.utc
 
@@ -31,37 +33,11 @@ class InboxReviewPayload(BaseModel):
     status: str = "reviewed"
     note: str = ""
 
-# ── Auth helper (fail-closed) ─────────────────────────────────────────────────
-
-def _require_admin(request: Request):
-    if not state.admin_key:
-        raise HTTPException(403, "CIVITAE_ADMIN_KEY not configured")
-    if request.headers.get("X-Admin-Key") != state.admin_key:
-        raise HTTPException(403, "Admin key required")
-
-
-# ── Rate limiter (mirrors server.py pattern) ──────────────────────────────────
-
-_rate_stores: dict[str, dict] = {}
+# ── Shared in-process rate limiter ───────────────────────────────────────────
 
 
 def _check_rate_limit(request: Request, bucket_name: str, max_hits: int, window_s: int = 3600):
-    """Enforce per-IP rate limit. Raises 429 if exceeded."""
-    fwd = request.headers.get("x-forwarded-for", "")
-    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
-    ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:16]
-    now = _time.time()
-    if bucket_name not in _rate_stores:
-        _rate_stores[bucket_name] = {}
-    bucket = _rate_stores[bucket_name]
-    # Evict stale entries
-    _rate_stores[bucket_name] = {k: v for k, v in bucket.items() if v and now - v[-1] < window_s}
-    bucket = _rate_stores[bucket_name]
-    recent = [t for t in bucket.get(ip_hash, []) if now - t < window_s]
-    if len(recent) >= max_hits:
-        raise HTTPException(status_code=429, detail=f"Rate limit: {max_hits} requests per hour")
-    recent.append(now)
-    bucket[ip_hash] = recent
+    return _shared_check_rate_limit(request, bucket_name, max_hits, window_s)
 
 
 # ── Data helpers ──────────────────────────────────────────────────────────────
@@ -85,7 +61,7 @@ def _load_slots() -> list[dict]:
 @router.get("/api/operator/threads")
 async def operator_threads(request: Request, status: str = "") -> dict:
     """List all threads across all posts. Requires X-Admin-Key."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
 
     threads = state.kassa.load_threads()
     if status:
@@ -102,7 +78,7 @@ async def operator_threads(request: Request, status: str = "") -> dict:
 @router.get("/api/operator/stats")
 async def operator_stats(request: Request) -> dict:
     """Platform stats for operator console. Requires X-Admin-Key."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
 
     # Total registered agents
     total_agents = len(state.runtime.registry)
@@ -156,7 +132,7 @@ async def operator_stats(request: Request) -> dict:
 @router.get("/api/operator/audit")
 async def operator_audit(request: Request, type: str = "", limit: int = 50, since: str = "") -> dict:
     """Recent audit events with optional filters. Requires X-Admin-Key."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
 
     limit = max(1, min(200, limit))
     events = state.audit.recent(limit=limit * 3 if type or since else limit)
@@ -187,7 +163,7 @@ async def operator_audit(request: Request, type: str = "", limit: int = 50, sinc
 @router.get("/api/operator/contacts")
 async def operator_contacts(request: Request) -> dict:
     """Contact form submissions. Requires X-Admin-Key."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
 
     contacts_file = state.data_path("contacts.jsonl")
     contacts = []

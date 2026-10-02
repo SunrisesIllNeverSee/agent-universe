@@ -18,6 +18,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from .auth import admin_key_matches, log_admin_rejection, log_admin_success, secret_matches
 from .audit import AuditSpine
 from .context import ContextAssembler
 from .mcp_bridge import MCPBridge
@@ -163,8 +164,10 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     # ── Build FastMCP and its Starlette sub-app (mounted below at /mcp) ─
     # Lives in the same uvicorn process so it's reachable on the public Railway port.
+    state.mcp_ready = False
     _mcp = mcp_bridge.build_fastmcp()
     _mcp_app = _mcp.streamable_http_app()
+    state.mcp_ready = True
 
     # ── FastAPI app with combined lifespan (MCP session manager + backdate) ──
     from contextlib import asynccontextmanager
@@ -334,7 +337,12 @@ def create_app(root: Path | None = None) -> FastAPI:
         digest = _hash_key(auth[7:].strip())
         registry = getattr(getattr(state, "runtime", None), "registry", None) or []
         try:
-            return any(a.get("key_hash") == digest for a in registry)
+            return any(
+                a.get("status") == "active"
+                and bool(a.get("key_hash"))
+                and secret_matches(a["key_hash"], digest)
+                for a in registry
+            )
         except Exception:
             return False
 
@@ -350,19 +358,24 @@ def create_app(root: Path | None = None) -> FastAPI:
                         any(path.startswith(p) for p in _OPERATOR_WRITE_PREFIXES)
                         and _agent_bearer_ok(request)
                     )
-                    if request.headers.get("X-Admin-Key") != _ADMIN_KEY and not bearer_ok:
+                    admin_ok = admin_key_matches(request, _ADMIN_KEY)
+                    if not admin_ok and not bearer_ok:
+                        log_admin_rejection(request, "invalid")
                         return _error_response(
                             403,
                             "admin_key_required",
                             "A valid administrator key is required for this operation.",
                             "Supply X-Admin-Key only from an authorized operator environment.",
                         )
+                    if admin_ok:
+                        log_admin_success(request)
                 else:
                     if _DEV_MODE:
                         # Local dev: allow localhost requests without admin key
                         fwd = request.headers.get("x-forwarded-for", "")
                         host = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "")
                         if host not in ("127.0.0.1", "::1", "localhost"):
+                            log_admin_rejection(request, "not_configured")
                             return _error_response(
                                 403,
                                 "admin_key_not_configured",
@@ -371,6 +384,7 @@ def create_app(root: Path | None = None) -> FastAPI:
                             )
                     else:
                         # Production: no admin key = blocked
+                        log_admin_rejection(request, "not_configured")
                         return _error_response(
                             403,
                             "admin_key_not_configured",
@@ -381,19 +395,22 @@ def create_app(root: Path | None = None) -> FastAPI:
         # Guard operator GET endpoints (sensitive data)
         if request.method == "GET" and any(path.startswith(p) for p in _ADMIN_GET_PREFIXES):
             if not _ADMIN_KEY:
+                log_admin_rejection(request, "not_configured")
                 return _error_response(
                     403,
                     "admin_key_not_configured",
                     "Administrator access is not configured for this environment.",
                     "Use a documented public endpoint or contact the operator.",
                 )
-            if request.headers.get("X-Admin-Key") != _ADMIN_KEY:
+            if not admin_key_matches(request, _ADMIN_KEY):
+                log_admin_rejection(request, "invalid")
                 return _error_response(
                     403,
                     "admin_key_required",
                     "A valid administrator key is required for this operation.",
                     "Supply X-Admin-Key only from an authorized operator environment.",
                 )
+            log_admin_success(request)
 
         return await call_next(request)
 

@@ -218,13 +218,118 @@ def test_status_with_invalid_bearer_key_401(client):
     assert status.status_code == 401
 
 
-def test_heartbeat_updates_last_seen(client):
+def test_heartbeat_requires_agent_auth(client):
     r = signup_agent(client, ip=_ip())
     assert r.status_code == 200
     agent_id = r.json()["agent_id"]
+    agent = next(x for x in state.runtime.registry if x.get("agent_id") == agent_id)
+    before = agent.get("last_seen")
+
     hb = client.post(f"/api/provision/heartbeat/{agent_id}")
+
+    assert hb.status_code == 401
+    agent = next(x for x in state.runtime.registry if x.get("agent_id") == agent_id)
+    assert agent.get("last_seen") == before
+
+
+def test_heartbeat_rejects_another_agents_key(client):
+    a = signup_agent(client, ip=_ip()).json()
+    b = signup_agent(client, ip=_ip()).json()
+
+    hb = client.post(
+        f"/api/provision/heartbeat/{a['agent_id']}",
+        headers={"Authorization": f"Bearer {b['api_key']}"},
+    )
+
+    assert hb.status_code == 401
+
+
+def test_heartbeat_updates_last_seen_with_agent_key(client):
+    r = signup_agent(client, ip=_ip())
+    assert r.status_code == 200
+    data = r.json()
+
+    hb = client.post(
+        f"/api/provision/heartbeat/{data['agent_id']}",
+        headers={"Authorization": f"Bearer {data['api_key']}"},
+    )
+
     assert hb.status_code == 200
     assert hb.json()["ok"] is True
+
+
+def test_heartbeat_accepts_admin_key(client, admin_client):
+    r = signup_agent(client, ip=_ip())
+    assert r.status_code == 200
+    agent_id = r.json()["agent_id"]
+
+    hb = admin_client.post(f"/api/provision/heartbeat/{agent_id}")
+
+    assert hb.status_code == 200
+    assert hb.json()["ok"] is True
+
+
+def test_key_rotation_requires_admin(client):
+    data = signup_agent(client, ip=_ip()).json()
+
+    rotate = client.post(
+        "/api/provision/key",
+        json={"agent_id": data["agent_id"], "requested_by": "test"},
+    )
+
+    assert rotate.status_code == 403
+
+
+def test_key_rotation_replaces_authoritative_key(client, admin_client):
+    data = signup_agent(client, ip=_ip()).json()
+    agent_id = data["agent_id"]
+    old_key = data["api_key"]
+
+    assert client.post(
+        "/api/provision/login",
+        json={"agent_id": agent_id, "api_key": old_key},
+        headers={"x-forwarded-for": _ip()},
+    ).status_code == 200
+
+    rotate = admin_client.post(
+        "/api/provision/key",
+        json={"agent_id": agent_id, "requested_by": "test"},
+    )
+    assert rotate.status_code == 200
+    new_key = rotate.json()["key"]
+    assert new_key != old_key
+
+    assert client.post(
+        "/api/provision/login",
+        json={"agent_id": agent_id, "api_key": old_key},
+        headers={"x-forwarded-for": _ip()},
+    ).status_code == 401
+    assert client.post(
+        "/api/provision/login",
+        json={"agent_id": agent_id, "api_key": new_key},
+        headers={"x-forwarded-for": _ip()},
+    ).status_code == 200
+
+    state.runtime.reload_registry()
+    agent = next(x for x in state.runtime.registry if x.get("agent_id") == agent_id)
+    assert agent["key_hash"] == provision_routes._hash_key(new_key)
+
+    assert client.post(
+        f"/api/provision/heartbeat/{agent_id}",
+        headers={"Authorization": f"Bearer {old_key}"},
+    ).status_code == 401
+    assert client.post(
+        f"/api/provision/heartbeat/{agent_id}",
+        headers={"Authorization": f"Bearer {new_key}"},
+    ).status_code == 200
+
+    recent = state.audit.recent(10)
+    rotation = next(
+        e for e in reversed(recent)
+        if getattr(e, "component", None) == "provision"
+        and getattr(e, "action", None) == "key_rotated"
+    )
+    assert new_key not in str(rotation.model_dump(mode="json"))
 
 
 def test_registry_requires_admin(client):
