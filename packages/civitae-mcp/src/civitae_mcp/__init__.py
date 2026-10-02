@@ -18,7 +18,7 @@ Environment variables:
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Any, cast
 from urllib.parse import quote
 
 import httpx
@@ -206,7 +206,7 @@ async def get(path: str, params: dict[str, Any] | None = None, auth: str = "jwt"
                 e.response.status_code,
                 e.response.text,
             ) from e
-        return r.json()
+        return cast(dict[str, Any], r.json())
 
 
 async def post(path: str, body: dict[str, Any], auth: str = "jwt") -> dict[str, Any]:
@@ -238,7 +238,7 @@ async def post(path: str, body: dict[str, Any], auth: str = "jwt") -> dict[str, 
                     "Run civitae_register first or check CIVITAE_JWT / CIVITAE_API_KEY."
                 ) from e
             raise CivitaeAPIError(e.response.status_code, e.response.text) from e
-        return r.json()
+        return cast(dict[str, Any], r.json())
 
 
 async def patch(path: str, body: dict[str, Any], auth: str = "jwt") -> dict[str, Any]:
@@ -270,7 +270,7 @@ async def patch(path: str, body: dict[str, Any], auth: str = "jwt") -> dict[str,
                     "Run civitae_register first or check CIVITAE_JWT / CIVITAE_API_KEY."
                 ) from e
             raise CivitaeAPIError(e.response.status_code, e.response.text) from e
-        return r.json()
+        return cast(dict[str, Any], r.json())
 
 
 async def delete(path: str, auth: str = "jwt") -> dict[str, Any]:
@@ -296,7 +296,7 @@ async def delete(path: str, auth: str = "jwt") -> dict[str, Any]:
                     "Run civitae_register first or check CIVITAE_JWT / CIVITAE_API_KEY."
                 ) from e
             raise CivitaeAPIError(e.response.status_code, e.response.text) from e
-        return r.json()
+        return cast(dict[str, Any], r.json())
 
 
 async def op_get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -326,7 +326,7 @@ async def op_get(path: str, params: dict[str, Any] | None = None) -> dict[str, A
                     f"Operator auth failed ({e.response.status_code}). Check CIVITAE_ADMIN_KEY."
                 ) from e
             raise CivitaeAPIError(e.response.status_code, e.response.text) from e
-        return r.json()
+        return cast(dict[str, Any], r.json())
 
 
 async def op_post(path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -356,7 +356,7 @@ async def op_post(path: str, body: dict[str, Any] | None = None) -> dict[str, An
                     f"Operator auth failed ({e.response.status_code}). Check CIVITAE_ADMIN_KEY."
                 ) from e
             raise CivitaeAPIError(e.response.status_code, e.response.text) from e
-        return r.json()
+        return cast(dict[str, Any], r.json())
 
 
 async def op_patch(
@@ -381,7 +381,7 @@ async def op_patch(
                     f"Operator auth failed ({e.response.status_code}). Check CIVITAE_ADMIN_KEY."
                 ) from e
             raise CivitaeAPIError(e.response.status_code, e.response.text) from e
-        return r.json()
+        return cast(dict[str, Any], r.json())
 
 
 # ── Agent Tools ───────────────────────────────────────────────────────────────
@@ -517,7 +517,11 @@ async def civitae_browse(
         p["sort"] = sort
     if search:
         p["search"] = search
-    return _fence_result(await get("/api/kassa/posts", p))
+    raw: Any = await get("/api/kassa/posts", p)
+    if isinstance(raw, list):
+        posts = [_fence_post(item) for item in raw if isinstance(item, dict)]
+        return {"posts": posts, "count": len(posts)}
+    return _fence_result(raw)
 
 
 @mcp.tool(annotations={"title": "Create Post", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
@@ -1150,7 +1154,10 @@ async def civitae_op_reviews(
         return result
     if action != "list":
         return {"error": "action must be list, approve, or reject"}
-    return await op_get("/api/operator/reviews")
+    raw: Any = await op_get("/api/operator/reviews")
+    if isinstance(raw, list):
+        return {"reviews": raw, "count": len(raw)}
+    return raw
 
 
 @mcp.tool(annotations={"title": "Withdraw Stake", "readOnly": False, "destructive": True, "idempotent": False, "openWorld": False})
