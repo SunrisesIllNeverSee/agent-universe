@@ -31,7 +31,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from app.auth import admin_key_matches, require_admin
 from app.deps import state
-from app.jwt_config import get_kassa_jwt_secret
+from app.jwt_config import issue_agent_jwt
 from app.sanitize import sanitize_text, sanitize_name, detect_prompt_injection
 from app.seeds import create_seed
 from app.public_projection import public_kassa_post
@@ -61,7 +61,6 @@ class KassaLoginPayload(BaseModel):
 
 # ── JWT config ───────────────────────────────────────────────────────────────
 
-_JWT_SECRET = get_kassa_jwt_secret()
 _JWT_EXPIRY_HOURS = 24
 
 
@@ -72,14 +71,7 @@ def _hash_key(key: str) -> str:
 
 
 def _issue_jwt(agent_id: str, name: str) -> str:
-    payload = {
-        "sub": agent_id,
-        "name": name,
-        "iat": datetime.now(UTC),
-        "exp": datetime.now(UTC) + timedelta(hours=_JWT_EXPIRY_HOURS),
-    }
-    return pyjwt.encode(payload, _JWT_SECRET, algorithm="HS256")
-
+    return issue_agent_jwt(agent_id, name, expiry_hours=_JWT_EXPIRY_HOURS)
 
 def _verify_jwt(token: str) -> dict | None:
     from app.jwt_config import verify_jwt
