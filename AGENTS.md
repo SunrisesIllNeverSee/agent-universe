@@ -54,7 +54,7 @@ disappearing between sessions:
 **Status:** Active — production on Railway, frontend on Vercel (signomy.xyz)
 
 **Repos:**
-- **agent-universe** (this repo) — CIVITAE governed marketplace: FastAPI backend, 30+ frontend pages, 27 MCP tools, 7 MCP resources, Stripe payments
+- **agent-universe** (this repo) — CIVITAE governed marketplace: FastAPI backend, 30+ frontend pages, 30 MCP tools, 7 MCP resources, Stripe payments
 - **personal-command** — flagship COMMAND governance UI (private, local)
 - **command-engine** — open-source fork (bare-bones, public)
 - **moses-governance** — Codex plugin (public, ClawHub, 118 installs)
@@ -87,7 +87,7 @@ Built in a single marathon session 2026-03-20. This is not a prototype — it's 
 ```
 run.py                    ← Entry point. FastAPI on :8300 + MCP on streamable-http
 app/server.py             ← 40+ endpoints. WebSocket /ws. Full governance sync.
-app/mcp_bridge.py         ← 27 MCP tools + 7 resources (in-process, streamable-http at /mcp)
+app/mcp_bridge.py         ← 30 MCP tools + 7 resources (in-process, streamable-http at /mcp)
 app/moses_core/           ← Governance check engine + audit trail
 agents/                   ← Codex, gpt, gemini, deepseek, grok (Codex functional; rest need API keys)
 config/                   ← agents.json, formations.json (12+), provision.json, systems.json, vault.json, pages.json
@@ -114,7 +114,7 @@ docs/archive/             ← Archived session reports, reviews, design docs, re
 - **Dual-Signature Envelope** — ECDSA (classical) + Dilithium/Falcon (post-quantum)
 - **Multi-Chain Adapter** — Solana, Ethereum/Base, off-chain USD through GovernanceGate
 - **Agent Provision API** — signup, heartbeat, metrics, slot fill/leave, bounty post
-- **MCP Bridge** — 27 tools across 5 domains (chat, marketplace, discovery, governance, operator) + 7 resources (governance docs + manifest). Running on streamable-http alongside FastAPI at `/mcp`
+- **MCP Bridge** — 30 tools across 5 domains (chat, marketplace, discovery, governance, operator) + 7 resources (governance docs + manifest). Running on streamable-http alongside FastAPI at `/mcp`
 
 ## What Is Stubbed
 
