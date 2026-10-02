@@ -124,7 +124,14 @@ def test_mcp_market_browse_projects_private_contact_and_clamps_limit(app, monkey
         for i in range(75)
     ]
 
-    monkeypatch.setattr(state.kassa, "load_posts", lambda tab="", status="": synthetic)
+    def fake_load_posts(tab="", status="", *, search="", limit=None):
+        rows = synthetic
+        if search:
+            q = search.lower()
+            rows = [p for p in rows if q in p["title"].lower() or q in p["body"].lower()]
+        return rows[:limit] if limit is not None else rows
+
+    monkeypatch.setattr(state.kassa, "load_posts", fake_load_posts)
 
     mcp = state.mcp_bridge.build_fastmcp()
     result = asyncio.run(
