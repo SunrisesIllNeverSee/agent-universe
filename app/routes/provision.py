@@ -7,6 +7,7 @@ status checks, heartbeats, approval, suspension, and decommissioning.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import os
 import random as _rand
@@ -73,8 +74,32 @@ router = APIRouter(tags=["provision"])
 def _require_admin(request: Request):
     if not state.admin_key:
         raise HTTPException(403, "CIVITAE_ADMIN_KEY not configured")
-    if request.headers.get("X-Admin-Key") != state.admin_key:
+    provided = request.headers.get("X-Admin-Key", "")
+    if not hmac.compare_digest(provided, state.admin_key):
         raise HTTPException(403, "Admin key required")
+
+
+def _require_agent_or_admin(request: Request, agent: dict) -> None:
+    """Authorize a mutation scoped to one registered active agent."""
+    provided_admin = request.headers.get("X-Admin-Key", "")
+    if state.admin_key and hmac.compare_digest(provided_admin, state.admin_key):
+        return
+
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(401, "Agent API key required")
+
+    provided_key = auth[7:].strip()
+    stored_hash = agent.get("key_hash", "")
+    if (
+        not provided_key
+        or not stored_hash
+        or not hmac.compare_digest(_hash_key(provided_key), stored_hash)
+    ):
+        raise HTTPException(401, "Invalid API key")
+
+    if agent.get("status") != "active":
+        raise HTTPException(403, f"Agent status: {agent.get('status')}")
 
 
 # ── Rate limiter (mirrors server.py pattern) ─────────────────────────────────
@@ -355,6 +380,8 @@ async def issue_agent_key(payload: IssueAgentKeyPayload) -> dict:
 
     new_key = f"cmd_ak_{secrets.token_hex(8)}"
     agent["key_prefix"] = new_key[:12] + "***"
+    agent["key_hash"] = _hash_key(new_key)
+    runtime.persist_registry()
 
     audit.log("provision", "key_rotated", {
         "agent_id": agent_id,
@@ -493,14 +520,19 @@ async def reject_agent(request: Request, payload: dict) -> dict:
 
 
 @router.post("/api/provision/heartbeat/{agent_id}")
-async def agent_heartbeat(agent_id: str) -> dict:
-    """Update agent last_seen timestamp. Keeps liveness signal current.
-    Also auto-bootstraps a metrics entry if one doesn't exist yet."""
+async def agent_heartbeat(agent_id: str, request: Request) -> dict:
+    """Update an authenticated agent's last_seen timestamp.
+
+    Accepts the matching agent API key via Bearer auth or an operator admin key.
+    Also auto-bootstraps a metrics entry if one doesn't exist yet.
+    """
     runtime = state.runtime
 
     agent = next((r for r in runtime.registry if r.get("agent_id") == agent_id), None)
     if not agent:
         return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
+    _require_agent_or_admin(request, agent)
+
     now = datetime.now(UTC).isoformat()
     agent["last_seen"] = now
     runtime.persist_registry()
