@@ -359,6 +359,31 @@ async def op_post(path: str, body: dict[str, Any] | None = None) -> dict[str, An
         return r.json()
 
 
+async def op_patch(
+    path: str,
+    *,
+    params: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Send a PATCH request with operator admin key."""
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
+        try:
+            r = await c.patch(
+                f"{API}{path}",
+                params=params,
+                headers=op_headers(),
+            )
+            r.raise_for_status()
+        except httpx.TimeoutException as e:
+            raise CivitaeTimeoutError(f"Request to {path} timed out") from e
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code in (401, 403):
+                raise CivitaeAuthError(
+                    f"Operator auth failed ({e.response.status_code}). Check CIVITAE_ADMIN_KEY."
+                ) from e
+            raise CivitaeAPIError(e.response.status_code, e.response.text) from e
+        return r.json()
+
+
 # ── Agent Tools ───────────────────────────────────────────────────────────────
 
 
