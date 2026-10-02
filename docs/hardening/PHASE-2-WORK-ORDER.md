@@ -66,3 +66,8 @@ These recommendations remain rejected because prior stress testing showed they a
 ## Merge rule
 
 Phase 2 does not merge until the complete test suite passes on its exact head and the Phase 2 diff is audited against this work order.
+
+
+## CI verification procedure
+
+Repository CI is configured for pushes to `main` and pull requests whose base is `main`. Because Phase 2 is stacked on PR #50, PR #51 may be temporarily retargeted to `main` only to run the full combined test suite on the exact Phase 2 head, then returned to the PR #50 branch before review/merge.
