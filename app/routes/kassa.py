@@ -29,6 +29,7 @@ import jwt as pyjwt
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 
+from app.auth import admin_key_matches, require_admin
 from app.deps import state
 from app.jwt_config import get_kassa_jwt_secret
 from app.sanitize import sanitize_text, sanitize_name, detect_prompt_injection
@@ -140,15 +141,6 @@ def _check_rate_limit(request: Request, bucket_name: str, max_hits: int, window_
         raise HTTPException(status_code=429, detail=f"Rate limit: {max_hits} requests per hour")
     recent.append(now)
     bucket[ip_hash] = recent
-
-
-# ── Admin auth helper (fail-closed) ─────────────────────────────────────────
-
-def _require_admin(request: Request):
-    if not state.admin_key:
-        raise HTTPException(403, "CIVITAE_ADMIN_KEY not configured")
-    if request.headers.get("X-Admin-Key") != state.admin_key:
-        raise HTTPException(403, "Admin key required")
 
 
 # ── Notify email (contact inbox) ────────────────────────────────────────────
@@ -845,7 +837,7 @@ async def get_kassa_post(post_id: str) -> dict:
 @router.patch("/api/kassa/posts/{post_id}")
 async def update_kassa_post(post_id: str, request: Request) -> dict:
     """Local-admin only — edit a post's editable fields."""
-    is_admin = bool(state.admin_key and request.headers.get("X-Admin-Key") == state.admin_key)
+    is_admin = admin_key_matches(request, state.admin_key)
     if not is_admin:
         raise HTTPException(status_code=403, detail="Admin key required")
     post = state.kassa.get_post(post_id)
@@ -867,7 +859,7 @@ async def update_kassa_post(post_id: str, request: Request) -> dict:
 
 @router.post("/api/kassa/posts")
 async def submit_kassa_post(request: Request) -> dict:
-    is_admin = bool(state.admin_key and request.headers.get("X-Admin-Key") == state.admin_key)
+    is_admin = admin_key_matches(request, state.admin_key)
     if not is_admin:
         # Non-admin posts require a valid JWT from a registered agent
         claims = _extract_jwt(request)
@@ -984,15 +976,13 @@ async def upvote_kassa_post(post_id: str, request: Request) -> dict:
 
 @router.get("/api/operator/reviews")
 async def get_review_queue(request: Request, status: str = "pending") -> list:
-    if state.admin_key and request.headers.get("X-Admin-Key") != state.admin_key:
-        raise HTTPException(status_code=403, detail="Admin key required")
+    require_admin(request, state.admin_key)
     return state.kassa.load_reviews(status=status)
 
 
 @router.patch("/api/operator/reviews/{review_id}")
 async def update_review(review_id: str, action: str, request: Request) -> dict:
-    if state.admin_key and request.headers.get("X-Admin-Key") != state.admin_key:
-        raise HTTPException(status_code=403, detail="Admin key required")
+    require_admin(request, state.admin_key)
     r = state.kassa.get_review(review_id)
     if not r:
         raise HTTPException(status_code=404, detail="Review not found")
@@ -1138,8 +1128,7 @@ async def submit_product_review(request: Request) -> dict:
 @router.patch("/api/kassa/product-reviews/{review_id}")
 async def approve_product_review(review_id: str, request: Request) -> dict:
     """Operator approves/rejects a product review. On approve, reward flows."""
-    if state.admin_key and request.headers.get("X-Admin-Key") != state.admin_key:
-        raise HTTPException(status_code=403, detail="Admin key required")
+    require_admin(request, state.admin_key)
     body = await request.json()
     action = body.get("action", "")
     if action not in ("approve", "reject"):
