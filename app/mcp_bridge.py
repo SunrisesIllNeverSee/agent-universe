@@ -10,6 +10,7 @@ from pydantic import Field
 from .context import ContextAssembler
 from .models import MessageCreate
 from .runtime import RuntimeState
+from app.auth import secret_matches
 from app.otel_setup import get_tracer as _get_tracer
 from app.sanitize import detect_prompt_injection
 from app.public_projection import public_kassa_post
@@ -1109,7 +1110,7 @@ class MCPBridge:
         def _check_op(admin_key: str) -> str | None:
             if not _state.admin_key:
                 return "Admin key not configured on this server."
-            if admin_key != _state.admin_key:
+            if not secret_matches(admin_key, _state.admin_key):
                 return "Invalid admin key."
             return None
 
