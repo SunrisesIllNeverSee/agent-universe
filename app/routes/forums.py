@@ -16,6 +16,7 @@ import jwt as pyjwt
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 
+from app.auth import require_admin
 from app.deps import state
 from app.forums_store import VALID_CATEGORIES
 from app.sanitize import sanitize_text, sanitize_name, detect_prompt_injection
@@ -25,13 +26,6 @@ router = APIRouter(tags=["forums"])
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
-def _require_admin(request: Request):
-    """Fail-closed admin check — rejects if key is unset *or* mismatched."""
-    if not state.admin_key:
-        raise HTTPException(403, "CIVITAE_ADMIN_KEY not configured")
-    if request.headers.get("X-Admin-Key") != state.admin_key:
-        raise HTTPException(403, "Admin key required")
 
 
 def _verify_jwt(token: str) -> dict | None:
@@ -198,7 +192,7 @@ async def forums_create_reply(thread_id: str, request: Request) -> dict:
 @router.patch("/api/forums/threads/{thread_id}/pin")
 async def forums_pin_thread(thread_id: str, request: Request) -> dict:
     """Pin or unpin a thread. Requires X-Admin-Key."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
     body = await request.json()
     pinned = bool(body.get("pinned", True))
     ok = state.forums.set_pinned(thread_id, pinned)
@@ -211,7 +205,7 @@ async def forums_pin_thread(thread_id: str, request: Request) -> dict:
 @router.patch("/api/forums/threads/{thread_id}/lock")
 async def forums_lock_thread(thread_id: str, request: Request) -> dict:
     """Lock or unlock a thread. Requires X-Admin-Key."""
-    _require_admin(request)
+    require_admin(request, state.admin_key)
     body = await request.json()
     locked = bool(body.get("locked", True))
     ok = state.forums.set_locked(thread_id, locked)
