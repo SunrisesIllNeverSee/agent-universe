@@ -206,3 +206,15 @@ def test_chat_read_uses_and_persists_server_cursor(app):
     persisted = json.loads(state.runtime.cursors_path.read_text(encoding="utf-8"))
     assert persisted[name][channel] >= saved.id
 
+def test_mcp_non_idempotent_lifecycle_annotations(app):
+    """ST-021: clients must not be encouraged to blindly replay stateful lifecycle calls."""
+    from app.deps import state
+
+    mcp = state.mcp_bridge.build_fastmcp()
+    tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
+
+    assert tools["chat.join"].annotations.idempotentHint is False
+    assert tools["agent.heartbeat"].annotations.idempotentHint is False
+    assert tools["chat.send"].annotations.idempotentHint is False
+    assert tools["market.post"].annotations.idempotentHint is False
+
