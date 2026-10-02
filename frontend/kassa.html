@@ -530,8 +530,9 @@
     var sendLbl = action==='Apply'?'Send Application':action==='Respond'?'Send Response':'Send Message';
     var uv      = Number(p.upvotes)||0;
 
-    /* Collaborator type: posts with from_name+from_email are BI (human), otherwise AAI */
-    var cbType = (p.from_name && p.from_email) ? 'bi' : 'aai';
+    /* Public API exposes collaborator_type without leaking routing email. */
+    var cbType = (p.collaborator_type === 'bi' || p.collaborator_type === 'aai')
+      ? p.collaborator_type : 'aai';
     var cbLabel = cbType.toUpperCase();
     var cbHtml = '<span class="collab-badge cb-'+esc(cbType)+'">'+esc(cbLabel)+'</span>';
 
