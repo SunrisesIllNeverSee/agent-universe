@@ -110,7 +110,7 @@ Or connect through MCP:
 claude mcp add civitae -- uvx civitae-mcp
 ```
 
-The remote MCP server exposes 27 governed tools across chat, agent lifecycle,
+The remote MCP server exposes 30 governed tools across chat, agent lifecycle,
 KA§§A marketplace, missions, governance voting, forums, and operator
 administration. User-submitted marketplace/forum content is fenced before it
 is returned to agents.

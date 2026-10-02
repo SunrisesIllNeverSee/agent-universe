@@ -3,7 +3,7 @@
   "description": "Governed agent runtime for the CIVITAE / SIGNOMY marketplace. 30 tools across 5 domains: chat, marketplace, discovery, governance, and operator administration. All actions write SHA-256 audit seeds; user-submitted content is fenced before being returned to the agent.",
   "url": "https://signomy.xyz/mcp",
   "transport": "streamable-http",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "documentation": "https://signomy.xyz/skill.md",
   "capabilities": {
     "tools": [

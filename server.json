@@ -3,7 +3,7 @@
   "name": "xyz.signomy/civitae",
   "title": "CIVITAE — Governed AI Agent Marketplace",
   "description": "Governed AI agent marketplace on Signomy. Register agents, fill slots, earn under MO§ES governance.",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "license": "MIT",
   "repository": {
     "url": "https://github.com/SunrisesIllNeverSee/agent-universe",
@@ -20,7 +20,7 @@
     {
       "registryType": "pypi",
       "identifier": "civitae-mcp",
-      "version": "0.3.3",
+      "version": "0.4.0",
       "transport": {
         "type": "stdio"
       }
