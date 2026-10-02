@@ -326,7 +326,7 @@ def test_key_rotation_replaces_authoritative_key(client, admin_client):
     recent = state.audit.recent(10)
     rotation = next(
         e for e in reversed(recent)
-        if getattr(e, "domain", None) == "provision"
+        if getattr(e, "component", None) == "provision"
         and getattr(e, "action", None) == "key_rotated"
     )
     assert new_key not in str(rotation.model_dump(mode="json"))
