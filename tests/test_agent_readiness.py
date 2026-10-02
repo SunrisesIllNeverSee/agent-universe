@@ -237,3 +237,13 @@ def test_cockpit_bearer_rejects_unknown_key(client) -> None:
     )
     assert blocked.status_code == 403
 
+def test_hosted_mcp_contract_versions_match() -> None:
+    """ST-017: hosted server metadata and public card share one contract version."""
+    server = json.loads((ROOT / "server.json").read_text(encoding="utf-8"))
+    card = json.loads(
+        (FRONTEND / ".well-known" / "mcp-server-card.json").read_text(encoding="utf-8")
+    )
+
+    assert server["version"] == card["version"]
+    assert server["remotes"][0]["url"] == card["url"]
+
