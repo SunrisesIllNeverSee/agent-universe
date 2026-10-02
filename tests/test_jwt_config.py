@@ -62,7 +62,7 @@ class JwtConfigTests(unittest.TestCase):
 
     def test_pre_migration_legacy_token_is_temporarily_accepted(self) -> None:
         secret = get_kassa_jwt_secret()
-        issued_at = datetime.fromtimestamp(JWT_LEGACY_IAT_CUTOFF - 60, UTC)
+        issued_at = datetime(2026, 10, 2, 0, 0, 0, tzinfo=UTC)
         token = pyjwt.encode(
             {
                 "sub": "agent-legacy",
