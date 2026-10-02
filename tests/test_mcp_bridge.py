@@ -222,8 +222,8 @@ def test_mcp_non_idempotent_lifecycle_annotations(app):
     mcp = state.mcp_bridge.build_fastmcp()
     tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
 
-    assert tools["chat.join"].annotations.idempotentHint is False
-    assert tools["agent.heartbeat"].annotations.idempotentHint is False
-    assert tools["chat.send"].annotations.idempotentHint is False
-    assert tools["market.post"].annotations.idempotentHint is False
+    assert tools["chat.join"].annotations.idempotent is False
+    assert tools["agent.heartbeat"].annotations.idempotent is False
+    assert tools["chat.send"].annotations.idempotent is False
+    assert tools["market.post"].annotations.idempotent is False
 
