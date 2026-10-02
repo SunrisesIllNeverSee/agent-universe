@@ -128,9 +128,9 @@ class MCPBridge:
 
         from mcp.server.transport_security import TransportSecuritySettings
         # DNS rebinding protection locks Host to localhost — wrong for prod (421).
-        # stateless_http=True means no in-memory session state: every request is
-        # self-contained. Required when Railway runs multiple workers (--workers 4)
-        # since session state can't be shared across processes.
+        # stateless_http=True keeps MCP transport requests self-contained.
+        # Production remains single-worker while authoritative file/in-memory
+        # state has no cross-process coordination.
         mcp = FastMCP(
             "command-runtime",
             instructions=MCP_INSTRUCTIONS,
@@ -184,14 +184,6 @@ class MCPBridge:
 
         def _hash_key(key: str) -> str:
             return hashlib.sha256(key.encode()).hexdigest()
-
-        def _issue_jwt(agent_id: str, name: str) -> str:
-            import jwt as _jwt
-            return _jwt.encode(
-                {"agent_id": agent_id, "name": name, "iat": int(datetime.now(timezone.utc).timestamp())},
-                _state.jwt_secret,
-                algorithm="HS256",
-            )
 
         def _agent_from_key(api_key: str) -> dict | None:
             if not api_key:
