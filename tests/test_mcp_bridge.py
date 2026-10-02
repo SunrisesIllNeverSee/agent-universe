@@ -105,3 +105,51 @@ def test_mcp_api_key_lookup_does_not_reload_registry(client, monkeypatch):
     assert result is not None
     assert reload_calls == 0
 
+def test_mcp_market_browse_projects_private_contact_and_clamps_limit(app, monkeypatch):
+    """ST-011: public MCP discovery strips routing email and has a hard result bound."""
+    from app.deps import state
+
+    synthetic = [
+        {
+            "id": f"K-{i:05d}",
+            "tab": "services",
+            "title": f"Post {i}",
+            "body": "Public body",
+            "status": "open",
+            "from_name": f"Poster {i}",
+            "from_email": f"private-{i}@example.com",
+        }
+        for i in range(75)
+    ]
+
+    monkeypatch.setattr(state.kassa, "load_posts", lambda tab="", status="": synthetic)
+
+    mcp = state.mcp_bridge.build_fastmcp()
+    result = asyncio.run(
+        mcp.call_tool(
+            "market.browse",
+            {"category": "services", "status": "open", "limit": 10000},
+        )
+    )
+
+    data = result.data
+    assert data["count"] == 50
+    assert len(data["posts"]) == 50
+    assert all("from_email" not in post for post in data["posts"])
+    assert all(post["collaborator_type"] == "bi" for post in data["posts"])
+
+
+def test_mcp_leaderboard_clamps_limit(app):
+    """ST-011: caller-controlled discovery limit cannot request an unbounded registry."""
+    from app.deps import state
+
+    mcp = state.mcp_bridge.build_fastmcp()
+    result = asyncio.run(
+        mcp.call_tool(
+            "agent.leaderboard",
+            {"limit": 10000},
+        )
+    )
+
+    assert result.data["count"] <= 100
+
