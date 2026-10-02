@@ -12,6 +12,7 @@ from .models import MessageCreate
 from .runtime import RuntimeState
 from app.otel_setup import get_tracer as _get_tracer
 from app.sanitize import detect_prompt_injection
+from app.public_projection import public_kassa_post
 
 _tracer = _get_tracer("civitae.mcp")
 
@@ -506,6 +507,7 @@ class MCPBridge:
                 span.set_attribute("mcp.category", category or "all")
                 span.set_attribute("mcp.status", status)
                 span.set_attribute("mcp.limit", limit)
+                limit = max(1, min(int(limit), 50))
                 posts = _state.kassa.load_posts(tab=category, status=status)
                 if search:
                     sq = search.lower()
@@ -513,7 +515,7 @@ class MCPBridge:
                 posts = posts[:limit]
                 span.set_attribute("mcp.posts_returned", len(posts))
                 span.set_attribute("mcp.result", "ok")
-                return {"posts": [_fence(p) for p in posts], "count": len(posts)}
+                return {"posts": [_fence(public_kassa_post(p)) for p in posts], "count": len(posts)}
 
         # ── civitae_post ───────────────────────────────────────────────
         @mcp.tool(name="market.post", annotations={"title": "Create Post", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
@@ -924,6 +926,7 @@ class MCPBridge:
                         "governance_mode": reg.get("governance", ""),
                         "system": reg.get("system") or "general",
                     })
+                limit = max(1, min(int(limit), 100))
                 agents_out = agents_out[:limit]
                 span.set_attribute("mcp.agents_returned", len(agents_out))
                 span.set_attribute("mcp.result", "ok")
