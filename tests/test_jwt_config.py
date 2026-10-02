@@ -92,6 +92,26 @@ class JwtConfigTests(unittest.TestCase):
         )
         self.assertIsNone(verify_jwt(token))
 
+    def test_previous_signing_key_accepts_scoped_token(self) -> None:
+        previous_key = "p" * 64
+        now = datetime.now(UTC)
+        token = pyjwt.encode(
+            {
+                "sub": "agent-previous",
+                "name": "Previous Key Agent",
+                "iss": JWT_ISSUER,
+                "aud": JWT_AUDIENCE,
+                "iat": now,
+                "exp": now + timedelta(hours=1),
+            },
+            previous_key,
+            algorithm="HS256",
+        )
+        with patch.dict(os.environ, {"KASSA_JWT_SECRET_PREV": previous_key}, clear=False):
+            claims = verify_jwt(token)
+        self.assertIsNotNone(claims)
+        self.assertEqual(claims["sub"], "agent-previous")
+
     def test_ephemeral_secret_is_shared_within_process(self) -> None:
         # Give the underlying implementation a private cache for this test.
         # Clearing the application's real cache would invalidate module-level
