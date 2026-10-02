@@ -20,7 +20,7 @@ from fastapi.responses import JSONResponse
 
 from app.auth import admin_key_matches, require_admin, secret_matches
 from app.deps import state
-from app.jwt_config import get_kassa_jwt_secret
+from app.jwt_config import issue_agent_jwt
 from app.metrics_io import atomic_write, load_metrics, save_metrics
 from app.rate_limit import RATE_STORES as _rate_stores, check_rate_limit as _shared_check_rate_limit
 from app.otel_setup import get_tracer as _get_tracer
@@ -50,7 +50,6 @@ class IssueAgentKeyPayload(BaseModel):
     requested_by: str = "operator"
 
 # ── JWT helpers (shared secret with kassa) ──────────────────────────────────
-_JWT_SECRET = get_kassa_jwt_secret()
 _JWT_EXPIRY_HOURS = 24
 
 
@@ -59,14 +58,7 @@ def _hash_key(key: str) -> str:
 
 
 def _issue_jwt(agent_id: str, name: str) -> str:
-    from datetime import timedelta
-    payload = {
-        "sub": agent_id,
-        "name": name,
-        "iat": datetime.now(UTC),
-        "exp": datetime.now(UTC) + timedelta(hours=_JWT_EXPIRY_HOURS),
-    }
-    return pyjwt.encode(payload, _JWT_SECRET, algorithm="HS256")
+    return issue_agent_jwt(agent_id, name, expiry_hours=_JWT_EXPIRY_HOURS)
 
 router = APIRouter(tags=["provision"])
 
