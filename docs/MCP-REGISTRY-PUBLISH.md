@@ -18,7 +18,7 @@ The namespace `xyz.signomy/civitae` is gated by a DNS or HTTP challenge against 
 
 - **`server.json`** (repo root) — what `mcp-publisher` reads. Conforms to the official `server.schema.json`. Edit this when tools, version, or transport change.
 - **`frontend/.well-known/mcp-server-card.json`** — discovery card (already live).
-- **`frontend/.well-known/mcp-registry-auth`** — **NOT in repo.** Generated locally during publish. The public-key auth string is what gets deployed; the matching private key must never touch git.
+- **`frontend/.well-known/mcp-registry-auth`** — committed **public proof only**. It contains the public Ed25519 key material served at `/.well-known/mcp-registry-auth`; the matching private key must never touch git.
 
 ---
 
@@ -44,7 +44,7 @@ echo "v=MCPv1; k=ed25519; p=${PUBLIC_KEY}" > mcp-registry-auth
 
 The file must be served at `https://signomy.xyz/.well-known/mcp-registry-auth`.
 
-Drop it into `frontend/.well-known/mcp-registry-auth` **on a deploy branch only** (never commit), push to Vercel, and verify:
+The public proof is now intentionally committed at `frontend/.well-known/mcp-registry-auth` so deployments reproduce the same domain challenge. Verify:
 
 ```bash
 curl https://signomy.xyz/.well-known/mcp-registry-auth
@@ -87,3 +87,21 @@ The CLI reads `server.json` from the current directory and submits it to the reg
 - **`domain verification failed`** — check `https://signomy.xyz/.well-known/mcp-registry-auth` returns 200 with the exact line `v=MCPv1; k=ed25519; p=<key>`. Watch for trailing newlines or BOM.
 - **`schema validation failed`** — validate `server.json` against the schema URL in its `$schema` field.
 - **`namespace already claimed`** — `xyz.signomy/civitae` should be available; if not, the auth file may be pointing at a different keypair than the one you're authenticating with.
+
+
+---
+
+## GitHub Actions publish path
+
+The repository includes `.github/workflows/mcp-registry.yml`.
+
+- Pull requests changing `server.json` or the workflow run the official `mcp-publisher validate` command.
+- The workflow pins `mcp-publisher v1.8.1` and verifies the upstream SHA-256 digest before execution.
+- Publishing is manual only: run **MCP Registry** with `publish=true`.
+- The publish job uses the protected `mcp-registry` environment and expects one secret:
+  `MCP_REGISTRY_PRIVATE_KEY`.
+- That secret must contain the same private-key hex accepted by:
+  `mcp-publisher login http --domain signomy.xyz --private-key ...`.
+- The private key must never be committed, echoed, attached to artifacts, or placed in repository files.
+
+This workflow preserves the existing `xyz.signomy/civitae` domain namespace. GitHub/OIDC authentication is intentionally not substituted because GitHub-authenticated Registry namespaces use the `io.github.*` naming scheme.

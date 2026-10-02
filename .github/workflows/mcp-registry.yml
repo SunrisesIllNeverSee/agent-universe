@@ -1,0 +1,87 @@
+name: MCP Registry
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - server.json
+      - .github/workflows/mcp-registry.yml
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish validated server.json to the official MCP Registry
+        required: true
+        type: boolean
+        default: false
+
+permissions: {}
+
+env:
+  MCP_PUBLISHER_VERSION: v1.8.1
+  MCP_PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned mcp-publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSLo mcp-publisher.tar.gz \
+            "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz"
+          echo "${MCP_PUBLISHER_SHA256}  mcp-publisher.tar.gz" | sha256sum -c -
+          tar xzf mcp-publisher.tar.gz mcp-publisher
+          chmod +x mcp-publisher
+          ./mcp-publisher --help >/dev/null
+      - name: Validate server.json
+        run: ./mcp-publisher validate server.json
+
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: mcp-registry
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned mcp-publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSLo mcp-publisher.tar.gz \
+            "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz"
+          echo "${MCP_PUBLISHER_SHA256}  mcp-publisher.tar.gz" | sha256sum -c -
+          tar xzf mcp-publisher.tar.gz mcp-publisher
+          chmod +x mcp-publisher
+      - name: Require domain signing key
+        shell: bash
+        env:
+          MCP_REGISTRY_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${MCP_REGISTRY_PRIVATE_KEY}" ]; then
+            echo "MCP_REGISTRY_PRIVATE_KEY is not configured in the mcp-registry environment." >&2
+            exit 1
+          fi
+      - name: Authenticate domain namespace
+        shell: bash
+        env:
+          MCP_REGISTRY_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          ./mcp-publisher login http \
+            --domain signomy.xyz \
+            --private-key "${MCP_REGISTRY_PRIVATE_KEY}"
+      - name: Publish registry metadata
+        run: ./mcp-publisher publish server.json
