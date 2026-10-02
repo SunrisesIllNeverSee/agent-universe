@@ -31,7 +31,7 @@ _INJECTION_PATTERNS = [
     r"(?m)^\s*(system|assistant|developer)\s*:\s*",
 ]
 
-_INJECTION_RE = re.compile("|".join(_INJECTION_PATTERNS), re.IGNORECASE)
+_INJECTION_RE = re.compile("|".join(_INJECTION_PATTERNS), re.IGNORECASE | re.MULTILINE)
 
 
 def _normalize_for_detection(text: str) -> str:
