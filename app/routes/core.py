@@ -97,6 +97,28 @@ async def health() -> dict:
     }
 
 
+@router.get("/api/ready")
+async def readiness() -> JSONResponse:
+    """Cheap dependency readiness; never rebuilds MCP or mutates state."""
+    checks = {
+        "runtime": getattr(state, "runtime", None) is not None,
+        "kassa": getattr(state, "kassa", None) is not None,
+        "audit": getattr(state, "audit", None) is not None,
+        "data_dir": bool(getattr(state, "data_dir", None)) and state.data_dir.is_dir(),
+        "mcp": bool(getattr(state, "mcp_ready", False)),
+    }
+    ready = all(checks.values())
+    return JSONResponse(
+        {
+            "ready": ready,
+            "checks": checks,
+            "version": getattr(state, "version", "unknown"),
+            "ts": datetime.now(UTC).isoformat(),
+        },
+        status_code=200 if ready else 503,
+    )
+
+
 @router.get("/api/state")
 async def get_state() -> dict:
     return state.runtime.snapshot().model_dump(mode="json")
