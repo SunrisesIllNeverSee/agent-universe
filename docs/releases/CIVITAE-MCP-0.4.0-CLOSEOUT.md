@@ -33,7 +33,7 @@
 
 Listing: `https://glama.ai/mcp/servers/SunrisesIllNeverSee/agent-universe` (connector recognized, ownership verified).
 
-**Stale.** Tool catalog still reflects an older introspection (23 `civitae_*` tool links shown — including the removed `civitae_op_stakes` — last inspection ~2026-08-26). Glama re-scans continuously on its own schedule and detects schema drift automatically. Owner-side refresh: sign in to Glama with GitHub as `SunrisesIllNeverSee`, open the listing admin page, and use the repository **re-sync** control ("Request a re-sync when you have pushed something you want reflected here"). No unauthenticated rescan endpoint exists. The next scheduled sweep will capture the 30-tool hosted surface. This is the only remaining external step — not a code defect.
+**Stale.** Tool catalog still reflects an older introspection (23 `civitae_*` tool links shown — including the removed `civitae_op_stakes`; the catalog snapshot predates the 0.4.0/30-tool surface even though newer dates appear elsewhere in the page metadata). Glama re-scans continuously on its own schedule and detects schema drift automatically. Owner-side refresh: sign in to Glama with GitHub as `SunrisesIllNeverSee`, open the listing admin page, and use the repository **re-sync** control ("Request a re-sync when you have pushed something you want reflected here"). No unauthenticated rescan endpoint exists. The next scheduled sweep will capture the 30-tool hosted surface. This is the only remaining external step — not a code defect.
 
 ## Post-review metadata corrections (second pass)
 
