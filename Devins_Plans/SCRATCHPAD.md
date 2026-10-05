@@ -88,6 +88,8 @@ Glama wants a Dockerfile config to host the server. Values to paste into the Gla
 ---
 
 <!-- POST-COMMIT HOOK APPENDS BELOW THIS LINE -->
+[HOOK] 2026-10-05 10:09 UTC · 68496a1 · Deric · docs(release): closeout sweep 3 — llms-full.txt + REPO.yaml hosted count
+[HOOK] 2026-10-05 09:54 UTC · f138752 · Deric · docs(release): closeout sweep 2 — fix missed stale metadata + scrub dead keypair
 [HOOK] 2026-10-05 09:39 UTC · 7057caa · Deric · docs(release): MCP 0.4.0 closeout — fix stale tool counts, record release state
 [HOOK] 2026-10-05 09:24 UTC · 7392d8a · Deric · docs(handoff): consolidated redesign brief for design session
 [HOOK] 2026-10-05 08:40 UTC · f9bd439 · Deric · docs(coord): sync CROSSWIRE handoff notes + hook-appended scratchpad log
