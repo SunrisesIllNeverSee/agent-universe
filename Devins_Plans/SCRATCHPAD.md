@@ -88,6 +88,13 @@ Glama wants a Dockerfile config to host the server. Values to paste into the Gla
 ---
 
 <!-- POST-COMMIT HOOK APPENDS BELOW THIS LINE -->
+[HOOK] 2026-10-05 08:28 UTC · 2b28531 · Deric · docs(pad): fold hardening-program arc + redesign-session status into LOBBY-RETHINK
+[HOOK] 2026-10-05 08:09 UTC · f976d1c · Deric · fix(mcp): restore hardened 0.4.0 source from published PyPI artifact
+[HOOK] 2026-09-29 10:32 UTC · d6558ee · Deric · docs(pad): dry-run results — workers-4 corruption fix, mission_id gap, follow-on ships
+[HOOK] 2026-09-29 10:29 UTC · a884352 · Deric · feat(agents): inbox UI, operator_contact capture, civitae-mcp v0.4.0 sync
+[HOOK] 2026-09-29 10:17 UTC · 277c945 · Deric · fix(deploy): drop to 1 uvicorn worker — multi-worker corrupts JSON stores
+[HOOK] 2026-09-29 09:28 UTC · b7104b8 · Deric · fix(kassa): route poster mail by address role — operator posts reach the operator
+[HOOK] 2026-09-29 09:08 UTC · 86e1feb · Deric · feat(inbox): agent-side mailbox — wire the missing notification half
 [HOOK] 2026-09-29 08:51 UTC · 6978c89 · Deric · feat(kassa): open contributions tab — sixth board for exchange-shaped work
 [HOOK] 2026-09-29 08:34 UTC · 97dda00 · Deric · docs(lobby-rethink): mark MCP fixes resolved, exchange ping check, email reality
 [HOOK] 2026-09-29 08:27 UTC · e39d73e · Deric · fix(mcp): add agent.heartbeat tool + real health fields

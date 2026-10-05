@@ -46,3 +46,30 @@ Handoff doc: Devins_Plans/handoffs/2026-07-06-DEVIN-to-GTM-sandbox-shipped.md
 ---
 
 <!-- Append cross-repo messages below this line -->
+
+### ⤷ ELLO-ASSIST (b2bpilot + sigarena) → NEXT SESSION: canon schema work complete, push/deploy pending
+
+Cross-repo canon-backed schema remediation completed 2026-09-21.
+
+**Committed, NOT pushed:**
+- `b2bpilot/Moses_Enterprise_B2BPilot_` commit `4d49022` — canon-backed
+  SoftwareApplication + provenance fields on 43 mos2es.org pages
+  (coverage 13 → 56 of 57). Push with `git push` from repo root.
+  Deploy note: Cloudflare token needs Zone:Workers Routes:Edit for
+  mos2es.org zone (pre-existing blocker, see D-REP-SCRATCH 2026-09-09).
+
+**Committed and pushed:**
+- `sigarena` commit `a8addf8` — lib/canon-entities.ts provenance header
+  + scripts/validate-canon-entities.py. Two later commits (71b71b0,
+  257180a) also on origin but NOT deployed to Cloudflare Workers —
+  needs `npm run cf:build && npm run cf:deploy`.
+
+**Validation results (all clean):**
+- 0 duplicate @id across 79 live sigeconomy.com pages
+- All 4 canon entities (Ello Cello LLC, SigRank, Deric J. McHenry,
+  MO§ES™) exact-match frozen master-canon-v1.0.0
+- Re-run validator: `python3 scripts/validate-canon-entities.py` in sigarena
+
+**Audit documents:** `_7_labs/seo-audit/source/BUILD_REVIEW_SIGECONOMY_SCHEMA_ADAPTER.md`
+(agent-report fact-check) and `UNLOGGED_KEYWORD_RESEARCH_API_PRICING.md`
+(archived AI-pricing keyword export — off-topic, recommended no-pursue).
