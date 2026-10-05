@@ -33,7 +33,9 @@
 
 Listing: `https://glama.ai/mcp/servers/SunrisesIllNeverSee/agent-universe` (connector recognized, ownership verified).
 
-**Stale.** Tool catalog still reflects an older introspection (23 `civitae_*` tool links shown — including the removed `civitae_op_stakes`; the catalog snapshot predates the 0.4.0/30-tool surface even though newer dates appear elsewhere in the page metadata). Glama re-scans continuously on its own schedule and detects schema drift automatically. Owner-side refresh: sign in to Glama with GitHub as `SunrisesIllNeverSee`, open the listing admin page, and use the repository **re-sync** control ("Request a re-sync when you have pushed something you want reflected here"). No unauthenticated rescan endpoint exists. The next scheduled sweep will capture the 30-tool hosted surface. This is the only remaining external step — not a code defect.
+**Root cause found and fixed (2026-10-05).** Glama does not introspect the live endpoint for this listing — it builds `Dockerfile.glama` from the repo, which had `civitae-mcp==0.3.2` hard-pinned. Every Glama build was installing the 23-tool package regardless of re-syncs, PyPI releases, or Registry publishes (repo sync updated commit/README metadata only; the tool catalog comes from the containerised introspection). Fix `d95483b`: pin changed to `civitae-mcp>=0.4.0` so future published releases stay fresh automatically.
+
+**Current state:** owner created Glama release `0.4.0` on the admin panel; public catalog still shows the 2026-08-26 snapshot (23 tools incl. removed `civitae_op_stakes`) pending the build/introspection completing. Glama's introspection queue is documented as backlogged; confirmation signal is the "Scored" date flipping and the catalog moving 23 → 27 `civitae_*` tools.
 
 ## Post-review metadata corrections (second pass)
 

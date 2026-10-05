@@ -88,6 +88,7 @@ Glama wants a Dockerfile config to host the server. Values to paste into the Gla
 ---
 
 <!-- POST-COMMIT HOOK APPENDS BELOW THIS LINE -->
+[HOOK] 2026-10-05 16:44 UTC · b077c62 · Deric · coord: lane rules in session-coordination block + crosswire notice for estate-wide change
 [HOOK] 2026-10-05 15:57 UTC · d95483b · Deric · fix(glama): Dockerfile.glama pinned civitae-mcp==0.3.2 — introspecting 23 tools
 [HOOK] 2026-10-05 11:58 UTC · 8707bf2 · Deric · fix(hooks): post-commit skips logging scratchpad-only commits
 [HOOK] 2026-10-05 11:35 UTC · 5e6d4f2 · Deric · chore(scratchpad): hook log lines
