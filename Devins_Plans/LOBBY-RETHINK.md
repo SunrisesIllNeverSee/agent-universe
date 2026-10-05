@@ -4,7 +4,7 @@ title: LOBBY-RETHINK — structural brainstorm pad
 description: Working pad for the deeper site-structure session — layout working backwards from endpoints (governance → committee → KA§§A → products). Captures evidence, what's already resolved, and the open questions.
 tags: [architecture, lobby, auth, ia, brainstorm]
 timestamp: 2026-09-27T00:00:00Z
-last_touched: 2026-09-27 11:00 UTC
+last_touched: 2026-10-05 — REDESIGN SESSION ACTIVE
 ---
 
 # LOBBY-RETHINK — structural brainstorm pad
@@ -16,10 +16,13 @@ brainstorming... including the layout structural function of the site — easies
 backwards with the endpoints, i.e. products and locations like governance, committee,
 kassa. The front end is a little messy."
 
-Goal of the session when we run it: **produce a canonical surface map** — which pages
+**STATUS UPDATE 2026-10-05:** owner is now running the redesign itself. This pad is the
+live working doc — the "structure decision record" framing below still applies, but the
+FUTURE-DESIGN-LOCK hold is superseded by the owner-led session in progress.
+
+Original goal: **produce a canonical surface map** — which pages
 exist, who they're for (public / agent / operator / admin), what backend cluster they
-talk to, and which ones should be merged, gated, or killed. Not a redesign — a structure
-decision record.
+talk to, and which ones should be merged, gated, or killed.
 
 ## Evidence base
 
@@ -283,7 +286,49 @@ Every stage fired: slot fill, task assign → start → deliver → close, EXP a
   existed over HTTP; bridge `admin.stakes` is in-process and fine),
   added heartbeat/inbox/inbox_read/slots/stake_withdraw, dual-credential
   auth (api_key + JWT). README rewritten to document the real surface.
-  **PyPI publish needs owner's account** — package is built-ready.
+  0.4.0 is live on PyPI (see hardening-program note below — the published
+  wheel is the authoritative hardened build).
+
+## Parallel hardening program — MERGED 2026-10-02, verified 2026-10-05
+
+A separate session ran a verification-first hardening program that has
+since landed on `main` (all squashed in; branch tips pruned 2026-10-05):
+
+- **Phase 1** (PR #50, `hardening/verification-first-2026-10-01`):
+  24 stress tests ST-001→ST-025, each with a record in
+  `docs/hardening/results/`. 9 FIXED / 10 PARTIAL / 2 DISPROVED /
+  2 INTENTIONAL / 1 DEFERRED. Operating protocol in
+  `docs/hardening/WORK-ORDER.md`: verify-before-change, classify claims,
+  regression-cover every fix, seven locked invariants.
+- **Principal binding** (`d34fd85`, ST-025): slot fill/leave + all
+  governance verbs now bind the actor to the Bearer principal — agent A's
+  key can't act as agent B. Admin retains act-on-behalf. Follow-up
+  flagged: prefix-level cockpit policy should eventually become explicit
+  scopes/roles — **owner product-auth decision**.
+- **Phase 2** (`hardening/phase-2-remaining-2026-10-02`): shared
+  `rate_limit.py`, JWT `iss`/`aud` scoping with bounded legacy compat,
+  `/api/ready` readiness endpoint, admin-auth telemetry (privacy-safe),
+  `CREDENTIAL-AND-ROTATION-GUIDE.md`.
+- **MCP release train**: `civitae-mcp` 0.4.0 on PyPI under Ello Cello LLC
+  carries a hardening layer (path-segment sanitization, `_clamp` limits,
+  `operator_contact` on register, key-scoped auth, corrected routes) that
+  briefly existed only in the published wheel — restored to repo and
+  confirmed byte-identical to upstream. Tag `civitae-mcp-v0.4.0` pushed.
+  Automated MCP Registry publish workflow lives at
+  `.github/workflows/mcp-registry.yml` + `docs/MCP-REGISTRY-PUBLISH.md`.
+- **Post-deploy verification**: `scripts/verify_public_mcp.py` (the one
+  open merge-gate box) ran 2026-10-05 — PASS. 30 tools live, server card
+  v1.2.2, health 0.9.0.
+- **Convergence**: my dry-run `--workers 4→1` fix (`277c945`) is their
+  ST-014 INTENTIONAL invariant — independent confirmation. My
+  `operator_contact`/inbox/missions wires merged cleanly on top;
+  425 tests green on the unified head.
+
+**Invariant to respect during redesign:** Railway stays single-worker
+until the JSON stores become coordinated (SQLite WAL or lock+reload).
+Never log raw credentials. Fail-closed only. Hardening invariants are
+not a redesign blocker — they constrain *how* changes ship, not *what*
+ships.
 
 **Email reality check — RESOLVED 2026-09-29 (both halves wired).**
 `RESEND_API_KEY` + SMTP vars ARE configured on Railway. Root-cause find:
