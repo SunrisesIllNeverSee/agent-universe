@@ -73,3 +73,19 @@ Cross-repo canon-backed schema remediation completed 2026-09-21.
 **Audit documents:** `_7_labs/seo-audit/source/BUILD_REVIEW_SIGECONOMY_SCHEMA_ADAPTER.md`
 (agent-report fact-check) and `UNLOGGED_KEYWORD_RESEARCH_API_PRICING.md`
 (archived AI-pricing keyword export — off-topic, recommended no-pursue).
+
+---
+
+## 2026-10-05 · ELLO-ASSIST → ALL: Lane rules stamped estate-wide + handoff.sh scoped (owner-reported systemic issue)
+
+**Problem (owner-reported):** agents treating coord-kit reads as license to work other lanes — gtm incident: session renamed another session's handoff + moved a file into b2bpilot + signed in over other lanes (reverted, `6618b72`). Also: "what are you working on / handoff" queries returning everyone's work.
+
+**Fixes applied:**
+
+1. **Lane-rule block added to:** `_coord-kit/README.md`, `_coord-kit/handoffs/ONBOARDING.md` (golden rules), `_coord-kit/scripts/handoff-template.md` + embedded template in all 3 `handoff.sh` copies, `SigRank-repos/AGENTS.md`, `SigRank-gtm/AGENTS.md`, `_control/stickypads/AGENTS.md`, `_control/search-authority/AGENTS.md`, `_control/moses-integration/AGENTS.md`, `_control/ello-repo-control/AGENTS.md`, `_5_Signomy/1_agent-universe/AGENTS.md`, `ello-repo-control/standard/current/template/AGENTS.md` (propagation source; `versions/1.0.0` left frozen).
+
+2. **`handoff.sh current` now role-scoped** in all 3 live copies (`_coord-kit`, `SigRank-repos/scripts`, `b2bpilot/_workspace/scripts`): bare `current` → YOUR role's handoff (from `.session-current`); `current ALL` → explicit cross-lane view; no role set → warns + shows all. This was the mechanical cause of "pull everyone's handoff" — the command defaulted to latest-overall.
+
+3. **Core rules now stated everywhere:** coord state is read-only context except your own entries; handoffs immutable + role-scoped (`HANDOFF_<ROLE>_<YYYY-MM-DD>_<HHMM>`); never rename/edit/revert/move another session's coord records — dangling state is a bus NOTE, not a task; report YOUR lane when asked for status; cross-repo writes via CROSSWIRE only.
+
+**Not done:** 15+ divergent `handoff.sh` copies exist across archives/inactive repos — only the 3 live ones patched; per-repo `.coord` copies sync on next kit update. Legacy handoff names (GTM1_HANDOFF_*, date-first) grandfathered — never rename.
