@@ -93,7 +93,7 @@ config/                   ← agents.json, formations.json (12+), provision.json
 data/                     ← Persistent volume on Railway. kassa.db, forums.db, seeds.jsonl, audit.jsonl, etc. (gitignored)
 docs/                     ← AGENT-FIELD-GUIDE.md, PLUGIN-BLUEPRINT.md, governance/ (GOV-001–006), archive/
 frontend/                 ← 30+ HTML pages, _nav.js two-tier nav (SIGNOMY), agent.json, .well-known/mcp-server-card.json
-packages/civitae-mcp/     ← PyPI package (civitae-mcp v0.3.0, 23 tools) + run_mcp_command.py (internal bridge runner)
+packages/civitae-mcp/     ← PyPI package (civitae-mcp v0.4.0, 27 tools) + run_mcp_command.py (internal bridge runner)
 scripts/experiments/      ← Simulation scripts (chaos, governance, universe sim — not tests)
 governance-cache/         ← claude-plugin (80+ files), claw-scripts (18 Python), mcp-server, references
 ```
