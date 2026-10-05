@@ -9,7 +9,7 @@ repo:
   lifecycle: active
   repo_id: agent_universe
   family: agent-universe
-  purpose: Agent Universe — Signomy/CIVITAE governed agent marketplace. FastAPI backend, 30+ frontend pages, 27 MCP tools, 7 MCP resources, Stripe payments. Live at signomy.xyz.
+  purpose: Agent Universe — Signomy/CIVITAE governed agent marketplace. FastAPI backend, 30+ frontend pages, 30 MCP tools, 7 MCP resources, Stripe payments. Live at signomy.xyz.
 
 structure:
   profile: platform
