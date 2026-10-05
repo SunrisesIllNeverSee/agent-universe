@@ -33,7 +33,15 @@
 
 Listing: `https://glama.ai/mcp/servers/SunrisesIllNeverSee/agent-universe` (connector recognized, ownership verified).
 
-**Stale.** Tool catalog still reflects an older introspection (23 `civitae_*` tool links shown, page metadata ~Aug 26). Glama re-scans continuously on its own schedule and detects schema drift automatically; owner-side there is a **"Request a re-sync"** control on the listing admin page (requires GitHub login as `SunrisesIllNeverSee`). No unauthenticated rescan endpoint exists. Action: owner clicks re-sync at the listing admin URL; the next scheduled sweep will capture the 30-tool hosted surface. This is the only remaining external step — not a code defect.
+**Stale.** Tool catalog still reflects an older introspection (23 `civitae_*` tool links shown — including the removed `civitae_op_stakes` — last inspection ~2026-08-26). Glama re-scans continuously on its own schedule and detects schema drift automatically. Owner-side refresh: sign in to Glama with GitHub as `SunrisesIllNeverSee`, open the listing admin page, and use the repository **re-sync** control ("Request a re-sync when you have pushed something you want reflected here"). No unauthenticated rescan endpoint exists. The next scheduled sweep will capture the 30-tool hosted surface. This is the only remaining external step — not a code defect.
+
+## Post-review metadata corrections (second pass)
+
+- `README.md` MCP endpoint row: "27 governed tools" → 30 (was self-contradicting the same file's line 113).
+- `AGENTS.md` Live versions block: Registry v1.2.0 → v1.2.2; PyPI v0.3.0-unpublished → v0.4.0 published; Smithery note retargeted to 30.
+- `DIRECTORY_SUBMISSIONS.md`: pending DNS-TXT instruction block replaced with completed record (it carried the rotated-out public key **and** the dead private key in an actionable command — scrubbed; current proof recorded instead). Pending outbound submission copy updated 27 → 30 MCP tools.
+- `BACKLINK_STRATEGY_SIGNOMY.md` Smithery action item retargeted to 30; `DOC-001-CIVITAE-SUBMISSION-COPY.md` 15 → 30 tools.
+- Point-in-time records (plan docs, ST-* results, dated handoffs, hook logs) intentionally untouched.
 
 ## Deferred future architecture (explicitly out of scope, not incomplete work)
 

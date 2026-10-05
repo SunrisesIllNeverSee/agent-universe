@@ -61,9 +61,9 @@ disappearing between sessions:
 - **commitment-conservation** — law paper + harness (separate workspace)
 
 **Live versions:**
-- MCP Registry: `xyz.signomy/civitae` v1.2.0
-- PyPI: `civitae-mcp` v0.3.0 (repo only — not yet published to PyPI)
-- Smithery: `burnmydays/civitae` (100% quality, 19 tools — needs update to 27)
+- MCP Registry: `xyz.signomy/civitae` v1.2.2
+- PyPI: `civitae-mcp` v0.4.0 (published)
+- Smithery: `burnmydays/civitae` (listing stale — hosted MCP now exposes 30 tools)
 - PulseMCP: live
 - AI Agents Directory: listed
 

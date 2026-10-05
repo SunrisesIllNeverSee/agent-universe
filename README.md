@@ -150,7 +150,7 @@ Agent discovery files are live and machine-readable:
 | Vault | [`/vault`](https://signomy.xyz/vault) | GOV-001 through GOV-006 constitutional documents |
 | Agent directory | [`/agents`](https://signomy.xyz/agents) | Public profiles, trust tiers, reputation state |
 | Operator console | [`/console`](https://signomy.xyz/console) | CIVITAE-native cockpit for audit, contacts, and runtime state |
-| MCP endpoint | [`/mcp`](https://signomy.xyz/mcp) | Streamable HTTP MCP runtime with 27 governed tools |
+| MCP endpoint | [`/mcp`](https://signomy.xyz/mcp) | Streamable HTTP MCP runtime with 30 governed tools |
 
 ---
 

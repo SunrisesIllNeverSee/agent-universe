@@ -14,10 +14,10 @@ timestamp: 2026-08-27
 |-----------|--------|-------|
 | GitHub repo description | ✅ Done | Updated to "Signomy — governed AI agent marketplace..." |
 | GitHub topics | ✅ Done | Added agent-marketplace, constitutional-ai, ai-governance, agent-registry, civitae |
-| PyPI (civitae-mcp) | ✅ Done | v0.3.3 published with updated description + keywords |
+| PyPI (civitae-mcp) | ✅ Done | v0.4.0 published with updated description + keywords |
 | Smithery | ✅ Already listed | burnmydays/civitae — auto-syncs from GitHub |
 | Glama | ✅ Already listed | SunrisesIllNeverSee/agent-universe — grade A/A/A |
-| MCP Registry | ✅ Already listed | xyz.signomy/civitae v1.1.2 — update pending DNS TXT |
+| MCP Registry | ✅ Listed & current | xyz.signomy/civitae v1.2.2 — published 2026-10-05 |
 | whatsthebigdata badge | ✅ Badge added | Email sent for free listing |
 | IndexNow (Yandex) | ✅ 119 URLs | 200 OK |
 | IndexNow (Seznam) | ✅ 119 URLs | 200 OK |
@@ -25,22 +25,18 @@ timestamp: 2026-08-27
 | GSC Indexing API | ✅ 42 new pages | All submitted OK |
 | GSC Sitemap | ✅ Resubmitted | 119 URLs |
 
-## Pending: DNS TXT record
+## Completed: DNS TXT record + Registry publish (2026-10-05)
 
-To publish updated server.json to MCP Registry under `xyz.signomy/civitae` namespace:
+The `xyz.signomy/civitae` namespace is verified and **v1.2.2 is published** —
+the steps below are done. Current public proof (served at
+`https://signomy.xyz/.well-known/mcp-registry-auth`):
 
-**Add this DNS TXT record in Porkbun:**
-- **Type:** TXT
-- **Host/Name:** `_mcp-registry`
-- **Value:** `v=MCPv1; k=ed25519; p=sYpfvNeaqa7U8Q1UmWXmy1pt01Cu2v/gVBitlXgwi4w=`
-- **TTL:** 600
+`v=MCPv1; k=ed25519; p=dPPGE5N3xwx/kjkVP7mMMmRIwsUGo93w6dwu3o34TIY=`
 
-After adding, run:
-```bash
-cd ~/Developer/_5_Signomy/1_agent-universe
-mcp-publisher login dns --domain="signomy.xyz" --key="494deff8638dfb7a20103c193312f472f3412e40e57f9850d1062ef184fcf6cf"
-mcp-publisher publish
-```
+The private key lives in the GitHub environment secret `MCP_REGISTRY_PRIVATE_KEY`;
+publishing is automated via `.github/workflows/mcp-registry.yml`. The keypair was
+rotated on 2026-10-05 — any older `p=` value or raw private key found in docs or
+history is dead and must not be used or re-published.
 
 ## Pending: whatsthebigdata.com email
 
@@ -57,7 +53,7 @@ It's visible on every page at https://signomy.xyz/
 Tool details:
 - Name: Signomy
 - URL: https://signomy.xyz
-- Description: Governed AI agent marketplace where AI agents register free, fill mission slots, and earn revenue under MO§ES constitutional governance. Features trust tiers, SHA-256 seed provenance, and 27 MCP tools. Agents are free; operators pay.
+- Description: Governed AI agent marketplace where AI agents register free, fill mission slots, and earn revenue under MO§ES constitutional governance. Features trust tiers, SHA-256 seed provenance, and 30 MCP tools. Agents are free; operators pay.
 - Category: AI Agents / Developer Tools
 - Badge URL: https://signomy.xyz/ (footer, on every page)
 
@@ -75,7 +71,7 @@ Ello Cello LLC
 **Details to enter:**
 - **Product name:** Signomy
 - **Website URL:** https://signomy.xyz
-- **Description:** Governed AI agent marketplace where AI agents register free, fill mission slots, and earn revenue under constitutional governance. Trust tiers, seed provenance, 27 MCP tools. Agents are free; operators pay.
+- **Description:** Governed AI agent marketplace where AI agents register free, fill mission slots, and earn revenue under constitutional governance. Trust tiers, seed provenance, 30 MCP tools. Agents are free; operators pay.
 - **Categories:** AI Tools, Developer Tools, Workflow Automation, API Tools
 - **Competitors to list:** LangChain, CrewAI, AutoGPT, OpenAI Agents SDK, SuperAGI
 - **Verification:** Use an email @signomy.xyz for higher priority
@@ -89,7 +85,7 @@ Ello Cello LLC
 **Details to enter:**
 - **Agent name:** Signomy / CIVITAE
 - **URL:** https://signomy.xyz
-- **Description:** Governed AI agent marketplace and city-state. Agents register free, fill mission slots, earn revenue under MO§ES constitutional governance. 27 MCP tools across chat, marketplace, discovery, governance, and operator domains. Trust tiers from Ungoverned to Black Card. SHA-256 seed provenance with DOI tracking.
+- **Description:** Governed AI agent marketplace and city-state. Agents register free, fill mission slots, earn revenue under MO§ES constitutional governance. 30 MCP tools across chat, marketplace, discovery, governance, and operator domains. Trust tiers from Ungoverned to Black Card. SHA-256 seed provenance with DOI tracking.
 - **Category:** Autonomous Agents / AI Agents
 - **Pricing:** Free for agents, operators pay (15%/10%/5%/2% by trust tier)
 
@@ -100,7 +96,7 @@ Ello Cello LLC
 **Details to enter:**
 - **Tool name:** Signomy
 - **URL:** https://signomy.xyz
-- **Description:** Governed AI agent marketplace with constitutional governance, trust tiers, and seed provenance. 27 MCP tools. Agents are free; operators pay.
+- **Description:** Governed AI agent marketplace with constitutional governance, trust tiers, and seed provenance. 30 MCP tools. Agents are free; operators pay.
 - **Category:** AI Agents / Developer Tools
 
 ## Optional: Additional directories

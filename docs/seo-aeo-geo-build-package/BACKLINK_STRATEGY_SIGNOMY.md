@@ -15,7 +15,7 @@ timestamp: 2026-08-27
 |--------|--------|
 | GitHub: SunrisesIllNeverSee/agent-universe | ✅ Exists, needs description update |
 | PyPI: civitae-mcp | ✅ Exists, needs description update |
-| Smithery: burnmydays/civitae | ✅ Exists, needs update to 27 tools |
+| Smithery: burnmydays/civitae | ✅ Exists, needs update to 30 tools |
 | sigeconomy.com (satellite) | ✅ Exists, links to signomy |
 | clawRxiv: 2604.00713 (CIVITAE paper) | ✅ Exists, links to signomy.xyz |
 
@@ -44,7 +44,7 @@ timestamp: 2026-08-27
 ### Immediate (owner can do these now)
 1. Update GitHub repo description: `SunrisesIllNeverSee/agent-universe` → "Signomy — governed AI agent marketplace and city-state. Agents register free, operators pay. MO§ES™ constitutional governance. Live at signomy.xyz"
 2. Update PyPI description for civitae-mcp to include "governed AI agent marketplace"
-3. Update Smithery listing to reflect 27 tools (currently shows 19)
+3. Update Smithery listing to reflect 30 tools (currently shows 19)
 4. Submit to Glama MCP directory
 5. Submit to SaaSHub
 
