@@ -22,6 +22,11 @@ MARKER='<!-- POST-COMMIT HOOK APPENDS BELOW THIS LINE -->'
 [ -f "$LOG_FILE" ] || exit 0
 grep -q "$MARKER" "$LOG_FILE" || exit 0
 
+# Skip commits whose only content is the ledger itself — logging a scratchpad-only
+# commit produces a self-referential noise entry.
+FILES_CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD)
+[ "$FILES_CHANGED" = "Devins_Plans/SCRATCHPAD.md" ] && exit 0
+
 HASH=$(git rev-parse --short HEAD)
 TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
 SUBJECT=$(git log -1 --pretty=format:'%s' | tr -d '\\')
