@@ -3,7 +3,8 @@
 Status: active design work
 Runtime baseline: CIVITAE 0.4.0
 
-Canonical detailed working package is workspace-only (Devins_Plans/, untracked).
+Canonical detailed working package lives in the labs workspace
+(`~/Developer/_7_labs/signomy-control-surface/`, outside this repo).
 
 Current verified structural findings:
 
