@@ -646,6 +646,32 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
     });
   });
 
+  // ── realtime refresh — Town Hall events on the read-only public hub ──────
+  // Fetch/poll stays the data path; events only trigger a reload. Payloads
+  // carry public-read fields only (no private content).
+  (function() {
+    var retry = 1000;
+    var FORUM_EVENTS = {
+      forum_thread_created: 1, forum_reply_created: 1,
+      forum_thread_pinned: 1, forum_thread_locked: 1
+    };
+    function connect() {
+      var ws;
+      try {
+        ws = new WebSocket((window.CIVITAE_WS_BASE || location.origin.replace(/^http/, 'ws')) + '/ws/public');
+      } catch (e) { return; }
+      ws.onmessage = function(e) {
+        try {
+          var evt = JSON.parse(e.data);
+          if (evt && FORUM_EVENTS[evt.type]) loadThreads(currentCategory);
+        } catch (ex) {}
+      };
+      ws.onclose = function() { setTimeout(connect, retry); retry = Math.min(retry * 2, 30000); };
+      ws.onerror = function() { ws.close(); };
+    }
+    connect();
+  })();
+
   // ── initial load ──────────────────────────────────────────────────────────
   loadThreads('');
 

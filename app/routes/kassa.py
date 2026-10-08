@@ -196,8 +196,8 @@ async def kassa_agent_register(payload: KassaRegisterPayload) -> dict:
     state.runtime.registry.append(entry)
     state.runtime.persist_registry()
 
-    state.audit.log("kassa", "agent_registered", {"agent_id": agent_id, "name": agent_name})
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    _audit_entry = state.audit.log("kassa", "agent_registered", {"agent_id": agent_id, "name": agent_name})
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     try:
         await create_seed(source_type="registration", source_id=agent_id, creator_id=agent_id, creator_type="AAI", seed_type="planted", metadata={"name": agent_name, "source": "kassa"})
     except Exception:
@@ -421,7 +421,9 @@ async def stake_post(post_id: str, request: Request) -> dict:
         "stake_id": stake_id,
         "post_id": post_id,
         "thread_id": thread_result["thread_id"],
-        "magic_link": magic_link,
+        # magic_link deliberately NOT returned — the poster credential travels
+        # only via the poster email above; handing it to the staking agent
+        # would grant cross-principal poster access (H5).
         "seed_doi": seed_doi,
         "thread_seed_doi": thread_seed_doi,
     }
@@ -582,7 +584,12 @@ async def get_agent_threads(request: Request) -> list:
     """List threads for the authenticated agent."""
     agent = _get_agent_from_token(request)
     threads = state.kassa.load_threads(agent_id=agent["agent_id"])
-    return [t for t in threads if t.get("status") == "open"]
+    # Strip poster credential material — same contract as the single-thread
+    # GET (H5F-07).
+    return [
+        {k: v for k, v in t.items() if k not in ("magic_token", "magic_token_plain")}
+        for t in threads if t.get("status") == "open"
+    ]
 
 
 @router.get("/api/kassa/threads/{thread_id}")
@@ -681,11 +688,13 @@ async def post_thread_message(thread_id: str, request: Request) -> dict:
         "message_count": new_count,
     })
 
-    # Broadcast to global WebSocket listeners
+    # Public-safe envelope on the global hubs — thread bodies are private
+    # negotiation content; the full message only reaches authenticated
+    # participants via state.thread_hub below (H5).
     await state.emit("kassa_thread_message", {
         "thread_id": thread_id,
         "post_id": thread.get("post_id"),
-        "msg": entry,
+        "message_count": new_count,
     })
 
     # Broadcast to per-thread WebSocket listeners
@@ -714,10 +723,16 @@ async def post_thread_message(thread_id: str, request: Request) -> dict:
     # original magic link email is their access credential.
     poster_agent_for_msg = None
     if sender_type == "agent" and thread.get("poster_email"):
-        # Look up agent's @signomy.xyz email for FROM address
-        agent_email = None
-        if agent:
-            agent_email = agent.get("email")
+        # Look up agent's @signomy.xyz email for FROM address — resolve the
+        # registered record from the thread's agent_id (the name `agent` was
+        # previously referenced here but never defined → NameError after the
+        # message commit had already succeeded; H5 post-commit crash).
+        agent_record = next(
+            (r for r in state.runtime.registry
+             if r.get("agent_id") == thread.get("agent_id")),
+            None,
+        )
+        agent_email = agent_record.get("email") if agent_record else None
         try:
             from app.inbox import agent_for_email
             poster_agent_for_msg = agent_for_email(thread["poster_email"])
@@ -854,7 +869,7 @@ async def submit_kassa_post(request: Request) -> dict:
     if not tab or not title or not body or not from_name or not from_email:
         raise HTTPException(status_code=400, detail="tab, title, body, from_name, from_email required")
     if detect_prompt_injection(title) or detect_prompt_injection(body):
-        state.audit.log("security", "prompt_injection_blocked", {"from_name": from_name, "tab": tab})
+        state.audit.log("security", "prompt_injection_blocked", {"tab": tab})
         raise HTTPException(status_code=400, detail="Post contains disallowed content.")
     kid = state.kassa.next_k_serial()
     now = datetime.now(UTC).isoformat()
@@ -893,7 +908,7 @@ async def submit_kassa_post(request: Request) -> dict:
     else:
         # User posts enter the review queue and trigger an operator alert
         state.kassa.insert_review(review_entry)
-        state.audit.log("kassa", "post_submitted", {"id": kid, "tab": tab, "from_email": from_email})
+        state.audit.log("kassa", "post_submitted", {"id": kid, "tab": tab})
         try:
             await asyncio.to_thread(
                 send_operator_alert,
@@ -1283,13 +1298,21 @@ async def kassa_contact(payload: KassaContact) -> dict:
         "status": "new",
     }
     state.kassa.insert_contact_message(entry)
+    # No sender PII in the audit chain — /api/audit is public-readable (H5F-05).
     state.audit.log("kassa", "contact_received", {
+        "id": entry["id"],
         "post_id": payload.post_id,
         "tab": payload.tab,
-        "from_email": payload.from_email,
     })
     _send_notify_email(entry)
-    await state.emit("kassa_contact", entry)
+    # Public-safe envelope only — sender name/email/body must not ride the
+    # unauthenticated /ws + /ws/public hubs (H5). Operator notification is the
+    # email path above.
+    await state.emit("kassa_contact", {
+        "id": entry["id"], "post_id": entry["post_id"],
+        "tab": entry["tab"], "timestamp": entry["timestamp"],
+        "status": entry["status"],
+    })
     try:
         await create_seed(source_type="kassa_contact", source_id=entry["id"], creator_id=payload.from_email, creator_type="BI", seed_type="planted", metadata={"post_id": payload.post_id, "tab": payload.tab})
     except Exception:
@@ -1298,5 +1321,8 @@ async def kassa_contact(payload: KassaContact) -> dict:
 
 
 @router.get("/api/kassa/messages")
-async def get_kassa_messages(tab: str = "", status: str = "") -> list:
+async def get_kassa_messages(request: Request, tab: str = "", status: str = "") -> list:
+    """List contact-inbox messages. Requires X-Admin-Key — entries carry
+    sender PII (name, email, body)."""
+    require_admin(request, state.admin_key)
     return state.kassa.load_contact_messages(tab=tab, status=status)

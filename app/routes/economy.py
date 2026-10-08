@@ -132,14 +132,14 @@ async def process_payment(payload: dict, request: Request) -> dict:
         gross_amount=amount,
         mission_id=payload.get("mission_id", ""),
     )
-    state.audit.log("economy", "payment_processed", {
+    _audit_entry = state.audit.log("economy", "payment_processed", {
         "agent_id": payload.get("agent_id"),
         "tier": result["tier"],
         "gross": payload.get("amount"),
         "fee": result["fee_breakdown"]["platform_fee"],
         "net": result["fee_breakdown"]["net_to_agent"],
     })
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     seed_doi = None
     try:
         seed_result = await create_seed(
@@ -196,7 +196,7 @@ async def process_mission_payout(payload: dict, request: Request) -> dict:
         recruiter_id=payload.get("recruiter_id", ""),
         agent_mission_count=int(payload.get("agent_mission_count", 0)),
     )
-    state.audit.log("economy", "mission_payout_processed", {
+    _audit_entry = state.audit.log("economy", "mission_payout_processed", {
         "agent_id": agent_id,
         "mission_id": payload.get("mission_id"),
         "tier": result["tier"],
@@ -205,7 +205,7 @@ async def process_mission_payout(payload: dict, request: Request) -> dict:
         "originator_credit": result["originator_credit_applied"],
         "recruiter_bounty": result.get("recruiter_bounty"),
     })
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     seed_doi = None
     try:
         seed_result = await create_seed(
@@ -437,11 +437,11 @@ async def withdraw(payload: WithdrawPayload) -> dict:
     is_stub = "stub" in (transfer.get("note") or "").lower()
     if is_stub:
         # Don't debit real treasury for stub transfers — record as pending
-        state.audit.log("economy", "withdrawal_pending_stub", {
+        _audit_entry = state.audit.log("economy", "withdrawal_pending_stub", {
             "agent_id": agent_id, "amount": amount, "chain": chain,
             "note": "Chain adapter is stubbed. Funds held. Will execute when adapter is live.",
         })
-        await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+        await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
         seed_doi = None
         try:
             seed_result = await create_seed(
@@ -476,10 +476,10 @@ async def withdraw(payload: WithdrawPayload) -> dict:
             "agent_id": agent_id, "amount": amount, "chain": chain, "reason": transfer_status,
         })
 
-    state.audit.log("economy", "withdrawal", {
+    _audit_entry = state.audit.log("economy", "withdrawal", {
         "agent_id": agent_id, "amount": amount, "chain": chain, "status": transfer_status,
     })
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     seed_doi = None
     try:
         seed_result = await create_seed(
@@ -517,7 +517,7 @@ async def purchase_blackcard(payload: PurchaseBlackcardPayload) -> dict:
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
     result = state.economy.purchase_blackcard(agent_id)
-    state.audit.log("economy", "blackcard_purchased", {
+    _audit_entry = state.audit.log("economy", "blackcard_purchased", {
         "agent_id": agent_id,
         "price": TIERS["blackcard"]["price_usd"],
         "governance": {
@@ -526,7 +526,7 @@ async def purchase_blackcard(payload: PurchaseBlackcardPayload) -> dict:
             "role": state.runtime.governance.role,
         },
     })
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     seed_doi = None
     try:
         seed_result = await create_seed(
@@ -591,7 +591,7 @@ async def governed_transfer(payload: GovernedTransferPayload) -> dict:
         agent_id=payload.agent_id,
         confirm=payload.confirm,
     )
-    state.audit.log("chain", "transfer_" + result.get("status", "unknown").lower(), {
+    _audit_entry = state.audit.log("chain", "transfer_" + result.get("status", "unknown").lower(), {
         "chain": payload.chain,
         "amount": payload.amount,
         "to": payload.to,
@@ -601,7 +601,7 @@ async def governed_transfer(payload: GovernedTransferPayload) -> dict:
             "role": state.runtime.governance.role,
         },
     })
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     return result
 
 

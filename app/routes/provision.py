@@ -215,7 +215,7 @@ async def agent_signup(request: Request, payload: dict) -> dict:
     except Exception:
         pass
 
-    audit.log("provision", "agent_signup", {
+    _audit_entry = audit.log("provision", "agent_signup", {
         "agent_id": agent_id,
         "name": agent_name,
         "status": status,
@@ -225,7 +225,7 @@ async def agent_signup(request: Request, payload: dict) -> dict:
             "role": runtime.governance.role,
         },
     })
-    await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    await emit("audit_event", _audit_entry.model_dump(mode="json"))
 
     # Plant a registration seed for provenance tracking
     handle = payload.get("handle", agent_name)
@@ -321,8 +321,8 @@ async def agent_login(request: Request, payload: dict) -> dict:
     agent["last_login"] = datetime.now(UTC).isoformat()
     state.runtime.persist_registry()
 
-    state.audit.log("provision", "agent_login", {"agent_id": agent_id})
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    _audit_entry = state.audit.log("provision", "agent_login", {"agent_id": agent_id})
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
 
     return {
         "agent_id": agent_id,
@@ -348,7 +348,7 @@ async def issue_agent_key(payload: IssueAgentKeyPayload) -> dict:
     agent["key_hash"] = _hash_key(new_key)
     runtime.persist_registry()
 
-    audit.log("provision", "key_rotated", {
+    _audit_entry = audit.log("provision", "key_rotated", {
         "agent_id": agent_id,
         "requested_by": payload.requested_by,
         "new_key_prefix": agent["key_prefix"],
@@ -358,7 +358,7 @@ async def issue_agent_key(payload: IssueAgentKeyPayload) -> dict:
             "role": runtime.governance.role,
         },
     })
-    await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    await emit("audit_event", _audit_entry.model_dump(mode="json"))
 
     return {
         "agent_id": agent_id,
@@ -452,7 +452,7 @@ async def approve_agent(request: Request, payload: dict) -> dict:
 
     agent["status"] = "active"
     runtime.persist_registry()
-    audit.log("provision", "agent_approved", {
+    _audit_entry = audit.log("provision", "agent_approved", {
         "agent_id": agent_id,
         "governance": {
             "mode": runtime.governance.mode,
@@ -460,7 +460,7 @@ async def approve_agent(request: Request, payload: dict) -> dict:
             "role": runtime.governance.role,
         },
     })
-    await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    await emit("audit_event", _audit_entry.model_dump(mode="json"))
     return {"approved": True, "agent_id": agent_id, "status": "active"}
 
 
@@ -479,8 +479,8 @@ async def reject_agent(request: Request, payload: dict) -> dict:
 
     agent["status"] = "rejected"
     runtime.persist_registry()
-    audit.log("provision", "agent_rejected", {"agent_id": agent_id})
-    await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    _audit_entry = audit.log("provision", "agent_rejected", {"agent_id": agent_id})
+    await emit("audit_event", _audit_entry.model_dump(mode="json"))
     return {"rejected": True, "agent_id": agent_id, "status": "rejected"}
 
 
@@ -555,8 +555,8 @@ async def suspend_agent(request: Request, payload: dict) -> dict:
 
     agent["status"] = "suspended"
     runtime.persist_registry()
-    audit.log("provision", "agent_suspended", {"agent_id": agent_id})
-    await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    _audit_entry = audit.log("provision", "agent_suspended", {"agent_id": agent_id})
+    await emit("audit_event", _audit_entry.model_dump(mode="json"))
     seed_doi = None
     try:
         seed_result = await create_seed(
@@ -586,8 +586,8 @@ async def decommission_agent(request: Request, agent_id: str) -> dict:
         return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
     runtime.registry.pop(idx)
     runtime.persist_registry()
-    audit.log("provision", "agent_decommissioned", {"agent_id": agent_id})
-    await emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    _audit_entry = audit.log("provision", "agent_decommissioned", {"agent_id": agent_id})
+    await emit("audit_event", _audit_entry.model_dump(mode="json"))
     seed_doi = None
     try:
         seed_result = await create_seed(

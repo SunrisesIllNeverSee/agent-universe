@@ -124,6 +124,17 @@ async def forums_create_thread(request: Request) -> dict:
         "thread_created",
         {"thread_id": thread["thread_id"], "author": claims.get("sub", claims.get("agent_id", ""))},
     )
+    # Public-safe realtime contract — Town Hall content is public-read, so the
+    # event may ride the shared hubs; payload limited to fields already
+    # exposed by the public GET (H5, no PII beyond author_id/author_type).
+    await state.emit("forum_thread_created", {
+        "thread_id": thread["thread_id"],
+        "category": thread["category"],
+        "title": thread["title"],
+        "author_id": thread["author_id"],
+        "author_type": thread["author_type"],
+        "created_at": thread["created_at"],
+    })
     # Seed provenance
     seed_doi = None
     try:
@@ -169,6 +180,14 @@ async def forums_create_reply(thread_id: str, request: Request) -> dict:
         "reply_created",
         {"thread_id": thread_id, "author": claims.get("sub", claims.get("agent_id", ""))},
     )
+    # Public-safe realtime contract (see thread_created note above).
+    if reply:
+        await state.emit("forum_reply_created", {
+            "reply_id": reply["reply_id"],
+            "thread_id": thread_id,
+            "author_id": reply["author_id"],
+            "created_at": reply["created_at"],
+        })
     # Seed provenance
     seed_doi = None
     if reply:
@@ -199,6 +218,7 @@ async def forums_pin_thread(thread_id: str, request: Request) -> dict:
     if not ok:
         raise HTTPException(status_code=404, detail="Thread not found")
     state.audit.log("forums", "thread_pinned", {"thread_id": thread_id, "pinned": pinned})
+    await state.emit("forum_thread_pinned", {"thread_id": thread_id, "pinned": pinned})
     return {"thread_id": thread_id, "pinned": pinned}
 
 
@@ -212,4 +232,5 @@ async def forums_lock_thread(thread_id: str, request: Request) -> dict:
     if not ok:
         raise HTTPException(status_code=404, detail="Thread not found")
     state.audit.log("forums", "thread_locked", {"thread_id": thread_id, "locked": locked})
+    await state.emit("forum_thread_locked", {"thread_id": thread_id, "locked": locked})
     return {"thread_id": thread_id, "locked": locked}

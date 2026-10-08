@@ -43,6 +43,9 @@ class AppState:
     thread_hub: object   # ThreadHub
 
     slot_lock: asyncio.Lock
+    # Running app event loop, captured at lifespan start so synchronous MCP
+    # tool calls can schedule post-commit emits via run_coroutine_threadsafe.
+    loop: "asyncio.AbstractEventLoop | None" = None
     admin_key: str = ""
     jwt_secret: str = ""
     frontend_dir: Path
@@ -59,6 +62,18 @@ class AppState:
 
     def data_path(self, *parts: str) -> Path:
         return self.data_dir.joinpath(*parts)
+
+    def audit_cursor(self) -> int:
+        """Position marker in LEDGER id space (AuditEvent.id - 1). Pass to
+        emit_audit_since — comparison happens against raw ledger ids."""
+        recent = self.audit.recent(1)
+        return (recent[0].id - 1) if recent else -1
+
+    async def emit_audit_since(self, cursor: int) -> None:
+        """Broadcast exactly the audit rows logged after `cursor` — the rows
+        this endpoint's own call produced, never a foreign newer row (H5F-06)."""
+        for event in self.audit.since(cursor):
+            await self.emit("audit_event", event.model_dump(mode="json"))
 
     def current_state_event(self) -> dict:
         return {"type": "state_snapshot", "payload": self.runtime.snapshot().model_dump(mode="json")}

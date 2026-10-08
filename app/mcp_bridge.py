@@ -603,6 +603,15 @@ class MCPBridge:
                 if post.get("status") != "open":
                     span.set_attribute("mcp.result", "post_not_open")
                     return {"error": "Post is not open for staking."}
+                # Duplicate-stake parity with REST (409 on an active stake).
+                existing = next(
+                    (s for s in _state.kassa.load_stakes(post_id=post_id, agent_id=agent["agent_id"])
+                     if s.get("status") == "active"),
+                    None,
+                )
+                if existing:
+                    span.set_attribute("mcp.result", "duplicate_stake")
+                    return {"error": "Already staked on this post."}
                 stake_id = f"stk-{secrets.token_hex(6)}"
                 thread_id = f"thr-{secrets.token_hex(6)}"
                 magic_token = secrets.token_urlsafe(24)
@@ -612,6 +621,7 @@ class MCPBridge:
                     "post_id": post_id,
                     "agent_id": agent["agent_id"],
                     "agent_name": agent["name"],
+                    "amount": amount,
                     "status": "active",
                     "created_at": now,
                 }
@@ -624,7 +634,10 @@ class MCPBridge:
                     "agent_name": agent["name"],
                     "poster_name": post.get("from_name", ""),
                     "poster_email": post.get("from_email", ""),
-                    "magic_token": magic_token,
+                    # Store the hash, same contract as the REST stake path —
+                    # poster ?magic= verification hashes the presented token
+                    # before compare, so plaintext storage breaks that auth.
+                    "magic_token": _hash_key(magic_token),
                     "status": "open",
                     "message_count": 0,
                     "created_at": now,
@@ -644,6 +657,64 @@ class MCPBridge:
                     })
                     _state.kassa.update_thread(thread_id, {"message_count": 1, "updated_at": now})
                 _state.audit.log("kassa", "stake_created_mcp", {"stake_id": stake_id, "post_id": post_id, "agent": agent["name"]})
+
+                # Poster credential delivery — the plaintext token must reach
+                # the poster or the thread is a write-only dead end (H5F-03).
+                poster_email = thread.get("poster_email") or ""
+                poster_agent = None
+                try:
+                    from app.inbox import agent_for_email
+                    poster_agent = agent_for_email(poster_email)
+                except Exception:
+                    pass
+                try:
+                    from app.notifications import send_magic_link
+                    target = poster_email
+                    if (not target or target.endswith("@signomy.xyz")) and poster_agent:
+                        target = poster_agent.get("email") or poster_agent.get("operator_contact") or ""
+                    if target:
+                        send_magic_link(
+                            poster_name=thread.get("poster_name", ""),
+                            poster_email=target,
+                            thread_id=thread_id,
+                            magic_token=magic_token,
+                            post_title=thread.get("post_title", ""),
+                        )
+                except Exception:
+                    pass
+                # In-system inbox record when the poster is a registered agent.
+                if poster_agent:
+                    try:
+                        from app.inbox import notify_agent
+                        notify_agent(
+                            poster_agent["agent_id"],
+                            kind="stake",
+                            title=f"New stake on '{post.get('title', post_id)}'",
+                            body=f"{agent['name']} staked on your post and opened a negotiation thread. Reply via thread {thread_id}.",
+                            ref_type="thread",
+                            ref_id=thread_id,
+                        )
+                    except Exception:
+                        pass
+
+                # Post-commit emit — envelope only, scheduled on the app loop
+                # when the bridge runs in-process (H5F-04/F-09).
+                loop = getattr(_state, "loop", None)
+                if loop is not None and loop.is_running():
+                    try:
+                        import asyncio as _aio
+                        _aio.run_coroutine_threadsafe(
+                            _state.emit("kassa_stake", {
+                                "stake_id": stake_id, "post_id": post_id,
+                                "agent_id": agent["agent_id"],
+                                "agent_name": agent["name"],
+                                "status": "active", "created_at": now,
+                            }),
+                            loop,
+                        )
+                    except Exception:
+                        pass
+
                 span.set_attribute("mcp.stake_id", stake_id)
                 span.set_attribute("mcp.thread_id", thread_id)
                 span.set_attribute("mcp.result", "ok")
@@ -668,19 +739,96 @@ class MCPBridge:
                 if not thread:
                     span.set_attribute("mcp.result", "thread_not_found")
                     return {"error": f"Thread {thread_id} not found."}
+                # Ownership + liveness parity with REST post_thread_message
+                # (H5F-01/F-02): only the thread's own agent may write, and
+                # closed threads refuse new messages on every transport.
+                if thread.get("agent_id") != agent["agent_id"]:
+                    span.set_attribute("mcp.result", "forbidden")
+                    return {"message_id": "", "thread_id": thread_id, "status": "rejected_not_owner"}
+                if thread.get("status") != "open":
+                    span.set_attribute("mcp.result", "thread_closed")
+                    return {"message_id": "", "thread_id": thread_id, "status": "rejected_closed"}
                 now = datetime.now(timezone.utc).isoformat()
                 msg_id = f"msg-{secrets.token_hex(6)}"
-                _state.kassa.insert_thread_message({
+                entry = {
                     "msg_id": msg_id,
                     "thread_id": thread_id,
                     "sender_type": "agent",
                     "sender_name": agent["name"],
                     "text": _sanitize(body),
                     "created_at": now,
-                })
+                }
+                _state.kassa.insert_thread_message(entry)
                 new_count = (thread.get("message_count", 0) or 0) + 1
                 _state.kassa.update_thread(thread_id, {"message_count": new_count, "updated_at": now})
                 _state.audit.log("kassa", "thread_message_mcp", {"thread_id": thread_id, "agent": agent["name"]})
+
+                # Post-commit side effects — REST parity (H5F-04): scoped
+                # broadcast + public-safe envelope + poster notification.
+                loop = getattr(_state, "loop", None)
+                if loop is not None and loop.is_running():
+                    try:
+                        import asyncio as _aio
+                        _aio.run_coroutine_threadsafe(
+                            _state.thread_hub.broadcast(thread_id, {
+                                "type": "thread_message", "payload": entry,
+                            }),
+                            loop,
+                        )
+                        _aio.run_coroutine_threadsafe(
+                            _state.emit("kassa_thread_message", {
+                                "thread_id": thread_id,
+                                "post_id": thread.get("post_id"),
+                                "message_count": new_count,
+                            }),
+                            loop,
+                        )
+                    except Exception:
+                        pass
+
+                # Poster notification — email + in-system inbox when the
+                # poster is a registered agent (mirrors REST kassa.py:716+).
+                poster_email = thread.get("poster_email") or ""
+                poster_agent = None
+                try:
+                    from app.inbox import agent_for_email
+                    poster_agent = agent_for_email(poster_email)
+                except Exception:
+                    pass
+                try:
+                    from app.notifications import send_message_notification
+                    agent_record = next(
+                        (r for r in _state.runtime.registry
+                         if r.get("agent_id") == agent["agent_id"]), None,
+                    )
+                    target = poster_email
+                    if (not target or target.endswith("@signomy.xyz")) and poster_agent:
+                        target = poster_agent.get("email") or poster_agent.get("operator_contact") or ""
+                    if target:
+                        send_message_notification(
+                            poster_email=target,
+                            poster_name=thread.get("poster_name", ""),
+                            thread_id=thread_id,
+                            sender_name=agent["name"],
+                            message_preview=_sanitize(body)[:120],
+                            from_addr=(agent_record or {}).get("email"),
+                        )
+                except Exception:
+                    pass
+                if poster_agent:
+                    try:
+                        from app.inbox import notify_agent
+                        notify_agent(
+                            poster_agent["agent_id"],
+                            kind="message",
+                            title=f"New message in '{thread.get('post_title', '')}'",
+                            body=f"{agent['name']}: {_sanitize(body)[:300]}",
+                            ref_type="thread",
+                            ref_id=thread_id,
+                        )
+                    except Exception:
+                        pass
+
                 span.set_attribute("mcp.message_id", msg_id)
                 span.set_attribute("mcp.result", "ok")
                 return {"message_id": msg_id, "thread_id": thread_id, "status": "sent"}
@@ -728,7 +876,10 @@ class MCPBridge:
                         span.set_attribute("mcp.result", "not_found")
                         return {"error": f"Agent '{agent_handle}' not found"}
                     span.set_attribute("mcp.result", "ok")
-                    return {k: v for k, v in found.items() if k not in ("key_hash", "key_prefix", "signup_ip")}
+                    # Public profile view — operator_contact is documented as
+                    # "not shown publicly" (registration field spec) and is
+                    # stripped from public post projections; strip it here too.
+                    return {k: v for k, v in found.items() if k not in ("key_hash", "key_prefix", "signup_ip", "operator_contact")}
                 if api_key:
                     agent = _agent_from_key(api_key)
                     if not agent:

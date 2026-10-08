@@ -270,13 +270,13 @@ async def create_mission(payload: CreateMissionPayload) -> dict:
     }
     missions.append(mission)
     _save_missions(missions)
-    state.audit.log("deploy", "mission_created", {
+    _audit_entry = state.audit.log("deploy", "mission_created", {
         "mission_id": mission["id"],
         "label": mission["label"],
         "posture": mission["posture"],
         "governance": mission["governance_at_launch"],
     })
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
 
     seed_doi = None
     try:
@@ -340,12 +340,12 @@ async def end_mission(mission_id: str, payload: EndMissionPayload | None = None)
 
     mission["payouts"] = payouts
     _save_missions(missions)
-    state.audit.log("deploy", "mission_ended", {
+    _audit_entry = state.audit.log("deploy", "mission_ended", {
         "mission_id": mission_id,
         "slots_paid": len(payouts),
         "payout_per_slot": payout_amount,
     })
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     await state.emit("mission_ended", {"mission_id": mission_id, "payouts": len(payouts)})
     seed_doi = None
     try:
@@ -409,8 +409,8 @@ async def create_campaign(payload: CreateCampaignPayload) -> dict:
     }
     campaigns.append(campaign)
     _save_campaigns(campaigns)
-    state.audit.log("campaign", "created", {"campaign_id": campaign["id"], "name": campaign["name"]})
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    _audit_entry = state.audit.log("campaign", "created", {"campaign_id": campaign["id"], "name": campaign["name"]})
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     try:
         await create_seed(source_type="campaign", source_id=campaign["id"], creator_id=campaign.get("created_by") or "operator", creator_type="BI", seed_type="planted", metadata={"name": campaign["name"]})
     except Exception:
@@ -454,8 +454,8 @@ async def close_campaign(campaign_id: str, payload: CloseCampaignPayload) -> dic
     campaign["closed_at"] = datetime.now(UTC).isoformat()
     campaign["outcome"] = payload.outcome
     _save_campaigns(campaigns)
-    state.audit.log("campaign", "closed", {"campaign_id": campaign_id, "name": campaign.get("name")})
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    _audit_entry = state.audit.log("campaign", "closed", {"campaign_id": campaign_id, "name": campaign.get("name")})
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     try:
         await create_seed(source_type="campaign_closed", source_id=campaign_id, creator_id="operator", creator_type="BI", seed_type="touched", metadata={"name": campaign.get("name"), "outcome": campaign["outcome"]})
     except Exception:
@@ -474,8 +474,8 @@ async def activate_campaign(campaign_id: str) -> dict:
         return JSONResponse({"error": "Cannot reactivate a closed campaign"}, status_code=400)
     campaign["status"] = "active"
     _save_campaigns(campaigns)
-    state.audit.log("campaign", "activated", {"campaign_id": campaign_id, "name": campaign.get("name")})
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    _audit_entry = state.audit.log("campaign", "activated", {"campaign_id": campaign_id, "name": campaign.get("name")})
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     return campaign
 
 
@@ -516,8 +516,8 @@ async def create_task(payload: CreateTaskPayload) -> dict:
     tasks = _load_tasks()
     tasks.append(task)
     _save_tasks(tasks)
-    state.audit.log("mission", "task_created", {"task_id": task["id"], "type": task_type, "track": track})
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    _audit_entry = state.audit.log("mission", "task_created", {"task_id": task["id"], "type": task_type, "track": track})
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     seed_doi = None
     try:
         seed_result = await create_seed(
@@ -790,13 +790,13 @@ async def create_slots_from_formation(payload: CreateSlotsPayload) -> dict:
         slots.append(slot)
 
     _save_slots(slots)
-    state.audit.log("deploy", "slots_created", {
+    _audit_entry = state.audit.log("deploy", "slots_created", {
         "mission_id": mission_id,
         "formation_id": formation_id,
         "slots_created": len(new_slots),
         "posture": posture,
     })
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     seed_doi = None
     try:
         seed_result = await create_seed(
@@ -869,14 +869,22 @@ async def fill_slot(payload: FillSlotPayload, request: Request) -> dict:
         slot["filled_at"] = datetime.now(UTC).isoformat()
         _save_slots(slots)
 
-    state.audit.log("deploy", "slot_filled", {
+    _audit_entry = state.audit.log("deploy", "slot_filled", {
         "slot_id": slot_id,
         "agent_id": agent_id,
         "mission_id": slot["mission_id"],
         "role": slot["role"],
         "governance": slot["governance"],
     })
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
+    # Typed lifecycle event — emitted only after the authoritative slot commit
+    # above succeeded (missions.html listens for this event type).
+    await state.emit("slot_filled", {
+        "slot_id": slot_id,
+        "agent_id": agent_id,
+        "mission_id": slot["mission_id"],
+        "role": slot["role"],
+    })
 
     try:
         from app.inbox import notify_agent
@@ -945,8 +953,16 @@ async def leave_slot(payload: LeaveSlotPayload, request: Request) -> dict:
         slot["filled_at"] = None
         _save_slots(slots)
 
-    state.audit.log("deploy", "slot_vacated", {"slot_id": slot_id, "previous_agent": old_agent})
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    _audit_entry = state.audit.log("deploy", "slot_vacated", {"slot_id": slot_id, "previous_agent": old_agent})
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
+    # Typed lifecycle event — post-commit only (missions.html listens for
+    # 'slot_left').
+    await state.emit("slot_left", {
+        "slot_id": slot_id,
+        "agent_id": requesting_agent,
+        "mission_id": slot.get("mission_id"),
+        "role": slot.get("role"),
+    })
     try:
         await create_seed(
             source_type="slot_leave",
@@ -1032,14 +1048,14 @@ async def post_bounty(payload: PostBountyPayload, request: Request) -> dict:
         slots.append(open_slot)
 
     _save_slots(slots)
-    state.audit.log("deploy", "bounty_posted", {
+    _audit_entry = state.audit.log("deploy", "bounty_posted", {
         "mission_id": mission_id,
         "agent_id": agent_id,
         "label": label,
         "slots_open": slots_needed,
         "posture": posture,
     })
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
 
     try:
         await create_seed(

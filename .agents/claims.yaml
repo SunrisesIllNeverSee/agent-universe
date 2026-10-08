@@ -162,3 +162,28 @@ claims:
     purpose: JSON-LD @context string-form + moses:-prefixed keys + @type/offers/name fixes
     acquired_at: 2026-09-27T00:00:00Z
     released_at: 2026-09-27T00:00:00Z
+  - id: claim-2026-10-07-drep2-h5-comms
+    session: devin-1786374270-drep2
+    type: file_lane
+    paths:
+      - app/routes/operator.py
+      - app/routes/kassa.py
+      - app/routes/forums.py
+      - app/routes/missions.py
+      - app/routes/core.py
+      - app/mcp_bridge.py
+      - app/server.py
+      - app/kassa_store.py
+      - frontend/console.html
+      - frontend/missions.html
+      - frontend/forums.html
+      - tests/test_h5_comms.py
+      - docs/contracts/COMMUNICATIONS-HARDENING-CONTRACT.md
+      - reviews/
+      - H5-COMMS-BASELINE.md
+      - H5-COMMS-GATE-REPORT.md
+    purpose: "H5 comms hardening — inbox PII read guards, dead wiring fixes, KASSA magic-token parity, forum realtime events, comms contract + adversarial review"
+    acquired_at: 2026-10-07T19:00:00Z
+    released_at: 2026-10-08T13:30:00Z
+    landed_commits:
+      - 271bc6c

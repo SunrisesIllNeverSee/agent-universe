@@ -174,6 +174,10 @@ def create_app(root: Path | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def _lifespan(app):
+        # Capture the app event loop so synchronous MCP tool calls (which run
+        # in a thread pool) can schedule post-commit emits/broadcasts via
+        # asyncio.run_coroutine_threadsafe (H5F-04).
+        state.loop = asyncio.get_running_loop()
         async with _mcp_app.router.lifespan_context(app):
             try:
                 await backdate_gov_documents()
@@ -296,6 +300,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/kassa/agent/register",
         "/api/kassa/agent/login",
         "/api/kassa/threads/",
+        "/api/kassa/stakes/",
         "/api/kassa/webhooks/stripe",
         "/api/connect/",
         "/api/forums/threads",
@@ -307,7 +312,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     )
 
     # Operator GET paths also require admin key (fail-closed)
-    _ADMIN_GET_PREFIXES = ("/api/operator/", "/api/provision/registry")
+    _ADMIN_GET_PREFIXES = ("/api/operator/", "/api/provision/registry", "/api/inbox", "/api/kassa/messages")
 
     # Cockpit write surface — a registered agent's Bearer api_key also
     # authorizes these (console/deploy/agentdash verbs). Everything else

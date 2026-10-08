@@ -253,8 +253,8 @@ async def api_agent_profile_update(handle: str, request: Request) -> dict:
         return JSONResponse({"error": "No updatable fields provided", "allowed": list(ALLOWED)}, status_code=400)
 
     state.runtime.persist_registry()
-    state.audit.log("agent", "profile_updated", {"agent_id": agent_id, "updated_fields": list(updated.keys())})
-    await state.emit("audit_event", state.audit.recent(1)[0].model_dump(mode="json"))
+    _audit_entry = state.audit.log("agent", "profile_updated", {"agent_id": agent_id, "updated_fields": list(updated.keys())})
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     seed_doi = None
     try:
         seed_result = await create_seed(

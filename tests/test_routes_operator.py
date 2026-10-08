@@ -58,10 +58,16 @@ def test_operator_threads(admin_client):
     assert "count" in d
 
 
-def test_operator_inbox_public(client):
-    # GET /api/inbox is not in _ADMIN_GET_PREFIXES — publicly readable
+def test_operator_inbox_requires_admin(client):
+    # H5: GET /api/inbox carries applicant PII — admin-gated since 2026-10-07.
     r = client.get("/api/inbox")
+    assert r.status_code == 403
+
+
+def test_operator_inbox_admin_reads(admin_client):
+    r = admin_client.get("/api/inbox")
     assert r.status_code == 200
+    assert "applications" in r.json()
 
 
 # ── Public endpoints ──────────────────────────────────────────────────────────

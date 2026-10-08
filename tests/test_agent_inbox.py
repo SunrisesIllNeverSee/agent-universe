@@ -132,8 +132,15 @@ def test_inbox_is_scoped_to_agent(client):
 
 # ── Notification wires ──────────────────────────────────────────────────────
 
-def test_poster_reply_notifies_agent(client, admin_client):
+def test_poster_reply_notifies_agent(client, admin_client, monkeypatch):
     """Poster replies in a negotiation thread -> the thread's agent gets inbox."""
+    from app.routes import kassa as kassa_routes
+    _sent = {}
+
+    def fake_magic_link(**kw):
+        _sent["magic_token"] = kw.get("magic_token")
+
+    monkeypatch.setattr(kassa_routes, "send_magic_link", fake_magic_link)
     _, staker_key, _, staker_token = _signup(client)
 
     # Admin-authored post — stake creates a thread between poster and agent
@@ -148,8 +155,10 @@ def test_poster_reply_notifies_agent(client, admin_client):
     assert stake.status_code == 200, stake.text
     thread_id = stake.json()["thread_id"]
 
-    # Read the thread as the poster via magic link to post a reply
-    magic = stake.json()["magic_link"].split("magic=")[1]
+    # Read the thread as the poster via magic link to post a reply.
+    # The plaintext token is delivered to the poster by email only — the stake
+    # response deliberately does NOT return it (H5 cross-principal fix).
+    magic = _sent["magic_token"]
     reply = client.post(f"/api/kassa/threads/{thread_id}/messages",
                         json={"text": "poster replying to your stake"},
                         params={"magic": magic})

@@ -215,7 +215,8 @@ async def public_contact(request: Request, payload: dict) -> dict:
     with open(contacts_file, "a") as f:
         f.write(json.dumps(entry) + "\n")
 
-    state.audit.log("contact", "form_submitted", {"id": contact_id, "name": name, "subject": subject})
+    # No submitter PII in the audit chain — /api/audit is public-readable (H5F-05).
+    state.audit.log("contact", "form_submitted", {"id": contact_id})
 
     # Seed provenance
     try:
@@ -270,14 +271,21 @@ async def inbox_apply(request: Request, payload: dict) -> dict:
     inbox_path = state.data_path("inbox.jsonl")
     with inbox_path.open("a") as f:
         f.write(json.dumps(entry) + "\n")
-    state.audit.log("inbox", "application_received", {"id": app_id, "name": entry["name"], "role": entry["role"]})
-    await state.emit("inbox_application", entry)
+    # No applicant PII in the audit chain — /api/audit is public-readable (H5F-05).
+    state.audit.log("inbox", "application_received", {"id": app_id, "role": entry["role"]})
+    # Public-safe envelope only — applicant PII (name/handle/message) must not
+    # ride the unauthenticated /ws + /ws/public hubs (H5).
+    await state.emit("inbox_application", {
+        "id": app_id, "role": entry["role"],
+        "timestamp": entry["timestamp"], "status": entry["status"],
+    })
     return {"ok": True, "application_id": app_id}
 
 
 @router.get("/api/inbox")
-async def inbox_list() -> dict:
-    """List all inbox applications."""
+async def inbox_list(request: Request) -> dict:
+    """List all inbox applications. Requires X-Admin-Key."""
+    require_admin(request, state.admin_key)
     inbox_path = state.data_path("inbox.jsonl")
     applications: list[dict] = []
     if inbox_path.exists():
@@ -292,8 +300,9 @@ async def inbox_list() -> dict:
 
 
 @router.get("/api/inbox/{app_id}")
-async def inbox_get(app_id: str) -> dict:
-    """Fetch a single application by ID."""
+async def inbox_get(app_id: str, request: Request) -> dict:
+    """Fetch a single application by ID. Requires X-Admin-Key."""
+    require_admin(request, state.admin_key)
     inbox_path = state.data_path("inbox.jsonl")
     if not inbox_path.exists():
         return JSONResponse({"error": "inbox empty"}, status_code=404)

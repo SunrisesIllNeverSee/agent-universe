@@ -1287,17 +1287,20 @@ function sendMessage() {
   switchTab('feed');
 
   // Post to backend
-  fetch(API + '/api/message', {
+  fetch(API + '/api/messages', {
     method: 'POST',
     headers: Object.assign({ 'Content-Type': 'application/json' }, CIVITAE_AUTH.headers()),
-    body: JSON.stringify({ text: text, source: 'operator', timestamp: new Date().toISOString() }),
+    body: JSON.stringify({ sender: 'operator', text: text, channel: 'console', role_context: 'operator' }),
   })
-    .then(function (r) { return r.json(); })
+    .then(function (r) {
+      if (!r.ok) { logAction('Message rejected: ' + r.status, 'warn'); return null; }
+      return r.json();
+    })
     .then(function (d) {
-      if (d.reply) pushFeed('agent_reply', d.reply);
+      if (d && d.reply) pushFeed('agent_reply', d.reply);
     })
     .catch(function () {
-      // Backend may not have /api/message yet — message still echoed locally
+      // Network failure — message still echoed locally
     });
 }
 

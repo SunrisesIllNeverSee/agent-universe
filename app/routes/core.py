@@ -168,9 +168,10 @@ async def check_governed_action(payload: GovernanceCheckPayload) -> dict:
 async def update_governance(payload: GovernanceUpdate) -> dict:
     runtime = state.runtime
     audit = state.audit
+    _ac = state.audit_cursor()
     updated = runtime.update_governance(payload.model_dump())
     await state.emit("governance_updated", updated.model_dump(mode="json"))
-    await state.emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit_audit_since(_ac)
     return updated.model_dump(mode="json")
 
 
@@ -182,9 +183,10 @@ async def update_governance(payload: GovernanceUpdate) -> dict:
 async def post_message(message: MessageCreate) -> dict:
     runtime = state.runtime
     audit = state.audit
+    _ac = state.audit_cursor()
     saved = runtime.create_message(message)
     await state.emit("message_added", saved.model_dump(mode="json"))
-    await state.emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit_audit_since(_ac)
     return saved.model_dump(mode="json")
 
 
@@ -196,6 +198,7 @@ async def post_message(message: MessageCreate) -> dict:
 async def update_system(payload: SystemUpdate) -> dict:
     runtime = state.runtime
     audit = state.audit
+    _ac = state.audit_cursor()
     updated = runtime.update_system(payload.system_id, payload.model_dump(exclude={"system_id"}))
     await state.emit(
         "systems_updated",
@@ -204,7 +207,7 @@ async def update_system(payload: SystemUpdate) -> dict:
             "sequence": state.router.sequence_map(runtime.systems),
         },
     )
-    await state.emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit_audit_since(_ac)
     return updated.model_dump(mode="json")
 
 
@@ -216,9 +219,10 @@ async def update_system(payload: SystemUpdate) -> dict:
 async def load_context(payload: VaultSelection) -> dict:
     runtime = state.runtime
     audit = state.audit
+    _ac = state.audit_cursor()
     loaded = runtime.load_context(payload.file)
     await state.emit("vault_updated", {"loaded_context": loaded})
-    await state.emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     seed_doi = None
     try:
         seed_result = await create_seed(
@@ -239,9 +243,10 @@ async def load_context(payload: VaultSelection) -> dict:
 async def unload_context(payload: VaultSelection) -> dict:
     runtime = state.runtime
     audit = state.audit
+    _ac = state.audit_cursor()
     loaded = runtime.unload_context(payload.file)
     await state.emit("vault_updated", {"loaded_context": loaded})
-    await state.emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit_audit_since(_ac)
     return {"loaded_context": loaded}
 
 
@@ -296,7 +301,7 @@ async def upload_vault_file(
     # Auto-load the uploaded file
     loaded = runtime.load_context(safe_name)
 
-    audit.log("vault", "file_uploaded", {
+    _audit_entry = audit.log("vault", "file_uploaded", {
         "file": safe_name,
         "category": category,
         "size": len(content),
@@ -308,7 +313,7 @@ async def upload_vault_file(
     })
 
     await state.emit("vault_updated", {"loaded_context": loaded})
-    await state.emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit_audit_since(_ac)
     seed_doi = None
     try:
         seed_result = await create_seed(
@@ -387,7 +392,7 @@ async def fork_session(payload: ForkSessionPayload | None = None) -> dict:
     }
     (fork_dir / "fork_meta.json").write_text(json.dumps(fork_meta, indent=2))
 
-    audit.log("session", "forked", {
+    _audit_entry = audit.log("session", "forked", {
         "label": fork_label,
         "path": str(fork_dir),
         "governance": {
@@ -396,7 +401,7 @@ async def fork_session(payload: ForkSessionPayload | None = None) -> dict:
             "role": runtime.governance.role,
         },
     })
-    await state.emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
 
     return {
         "forked": True,
@@ -429,9 +434,10 @@ async def list_forks() -> dict:
 async def update_deploy(payload: DeployUpdate) -> dict:
     runtime = state.runtime
     audit = state.audit
+    _ac = state.audit_cursor()
     updated = runtime.update_deploy(payload.model_dump())
     await state.emit("deploy_updated", updated.model_dump(mode="json"))
-    await state.emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit_audit_since(_ac)
     return updated.model_dump(mode="json")
 
 
@@ -519,7 +525,7 @@ async def star_message(payload: StarMessagePayload) -> dict:
     # Auto-load into active context
     loaded = runtime.load_context(doc_name)
 
-    audit.log("messages", "starred", {
+    _audit_entry = audit.log("messages", "starred", {
         "message_id": msg_id,
         "tag": tag,
         "vault_doc": doc_name,
@@ -530,7 +536,7 @@ async def star_message(payload: StarMessagePayload) -> dict:
         },
     })
     await state.emit("vault_updated", {"loaded_context": loaded})
-    await state.emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     return {"starred": True, "entry": star_entry, "vault_doc": doc_name, "loaded_context": loaded}
 
 
@@ -563,9 +569,10 @@ async def mcp_status() -> dict:
 async def mcp_join(payload: McpJoinPayload) -> dict:
     runtime = state.runtime
     audit = state.audit
+    _ac = state.audit_cursor()
     joined = state.mcp_bridge.chat_join(payload.name)
     await state.emit("presence_updated", {"presence": runtime.presence, "joined": joined})
-    await state.emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit_audit_since(_ac)
     return joined
 
 
@@ -582,6 +589,7 @@ async def mcp_read(payload: MCPReadRequest) -> dict:
 @router.post("/api/mcp/send")
 async def mcp_send(payload: MCPSendRequest) -> dict:
     audit = state.audit
+    _ac = state.audit_cursor()
     saved = state.mcp_bridge.chat_send(
         payload.sender,
         payload.message,
@@ -589,7 +597,7 @@ async def mcp_send(payload: MCPSendRequest) -> dict:
         systems=payload.systems,
     )
     await state.emit("message_added", saved)
-    await state.emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+    await state.emit_audit_since(_ac)
     return saved
 
 
@@ -655,13 +663,15 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
             if action == "ping":
                 await websocket.send_json({"type": "pong", "payload": {}})
             elif action == "chat_send":
+                _ac = state.audit_cursor()
                 saved = runtime.create_message(MessageCreate.model_validate(payload["payload"]))
                 await state.emit("message_added", saved.model_dump(mode="json"))
-                await state.emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+                await state.emit_audit_since(_ac)
             elif action == "agent_join":
+                _ac = state.audit_cursor()
                 joined = runtime.join_agent(payload["payload"]["name"])
                 await state.emit("presence_updated", {"presence": runtime.presence, "joined": joined})
-                await state.emit("audit_event", audit.recent(1)[0].model_dump(mode="json"))
+                await state.emit_audit_since(_ac)
             elif action == "mcp_read":
                 result = mcp_bridge.chat_read(
                     payload["payload"]["name"],
