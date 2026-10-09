@@ -4,7 +4,7 @@
 # Glama uses the Dockerfile (not this file) for its build surface.
 
 # MCP server surface
-civitae-mcp>=0.2.0
+civitae-mcp==0.3.3
 fastmcp==3.4.0
 # Full platform (pinned for reproducible Railway deploys)
 pytest==8.3.5
