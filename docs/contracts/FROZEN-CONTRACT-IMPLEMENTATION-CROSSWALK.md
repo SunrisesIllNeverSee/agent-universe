@@ -32,7 +32,7 @@ for runtime planning.
 ## 1A — Agreement Stack (FROZEN)
 
 `PHASE-1A-AGREEMENT-STACK.md` — canonical ordering §2, common envelope §3,
-semantics §4, 11-class registry §5, O-J-1 landed §6.
+semantics §4, 10-class registry §5, O-J-1 landed §6.
 
 | Contract element | Runtime | Gap | Verified |
 |---|---|---|---|
@@ -54,7 +54,7 @@ semantics §4, 11-class registry §5, O-J-1 landed §6.
 | Contract element | Runtime | Gap | Verified |
 |---|---|---|---|
 | Principal classes P1–P8 | ◐ — agents (P2) + admin key (P4) + kassa poster (magic) exist | P5–P8 (Entity/Node-affiliated/Enterprise) have no objects | ● — P2/P4 auth heavily tested |
-| D7 identity + dual credential doors | ◐ — provision `api_key` (work-execution) + KA§§A JWT (market-participation) coexist; semantics RESOLVED by contract | door unification = OWNER DECISION O-IA-3 (expressible, not picked) | ● — `test_jwt_config.py`, `test_auth_hardening.py`, H5 thread-auth probes |
+| D7 identity + dual credential doors | ◐ — provision `api_key` (work-execution) + KA§§A JWT (market-participation) coexist | O-IA-3 **owner-resolved 2026-10-07**: both doors remain, scoped credentials, unified principal identity — remaining work is implementing that decision | ● — `test_jwt_config.py`, `test_auth_hardening.py`, H5 thread-auth probes |
 | Key revocation deny-list (in-path before acceptance) | ○ — rotate/suspend/decommission exist; no dedicated deny-list | RUNTIME GAP (H1) | ○ |
 | D9 custody / D10 treasury | ◐ — JSON ledger (`economy.py`) executes | custodial-claims model committed + disclosed by contract; ledger has no custody object | ◐ — `test_economy.py` covers ledger ops |
 | D11 escrow authority | ○ — `$0 "platform_escrow"` tracking debit + docstring metaphor only | RUNTIME GAP — mechanism committed-to-build (owner G4); does not block entry | ○ |
@@ -138,9 +138,13 @@ entirely unbuilt (greenfield, not rework).
 | Partial analogs needing hardening to contract | ~10 (credentials, slots/missions economics, ledger, inbox intake, task close) |
 | Closed by H5 lane | 5 named defects + 9 falsifier findings |
 | Named runtime gaps still open | H1 revoke deny-list · H2 orphan missions + WorkEntry carrier · H3 `parent_doi`/atomic Seeds/per-payout Seeds · H4 escrow mechanism · MCP `govern.vote` write divergence · thread-close route |
-| Owner decisions still fileable | O-IA-3 (credential door), O-IA-5 residual cells, 1F rows #15/#16/#17 (resolver identity, stake-as-precursor, inbox unify) |
+| Owner decisions still fileable | O-IA-5 residual cells, 1F rows #15/#16/#17 (resolver identity, stake-as-precursor, inbox unify). O-IA-3 is resolved (both doors remain, scoped credentials) — implementation, not decision |
 
-**Bottom line:** architecture-complete, implementation ~a working 0.4.0
-base plus one hardening lane. The 70–80% intuition describes *contract*
-completeness, not runtime completeness — the runtime upgrade work (Phase 5
-program: H1–H4 implementations + verification) is the bulk of what remains.
+**Bottom line:** architecture-complete; the runtime is a working 0.4.0 base
+plus the H5 hardening lane. No completion percentage is claimed — frozen
+contracts establish architectural readiness, not a measured share of
+runtime upgrade or redesign work. Remaining work spans **Phase 3**
+(persistent shell integration), **Phase 4** (WorkEntry/Agreement wiring),
+**Phase 5** (consequential commits / provenance / finance hardening), and
+**Phase 6+** (Entity/Enterprise/derived-system integration) — each a
+bounded lane against the frozen specs, not a single monolithic program.
