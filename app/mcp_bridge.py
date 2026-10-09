@@ -3,7 +3,7 @@ import json
 import secrets
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, NotRequired, TypedDict
 
 from pydantic import Field
 
@@ -239,11 +239,17 @@ class MCPBridge:
             thread_id: str
             status: str
 
-        class VoteResult(TypedDict):
-            motion_id: str
-            vote: str
-            agent: str
-            recorded: bool
+        # Fields nullable — fastmcp materializes absent optional keys as null
+        # and then validates the output, so optional fields must allow None.
+        class VoteResult(TypedDict, total=False):
+            motion_id: str | None
+            vote: str | None
+            agent: str | None
+            recorded: bool | None
+            meeting_id: str | None
+            motion_status: str | None
+            votes_cast: int | None
+            error: str | None
 
         class ProfileResult(TypedDict):
             agent_id: str
@@ -853,12 +859,79 @@ class MCPBridge:
                 if vote not in ("yea", "nay", "abstain"):
                     span.set_attribute("mcp.result", "invalid_vote")
                     return {"error": "vote must be yea, nay, or abstain"}
-                _state.audit.log("governance", "vote_cast_mcp", {
-                    "motion_id": motion_id, "vote": vote,
-                    "agent": agent["name"], "statement": statement[:500],
+
+                # Authoritative mutation — REST parity (H1/H3): the vote must
+                # land on the meeting's motion object, not audit-log only.
+                # The MCP tool takes motion_id alone, so locate the meeting
+                # containing it. Guard set matches cast_vote (governance.py).
+                from app.routes.governance import _load_meetings, _save_meetings
+                meetings = _load_meetings()
+                meeting = motion = None
+                for m in meetings:
+                    hit = next((mo for mo in m.get("motions", []) if mo["id"] == motion_id), None)
+                    if hit:
+                        meeting, motion = m, hit
+                        break
+                if meeting is None:
+                    span.set_attribute("mcp.result", "motion_not_found")
+                    return {"error": f"Motion {motion_id} not found."}
+                voter = agent["name"]
+                if voter not in meeting.get("attendees", []):
+                    span.set_attribute("mcp.result", "not_attendee")
+                    return {"error": "Voter must be an attendee."}
+                if motion.get("status") != "pending":
+                    span.set_attribute("mcp.result", "not_pending")
+                    return {"error": "Motion is not pending."}
+
+                motion["votes"][voter] = vote
+                now = datetime.now(timezone.utc).isoformat()
+                meeting["minutes"].append({
+                    "type": "vote_cast", "motion_id": motion_id,
+                    "voter": voter, "vote": vote, "timestamp": now,
                 })
+                resolved = None
+                if len(motion["votes"]) >= len(meeting.get("attendees", [])):
+                    yeas = sum(1 for v in motion["votes"].values() if v == "yea")
+                    nays = sum(1 for v in motion["votes"].values() if v == "nay")
+                    motion["status"] = "passed" if yeas > nays else "failed"
+                    motion["resolved_at"] = now
+                    meeting["minutes"].append({
+                        "type": "motion_resolved", "motion_id": motion_id,
+                        "result": motion["status"], "yeas": yeas, "nays": nays,
+                        "timestamp": now,
+                    })
+                    resolved = motion["status"]
+                _save_meetings(meetings)
+
+                _state.audit.log("governance", "vote_cast_mcp", {
+                    "motion_id": motion_id, "meeting_id": meeting["id"],
+                    "vote": vote, "agent": voter, "statement": statement[:500],
+                })
+                if resolved:
+                    _state.audit.log("governance", "motion_resolved", {
+                        "meeting_id": meeting["id"], "motion_id": motion_id,
+                        "result": resolved,
+                    })
+                    loop = getattr(_state, "loop", None)
+                    if loop is not None and loop.is_running():
+                        try:
+                            import asyncio as _aio
+                            _aio.run_coroutine_threadsafe(
+                                _state.emit("motion_resolved", {
+                                    "meeting_id": meeting["id"],
+                                    "motion_id": motion_id, "result": resolved,
+                                }),
+                                loop,
+                            )
+                        except Exception:
+                            pass
                 span.set_attribute("mcp.result", "ok")
-                return {"motion_id": motion_id, "vote": vote, "agent": agent["name"], "recorded": True}
+                return {
+                    "motion_id": motion_id, "meeting_id": meeting["id"],
+                    "vote": vote, "agent": voter, "recorded": True,
+                    "motion_status": motion["status"],
+                    "votes_cast": len(motion["votes"]),
+                }
 
         # ── civitae_profile ────────────────────────────────────────────
         @mcp.tool(name="agent.profile", annotations={"title": "View Agent Profile", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})

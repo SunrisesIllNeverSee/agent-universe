@@ -451,3 +451,82 @@ def test_reg_agent_inbox_still_works(client):
     r = client.get("/api/agent/inbox", headers={"Authorization": f"Bearer {api_key}"})
     assert r.status_code == 200
     assert any(m.get("kind") == "system" for m in r.json().get("messages", r.json() if isinstance(r.json(), list) else []))
+
+
+# ═══ H1/H3 — MCP govern.vote mutates authoritative state ════════════════════
+
+def _mcp_vote(api_key, motion_id, vote):
+    import asyncio as _aio
+    from fastmcp import Client
+    from app.deps import state as _s
+
+    mcp = _s.mcp_bridge.build_fastmcp()
+
+    async def call():
+        async with Client(mcp) as c:
+            return await c.call_tool("govern.vote", {
+                "api_key": api_key, "motion_id": motion_id, "vote": vote,
+            })
+
+    r = _aio.run(call())
+    return r.structured_content or {}
+
+
+def _open_meeting_with_agent(admin_client, agent_name, quorum=1):
+    r = admin_client.post("/api/governance/meeting", json={
+        "caller": agent_name, "subject": "H5 vote test", "quorum": quorum,
+    })
+    assert r.status_code == 200, r.text
+    return r.json()["id"]
+
+
+def _pending_motion(admin_client, meeting_id, proposer):
+    r = admin_client.post(f"/api/governance/meeting/{meeting_id}/motion", json={
+        "proposer": proposer, "motion": "test motion",
+    })
+    assert r.status_code == 200, r.text
+    return r.json()["id"]
+
+
+def test_gv_mcp_vote_mutates_motion(client, admin_client):
+    resp = signup_agent(client, name=_uniq("voter"),
+                        ip=f"10.99.{uuid.uuid4().int%255}.{uuid.uuid4().int%255}")
+    d = resp.json()
+    mid = _open_meeting_with_agent(admin_client, d["name"])
+    mo = _pending_motion(admin_client, mid, d["name"])
+
+    out = _mcp_vote(d["api_key"], mo, "yea")
+    assert out.get("recorded") is True
+    assert out.get("motion_status") == "passed"  # sole attendee → auto-resolves
+
+    meeting = admin_client.get(f"/api/governance/meeting/{mid}").json()["meeting"]
+    motion = next(m for m in meeting["motions"] if m["id"] == mo)
+    assert motion["votes"][d["name"]] == "yea"
+    assert motion["status"] == "passed"
+    assert any(m["type"] == "vote_cast" and m["voter"] == d["name"]
+               for m in meeting["minutes"])
+
+
+def test_gv_mcp_vote_rejects_non_attendee(client, admin_client):
+    a = signup_agent(client, name=_uniq("attendee"),
+                     ip=f"10.99.{uuid.uuid4().int%255}.{uuid.uuid4().int%255}").json()
+    b = signup_agent(client, name=_uniq("outsider"),
+                     ip=f"10.99.{uuid.uuid4().int%255}.{uuid.uuid4().int%255}").json()
+    mid = _open_meeting_with_agent(admin_client, a["name"])
+    mo = _pending_motion(admin_client, mid, a["name"])
+
+    out = _mcp_vote(b["api_key"], mo, "yea")
+    assert out.get("error"), f"foreign agent voted: {out}"
+
+    meeting = admin_client.get(f"/api/governance/meeting/{mid}").json()["meeting"]
+    motion = next(m for m in meeting["motions"] if m["id"] == mo)
+    assert b["name"] not in motion["votes"]
+
+
+def test_gv_mcp_vote_unknown_motion_and_bad_key(client):
+    resp = signup_agent(client, name=_uniq("v"),
+                        ip=f"10.99.{uuid.uuid4().int%255}.{uuid.uuid4().int%255}")
+    out = _mcp_vote(resp.json()["api_key"], "mot-nonexistent", "yea")
+    assert out.get("error")
+    out2 = _mcp_vote("kassa_boguskey", "mot-x", "yea")
+    assert out2.get("error")
