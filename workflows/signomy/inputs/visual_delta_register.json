@@ -1,0 +1,58 @@
+{
+  "baseline": "Original FigJam + 8 canonical and 4 exploratory MagicPath concepts; NEVER simplified Phase 2 diagrams as visual master",
+  "standing": "provisional reference pending architecture alignment and independent visual review",
+  "design_tool_constraint": "MagicPath 50/50 external-agent API quota at last check; Figma MCP Starter rate limited; no reset time verified",
+  "principles": [
+    "No new design tool calls required for local adoption",
+    "No production implementation authorized by design acceptance",
+    "No formal commitment-weight metric: visual felt-weight U1 is experiential",
+    "Read-only derived projections cannot write authoritative state",
+    "Keep current 0.4.0 working loops intact"
+  ],
+  "items": [
+    {
+      "artifact": "System Interaction Map",
+      "preserve": "Original FigJam layout is visual master, new simplified overlay is explanatory only",
+      "update_required": "Agreement classes, WorkEntry authority, Node Recognition Office, Entity/Root/Secondary Seed, Enterprise, read-only Refinery & Switchboard",
+      "update_status": "backlog",
+      "owner_visual_approval": "pending"
+    },
+    {
+      "artifact": "Operational Spine",
+      "preserve": "Preserve original densely connected composition",
+      "update_required": "opportunity > intent > Agreement > mission/work > slot/formation > execution; Open/Standard/Constitutional resolution, delivery/acceptance/settlement, provenance",
+      "update_status": "backlog",
+      "owner_visual_approval": "pending"
+    },
+    {
+      "artifact": "Mission Lifecycle",
+      "preserve": "Maintain established state and feedback complexity",
+      "update_required": "hybrid WorkEntry, DeliveryEvidenceClass, authoritative receipt/Seed, formation and governed transition gates",
+      "update_status": "backlog",
+      "owner_visual_approval": "pending"
+    },
+    {
+      "artifact": "Unified Control Grammar",
+      "preserve": "Reuse original grammar and update vocabulary",
+      "update_required": "principal, Agreement, object context, economic/evidence effects, consequential preflight, read-only projections",
+      "update_status": "backlog",
+      "owner_visual_approval": "pending"
+    },
+    {
+      "artifact": "Shell States and Control Board",
+      "preserve": "Retain original nine-mode rail/sidebar/canvas/Inspector/HUD grammar",
+      "update_required": "acting principal, context carry, Agreement/WorkEntry status, Entity/Node distinctions; Town Hall not governance",
+      "update_status": "backlog",
+      "owner_visual_approval": "pending"
+    },
+    {
+      "artifact": "High-fidelity MagicPath concepts",
+      "preserve": "Adopt the eight canonical designs as provisional visual references",
+      "update_required": "Find Work, COMMAND, World, Rank/Refinery, Switchboard, Enterprise/Entity, consequential preflight; inspect in offline prototypes",
+      "update_status": "backlog",
+      "owner_visual_approval": "pending"
+    }
+  ],
+  "review_scenario": "Find opportunity → inspect terms → enter Agreement → join mission → inspect authority and evidence",
+  "exit_gate": "independent visual contract audit and owner approval required; provisional adoption is not final Phase 2 PASS"
+}

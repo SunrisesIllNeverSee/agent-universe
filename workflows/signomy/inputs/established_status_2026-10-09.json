@@ -1,0 +1,57 @@
+{
+  "as_of": "2026-10-09",
+  "standing": "Source review snapshot, not an authoritative controller receipt or live deployment check",
+  "reported_runtime_head": "635a794",
+  "phases": {
+    "P0": {
+      "status": "PASS",
+      "evidence": "Phase 0 kernel/recovery gate"
+    },
+    "P1": {
+      "status": "FROZEN",
+      "evidence": "Seven Phase 1 contracts and 2026-10-07 closeout"
+    },
+    "T0": {
+      "status": "mostly_complete_formal_gate_open",
+      "evidence": "49a572c frozen pointer; 987c18e crosswalk; 3d099dc corrections",
+      "hold": "No recorded installed T0 adversarial skill + deliberate red/green mutation gate"
+    },
+    "P2": {
+      "status": "in_progress_provisional_assets",
+      "evidence": "Original .jam, five dense diagrams and 12 offline previews; four simplified generated overlays",
+      "hold": "Revised architecture-grade visual set and independent review not complete"
+    },
+    "P3": {
+      "status": "planning_only",
+      "evidence": "Host-first shell plan exists",
+      "hold": "No owner implementation authorization"
+    },
+    "P4": {
+      "status": "not_implemented",
+      "evidence": "Frozen Agreements/WorkEntry specified, not wired"
+    },
+    "P5": {
+      "status": "partial_parallel_hardening",
+      "evidence": "H5 safe subset 2102508; govern.vote 635a794",
+      "hold": "H1/H2/H3/H4 other areas remain open"
+    },
+    "P6": {
+      "status": "not_implemented",
+      "evidence": "Entity projections/Refinery/Switchboard derived layers deferred"
+    },
+    "P7": {
+      "status": "not_implemented",
+      "evidence": "Navigation consolidation awaits system readiness"
+    },
+    "P8": {
+      "status": "not_implemented",
+      "evidence": "Final release evidence and signoff outstanding"
+    },
+    "R-LIVE": {
+      "status": "not_authorized",
+      "evidence": "No live release approval"
+    }
+  },
+  "design_strategy": "Use original visual work provisionally; track deltas to frozen contracts. No need to wait for MagicPath or Figma quota for offline inventory and shell preparation.",
+  "limits": "478/478 governance test result and 475/475 H5 result are reported local runs, not rerun in the integration."
+}

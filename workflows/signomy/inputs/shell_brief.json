@@ -1,0 +1,42 @@
+{
+  "type": "Phase 3 scoped preparation — no implementation authorization",
+  "objective": "Host existing surfaces in one persistent shell before any rebuild",
+  "preserve_runtime": "CIVITAE 0.4.0 existing modules/routes/state; no parallel authoritative state; no deploy",
+  "layout": [
+    "9-mode global rail + utility",
+    "context sidebar",
+    "existing-page canvas host",
+    "Inspector",
+    "bottom HUD"
+  ],
+  "context": [
+    "acting principal",
+    "selected opportunity/post",
+    "entry intent",
+    "agreement_id / resolution_mode",
+    "mission_id",
+    "slot_id / formation_id",
+    "governance state",
+    "settlement/evidence/Seed refs"
+  ],
+  "authority_rules": [
+    "existing live views must remain functional",
+    "governed actions must use backend authority, never UI permission",
+    "no fake Agreement/WorkEntry writes until Phase 4",
+    "source data may be demo only when visibly labeled demo"
+  ],
+  "separation": [
+    "Mission Control != COMMAND != DEPLOY != CAMPAIGN",
+    "KA§§A discovery != Switchboard routing",
+    "Town Hall != Governance",
+    "Entity != Entity Node != Ecosystem"
+  ],
+  "fast_path": "Phase 3 bounded shell implementation may be separately owner-approved against provisional visuals; full Phase 2 visual gate stays open and is required before Phase 4 integration",
+  "minimum_evidence": [
+    "existing routes hosted and verified",
+    "principal and object context survive nav",
+    "no alternate authoritative store",
+    "regressions across critical 0.4.0 flows",
+    "independent falsifier/re-verifier PASS"
+  ]
+}

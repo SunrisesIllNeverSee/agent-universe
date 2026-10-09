@@ -1,0 +1,5 @@
+.roadmap/
+out/
+tracking/*.json
+tracking/*.md
+__pycache__/

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "runtime_repo": "~/Developer/_5_Signomy/1_agent-universe",
+  "design_archive": "~/Developer/_7_labs/signomy-control-surface",
+  "required_runtime_commits": {
+    "H5_PRIVACY_COMMS": "2102508",
+    "T0_FROZEN_POINTER": "49a572c",
+    "T0_CONTRACT_RUNTIME_MATRIX": "987c18e",
+    "T0_MATRIX_CORRECTIONS": "3d099dc",
+    "H1H3_GOVERNANCE_VOTE": "635a794"
+  },
+  "frozen_contracts": [
+    "PHASE-1A-AGREEMENT-STACK.md",
+    "PHASE-1B-ENTITLEMENT-MATRIX.md",
+    "PHASE-1C-DELIVERY-EVIDENCE.md",
+    "PHASE-1D-ENTITY-NODE.md",
+    "PHASE-1E-ENTERPRISE-NODE.md",
+    "PHASE-1F-WORKENTRY-UNBLOCK.md",
+    "PHASE-1G-AUTHORITY-TABLE.md"
+  ],
+  "expected_original_magicpath_previews": 12,
+  "source_claims": {
+    "h5": "reported falsifier PASS, 475/475 local tests; not independently rerun by this package",
+    "vote": "reported 478/478 local tests; REST closed-meeting guard parity still requires review"
+  }
+}
