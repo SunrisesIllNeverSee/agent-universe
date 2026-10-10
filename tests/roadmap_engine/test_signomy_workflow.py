@@ -49,7 +49,10 @@ class SignomyWorkflowTests(unittest.TestCase):
         put(self.repo/'reviews/H5-Comms-Independent-Review.md','reverify PASS')
         put(self.repo/'reviews/H5-Comms-Findings.csv','status\nverified_fixed')
         put(self.repo/'app/mcp_bridge.py','vote_cast_mcp = True\nmotion_resolved = True')
-        put(self.repo/'tests/test_h5_comms.py','def test_vote(): pass')
+        put(self.repo/'tests/test_h5_comms.py','def test_vote(): pass\ndef test_close_thread_owner_and_admin(): pass\ndef test_otel_span_no_unbound_metadata(): pass')
+        put(self.repo/'app/routes/missions.py','"origin": "bounty"')
+        put(self.repo/'app/routes/kassa.py','api/kassa/threads/{thread_id}/close\nstatus != "open"')
+        put(self.repo/'app/seeds_otel.py','metadata = seed.get("metadata", {})\nmetadata.get("governance_mode")')
         design=self.design/'source/SIGNOMY-CIVITAE-design-handoff'
         put(design/'02-diagrams/canonical-figjam-board.jam','ARCHIVE')
         put(design/'START-HERE.html','gallery')
@@ -76,7 +79,7 @@ class SignomyWorkflowTests(unittest.TestCase):
         self.assertFalse((self.workflow/'.roadmap/state.json').exists())
         self.ctl('run')
         state=json.loads((self.workflow/'.roadmap/state.json').read_text())['tasks']
-        passed={'T0_BIND','H5_RECORD','VOTE_RECORD','P2_INVENTORY','P2_DELTA','P3_SHELL_PREP'}
+        passed={'T0_BIND','H5_RECORD','VOTE_RECORD','P2_INVENTORY','P2_DELTA','P3_SHELL_PREP','H2_ORPHAN_AUDIT','H5_CLOSE_RECORD','H3_OTEL_RECORD'}
         self.assertEqual({k for k,v in state.items() if v['status']=='passed'}, passed)
         self.assertEqual(state['T0_ADVERSARIAL']['status'],'blocked')
         self.assertEqual(state['P2_PROVISIONAL']['status'],'blocked')

@@ -6,9 +6,12 @@ import shutil
 import sys
 
 from .core import (RoadmapError, append_event, atomic_json, candidates,
-                   digest, canon_bytes, execute_one, file_digest, load,
-                   lock, now, read_state, recover_interrupted, report,
-                   verify_existing, write_state, run_argv)
+                   contract_digest, digest, canon_bytes, execute_one, file_digest,
+                   files_conflict, load, lock, non_conflicting_wave, now,
+                   read_state, recover_interrupted, report, verify_existing,
+                   write_state, run_argv)
+from concurrent.futures import ThreadPoolExecutor
+import shutil as _shutil
 
 
 def sample_script():
@@ -91,16 +94,27 @@ def main(argv=None):
     init = sub.add_parser("init", help="Create a new, fully runnable example roadmap")
     init.add_argument("path")
     init.add_argument("--name", default=None)
-    for name in ("validate", "status", "next", "run", "resume", "verify", "blockers", "render", "refresh"):
+    for name in ("validate", "status", "next", "run", "resume", "verify", "blockers", "render", "refresh", "drift", "migrate"):
         sp = sub.add_parser(name)
         if name in {"run", "resume"}:
             sp.add_argument("--max-tasks", type=int, default=100, help="Limit tasks per run")
+            sp.add_argument("--parallel", type=int, default=1, help="Max concurrent non-conflicting tasks (v2 lanes)")
     retry = sub.add_parser("retry", help="Explicitly authorize a retry of failed/interrupted task")
     retry.add_argument("task")
     retry.add_argument("--acknowledge-side-effects", action="store_true", required=True)
     attest = sub.add_parser("attest", help="Attest a manual approval gate using a real evidence file")
     attest.add_argument("task")
     attest.add_argument("--evidence", required=True)
+    for sp_name in ("migrate",):
+        # migrate created above in the loop; add its flag here
+        pass
+    mig = None
+    for sp in sub.choices.values() if hasattr(sub, "choices") else []:
+        pass
+
+    for sp in getattr(sub, "_name_parser_map", getattr(sub, "choices", {})).values():
+        if getattr(sp, "prog", "").endswith("migrate"):
+            sp.add_argument("--rollback", action="store_true", help="Restore the pre-migration roadmap backup")
     args = parser.parse_args(argv)
     try:
         if args.action == "init":
@@ -133,6 +147,64 @@ def main(argv=None):
         if args.action == "render":
             print(report(p, data, st))
             return 0
+        if args.action == "drift":
+            """Detect contract/artifact drift between roadmap, receipts and state."""
+            drifted = []
+            idx = {t["id"]: t for t in data["tasks"]}
+            for k, v in st["tasks"].items():
+                if v["status"] != "passed":
+                    continue
+                rf = p / ".roadmap" / "receipts" / f"{k}.json"
+                if not rf.exists():
+                    drifted.append(f"{k}: PASSED but receipt missing")
+                    continue
+                rec = json.loads(rf.read_text(encoding="utf-8"))
+                want = rec.get("contract_sha256")
+                valid = {digest(canon_bytes(idx[k])), contract_digest(idx[k])}
+                valid.update(idx[k].get("prior_contract_sha256") or [])
+                if want not in valid:
+                    drifted.append(f"{k}: contract changed after PASS")
+                for rel, hv in (rec.get("outputs") or {}).items():
+                    f = p / rel
+                    if not f.is_file() or file_digest(f) != hv:
+                        drifted.append(f"{k}: artifact drifted {rel}")
+            for k in drifted:
+                print("DRIFT", k)
+            print("drift-free" if not drifted else f"{len(drifted)} drifted task(s)")
+            return 0 if not drifted else 3
+        if args.action == "migrate":
+            road = p / "roadmap.json"
+            backup = p / ".roadmap" / "roadmap.v1.bak"
+            if args.rollback:
+                if not backup.is_file():
+                    raise RoadmapError("No migration backup to roll back to")
+                _shutil.copy2(backup, road)
+                miglog = p / ".roadmap" / "migrations"
+                (miglog / "rollback.log").write_text(now() + " rollback applied\n", encoding="utf-8")
+                print("Rolled back to pre-migration roadmap")
+                return 0
+            if data["schema_version"] != 1:
+                raise RoadmapError("Nothing to migrate (schema_version is not 1)")
+            backup.parent.mkdir(parents=True, exist_ok=True)
+            _shutil.copy2(road, backup)
+            mapping = {}
+            new_data = dict(data, schema_version=2)
+            for t in new_data["tasks"]:
+                mapping[t["id"]] = {
+                    "legacy_sha256": digest(canon_bytes(t)),
+                    "core_sha256": contract_digest(t),
+                }
+            atomic_json(road, new_data)
+            (p / ".roadmap" / "migrations").mkdir(parents=True, exist_ok=True)
+            atomic_json(p / ".roadmap" / "migrations" / f"v1-to-v2-{now().replace(':', '')}.json",
+                        {"from": 1, "to": 2, "at": now(), "tasks": mapping})
+            print(f"Migrated roadmap to schema_version 2 ({len(mapping)} tasks; backup at .roadmap/roadmap.v1.bak)")
+            errs = verify_existing(p, new_data, st)
+            if errs:
+                print("WARNING: receipts invalid after migration:", *errs, sep="\n  ")
+                return 3
+            print("All existing receipts remain valid")
+            return 0
         with lock(p):
             p, data, index, st = state_for(args)
             n = recover_interrupted(p, st)
@@ -155,16 +227,29 @@ def main(argv=None):
             if args.action in {"run", "resume"}:
                 if args.max_tasks < 1:
                     raise RoadmapError("max-tasks must be positive")
+                workers = max(1, args.parallel)
                 count = 0
                 while count < args.max_tasks:
                     ready = candidates(data, st)
                     if not ready:
                         break
-                    task = ready[0]
-                    print("EXECUTING", task["id"], "—", task["goal"], flush=True)
-                    ok = execute_one(p, data, st, task)
-                    print("PASS" if ok else "HELD", task["id"], flush=True)
-                    count += 1
+                    wave, deferred = non_conflicting_wave(ready)
+                    batch = wave[:workers]
+                    if not batch:
+                        break
+                    if len(batch) == 1:
+                        task = batch[0]
+                        print("EXECUTING", task["id"], "—", task["goal"], flush=True)
+                        ok = execute_one(p, data, st, task)
+                        print("PASS" if ok else "HELD", task["id"], flush=True)
+                        count += 1
+                    else:
+                        print("WAVE", [t["id"] for t in batch], flush=True)
+                        with ThreadPoolExecutor(max_workers=len(batch)) as pool:
+                            results = list(pool.map(lambda t: execute_one(p, data, st, t), batch))
+                        for t, ok in zip(batch, results):
+                            print(("PASS" if ok else "HELD"), t["id"], flush=True)
+                            count += 1
                     if ok:
                         # Later task commands may modify previously accepted outputs;
                         # stop before executing a successor if any receipt has gone stale.
