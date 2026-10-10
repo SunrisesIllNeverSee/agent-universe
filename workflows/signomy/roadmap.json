@@ -1,23 +1,17 @@
 {
-  "schema_version": 1,
-  "project": "SIGNOMY — Phase 2 Provisional Baseline / Phase 3 Host-First Transition",
   "description": "Evidence-gated controller: preserve original designs and track deltas, prepare shell, retain frozen contracts, no implementation or deployment without owner attestations.",
+  "observer": {
+    "argv": [
+      "python3",
+      "steps/signomy.py",
+      "observe"
+    ],
+    "type": "command"
+  },
+  "project": "SIGNOMY \u2014 Phase 2 Provisional Baseline / Phase 3 Host-First Transition",
+  "schema_version": 2,
   "tasks": [
     {
-      "id": "T0_BIND",
-      "phase": "T0",
-      "goal": "Verify archived Phase 1 freeze and binding to runtime repo (observation, not implementation PASS)",
-      "needs": [],
-      "scope": "local",
-      "executor": {
-        "type": "command",
-        "argv": [
-          "python3",
-          "steps/signomy.py",
-          "produce",
-          "t0"
-        ]
-      },
       "checks": [
         {
           "argv": [
@@ -28,25 +22,25 @@
           ]
         }
       ],
-      "outputs": [
-        "out/t0-source-binding.json"
-      ]
-    },
-    {
-      "id": "H5_RECORD",
-      "phase": "H5",
-      "goal": "Record H5 security/comms landed evidence; safe subset only, no production claim",
-      "needs": [],
-      "scope": "local",
       "executor": {
-        "type": "command",
         "argv": [
           "python3",
           "steps/signomy.py",
           "produce",
-          "h5"
-        ]
+          "t0"
+        ],
+        "type": "command"
       },
+      "goal": "Verify archived Phase 1 freeze and binding to runtime repo (observation, not implementation PASS)",
+      "id": "T0_BIND",
+      "needs": [],
+      "outputs": [
+        "out/t0-source-binding.json"
+      ],
+      "phase": "T0",
+      "scope": "local"
+    },
+    {
       "checks": [
         {
           "argv": [
@@ -57,25 +51,25 @@
           ]
         }
       ],
-      "outputs": [
-        "out/h5-evidence.json"
-      ]
-    },
-    {
-      "id": "VOTE_RECORD",
-      "phase": "H1H3",
-      "goal": "Record MCP governance vote correction and remaining REST parity wart",
-      "needs": [],
-      "scope": "local",
       "executor": {
-        "type": "command",
         "argv": [
           "python3",
           "steps/signomy.py",
           "produce",
-          "vote"
-        ]
+          "h5"
+        ],
+        "type": "command"
       },
+      "goal": "Record H5 security/comms landed evidence; safe subset only, no production claim",
+      "id": "H5_RECORD",
+      "needs": [],
+      "outputs": [
+        "out/h5-evidence.json"
+      ],
+      "phase": "H5",
+      "scope": "local"
+    },
+    {
       "checks": [
         {
           "argv": [
@@ -86,52 +80,50 @@
           ]
         }
       ],
-      "outputs": [
-        "out/vote-evidence.json"
-      ]
-    },
-    {
-      "id": "T0_ADVERSARIAL",
-      "phase": "T0",
-      "goal": "Independent adversarial skill installed + deliberate red/green mutation proof",
-      "needs": [
-        "T0_BIND"
-      ],
-      "scope": "approval",
       "executor": {
-        "type": "manual"
-      }
-    },
-    {
-      "id": "T0_GATE",
-      "phase": "T0",
-      "goal": "Approve formal successor transition gate with source hashes, mapping, adversarial proof",
-      "needs": [
-        "T0_BIND",
-        "T0_ADVERSARIAL"
-      ],
-      "scope": "approval",
-      "executor": {
-        "type": "manual"
-      }
-    },
-    {
-      "id": "P2_INVENTORY",
-      "phase": "P2",
-      "goal": "Inventory original FigJam/MagicPath offline designs (without consuming external quota)",
-      "needs": [
-        "T0_BIND"
-      ],
-      "scope": "local",
-      "executor": {
-        "type": "command",
         "argv": [
           "python3",
           "steps/signomy.py",
           "produce",
-          "inventory"
-        ]
+          "vote"
+        ],
+        "type": "command"
       },
+      "goal": "Record MCP governance vote correction and remaining REST parity wart",
+      "id": "VOTE_RECORD",
+      "needs": [],
+      "outputs": [
+        "out/vote-evidence.json"
+      ],
+      "phase": "H1H3",
+      "scope": "local"
+    },
+    {
+      "executor": {
+        "type": "manual"
+      },
+      "goal": "Independent adversarial skill installed + deliberate red/green mutation proof",
+      "id": "T0_ADVERSARIAL",
+      "needs": [
+        "T0_BIND"
+      ],
+      "phase": "T0",
+      "scope": "approval"
+    },
+    {
+      "executor": {
+        "type": "manual"
+      },
+      "goal": "Approve formal successor transition gate with source hashes, mapping, adversarial proof",
+      "id": "T0_GATE",
+      "needs": [
+        "T0_BIND",
+        "T0_ADVERSARIAL"
+      ],
+      "phase": "T0",
+      "scope": "approval"
+    },
+    {
       "checks": [
         {
           "argv": [
@@ -142,27 +134,27 @@
           ]
         }
       ],
-      "outputs": [
-        "out/p2-original-asset-inventory.json"
-      ]
-    },
-    {
-      "id": "P2_DELTA",
-      "phase": "P2",
-      "goal": "Materialize tracked visual deltas while preserving original-grade design baseline",
-      "needs": [
-        "P2_INVENTORY"
-      ],
-      "scope": "local",
       "executor": {
-        "type": "command",
         "argv": [
           "python3",
           "steps/signomy.py",
           "produce",
-          "deltas"
-        ]
+          "inventory"
+        ],
+        "type": "command"
       },
+      "goal": "Inventory original FigJam/MagicPath offline designs (without consuming external quota)",
+      "id": "P2_INVENTORY",
+      "needs": [
+        "T0_BIND"
+      ],
+      "outputs": [
+        "out/p2-original-asset-inventory.json"
+      ],
+      "phase": "P2",
+      "scope": "local"
+    },
+    {
       "checks": [
         {
           "argv": [
@@ -173,39 +165,39 @@
           ]
         }
       ],
-      "outputs": [
-        "out/p2-visual-deltas.json"
-      ]
-    },
-    {
-      "id": "P2_PROVISIONAL",
-      "phase": "P2",
-      "goal": "Owner accepts original visuals as PROVISIONAL Phase 2 baseline, not final alignment",
-      "needs": [
-        "P2_DELTA"
-      ],
-      "scope": "approval",
       "executor": {
-        "type": "manual"
-      }
-    },
-    {
-      "id": "P3_SHELL_PREP",
-      "phase": "P3",
-      "goal": "Prepare non-mutating Phase 3 host-first shell plan and contract checks",
-      "needs": [
-        "P2_DELTA"
-      ],
-      "scope": "local",
-      "executor": {
-        "type": "command",
         "argv": [
           "python3",
           "steps/signomy.py",
           "produce",
-          "shell"
-        ]
+          "deltas"
+        ],
+        "type": "command"
       },
+      "goal": "Materialize tracked visual deltas while preserving original-grade design baseline",
+      "id": "P2_DELTA",
+      "needs": [
+        "P2_INVENTORY"
+      ],
+      "outputs": [
+        "out/p2-visual-deltas.json"
+      ],
+      "phase": "P2",
+      "scope": "local"
+    },
+    {
+      "executor": {
+        "type": "manual"
+      },
+      "goal": "Owner accepts original visuals as PROVISIONAL Phase 2 baseline, not final alignment",
+      "id": "P2_PROVISIONAL",
+      "needs": [
+        "P2_DELTA"
+      ],
+      "phase": "P2",
+      "scope": "approval"
+    },
+    {
       "checks": [
         {
           "argv": [
@@ -216,130 +208,252 @@
           ]
         }
       ],
+      "executor": {
+        "argv": [
+          "python3",
+          "steps/signomy.py",
+          "produce",
+          "shell"
+        ],
+        "type": "command"
+      },
+      "goal": "Prepare non-mutating Phase 3 host-first shell plan and contract checks",
+      "id": "P3_SHELL_PREP",
+      "needs": [
+        "P2_DELTA"
+      ],
       "outputs": [
         "out/p3-shell-preparation.json"
-      ]
+      ],
+      "phase": "P3",
+      "scope": "local"
     },
     {
-      "id": "P2_FINAL",
-      "phase": "P2",
+      "executor": {
+        "type": "manual"
+      },
       "goal": "Independent architecture-aligned visual QA + owner signoff (full Phase 2 exit)",
+      "id": "P2_FINAL",
       "needs": [
         "P2_PROVISIONAL"
       ],
-      "scope": "approval",
-      "executor": {
-        "type": "manual"
-      }
+      "phase": "P2",
+      "scope": "approval"
     },
     {
-      "id": "P3_AUTHORIZE",
-      "phase": "P3",
+      "executor": {
+        "type": "manual"
+      },
       "goal": "Separate owner authorization: bounded shell implementation, no deployment (provisional-design exception)",
+      "id": "P3_AUTHORIZE",
       "needs": [
         "T0_GATE",
         "P2_PROVISIONAL",
         "P3_SHELL_PREP"
       ],
-      "scope": "approval",
-      "executor": {
-        "type": "manual"
-      }
+      "phase": "P3",
+      "scope": "approval"
     },
     {
-      "id": "P3_SHELL_VERIFIED",
-      "phase": "P3",
+      "executor": {
+        "type": "manual"
+      },
       "goal": "Host existing pages in shell; preserve principal/object context; regressions + falsifier PASS",
+      "id": "P3_SHELL_VERIFIED",
       "needs": [
         "P3_AUTHORIZE"
       ],
-      "scope": "approval",
-      "executor": {
-        "type": "manual"
-      }
+      "phase": "P3",
+      "scope": "approval"
     },
     {
-      "id": "P4_WORKENTRY_VERIFIED",
-      "phase": "P4",
+      "executor": {
+        "type": "manual"
+      },
       "goal": "Full Phase 2 QA plus frozen Agreement/WorkEntry workflow with authoritative bindings and receipts",
+      "id": "P4_WORKENTRY_VERIFIED",
       "needs": [
         "P3_SHELL_VERIFIED",
         "P2_FINAL",
         "VOTE_RECORD"
       ],
-      "scope": "approval",
-      "executor": {
-        "type": "manual"
-      }
+      "phase": "P4",
+      "scope": "approval"
     },
     {
-      "id": "P5_HARDENING_VERIFIED",
-      "phase": "P5",
+      "executor": {
+        "type": "manual"
+      },
       "goal": "H1-H5/H7 gates: provenance, revocation, finance/custody, privacy and parity independently verified",
+      "id": "P5_HARDENING_VERIFIED",
       "needs": [
         "P4_WORKENTRY_VERIFIED",
         "H5_RECORD"
       ],
-      "scope": "approval",
-      "executor": {
-        "type": "manual"
-      }
+      "phase": "P5",
+      "scope": "approval"
     },
     {
-      "id": "P6_DERIVED_VERIFIED",
-      "phase": "P6",
+      "executor": {
+        "type": "manual"
+      },
       "goal": "Entity/Ecosystem/Refinery/Switchboard reproducible, explainable, read-only",
+      "id": "P6_DERIVED_VERIFIED",
       "needs": [
         "P5_HARDENING_VERIFIED"
       ],
-      "scope": "approval",
-      "executor": {
-        "type": "manual"
-      }
+      "phase": "P6",
+      "scope": "approval"
     },
     {
-      "id": "P7_IA_VERIFIED",
-      "phase": "P7",
+      "executor": {
+        "type": "manual"
+      },
       "goal": "Navigation/facet consolidation preserves distinct systems and functional routes",
+      "id": "P7_IA_VERIFIED",
       "needs": [
         "P6_DERIVED_VERIFIED"
       ],
-      "scope": "approval",
-      "executor": {
-        "type": "manual"
-      }
+      "phase": "P7",
+      "scope": "approval"
     },
     {
-      "id": "P8_RELEASE_EVIDENCE",
-      "phase": "P8",
+      "executor": {
+        "type": "manual"
+      },
       "goal": "Full acceptance, rollback, release evidence and independent adversarial verification",
+      "id": "P8_RELEASE_EVIDENCE",
       "needs": [
         "P7_IA_VERIFIED"
       ],
-      "scope": "approval",
-      "executor": {
-        "type": "manual"
-      }
+      "phase": "P8",
+      "scope": "approval"
     },
     {
-      "id": "R_LIVE",
-      "phase": "RELEASE",
+      "executor": {
+        "type": "manual"
+      },
       "goal": "Owner authorization before any deployment, migration, DNS, cutover or production writer change",
+      "id": "R_LIVE",
       "needs": [
         "P8_RELEASE_EVIDENCE"
       ],
-      "scope": "approval",
+      "phase": "RELEASE",
+      "scope": "approval"
+    },
+    {
+      "id": "H2_ORPHAN_AUDIT",
+      "phase": "F",
+      "goal": "Audit residual orphan bounty/slot mission_ids vs mission records; forward fix evidence",
+      "needs": [
+        "VOTE_RECORD"
+      ],
+      "scope": "local",
+      "authority": "technical",
+      "risk": "low",
+      "lane": "hardening",
+      "acceptance": "out/h2-orphan-audit.json lists orphan ids + forward_fix flag",
+      "files": [
+        "out/h2-orphan-audit.json"
+      ],
       "executor": {
-        "type": "manual"
-      }
+        "type": "command",
+        "argv": [
+          "python3",
+          "steps/signomy.py",
+          "produce",
+          "h2_orphans"
+        ]
+      },
+      "checks": [
+        {
+          "argv": [
+            "python3",
+            "steps/signomy.py",
+            "check",
+            "h2_orphans"
+          ]
+        }
+      ],
+      "outputs": [
+        "out/h2-orphan-audit.json"
+      ]
+    },
+    {
+      "id": "H5_CLOSE_RECORD",
+      "phase": "F",
+      "goal": "Record thread-close verb implementation evidence (route+guard+tests)",
+      "needs": [
+        "VOTE_RECORD"
+      ],
+      "scope": "local",
+      "authority": "technical",
+      "risk": "low",
+      "lane": "hardening",
+      "acceptance": "out/h5-thread-close.json records route, write guard, tests",
+      "files": [
+        "out/h5-thread-close.json"
+      ],
+      "executor": {
+        "type": "command",
+        "argv": [
+          "python3",
+          "steps/signomy.py",
+          "produce",
+          "h5_close"
+        ]
+      },
+      "checks": [
+        {
+          "argv": [
+            "python3",
+            "steps/signomy.py",
+            "check",
+            "h5_close"
+          ]
+        }
+      ],
+      "outputs": [
+        "out/h5-thread-close.json"
+      ]
+    },
+    {
+      "id": "H3_OTEL_RECORD",
+      "phase": "F",
+      "goal": "Record narrow otel trace-defect fix evidence; atomic-Seed architecture excluded",
+      "needs": [
+        "VOTE_RECORD"
+      ],
+      "scope": "local",
+      "authority": "technical",
+      "risk": "low",
+      "lane": "hardening",
+      "acceptance": "out/h3-otel-trace.json records ordering fix + regression test",
+      "files": [
+        "out/h3-otel-trace.json"
+      ],
+      "executor": {
+        "type": "command",
+        "argv": [
+          "python3",
+          "steps/signomy.py",
+          "produce",
+          "h3_otel"
+        ]
+      },
+      "checks": [
+        {
+          "argv": [
+            "python3",
+            "steps/signomy.py",
+            "check",
+            "h3_otel"
+          ]
+        }
+      ],
+      "outputs": [
+        "out/h3-otel-trace.json"
+      ]
     }
-  ],
-  "observer": {
-    "type": "command",
-    "argv": [
-      "python3",
-      "steps/signomy.py",
-      "observe"
-    ]
-  }
+  ]
 }

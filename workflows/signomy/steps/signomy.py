@@ -167,8 +167,58 @@ def get_shell():
         raise RuntimeError('Shell brief incomplete')
     return {'source_sha256':sha(src),'design_delta_sha256':sha(delta),**data}
 
+def get_h2_orphans():
+    """H2 audit: count slot mission_ids with no retrievable mission record.
+    Forward fix landed (bounty posts now write mission records); this
+    measures the residual orphan set that needs an authorized data repair."""
+    _, runtime, _ = settings()
+    missions = json.loads((runtime/'data/missions.json').read_text(encoding='utf-8'))         if (runtime/'data/missions.json').exists() else []
+    slots_f = runtime/'data/slots.json'
+    slots = json.loads(slots_f.read_text(encoding='utf-8')) if slots_f.exists() else []
+    recorded = {m.get('mission_id') for m in missions}
+    slot_missions = {x.get('mission_id') for x in slots if x.get('mission_id')}
+    orphans = sorted(slot_missions - recorded)
+    src = required(runtime/'app/routes/missions.py','missions route').read_text(encoding='utf-8')
+    return {'orphan_mission_ids': orphans, 'orphan_count': len(orphans),
+            'mission_records': len(missions), 'slot_mission_refs': len(slot_missions),
+            'forward_fix_present': 'origin": "bounty"' in src,
+            'repair_deferred': 'Backfill of pre-fix orphans requires separately authorized data repair',
+            'source_sha256': sha(runtime/'app/routes/missions.py')}
+
+
+def get_h5_close():
+    """H5 residual: thread-close verb implementation evidence."""
+    _, runtime, _ = settings()
+    src = required(runtime/'app/routes/kassa.py','kassa routes').read_text(encoding='utf-8')
+    tests = required(runtime/'tests/test_h5_comms.py','h5 tests').read_text(encoding='utf-8')
+    has_route = 'api/kassa/threads/{thread_id}/close' in src
+    has_guard = '"open"' in src
+    has_tests = 'test_close_thread_owner_and_admin' in tests
+    if not (has_route and has_guard and has_tests):
+        raise RuntimeError('Thread-close verb incomplete (route/guard/tests missing)')
+    return {'close_route': has_route, 'closed_write_guard': has_guard,
+            'tests_present': has_tests, 'source_sha256': sha(runtime/'app/routes/kassa.py')}
+
+
+def get_h3_otel():
+    """H3 narrow defect: otel metadata use-before-assignment fix evidence."""
+    _, runtime, _ = settings()
+    src = required(runtime/'app/seeds_otel.py','seeds otel').read_text(encoding='utf-8')
+    assign = src.find('metadata = seed.get("metadata", {})')
+    usage = src.find('metadata.get("governance_mode"')
+    if assign == -1 or usage == -1 or usage < assign:
+        raise RuntimeError('otel metadata ordering defect still present')
+    tests = required(runtime/'tests/test_h5_comms.py','h5 tests').read_text(encoding='utf-8')
+    return {'ordering_fixed': True, 'regression_test': 'test_otel_span_no_unbound_metadata' in tests,
+            'scope': 'narrow trace defect only; atomic-Seed architecture NOT included',
+            'source_sha256': sha(runtime/'app/seeds_otel.py')}
+
+
 STAGES={
     't0':('out/t0-source-binding.json',get_t0),
+    'h2_orphans':('out/h2-orphan-audit.json',get_h2_orphans),
+    'h5_close':('out/h5-thread-close.json',get_h5_close),
+    'h3_otel':('out/h3-otel-trace.json',get_h3_otel),
     'h5':('out/h5-evidence.json',get_h5),
     'vote':('out/vote-evidence.json',get_vote),
     'inventory':('out/p2-original-asset-inventory.json',get_inventory),
