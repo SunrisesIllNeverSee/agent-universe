@@ -38,4 +38,16 @@ P3_SHELL_VERIFIED, P4..P8, R_LIVE.
 
 - T0: independent rerun complete — real leak found (advisory seats) + fixed.
   Fresh verdict: PASS post-correction (reviews/T0-Independent-Falsifier-Verdict.md).
-- Shell: pending independent falsifier pass (next work package).
+- Shell: falsifier FAIL → bounded corrections → re-verify PASS
+  (reviews/P3-Shell-*): XFO/frame-src frameability, route allowlist,
+  Inspector XSS sink, stale ctx, unmapped modes, history drift.
+- Receipt integrity: T0_FALSIFIER_RERUN receipt invalidated (probe_exit=1
+  recorded on PASS — system-python subprocess); producer now fails closed
+  + venv interpreter; engine `invalidate` command added; receipt re-issued
+  probe_exit=0/green. 3 regression tests.
+- Browser QA (playwright): screenshots in reviews/p3-shell-qa/ — canvas
+  rendering verified, auth-gate redirect preserved, responsive layout.
+- api_key transport: X-Agent-Key header added (provision status);
+  query-string path no longer used by shell.
+- Audit backfill: local audit.jsonl has no advisory entries; production
+  store unverifiable from here — REPORTED, no migration performed.

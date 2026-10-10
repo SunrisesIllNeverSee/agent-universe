@@ -19,6 +19,14 @@ Post-correction re-verify: **PASS**.
 No writes; noindex; census walk correct; separation semantics preserved;
 credentials same-origin only.
 
+## Browser QA (2026-10-10, real chromium via playwright)
+Screenshots: reviews/p3-shell-qa/
+- shell-portal.png: canvas renders hosted portal; census populated (live badges).
+- shell-kassa.png: FIND WORK mode + KA§§A hosted.
+- shell-deploy.png: iframe-side redirect to dashboard auth gate — backend
+  authority preserved inside the canvas; Inspector reconciled to new URL.
+- shell-mobile.png: responsive narrow layout; inspector auto-hides.
+Header proof: X-Frame-Options SAMEORIGIN, frame-src 'self' on hosted routes.
 ## Limitations
-Review is static+behavioral; visual QA against original designs is a
-separate P2_FINAL surface.
+Interactive flows (stake, post, vote) not exercised inside canvas; visual
+QA vs original designs remains P2_FINAL.
