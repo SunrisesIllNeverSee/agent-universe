@@ -1,6 +1,6 @@
 # SIGNOMY — Phase 2 Provisional Baseline / Phase 3 Host-First Transition — Executable Roadmap
 
-Generated: 2026-10-09T10:25:17+00:00
+Generated: 2026-10-10T05:45:09+00:00
 
 | Phase | Task | Status | Goal |
 |---|---|---|---|
@@ -29,8 +29,8 @@ No immediately eligible tasks.
 
 ## Held tasks
 
-- T0_ADVERSARIAL: OWNER_AUTHORIZATION_REQUIRED: complete externally, then attest with evidence
 - P2_PROVISIONAL: OWNER_AUTHORIZATION_REQUIRED: complete externally, then attest with evidence
+- T0_ADVERSARIAL: OWNER_AUTHORIZATION_REQUIRED: complete externally, then attest with evidence
 
 ---
 
@@ -38,7 +38,7 @@ No immediately eligible tasks.
 
 # SIGNOMY — Fresh Source Observation
 
-Observed: 2026-10-09T10:25:11+00:00
+Observed: 2026-10-10T05:45:08+00:00
 
 Read-only. Does not mark roadmap tasks passed or authorize implementation.
 

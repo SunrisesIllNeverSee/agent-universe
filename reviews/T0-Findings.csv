@@ -1,0 +1,2 @@
+finding_id,severity,invariant,counterexample,evidence,reproduction,affected_code,required_correction,retest,gate_impact,status
+T0-01,info,"unauth inbox/contact reads fail closed","probe asserted 401 exactly; runtime returns 403","probe run on f2c01a6","run t0_redgreen_probe.py; both 401 and 403 observed across guarded GETs","middleware admin_guard","none — fail-closed either way","probe accepts any 4xx","none","closed"
