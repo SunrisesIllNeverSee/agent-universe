@@ -339,8 +339,9 @@ async def agent_login(request: Request, payload: dict) -> dict:
 
 
 @router.post("/api/provision/key")
-async def issue_agent_key(payload: IssueAgentKeyPayload) -> dict:
+async def issue_agent_key(payload: IssueAgentKeyPayload, request: Request) -> dict:
     """Issue or rotate an API key for a registered agent."""
+    require_admin(request, state.admin_key)
     runtime = state.runtime
     audit = state.audit
     emit = state.emit

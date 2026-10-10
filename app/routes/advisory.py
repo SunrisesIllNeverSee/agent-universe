@@ -74,13 +74,17 @@ def _save_council(data: dict):
 
 @router.get("/api/advisory/seats")
 async def get_council_seats() -> dict:
-    """Return all 14 seat states + message counts."""
+    """Return all 14 seat states + message counts.
+
+    Public read — applicant PII (name/email/message) is NEVER emitted
+    here; the operator sees it via admin-guarded review surfaces."""
     council = _load_council()
     seats = council.get("seats", {})
     messages = council.get("messages", {})
     result = {}
     for seat_id in [f"seat-{i:02d}" for i in range(1, 15)]:
-        s = seats.get(seat_id, {"status": "vacant"})
+        s = {k: v for k, v in seats.get(seat_id, {"status": "vacant"}).items()
+             if k != "applicant"}
         s["message_count"] = len(messages.get(seat_id, []))
         result[seat_id] = s
     return {"seats": result}
@@ -123,8 +127,9 @@ async def apply_for_seat(payload: SeatApplicationPayload) -> dict:
     }
     _save_council(council)
 
+    # No applicant name/email in the PUBLIC audit chain — seat + type only.
     state.audit.log("advisory", "seat_application", {
-        "seat_id": seat_id, "name": name, "type": agent_type,
+        "seat_id": seat_id, "type": agent_type,
     })
 
     # Seed provenance

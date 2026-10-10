@@ -317,8 +317,9 @@ async def inbox_get(app_id: str, request: Request) -> dict:
 
 
 @router.post("/api/inbox/{app_id}/review")
-async def inbox_review(app_id: str, payload: InboxReviewPayload) -> dict:
+async def inbox_review(app_id: str, payload: InboxReviewPayload, request: Request) -> dict:
     """Update application status: pending -> approved / rejected / contacted."""
+    require_admin(request, state.admin_key)
     inbox_path = state.data_path("inbox.jsonl")
     status = payload.status
     if not inbox_path.exists():
