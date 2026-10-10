@@ -567,3 +567,86 @@ def test_mcp_vote_rejected_on_adjourned_meeting(client, admin_client):
     meeting = admin_client.get(f"/api/governance/meeting/{mid}").json()["meeting"]
     motion = next(m for m in meeting["motions"] if m["id"] == mo)
     assert motion["votes"] == {}
+
+
+# ═══ KA§§A thread-close transition ═════════════════════════════════════════
+
+def _open_thread(client, admin_client, monkeypatch):
+    """Stake → thread; return (agent_id, jwt, thread_id, magic)."""
+    from app.routes import kassa as kassa_routes
+    captured = {}
+    monkeypatch.setattr(kassa_routes, "send_magic_link",
+                        lambda **kw: captured.__setitem__("m", kw.get("magic_token")))
+    aid, _, jwt = _kassa_agent(client)
+    post_id = _kassa_post(client, admin_client)
+    r = client.post(f"/api/kassa/posts/{post_id}/stake",
+                    json={"amount": 50.0},
+                    headers={"Authorization": f"Bearer {jwt}"})
+    assert r.status_code == 200, r.text
+    return aid, jwt, r.json()["thread_id"], captured.get("m")
+
+
+def test_close_thread_owner_and_admin(client, admin_client, monkeypatch):
+    aid, jwt, tid, _ = _open_thread(client, admin_client, monkeypatch)
+    # third-party JWT cannot close
+    _, _, jwt2 = _kassa_agent(client)
+    r = client.post(f"/api/kassa/threads/{tid}/close",
+                    headers={"Authorization": f"Bearer {jwt2}"})
+    assert r.status_code == 403
+    # owner closes
+    r = client.post(f"/api/kassa/threads/{tid}/close",
+                    headers={"Authorization": f"Bearer {jwt}"})
+    assert r.status_code == 200 and r.json()["status"] == "closed"
+    # double close → 409
+    assert client.post(f"/api/kassa/threads/{tid}/close",
+                       headers={"Authorization": f"Bearer {jwt}"}).status_code == 409
+    # messages rejected on closed thread
+    assert client.post(f"/api/kassa/threads/{tid}/messages",
+                       json={"text": "x"},
+                       headers={"Authorization": f"Bearer {jwt}"}).status_code == 403
+
+
+def test_close_thread_admin_and_noauth(client, admin_client, monkeypatch):
+    _, _, tid, magic = _open_thread(client, admin_client, monkeypatch)
+    # no auth → 403
+    assert client.post(f"/api/kassa/threads/{tid}/close").status_code == 403
+    # magic token is NOT a close credential (poster can't close)
+    assert client.post(f"/api/kassa/threads/{tid}/close?magic={magic}").status_code == 403
+    # admin closes
+    assert admin_client.post(f"/api/kassa/threads/{tid}/close").status_code == 200
+    # unknown thread → 404
+    assert admin_client.post("/api/kassa/threads/thr-nope/close").status_code == 404
+
+
+def test_otel_span_no_unbound_metadata():
+    """H3 narrow defect: seed_to_span referenced `metadata` before assignment."""
+    from app.seeds_otel import seed_to_span
+    span = seed_to_span({
+        "doi": "doi-x", "seed_type": "planted", "created_at": "2026-01-01T00:00:00Z",
+        "source_type": "agent", "source_id": "s", "creator_id": "c",
+        "creator_type": "AAI", "metadata": {"governance_mode": "open"},
+    })
+    keys = [a["key"] for a in span["attributes"]]
+    assert "civitae.governance.mode" in keys
+    assert span["attributes"][keys.index("civitae.governance.mode")]["value"]["stringValue"] == "open"
+
+
+# ═══ H2 — bounty missions must not be orphans ═══════════════════════════════
+
+def test_bounty_creates_retrievable_mission_record(client):
+    from app.routes import missions as missions_routes
+    resp = signup_agent(client, name=_uniq("bounty"))
+    key, aid = resp.json()["api_key"], resp.json()["agent_id"]
+    r = client.post("/api/slots/bounty", json={
+        "agent_id": aid, "agent_name": aid, "label": "h2-bounty",
+        "description": "audit me", "slots_needed": 1, "revenue_pool": 10.0,
+    }, headers={"Authorization": f"Bearer {key}"})
+    assert r.status_code == 200, r.text
+    missions = missions_routes._load_missions()
+    slot_missions = {s["mission_id"] for s in missions_routes._load_slots()
+                     if s.get("formation_id") == "bounty"}
+    recorded = {m["mission_id"] for m in missions}
+    assert slot_missions <= recorded, \
+        f"orphan mission ids: {slot_missions - recorded}"
+    bounty = next(m for m in missions if m["mission_id"] == next(iter(slot_missions)))
+    assert bounty["status"] == "active" and bounty["origin"] == "bounty"

@@ -61,6 +61,8 @@ def seed_to_span(seed: dict, trace_id: str = None) -> dict:
     except (ValueError, AttributeError):
         start_time_unix_nano = int(time.time() * 1e9)
 
+    metadata = seed.get("metadata", {})
+
     span = {
         "traceId": trace_id,
         "spanId": span_id,
@@ -87,7 +89,6 @@ def seed_to_span(seed: dict, trace_id: str = None) -> dict:
         ],
     }
 
-    metadata = seed.get("metadata", {})
     for k, v in metadata.items():
         span["attributes"].append({
             "key": f"civitae.metadata.{k}",
