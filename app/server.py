@@ -417,7 +417,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
         response = await call_next(request)
-        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
@@ -428,7 +428,7 @@ def create_app(root: Path | None = None) -> FastAPI:
             "font-src https://fonts.gstatic.com; "
             "img-src 'self' data: https:; "
             "connect-src 'self' https://api.stripe.com https://www.google-analytics.com https://analytics.google.com wss:; "
-            "frame-src https://js.stripe.com https://checkout.stripe.com;"
+            "frame-src 'self' https://js.stripe.com https://checkout.stripe.com;"
         )
         return response
 

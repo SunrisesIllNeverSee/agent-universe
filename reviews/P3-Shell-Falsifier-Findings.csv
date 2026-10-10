@@ -1,0 +1,14 @@
+finding_id,severity,invariant,counterexample,evidence,affected_code,correction,status
+P3F-01,critical,"hosts pages in iframe","every hosted route shows browser refused-to-display",server.py:420 X-Frame-Options DENY unconditional,server.py security_headers,XFO SAMEORIGIN,verified_fixed
+P3F-02,critical,"hosts pages in iframe","CSP frame-src lacks 'self' → same-origin child blocked even with XFO fixed",server.py:431 frame-src stripe-only,server.py CSP,add 'self' to frame-src,verified_fixed
+P3F-03,high,"bounded canvas surface","?route=https://evil.example loads arbitrary cross-origin site in SIGNOMY chrome; ?route=/api/audit loads raw JSON",routeFromLocation raw param + unvalidated frame.src,shell.html nav/routeFromLocation,route allowlist: /-prefixed non-// path present in registry or MODES,verified_fixed
+P3F-04,high,"XSS hygiene","?route=<img onerror=...> reflected unescaped into Inspector innerHTML under script-src unsafe-inline",renderInspector innerHTML rows,shell.html renderInspector,textContent-built rows + route validation,verified_fixed
+P3F-05,medium,"context accuracy","ctx keys only set never cleared — stale post_id shown on unrelated page; cross-origin nav throw swallows",deriveContext no delete path,shell.html deriveContext,clear object keys per navigation; blank on catch,verified_fixed
+P3F-06,medium,"mode coherence","/console + ~20 unmapped live routes default rail to ORIENT while unrelated page renders",modeFromLocation fallback,shell.html MODES,explicit UNMAPPED mode state + console utility handling,verified_fixed
+P3F-07,medium,"history parity","in-iframe clicks drift shell URL/rail/inspector from hosted page without parent popstate",popstate parent-only,shell.html deriveContext,reconcile: deriveContext pushes state on detected URL change,verified_fixed
+P3F-08,low,"read-model fit","/api/state heavy payload every 15s for 2 fields — shape verified correct",core.py:123 snapshot,shell.html hud,accepted limitation,noted
+P3F-09,low,"credential hygiene","civitas_auth api_key in query string lands in access logs (pre-existing pattern)",shell.html loadPrincipal,shell.html,inherited pattern — backend change later,noted
+P3F-10,info,"census correctness","pages.json walk verified: tileZero.pages + layers[].pages, subsections skipped",config/pages.json structure,shell.html,none,verified
+P3F-11,info,"zero writes","all fetches are GET; no forms",shell.html,—,none,verified
+P3F-12,info,"crawlability","robots noindex present; no route collision",pages.py:57,—,none,verified
+P3F-13,info,"separation","9 modes distinct per contract rules",shell.html MODES,—,none,verified

@@ -157,10 +157,18 @@
   const modeFromLocation = () => {
     const route = routeFromLocation();
     const m = MODES.find(m=>m.routes.some(r=>route===r||route.startsWith(r+"/")));
-    return (m||MODES.find(m=>m.id===DEFAULT_MODE)).id;
+    return m ? m.id : null;
+  };
+  const VALID_ROUTE = /^\/[A-Za-z0-9_\/.-]*(\?[^\s]*)?$/;
+  const allowedRoute = r => {
+    if (!r || !VALID_ROUTE.test(r) || r.startsWith("//") || r.startsWith("/api/")) return null;
+    const path = r.split("?")[0];
+    if (path === "/shell") return null;
+    return (pageFor(path) || MODES.some(m=>m.routes.includes(path)) || path==="/console") ? r : null;
   };
   const routeFromLocation = () =>
-    new URLSearchParams(location.search).get("route") || MODES.find(m=>m.id===DEFAULT_MODE).routes[0];
+    allowedRoute(new URLSearchParams(location.search).get("route")) ||
+    MODES.find(m=>m.id===DEFAULT_MODE).routes[0];
 
   // ── Rail ─────────────────────────────────────────────────────────────
   const modesEl = $("modes");
@@ -178,9 +186,9 @@
   function renderMode(modeId){
     const m = MODES.find(m=>m.id===modeId);
     MODES.forEach(x=>$("mode-"+x.id).classList.toggle("on",x.id===modeId));
-    $("mode-name").textContent = m.label;
+    $("mode-name").textContent = m ? m.label : (currentRoute==="/console"?"CONSOLE":"OTHER SURFACE");
     const s = $("surfaces"); s.innerHTML="";
-    m.routes.forEach(r=>{
+    (m ? m.routes : [currentRoute].filter(Boolean)).forEach(r=>{
       const p = pageFor(r) || {name:r.replace("/"," "),status:"planned",note:""};
       const el = document.createElement("div");
       el.className="surf"+(r===currentRoute?" on":"");
@@ -192,6 +200,8 @@
 
   // ── Navigation + history ─────────────────────────────────────────────
   function nav(route){
+    const safe = allowedRoute(route);
+    if (!safe) { route = MODES.find(m=>m.id===DEFAULT_MODE).routes[0]; }
     currentRoute = route;
     frame.src = route;
     empty.style.display="none";
@@ -210,6 +220,12 @@
     try {
       const u = new URL(frame.contentWindow.location.href);
       const path = u.pathname;
+      ["post_id","thread_id","mission_id","slot_id"].forEach(k=>setCtx(k,null));
+      // F7 reconcile: iframe-side navigation updates shell state too
+      if (currentRoute && path !== currentRoute.split("?")[0] && allowedRoute(path + u.search)) {
+        currentRoute = path + u.search;
+        history.pushState({route:currentRoute},"","/shell?route="+encodeURIComponent(currentRoute));
+      }
       if (path.startsWith("/kassa/post/")) setCtx("post_id", path.split("/").pop());
       if (path.startsWith("/kassa/thread/")) setCtx("thread_id", path.split("/").pop());
       if (path === "/mission") { const m=u.searchParams.get("id"); if(m) setCtx("mission_id",m); }
@@ -219,7 +235,10 @@
         if (s) setCtx("slot_id", s);
       }
       renderInspector();
-    } catch(e){ /* cross-nav safety — same-origin expected */ }
+      renderMode(modeFromLocation());
+    } catch(e){
+      ["post_id","thread_id","mission_id","slot_id"].forEach(k=>setCtx(k,null));
+    }
   }
   frame.addEventListener("load", deriveContext);
 
@@ -240,8 +259,15 @@
       ["workentry", "PHASE-4 — not implemented"],
       ["seed evidence", c.seed_doi||"—"],
     ];
-    $("insp-fields").innerHTML = rows.map(([k,v])=>
-      `<div class="kv"><b>${k}</b><span class="${String(v).startsWith("PHASE-4")?"future":""}">${v}</span></div>`).join("");
+    const host = $("insp-fields");
+    host.innerHTML = "";
+    rows.forEach(([k,v])=>{
+      const row = document.createElement("div"); row.className="kv";
+      const b = document.createElement("b"); b.textContent = k;
+      const sp = document.createElement("span"); sp.textContent = v;
+      if (String(v).startsWith("PHASE-4")) sp.className="future";
+      row.append(b, sp); host.appendChild(row);
+    });
   }
 
   // ── Principal (existing credential surfaces only) ────────────────────
