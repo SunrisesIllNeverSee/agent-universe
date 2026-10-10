@@ -20,8 +20,10 @@ python3 -m roadmap_engine --project workflows/signomy status
 
 ## Wiring Atlas v0.2 (completed 2026-10-10)
 Archive: ~/Developer/_7_labs/signomy-control-surface/reports/wiring-atlas/
-- v0.2 census: stable IDs, evidence classes, 284 routes, JS+WS extraction,
-  drift tracking (--check-drift), 19 tests, falsifier PASS post-correction.
+- v0.2 census: stable IDs, evidence classes, 314 decorated endpoints
+  (199 api / 82 page_route / 3 ws / 30 mcp_tool) across 23 modules,
+  JS+WS+nav+storage extraction, drift tracking (--check-drift),
+  25 tests, falsifier + 4 reviewer rounds, PASS post-correction.
 - Refresh: `python3 build_atlas.py --repo <repo> --archive <archive> --out <atlas>`
   then `validate_runtime.py --base <local-url>` then `--check-drift`.
 - Serve: `python3 -m http.server 8931 --directory <atlas>`.
