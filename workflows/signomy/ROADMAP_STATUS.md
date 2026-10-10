@@ -1,17 +1,17 @@
 # SIGNOMY — Phase 2 Provisional Baseline / Phase 3 Host-First Transition — Executable Roadmap
 
-Generated: 2026-10-10T08:03:52+00:00
+Generated: 2026-10-10T09:09:42+00:00
 
 | Phase | Task | Status | Goal |
 |---|---|---|---|
 | T0 | T0_BIND | PASSED | Verify archived Phase 1 freeze and binding to runtime repo (observation, not implementation PASS) |
 | H5 | H5_RECORD | PASSED | Record H5 security/comms landed evidence; safe subset only, no production claim |
 | H1H3 | VOTE_RECORD | PASSED | Record MCP governance vote correction and remaining REST parity wart |
-| T0 | T0_ADVERSARIAL | BLOCKED | Independent adversarial skill installed + deliberate red/green mutation proof |
-| T0 | T0_GATE | PENDING | Approve formal successor transition gate with source hashes, mapping, adversarial proof |
+| T0 | T0_ADVERSARIAL | PASSED | Independent adversarial skill installed + deliberate red/green mutation proof |
+| T0 | T0_GATE | PASSED | Approve formal successor transition gate with source hashes, mapping, adversarial proof |
 | P2 | P2_INVENTORY | PASSED | Inventory original FigJam/MagicPath offline designs (without consuming external quota) |
 | P2 | P2_DELTA | PASSED | Materialize tracked visual deltas while preserving original-grade design baseline |
-| P2 | P2_PROVISIONAL | BLOCKED | Owner accepts original visuals as PROVISIONAL Phase 2 baseline, not final alignment |
+| P2 | P2_PROVISIONAL | PASSED | Owner accepts original visuals as PROVISIONAL Phase 2 baseline, not final alignment |
 | P3 | P3_SHELL_PREP | PASSED | Prepare non-mutating Phase 3 host-first shell plan and contract checks |
 | P2 | P2_FINAL | PENDING | Independent architecture-aligned visual QA + owner signoff (full Phase 2 exit) |
 | P3 | P3_AUTHORIZE | PENDING | Separate owner authorization: bounded shell implementation, no deployment (provisional-design exception) |
@@ -30,12 +30,12 @@ Generated: 2026-10-10T08:03:52+00:00
 
 ## Next eligible work
 
-No immediately eligible tasks.
+- P2_FINAL: Independent architecture-aligned visual QA + owner signoff (full Phase 2 exit)
+- P3_AUTHORIZE: Separate owner authorization: bounded shell implementation, no deployment (provisional-design exception)
 
 ## Held tasks
 
-- P2_PROVISIONAL: OWNER_AUTHORIZATION_REQUIRED: complete externally, then attest with evidence
-- T0_ADVERSARIAL: OWNER_AUTHORIZATION_REQUIRED: complete externally, then attest with evidence
+None.
 
 ---
 
