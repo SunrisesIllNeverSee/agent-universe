@@ -1051,6 +1051,37 @@ async def post_bounty(payload: PostBountyPayload, request: Request) -> dict:
         slots.append(open_slot)
 
     _save_slots(slots)
+
+    # H2: write the mission record too — bounty_minted mission_ids were
+    # previously orphans (slots existed, no retrievable mission object).
+    missions = _load_missions()
+    missions.append({
+        "id": mission_id,
+        "mission_id": mission_id,
+        "label": label,
+        "objective": description,
+        "posture": posture,
+        "formation": "bounty",
+        "target": "",
+        "duration": "",
+        "limits": {},
+        "systems": [],
+        "agents": [agent_id],
+        "status": "active",
+        "origin": "bounty",
+        "created_at": datetime.now(UTC).isoformat(),
+        "ended_at": None,
+        "governance_at_launch": {
+            "mode": state.runtime.governance.mode,
+            "posture": state.runtime.governance.posture,
+            "role": state.runtime.governance.role,
+        },
+        "results": [],
+        "channel": f"bounty-{mission_id}",
+        "slot_ids": [s["id"] for s in new_slots],
+    })
+    _save_missions(missions)
+
     _audit_entry = state.audit.log("deploy", "bounty_posted", {
         "mission_id": mission_id,
         "agent_id": agent_id,

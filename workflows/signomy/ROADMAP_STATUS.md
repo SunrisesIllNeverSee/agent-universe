@@ -1,6 +1,6 @@
 # SIGNOMY — Phase 2 Provisional Baseline / Phase 3 Host-First Transition — Executable Roadmap
 
-Generated: 2026-10-10T05:59:00+00:00
+Generated: 2026-10-10T06:29:07+00:00
 
 | Phase | Task | Status | Goal |
 |---|---|---|---|
@@ -22,6 +22,9 @@ Generated: 2026-10-10T05:59:00+00:00
 | P7 | P7_IA_VERIFIED | PENDING | Navigation/facet consolidation preserves distinct systems and functional routes |
 | P8 | P8_RELEASE_EVIDENCE | PENDING | Full acceptance, rollback, release evidence and independent adversarial verification |
 | RELEASE | R_LIVE | PENDING | Owner authorization before any deployment, migration, DNS, cutover or production writer change |
+| F | H2_ORPHAN_AUDIT | PASSED | Audit residual orphan bounty/slot mission_ids vs mission records; forward fix evidence |
+| F | H5_CLOSE_RECORD | PASSED | Record thread-close verb implementation evidence (route+guard+tests) |
+| F | H3_OTEL_RECORD | PASSED | Record narrow otel trace-defect fix evidence; atomic-Seed architecture excluded |
 
 ## Next eligible work
 

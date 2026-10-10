@@ -21,6 +21,19 @@ ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{1,79}$")
 PHASE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,79}$")
 SUCCESS = "passed"
 STATUSES = {"pending", "running", "passed", "failed", "interrupted", "blocked"}
+SCHEMA_VERSIONS = {1, 2}
+# Fields that define a task's execution contract. Receipts bind to the hash
+# of these fields only — v2 metadata (acceptance text, risk, lane, retry)
+# may evolve without invalidating accepted evidence.
+CORE_CONTRACT_KEYS = ("id", "goal", "needs", "scope", "executor", "checks", "outputs")
+RISK_LEVELS = {"low", "medium", "high"}
+AUTHORITY_LEVELS = {"technical", "owner", "implementation"}
+
+
+def contract_digest(task):
+    """Hash over execution-relevant contract fields only (v2).
+    Receipts also accept the legacy whole-task digest (see verify_existing)."""
+    return digest(canon_bytes({k: task[k] for k in CORE_CONTRACT_KEYS if k in task}))
 
 
 class RoadmapError(Exception):
@@ -72,8 +85,9 @@ def assert_safe_path(project, rel):
 
 
 def validate_contract(data, project):
-    if not isinstance(data, dict) or data.get("schema_version") != 1:
-        raise RoadmapError("roadmap.json schema_version must equal 1")
+    if not isinstance(data, dict) or data.get("schema_version") not in SCHEMA_VERSIONS:
+        raise RoadmapError("roadmap.json schema_version must be 1 or 2")
+    sv = data["schema_version"]
     if not isinstance(data.get("project"), str) or not data["project"].strip():
         raise RoadmapError("Missing project name")
     tasks = data.get("tasks")
@@ -97,13 +111,42 @@ def validate_contract(data, project):
             raise RoadmapError(f"{k}: repeated dependency")
         if t.get("scope", "local") not in {"local", "approval"}:
             raise RoadmapError(f"{k}: scope must be local or approval")
+        if sv == 2:
+            if "files" in t:
+                if not isinstance(t["files"], list) or not t["files"] or any(not isinstance(x, str) for x in t["files"]):
+                    raise RoadmapError(f"{k}: files must be a nonempty string array of permitted paths")
+                for fp in t["files"]:
+                    assert_safe_path(project, fp.rstrip("/") or ".")
+            if "risk" in t and t["risk"] not in RISK_LEVELS:
+                raise RoadmapError(f"{k}: risk must be one of {sorted(RISK_LEVELS)}")
+            if "authority" in t and t["authority"] not in AUTHORITY_LEVELS:
+                raise RoadmapError(f"{k}: authority must be one of {sorted(AUTHORITY_LEVELS)}")
+            if t.get("authority") == "owner" and t.get("scope") != "approval":
+                raise RoadmapError(f"{k}: authority=owner requires scope=approval")
+            if "lane" in t and not isinstance(t["lane"], str):
+                raise RoadmapError(f"{k}: lane must be a string")
+            if "retry" in t:
+                r = t["retry"]
+                if not isinstance(r, dict) or not isinstance(r.get("max_attempts", 0), int) or r.get("max_attempts", 0) < 0:
+                    raise RoadmapError(f"{k}: retry.max_attempts must be an int >= 0")
+                if r.get("backoff_seconds", 0) and (not isinstance(r["backoff_seconds"], (int, float)) or r["backoff_seconds"] < 0):
+                    raise RoadmapError(f"{k}: retry.backoff_seconds must be >= 0")
         ex = t.get("executor")
-        if not isinstance(ex, dict) or ex.get("type") not in {"command", "manual"}:
-            raise RoadmapError(f"{k}: executor.type must be command or manual")
-        if ex["type"] == "command":
+        valid_exec = {"command", "manual"} | ({"adapter"} if sv == 2 else set())
+        if not isinstance(ex, dict) or ex.get("type") not in valid_exec:
+            raise RoadmapError(f"{k}: executor.type must be one of {sorted(valid_exec)}")
+        if ex.get("type") == "adapter":
+            if not isinstance(ex.get("adapter"), str) or not ex["adapter"]:
+                raise RoadmapError(f"{k}: adapter executor requires adapter name")
+            if t.get("scope", "local") != "local":
+                raise RoadmapError(f"{k}: adapter tasks may not run automatically under approval scope")
+            if not isinstance(ex.get("params", {}), dict):
+                raise RoadmapError(f"{k}: adapter params must be an object")
+        if ex["type"] in {"command", "adapter"}:
             if t.get("scope", "local") != "local":
                 raise RoadmapError(f"{k}: approval actions may not run automatically")
-            check_argv(ex.get("argv"), k)
+            if ex["type"] == "command":
+                check_argv(ex.get("argv"), k)
             check_cwd(project, ex.get("cwd", "."), k)
             checks = t.get("checks")
             if not isinstance(checks, list) or not checks:
@@ -200,11 +243,15 @@ def write_state(project, st):
     atomic_json(project / ".roadmap" / "state.json", st)
 
 
+import threading as _threading
+_EVENT_LOCK = _threading.Lock()
+
+
 def append_event(project, payload):
     path = project / ".roadmap" / "events.jsonl"
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {"at": now(), **payload}
-    with open(path, "ab") as f:
+    with _EVENT_LOCK, open(path, "ab") as f:
         f.write(canon_bytes(payload) + b"\n")
         f.flush()
         os.fsync(f.fileno())
@@ -225,6 +272,35 @@ def lock(project):
             yield
         finally:
             fcntl.flock(f, fcntl.LOCK_UN)
+
+
+def files_conflict(a, b):
+    """Two tasks conflict when their declared write scopes overlap —
+    or either declares none (conservative, v1 tasks are exclusive)."""
+    fa, fb = a.get("files"), b.get("files")
+    if not fa or not fb:
+        return True
+    for x in fa:
+        for y in fb:
+            if x == y:
+                return True
+            if x.endswith("/") and (y == x[:-1] or y.startswith(x)):
+                return True
+            if y.endswith("/") and (x == y[:-1] or x.startswith(y)):
+                return True
+    return False
+
+
+def non_conflicting_wave(tasks):
+    """Greedy subset of ready tasks that may run concurrently —
+    first-come wins, overlapping file claims deferred to a later wave."""
+    wave, deferred = [], []
+    for t in tasks:
+        if any(files_conflict(t, w) for w in wave):
+            deferred.append(t)
+        else:
+            wave.append(t)
+    return wave, deferred
 
 
 def candidates(data, st):
@@ -271,13 +347,17 @@ def verify_existing(project, data, st):
             rec = json.loads(rf.read_text(encoding="utf-8"))
             if rec.get("task") != k or rec.get("status") != "passed":
                 errors.append(f"{k}: receipt identity/status invalid")
-            if rec.get("contract_sha256") != digest(canon_bytes(idx[k])):
+            want = rec.get("contract_sha256")
+            valid_digests = {digest(canon_bytes(idx[k])), contract_digest(idx[k])}
+            for alt in (idx[k].get("prior_contract_sha256") or []):
+                valid_digests.add(alt)
+            if want not in valid_digests:
                 errors.append(f"{k}: task contract changed after PASS (requires controlled amendment)")
             for path, hash_value in rec.get("outputs", {}).items():
                 artifact = assert_safe_path(project, path)
                 if not artifact.is_file() or file_digest(artifact) != hash_value:
                     errors.append(f"{k}: evidence artifact missing/changed: {path}")
-            if idx[k]["executor"]["type"] == "command":
+            if idx[k]["executor"]["type"] in {"command", "adapter"}:
                 if not rec.get("outputs"):
                     errors.append(f"{k}: empty output proof")
                 if rec.get("executor_exit") != 0 or len(rec.get("checks", [])) != len(idx[k]["checks"]) or any(c.get("exit_code") != 0 for c in rec.get("checks", [])):
@@ -304,6 +384,44 @@ def recover_interrupted(project, st):
     return count
 
 
+def resolve_adapter(project, ex):
+    """Resolve an adapter executor to a runnable argv.
+    Adapter files live at project/adapters/<name>.json and declare
+    {"argv": [...]} with optional "{param}" placeholders filled from
+    executor.params. Returns argv or None when unavailable."""
+    name = ex.get("adapter", "")
+    adir = Path(project) / "adapters"
+    af = adir / f"{name}.json"
+    if not af.is_file():
+        return None
+    try:
+        spec = json.loads(af.read_text(encoding="utf-8"))
+    except ValueError:
+        return None
+    argv = spec.get("argv")
+    if not isinstance(argv, list) or not argv or any(not isinstance(a, str) for a in argv):
+        return None
+    params = {k: str(v) for k, v in ex.get("params", {}).items()}
+    try:
+        return [a.format(**params) if "{" in a else a for a in argv]
+    except KeyError:
+        return None
+
+
+def files_cover(task, rel):
+    """Check output path rel is inside declared task files (v2)."""
+    files = task.get("files")
+    if not files:
+        return True  # v1 task — no declared write scope
+    for fp in files:
+        if fp.endswith("/"):
+            if rel == fp[:-1] or rel.startswith(fp):
+                return True
+        elif rel == fp:
+            return True
+    return False
+
+
 def execute_one(project, data, st, task):
     k = task["id"]
     s = st["tasks"][k]
@@ -313,6 +431,16 @@ def execute_one(project, data, st, task):
         write_state(project, st)
         append_event(project, {"type": "manual_gate", "task": k})
         return False
+    executor = task["executor"]
+    if executor["type"] == "adapter":
+        argv = resolve_adapter(project, executor)
+        if argv is None:
+            s["status"] = "blocked"
+            s["reason"] = f"ADAPTER_UNAVAILABLE: adapters/{executor.get('adapter')}.json missing or invalid"
+            write_state(project, st)
+            append_event(project, {"type": "adapter_unavailable", "task": k, "adapter": executor.get("adapter")})
+            return False
+        executor = dict(executor, argv=argv, type="command")
     s.update(status="running", attempt=s.get("attempt", 0) + 1, started=now(), start_sha=git_sha(project))
     write_state(project, st)
     append_event(project, {"type": "start", "task": k, "attempt": s["attempt"]})
@@ -320,7 +448,7 @@ def execute_one(project, data, st, task):
     logs.mkdir(parents=True, exist_ok=True)
     log = logs / f"{k}-{s['attempt']}.log"
     timeout = task.get("timeout_seconds", 600)
-    rc = run_argv(project, task["executor"], timeout, log)
+    rc = run_argv(project, executor, timeout, log)
     checks = []
     if rc == 0:
         for n, check in enumerate(task["checks"], 1):
@@ -332,6 +460,11 @@ def execute_one(project, data, st, task):
     outputs = {}
     if rc == 0:
         for rel in task["outputs"]:
+            if not files_cover(task, rel):
+                rc = 3
+                with open(log, "ab") as o:
+                    o.write(("Output outside permitted files scope: " + rel + "\n").encode())
+                break
             p = assert_safe_path(project, rel)
             if not p.is_file():
                 rc = 2
@@ -340,11 +473,21 @@ def execute_one(project, data, st, task):
                 break
             outputs[rel] = file_digest(p)
     if rc:
+        retry = task.get("retry") or {}
+        if s["attempt"] < retry.get("max_attempts", 0):
+            backoff = retry.get("backoff_seconds", 0)
+            if backoff:
+                time.sleep(min(backoff, 60))
+            s["status"] = "pending"
+            s.pop("reason", None)
+            write_state(project, st)
+            append_event(project, {"type": "retry_scheduled", "task": k, "attempt": s["attempt"], "exit_code": rc})
+            return False
         s.update(status="failed", reason=f"Command/check/artifact validation failed (exit {rc}); inspect {log.relative_to(project)}", finished=now())
         write_state(project, st)
         append_event(project, {"type": "failed", "task": k, "exit_code": rc, "log": str(log.relative_to(project))})
         return False
-    rec = {"task": k, "status": "passed", "attempt": s["attempt"], "at": now(), "contract_sha256": digest(canon_bytes(task)), "start_sha": s.get("start_sha"), "end_sha": git_sha(project), "executor_exit": 0, "checks": checks, "outputs": outputs, "log": str(log.relative_to(project)), "assurance": "local-command-and-checks"}
+    rec = {"task": k, "status": "passed", "attempt": s["attempt"], "at": now(), "contract_sha256": contract_digest(task), "start_sha": s.get("start_sha"), "end_sha": git_sha(project), "executor_exit": 0, "checks": checks, "outputs": outputs, "log": str(log.relative_to(project)), "assurance": "local-command-and-checks"}
     atomic_json(project / ".roadmap" / "receipts" / (k + ".json"), rec)
     s.update(status="passed", finished=now(), receipt=f".roadmap/receipts/{k}.json", end_sha=rec["end_sha"])
     s.pop("reason", None)

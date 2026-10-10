@@ -645,6 +645,41 @@ async def get_thread_messages(thread_id: str, request: Request, magic: str = "")
     return state.kassa.load_thread_messages(thread_id)
 
 
+@router.post("/api/kassa/threads/{thread_id}/close")
+async def close_thread(thread_id: str, request: Request) -> dict:
+    """Close a thread. Caller must be the owning agent (JWT) or admin.
+    Enforced transition already existed on writes — this supplies the
+    missing authorized close verb."""
+    thread = state.kassa.get_thread(thread_id)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+    if thread.get("status") != "open":
+        raise HTTPException(status_code=409, detail="Thread is already closed")
+
+    if not admin_key_matches(request, state.admin_key):
+        claims = _verify_jwt(
+            request.headers.get("Authorization", "")[7:]
+            if request.headers.get("Authorization", "").startswith("Bearer ") else "")
+        agent = next((r for r in state.runtime.registry
+                      if r.get("agent_id") == thread.get("agent_id")), None)
+        if not claims or claims.get("sub") != thread.get("agent_id") or not agent_token_alive(agent, claims):
+            raise HTTPException(status_code=403, detail="Only the owning agent or an admin may close a thread")
+
+    state.kassa.update_thread(thread_id, {
+        "status": "closed",
+        "updated_at": datetime.now(UTC).isoformat(),
+    })
+    state.audit.log("kassa", "thread_closed", {
+        "thread_id": thread_id, "agent_id": thread.get("agent_id"),
+        "closed_by": "admin" if admin_key_matches(request, state.admin_key) else thread.get("agent_id"),
+    })
+    await state.emit("kassa_thread", {
+        "type": "thread_closed", "thread_id": thread_id,
+        "agent_id": thread.get("agent_id"),
+    })
+    return {"thread_id": thread_id, "status": "closed"}
+
+
 @router.post("/api/kassa/threads/{thread_id}/messages")
 async def post_thread_message(thread_id: str, request: Request) -> dict:
     """Post a message to a thread. Auth via JWT (agent) or magic token (poster)."""
