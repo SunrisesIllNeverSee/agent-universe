@@ -877,6 +877,9 @@ class MCPBridge:
                 if meeting is None:
                     span.set_attribute("mcp.result", "motion_not_found")
                     return {"error": f"Motion {motion_id} not found."}
+                if meeting.get("status") != "open":
+                    span.set_attribute("mcp.result", "meeting_not_open")
+                    return {"error": "Meeting is not open."}
                 voter = agent["name"]
                 if voter not in meeting.get("attendees", []):
                     span.set_attribute("mcp.result", "not_attendee")

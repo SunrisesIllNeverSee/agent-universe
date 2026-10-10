@@ -298,6 +298,8 @@ async def cast_vote(meeting_id: str, payload: CastVotePayload, request: Request)
     meeting = next((m for m in meetings if m["id"] == meeting_id), None)
     if not meeting:
         return JSONResponse({"error": "Meeting not found"}, status_code=404)
+    if meeting["status"] != "open":
+        return JSONResponse({"error": "Meeting is not open"}, status_code=409)
     if voter not in meeting["attendees"]:
         return JSONResponse({"error": "Voter must be an attendee"}, status_code=403)
     motion = next((mo for mo in meeting["motions"] if mo["id"] == motion_id), None)

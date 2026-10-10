@@ -530,3 +530,40 @@ def test_gv_mcp_vote_unknown_motion_and_bad_key(client):
     assert out.get("error")
     out2 = _mcp_vote("kassa_boguskey", "mot-x", "yea")
     assert out2.get("error")
+
+
+# ═══ REST/MCP closed-meeting vote parity ═══════════════════════════════════
+
+def _adjourned_meeting_with_pending_motion(admin_client):
+    mid = _open_meeting_with_agent(admin_client, "chair-x", quorum=1)
+    mo = _pending_motion(admin_client, mid, "chair-x")
+    r = admin_client.post(f"/api/governance/meeting/{mid}/adjourn", json={"caller": "chair-x"})
+    assert r.status_code == 200, r.text
+    return mid, mo
+
+
+def test_rest_vote_rejected_on_adjourned_meeting(admin_client):
+    mid, mo = _adjourned_meeting_with_pending_motion(admin_client)
+    r = admin_client.post(f"/api/governance/meeting/{mid}/vote", json={
+        "voter": "chair-x", "motion_id": mo, "vote": "yea",
+    })
+    assert r.status_code == 409
+    meeting = admin_client.get(f"/api/governance/meeting/{mid}").json()["meeting"]
+    motion = next(m for m in meeting["motions"] if m["id"] == mo)
+    assert motion["votes"] == {} and motion["status"] == "pending"
+    assert not any(m["type"] == "vote_cast" for m in meeting["minutes"])
+
+
+def test_mcp_vote_rejected_on_adjourned_meeting(client, admin_client):
+    resp = signup_agent(client, name=_uniq("mv"),
+                        ip=f"10.99.{uuid.uuid4().int%255}.{uuid.uuid4().int%255}")
+    d = resp.json()
+    mid = _open_meeting_with_agent(admin_client, d["name"])
+    mo = _pending_motion(admin_client, mid, d["name"])
+    admin_client.post(f"/api/governance/meeting/{mid}/adjourn", json={"caller": d["name"]})
+
+    out = _mcp_vote(d["api_key"], mo, "yea")
+    assert out.get("error"), out
+    meeting = admin_client.get(f"/api/governance/meeting/{mid}").json()["meeting"]
+    motion = next(m for m in meeting["motions"] if m["id"] == mo)
+    assert motion["votes"] == {}
