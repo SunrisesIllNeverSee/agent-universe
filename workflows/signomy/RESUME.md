@@ -24,8 +24,10 @@ Archive: ~/Developer/_7_labs/signomy-control-surface/reports/wiring-atlas/
   (199 api / 82 page_route / 3 ws / 30 mcp_tool) across 23 modules,
   JS+WS+nav+storage extraction, drift tracking (--check-drift),
   25 tests, falsifier + 4 reviewer rounds, PASS post-correction.
-- Refresh: `python3 build_atlas.py --repo <repo> --archive <archive> --out <atlas>`
-  then `validate_runtime.py --base <local-url>` then `--check-drift`.
+- Refresh (ORDER MATTERS — rebuild overwrites fingerprints):
+  1. `python3 build_atlas.py --repo <repo> --archive <archive> --out <atlas> --check-drift`
+  2. `python3 validate_runtime.py --base <local-url> --out <atlas>`
+  3. `python3 build_atlas.py --repo <repo> --archive <archive> --out <atlas>`
 - Serve: `python3 -m http.server 8931 --directory <atlas>`.
 
 ## Next eligible work (no new authorization needed)
