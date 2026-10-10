@@ -75,7 +75,7 @@ def _require_agent_or_admin(request: Request, agent: dict) -> None:
     provided_key = auth[7:].strip()
     provided_hash = _hash_key(provided_key) if provided_key else ""
     if provided_hash and provided_hash in state.runtime.revoked_keys:
-        raise HTTPException(401, "API key revoked")
+        raise HTTPException(401, "Invalid API key")
     stored_hash = agent.get("key_hash", "")
     if (
         not provided_key

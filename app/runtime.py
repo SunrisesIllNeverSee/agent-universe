@@ -66,8 +66,7 @@ class RuntimeState:
         # Persisted separately from provision.json so revocation is durable
         # even if a credential record is re-created.
         revoked_file = self.data_dir / "revoked_keys.json"
-        revoked_data = json.loads(revoked_file.read_text(encoding="utf-8")) if revoked_file.exists() else []
-        self.revoked_keys: set[str] = set(revoked_data if isinstance(revoked_data, list) else [])
+        self.revoked_keys: set[str] = self._load_revoked_keys(revoked_file)
         vault_file = self.config_dir / "vault.json"
         vault_raw = json.loads(vault_file.read_text(encoding="utf-8")) if vault_file.exists() else {"vault": {}}
         self.vault = VaultState(vault_raw["vault"])
@@ -146,8 +145,10 @@ class RuntimeState:
         """Record a credential digest as revoked and persist the deny-list."""
         if not digest:
             return
-        self.revoked_keys.add(digest)
-        self.persist_revoked_keys()
+        path = self.data_dir / "revoked_keys.json"
+        with self._lock:
+            self.revoked_keys.add(digest)
+            self._atomic_write_json(path, sorted(self.revoked_keys))
 
     def persist_registry(self) -> None:
         """Write provision.json back with current registry state.
