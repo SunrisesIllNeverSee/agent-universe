@@ -102,6 +102,9 @@ def main(argv=None):
     retry = sub.add_parser("retry", help="Explicitly authorize a retry of failed/interrupted task")
     retry.add_argument("task")
     retry.add_argument("--acknowledge-side-effects", action="store_true", required=True)
+    inv = sub.add_parser("invalidate", help="Controlled invalidation of a PASSED task (bad evidence) — records event, removes receipt, marks failed")
+    inv.add_argument("task")
+    inv.add_argument("--reason", required=True)
     attest = sub.add_parser("attest", help="Attest a manual approval gate using a real evidence file")
     attest.add_argument("task")
     attest.add_argument("--evidence", required=True)
@@ -211,7 +214,7 @@ def main(argv=None):
             if n:
                 print(f"Recovered {n} interrupted tasks; explicit inspected retry required")
             errs = verify_existing(p, data, st)
-            if errs:
+            if errs and args.action != "invalidate":
                 raise RoadmapError("Refusing to proceed: accepted evidence invalid:\n" + "\n".join(errs))
             if args.action == "refresh":
                 if not data.get("observer"):
@@ -259,6 +262,26 @@ def main(argv=None):
                 print("Cycle complete; tasks processed:", count)
                 print(report(p, data, st))
                 return 0 if not any(v["status"] in {"failed", "interrupted"} for v in st["tasks"].values()) else 3
+            if args.action == "invalidate":
+                """Revoke a passed receipt — auditable, not silent.
+                Receipt is removed and the task marked failed with the
+                recorded reason; recovery is via explicit retry + rerun."""
+                if args.task not in index:
+                    raise RoadmapError("Unknown task")
+                srec = st["tasks"][args.task]
+                if srec["status"] != "passed":
+                    raise RoadmapError("invalidate applies only to PASSED tasks")
+                rf = p / ".roadmap" / "receipts" / f"{args.task}.json"
+                if rf.exists():
+                    rf.unlink()
+                srec["status"] = "failed"
+                srec["reason"] = f"RECEIPT INVALIDATED: {args.reason} — inspect evidence, then retry"
+                srec.pop("receipt", None)
+                write_state(p, st)
+                append_event(p, {"type": "invalidated", "task": args.task, "reason": args.reason})
+                report(p, data, st)
+                print("Invalidated receipt:", args.task)
+                return 0
             if args.action == "retry":
                 if not args.acknowledge_side_effects:
                     raise RoadmapError("Explicit --acknowledge-side-effects required")

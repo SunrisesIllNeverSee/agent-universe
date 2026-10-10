@@ -400,12 +400,20 @@ async def agent_provision_status(agent_id: str, request: Request) -> dict:
     if not agent:
         return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
 
-    # Validate Bearer API key if provided (dashboard login path)
+    # Validate Bearer API key if provided (dashboard login path); X-Agent-Key
+    # is the header form (keeps credentials out of URL/access logs).
+    provided_key = ""
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         provided_key = auth_header[7:].strip()
+    elif request.headers.get("X-Agent-Key"):
+        provided_key = request.headers["X-Agent-Key"].strip()
+    if provided_key:
+        provided_hash = _hash_key(provided_key)
+        if provided_hash in runtime.revoked_keys:
+            return JSONResponse({"error": "Invalid API key"}, status_code=401)
         stored_hash = agent.get("key_hash", "")
-        if not stored_hash or _hash_key(provided_key) != stored_hash:
+        if not stored_hash or provided_hash != stored_hash:
             return JSONResponse({"error": "Invalid API key"}, status_code=401)
 
     # Determine economic tier from live governance state + per-agent metrics

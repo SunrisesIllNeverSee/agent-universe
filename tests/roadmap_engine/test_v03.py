@@ -247,3 +247,53 @@ class V03(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class V03Integrity(unittest.TestCase):
+    """Fail-closed evidence + controlled invalidation regressions."""
+    def setUp(self):
+        self.t = tempfile.TemporaryDirectory()
+        self.addCleanup(self.t.cleanup)
+
+    def invoke(self, project, *args, success=None):
+        e = dict(os.environ, PYTHONPATH=str(SRC))
+        r = subprocess.run([sys.executable, "-m", "roadmap_engine", "--project", str(project)] + list(args),
+                           capture_output=True, text=True, env=e)
+        if success is True:
+            self.assertEqual(r.returncode, 0, (r.stdout, r.stderr))
+        if success is False:
+            self.assertNotEqual(r.returncode, 0, (r.stdout, r.stderr))
+        return r
+
+    def state(self, project):
+        return json.loads((project / ".roadmap" / "state.json").read_text())
+
+    def test_invalidate_revokes_receipt_and_blocks_rerun_until_retry(self):
+        proj = make_project([cmd_task("AA")], self.t.name)
+        self.invoke(proj, "run", success=True)
+        # invalidate: receipt gone, task failed, event recorded
+        self.invoke(proj, "invalidate", "AA", "--reason", "bad evidence", success=True)
+        st = self.state(proj)["tasks"]["AA"]
+        self.assertEqual(st["status"], "failed")
+        self.assertFalse((proj / ".roadmap" / "receipts" / "AA.json").exists())
+        # run refuses to silently re-execute a failed task
+        r = self.invoke(proj, "run", success=False)
+        # explicit retry re-admits; rerun re-receipts
+        self.invoke(proj, "retry", "AA", "--acknowledge-side-effects", success=True)
+        self.invoke(proj, "run", success=True)
+        self.assertEqual(self.state(proj)["tasks"]["AA"]["status"], "passed")
+        self.assertTrue((proj / ".roadmap" / "receipts" / "AA.json").exists())
+
+    def test_invalidate_bypasses_stale_evidence_gate(self):
+        """Invalidation must work even when artifacts already drifted."""
+        proj = make_project([cmd_task("AA")], self.t.name)
+        self.invoke(proj, "run", success=True)
+        (proj / "out" / "AA.json").write_text('{"drifted": 1}')
+        self.invoke(proj, "verify", success=False)   # verify catches drift
+        self.invoke(proj, "invalidate", "AA", "--reason", "drifted", success=True)
+        self.assertEqual(self.state(proj)["tasks"]["AA"]["status"], "failed")
+
+    def test_invalidate_only_passed(self):
+        proj = make_project([cmd_task("AA")], self.t.name)
+        r = self.invoke(proj, "invalidate", "AA", "--reason", "x", success=False)
+        self.assertIn("PASSED", r.stderr)

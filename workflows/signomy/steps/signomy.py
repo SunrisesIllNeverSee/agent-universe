@@ -230,10 +230,18 @@ def get_t0_falsifier():
     }
     if not all(checks.values()):
         raise RuntimeError(f'T0 falsifier corrections incomplete: {checks}')
-    r = subprocess.run([sys.executable, str(probe), str(runtime)],
-                       capture_output=True, text=True, timeout=120)
+    # Probe requires the project venv (fastapi/starlette) — the controller
+    # engine itself is stdlib-only and may run under system python.
+    venv_py = runtime/'.venv/bin/python'
+    interp = str(venv_py) if venv_py.is_file() else sys.executable
+    r = subprocess.run([interp, str(probe), str(runtime)],
+                       capture_output=True, text=True, timeout=180)
+    if r.returncode != 0:
+        raise RuntimeError(
+            f'independent probe FAILED (exit {r.returncode}); '
+            f'tail: {(r.stdout or r.stderr).strip().splitlines()[-3:]}')
     return {'corrections': checks, 'probe_exit': r.returncode,
-            'probe_green': r.returncode == 0,
+            'probe_green': True, 'interpreter': interp,
             'probe_tail': r.stdout.strip().splitlines()[-2:] if r.stdout else [],
             'verdict_sha256': sha(verdict), 'probe_sha256': sha(probe)}
 

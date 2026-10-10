@@ -138,7 +138,7 @@
   let pages = [], currentRoute = null;
 
   // ── Pages registry (page census source of truth) ─────────────────────
-  fetch("/config/pages.json").then(r=>r.json()).then(j=>{
+  fetch("/api/pages").then(r=>r.json()).then(j=>{
     pages = [];
     const walk = arr => (arr||[]).forEach(x=>{
       if (x.pages) walk(x.pages);
@@ -164,6 +164,9 @@
     if (!r || !VALID_ROUTE.test(r) || r.startsWith("//") || r.startsWith("/api/")) return null;
     const path = r.split("?")[0];
     if (path === "/shell") return null;
+    // Registry still loading → allow structurally-valid internal routes;
+    // once loaded, route must be registered, a mode surface, or /console.
+    if (!pages.length) return r;
     return (pageFor(path) || MODES.some(m=>m.routes.includes(path)) || path==="/console") ? r : null;
   };
   const routeFromLocation = () =>
@@ -192,7 +195,11 @@
       const p = pageFor(r) || {name:r.replace("/"," "),status:"planned",note:""};
       const el = document.createElement("div");
       el.className="surf"+(r===currentRoute?" on":"");
-      el.innerHTML = `<span class="st">${p.status||""}</span>${p.name}<small>${p.note||r}</small>`;
+      const st = document.createElement("span"); st.className="st"; st.textContent = p.status||"";
+      el.appendChild(st);
+      el.appendChild(document.createTextNode(p.name||r));
+      const sm = document.createElement("small"); sm.textContent = p.note||r;
+      el.appendChild(sm);
       el.addEventListener("click",()=>nav(r));
       s.appendChild(el);
     });
@@ -289,7 +296,8 @@
     try {
       const ca = JSON.parse(localStorage.getItem("civitas_auth")||"null");
       if (ca && ca.agentId){
-        const r = await fetch("/api/provision/status/"+encodeURIComponent(ca.agentId)+"?api_key="+encodeURIComponent(ca.key||""));
+        const r = await fetch("/api/provision/status/"+encodeURIComponent(ca.agentId),
+                              {headers:{"X-Agent-Key": ca.key||""}});
         if (r.ok){
           const a = await r.json();
           who.textContent = a.name||ca.agentId;

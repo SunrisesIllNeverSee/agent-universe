@@ -1,6 +1,6 @@
 # SIGNOMY — Phase 2 Provisional Baseline / Phase 3 Host-First Transition — Executable Roadmap
 
-Generated: 2026-10-10T07:21:10+00:00
+Generated: 2026-10-10T08:03:52+00:00
 
 | Phase | Task | Status | Goal |
 |---|---|---|---|
