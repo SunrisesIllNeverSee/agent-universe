@@ -454,6 +454,82 @@
       "outputs": [
         "out/h3-otel-trace.json"
       ]
+    },
+    {
+      "id": "T0_FALSIFIER_RERUN",
+      "phase": "T0",
+      "goal": "Independent falsifier rerun: extended PII-guard probes, advisory leak found + corrected, probe GREEN",
+      "needs": [
+        "T0_BIND"
+      ],
+      "scope": "local",
+      "authority": "technical",
+      "risk": "medium",
+      "lane": "hardening",
+      "acceptance": "out/t0-falsifier-verdict.json records corrections + probe_exit 0",
+      "files": [
+        "out/t0-falsifier-verdict.json"
+      ],
+      "executor": {
+        "type": "command",
+        "argv": [
+          "python3",
+          "steps/signomy.py",
+          "produce",
+          "t0_falsifier"
+        ]
+      },
+      "checks": [
+        {
+          "argv": [
+            "python3",
+            "steps/signomy.py",
+            "check",
+            "t0_falsifier"
+          ]
+        }
+      ],
+      "outputs": [
+        "out/t0-falsifier-verdict.json"
+      ]
+    },
+    {
+      "id": "P3_SHELL_IMPL",
+      "phase": "P3",
+      "goal": "Record bounded isolated-branch shell implementation evidence (rail/sidebar/canvas/inspector/HUD)",
+      "needs": [
+        "P3_AUTHORIZE"
+      ],
+      "scope": "local",
+      "authority": "implementation",
+      "risk": "medium",
+      "lane": "shell",
+      "acceptance": "out/p3-shell-implementation.json records landmarks + route + tests on the dev branch",
+      "files": [
+        "out/p3-shell-implementation.json"
+      ],
+      "executor": {
+        "type": "command",
+        "argv": [
+          "python3",
+          "steps/signomy.py",
+          "produce",
+          "p3_shell"
+        ]
+      },
+      "checks": [
+        {
+          "argv": [
+            "python3",
+            "steps/signomy.py",
+            "check",
+            "p3_shell"
+          ]
+        }
+      ],
+      "outputs": [
+        "out/p3-shell-implementation.json"
+      ]
     }
   ]
 }

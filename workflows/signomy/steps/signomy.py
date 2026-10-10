@@ -214,8 +214,51 @@ def get_h3_otel():
             'source_sha256': sha(runtime/'app/seeds_otel.py')}
 
 
+def get_t0_falsifier():
+    """Independent-falsifier T0 rerun — probe exit + verdict + corrections."""
+    _, runtime, _ = settings()
+    probe = required(runtime/'reviews/t0_independent_rerun.py','independent probe')
+    verdict = required(runtime/'reviews/T0-Independent-Falsifier-Verdict.md','verdict')
+    adv = required(runtime/'app/routes/advisory.py','advisory').read_text(encoding='utf-8')
+    prov = required(runtime/'app/routes/provision.py','provision').read_text(encoding='utf-8')
+    oper = required(runtime/'app/routes/operator.py','operator').read_text(encoding='utf-8')
+    checks = {
+        'applicant_stripped': 'if k != "applicant"' in adv,
+        'audit_no_name': '"name": name' not in adv.split('seat_application')[1][:200] if 'seat_application' in adv else False,
+        'key_route_guard': 'require_admin(request, state.admin_key)' in prov.split('issue_agent_key')[1][:300] if 'issue_agent_key' in prov else False,
+        'review_route_guard': 'require_admin(request, state.admin_key)' in oper.split('inbox_review')[1][:400] if 'inbox_review' in oper else False,
+    }
+    if not all(checks.values()):
+        raise RuntimeError(f'T0 falsifier corrections incomplete: {checks}')
+    r = subprocess.run([sys.executable, str(probe), str(runtime)],
+                       capture_output=True, text=True, timeout=120)
+    return {'corrections': checks, 'probe_exit': r.returncode,
+            'probe_green': r.returncode == 0,
+            'probe_tail': r.stdout.strip().splitlines()[-2:] if r.stdout else [],
+            'verdict_sha256': sha(verdict), 'probe_sha256': sha(probe)}
+
+
+def get_p3_shell():
+    """Phase 3 shell implementation evidence (branch artifacts)."""
+    _, runtime, _ = settings()
+    html = required(runtime/'frontend/shell.html','shell page').read_text(encoding='utf-8')
+    pages_src = required(runtime/'app/routes/pages.py','pages').read_text(encoding='utf-8')
+    tests_src = required(runtime/'tests/test_p3_shell.py','shell tests').read_text(encoding='utf-8')
+    required_marks = ['id="rail"','id="sidebar"','id="canvas"','id="inspector"','id="hud"',
+                      'PHASE-4','MISSION CONTROL','/api/state','/api/kassa/agent/me']
+    missing = [m for m in required_marks if m not in html]
+    if missing:
+        raise RuntimeError(f'shell incomplete: {missing}')
+    return {'route': '/shell' in pages_src, 'landmarks': 5,
+            'modes': html.count('label:"'), 'tests': 'test_shell_route_serves' in tests_src,
+            'scope': 'host-first; hosted pages unchanged; no merge/deploy',
+            'source_sha256': sha(runtime/'frontend/shell.html')}
+
+
 STAGES={
     't0':('out/t0-source-binding.json',get_t0),
+    't0_falsifier':('out/t0-falsifier-verdict.json',get_t0_falsifier),
+    'p3_shell':('out/p3-shell-implementation.json',get_p3_shell),
     'h2_orphans':('out/h2-orphan-audit.json',get_h2_orphans),
     'h5_close':('out/h5-thread-close.json',get_h5_close),
     'h3_otel':('out/h3-otel-trace.json',get_h3_otel),

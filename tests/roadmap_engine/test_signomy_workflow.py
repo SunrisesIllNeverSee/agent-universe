@@ -53,6 +53,15 @@ class SignomyWorkflowTests(unittest.TestCase):
         put(self.repo/'app/routes/missions.py','"origin": "bounty"')
         put(self.repo/'app/routes/kassa.py','api/kassa/threads/{thread_id}/close\nstatus != "open"')
         put(self.repo/'app/seeds_otel.py','metadata = seed.get("metadata", {})\nmetadata.get("governance_mode")')
+        # T0 falsifier + P3 shell evidence stubs
+        put(self.repo/'reviews/t0_independent_rerun.py','import sys; sys.exit(0)')
+        put(self.repo/'reviews/T0-Independent-Falsifier-Verdict.md','verdict')
+        put(self.repo/'app/routes/advisory.py','if k != "applicant"\nseat_application')
+        put(self.repo/'app/routes/provision.py','issue_agent_key\nrequire_admin(request, state.admin_key)')
+        put(self.repo/'app/routes/operator.py','inbox_review\nrequire_admin(request, state.admin_key)')
+        put(self.repo/'frontend/shell.html','id="rail" id="sidebar" id="canvas" id="inspector" id="hud" PHASE-4 MISSION CONTROL /api/state /api/kassa/agent/me ' + 'label:"x" '*9)
+        put(self.repo/'app/routes/pages.py','/shell')
+        put(self.repo/'tests/test_p3_shell.py','def test_shell_route_serves(): pass')
         design=self.design/'source/SIGNOMY-CIVITAE-design-handoff'
         put(design/'02-diagrams/canonical-figjam-board.jam','ARCHIVE')
         put(design/'START-HERE.html','gallery')
@@ -79,7 +88,7 @@ class SignomyWorkflowTests(unittest.TestCase):
         self.assertFalse((self.workflow/'.roadmap/state.json').exists())
         self.ctl('run')
         state=json.loads((self.workflow/'.roadmap/state.json').read_text())['tasks']
-        passed={'T0_BIND','H5_RECORD','VOTE_RECORD','P2_INVENTORY','P2_DELTA','P3_SHELL_PREP','H2_ORPHAN_AUDIT','H5_CLOSE_RECORD','H3_OTEL_RECORD'}
+        passed={'T0_BIND','H5_RECORD','VOTE_RECORD','P2_INVENTORY','P2_DELTA','P3_SHELL_PREP','H2_ORPHAN_AUDIT','H5_CLOSE_RECORD','H3_OTEL_RECORD','T0_FALSIFIER_RERUN'}
         self.assertEqual({k for k,v in state.items() if v['status']=='passed'}, passed)
         self.assertEqual(state['T0_ADVERSARIAL']['status'],'blocked')
         self.assertEqual(state['P2_PROVISIONAL']['status'],'blocked')

@@ -1,6 +1,6 @@
 # SIGNOMY — Phase 2 Provisional Baseline / Phase 3 Host-First Transition — Executable Roadmap
 
-Generated: 2026-10-10T06:29:07+00:00
+Generated: 2026-10-10T07:21:10+00:00
 
 | Phase | Task | Status | Goal |
 |---|---|---|---|
@@ -25,6 +25,8 @@ Generated: 2026-10-10T06:29:07+00:00
 | F | H2_ORPHAN_AUDIT | PASSED | Audit residual orphan bounty/slot mission_ids vs mission records; forward fix evidence |
 | F | H5_CLOSE_RECORD | PASSED | Record thread-close verb implementation evidence (route+guard+tests) |
 | F | H3_OTEL_RECORD | PASSED | Record narrow otel trace-defect fix evidence; atomic-Seed architecture excluded |
+| T0 | T0_FALSIFIER_RERUN | PASSED | Independent falsifier rerun: extended PII-guard probes, advisory leak found + corrected, probe GREEN |
+| P3 | P3_SHELL_IMPL | PENDING | Record bounded isolated-branch shell implementation evidence (rail/sidebar/canvas/inspector/HUD) |
 
 ## Next eligible work
 

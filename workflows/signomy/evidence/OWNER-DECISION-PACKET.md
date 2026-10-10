@@ -23,12 +23,15 @@ via `python3 -m roadmap_engine --project workflows/signomy attest <TASK> --evide
 guard was deliberately broken **inside a disposable worktree**, returned GREEN on
 the real tree, and the real tree was provably unmutated.
 
-**Honest limitation for your decision:** reviewer independence. The falsifier
-loop for H1 used a separate agent; the T0 probe was authored and executed by the
-builder lane itself. The artifact is genuine RED/GREEN evidence, but if your
-policy requires the *reviewer* to be a different party than the builder, you
-should hold this gate until a separate falsifier re-executes the probe (the
-script is ready to run unchanged: `python3 reviews/t0_redgreen_probe.py`).
+**Reviewer independence — RESOLVED 2026-10-10:** a separate falsifier agent
+re-traced every route→guard chain, invented six new probes the original missed,
+and found a REAL leak (`GET /api/advisory/seats` returning applicant PII
+anonymously — dynamically confirmed RED). Bounded corrections applied
+(applicant stripped from public projection, name removed from public audit,
+route-level `require_admin` on two middleware-only writes). Independent probe
+now GREEN; verdict `reviews/T0-Independent-Falsifier-Verdict.md`; machine
+evidence `reviews/t0_independent_rerun.py`. The falsifier caught a defect the
+builder's probe missed — this is the strongest form of the gate's intent.
 
 ## Gate 2 — `T0_GATE` (PENDING, needs T0_ADVERSARIAL first)
 
