@@ -337,7 +337,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         """Resolve and attach the active agent principal for cockpit Bearer auth."""
         registry = getattr(getattr(state, "runtime", None), "registry", None) or []
         try:
-            principal = active_agent_from_bearer(request, registry)
+            principal = active_agent_from_bearer(request, registry, state.runtime.revoked_keys)
             if principal is None:
                 return False
             request.state.agent_principal = principal

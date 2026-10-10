@@ -118,6 +118,7 @@ async def call_meeting(payload: CallMeetingPayload, request: Request) -> dict:
         caller,
         registry=state.runtime.registry,
         admin_key=state.admin_key,
+        revoked_keys=state.runtime.revoked_keys,
     )
     meetings = _load_meetings()
     meeting = {
@@ -183,6 +184,7 @@ async def join_meeting(meeting_id: str, payload: JoinMeetingPayload, request: Re
         agent_id,
         registry=state.runtime.registry,
         admin_key=state.admin_key,
+        revoked_keys=state.runtime.revoked_keys,
     )
     meetings = _load_meetings()
     meeting = next((m for m in meetings if m["id"] == meeting_id), None)
@@ -230,6 +232,7 @@ async def propose_motion(meeting_id: str, payload: ProposeMotionPayload, request
         proposer,
         registry=state.runtime.registry,
         admin_key=state.admin_key,
+        revoked_keys=state.runtime.revoked_keys,
     )
     meetings = _load_meetings()
     meeting = next((m for m in meetings if m["id"] == meeting_id), None)
@@ -289,6 +292,7 @@ async def cast_vote(meeting_id: str, payload: CastVotePayload, request: Request)
         voter,
         registry=state.runtime.registry,
         admin_key=state.admin_key,
+        revoked_keys=state.runtime.revoked_keys,
     )
     meetings = _load_meetings()
     meeting = next((m for m in meetings if m["id"] == meeting_id), None)
@@ -360,6 +364,7 @@ async def adjourn_meeting(meeting_id: str, request: Request, payload: AdjournMee
         str(meeting.get("caller") or ""),
         registry=state.runtime.registry,
         admin_key=state.admin_key,
+        revoked_keys=state.runtime.revoked_keys,
     )
     meeting["status"] = "adjourned"
     meeting["adjourned_at"] = datetime.now(UTC).isoformat()

@@ -103,6 +103,10 @@ async def mpp_pay(request: Request, payload: dict) -> dict:
     caller_id = claims.get("sub", claims.get("agent_id", ""))
     if caller_id != agent_id:
         raise HTTPException(status_code=403, detail="Cannot debit another agent's treasury")
+    from app.auth import agent_token_alive
+    _principal = next((r for r in state.runtime.registry if r.get("agent_id") == caller_id), None)
+    if not agent_token_alive(_principal, claims):
+        raise HTTPException(status_code=401, detail="Credential revoked or principal inactive")
 
     result = kassa_payments.mpp_pay(challenge_id, agent_id, state.economy.treasury)
     if result.get("error"):
@@ -696,6 +700,10 @@ async def cashout(request: Request):
     if not payload:
         return JSONResponse({"error": "JWT required"}, status_code=401)
     agent_id = payload.get("agent_id") or payload.get("sub", "")
+    from app.auth import agent_token_alive
+    _principal = next((r for r in state.runtime.registry if r.get("agent_id") == agent_id), None)
+    if not agent_token_alive(_principal, payload):
+        return JSONResponse({"error": "Credential revoked or principal inactive"}, status_code=401)
     if not agent_id:
         return JSONResponse({"error": "No agent_id in token"}, status_code=401)
 

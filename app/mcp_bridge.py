@@ -189,6 +189,8 @@ class MCPBridge:
             if not api_key:
                 return None
             h = _hash_key(api_key)
+            if h in _state.runtime.revoked_keys:
+                return None
             return next((r for r in _state.runtime.registry if r.get("key_hash") == h and r.get("status") == "active"), None)
 
         def _sanitize(text: str) -> str:

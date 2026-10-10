@@ -35,7 +35,11 @@ def admin_key_matches(request: Request, expected: str | None) -> bool:
 
 
 
-def active_agent_from_bearer(request: Request, registry: list[dict]) -> dict | None:
+def active_agent_from_bearer(
+    request: Request,
+    registry: list[dict],
+    revoked_keys: "set[str] | None" = None,
+) -> dict | None:
     """Resolve the active registered agent owning the Bearer API key."""
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
@@ -44,6 +48,8 @@ def active_agent_from_bearer(request: Request, registry: list[dict]) -> dict | N
     if not raw_key:
         return None
     digest = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+    if revoked_keys and digest in revoked_keys:
+        return None
     for agent in registry:
         if (
             agent.get("status") == "active"
@@ -59,11 +65,12 @@ def require_agent_or_admin_principal(
     *,
     registry: list[dict],
     admin_key: str | None,
+    revoked_keys: "set[str] | None" = None,
 ) -> dict | None:
     """Return the active agent principal; admin requests return None as override."""
     if admin_key_matches(request, admin_key):
         return None
-    principal = active_agent_from_bearer(request, registry)
+    principal = active_agent_from_bearer(request, registry, revoked_keys)
     if principal is None:
         raise HTTPException(401, "Active agent API key required")
     return principal
@@ -75,12 +82,14 @@ def require_agent_claim(
     *,
     registry: list[dict],
     admin_key: str | None,
+    revoked_keys: "set[str] | None" = None,
 ) -> dict | None:
     """Bind a self-service actor claim to the authenticated agent principal."""
     principal = require_agent_or_admin_principal(
         request,
         registry=registry,
         admin_key=admin_key,
+        revoked_keys=revoked_keys,
     )
     if principal is None:
         return None
@@ -93,6 +102,21 @@ def require_agent_claim(
     if claimed_identity not in aliases:
         raise HTTPException(403, "Authenticated agent does not match requested actor")
     return principal
+
+def agent_token_alive(agent: dict | None, claims: dict) -> bool:
+    """Bind a JWT to credential liveness (H1/1G): the principal must be
+    active AND the token's epoch must equal the agent's current
+    `token_epoch`, bumped on revoke/rotate/decommission so outstanding
+    tokens die with the credential that minted them. Tokens issued before
+    the field existed carry no claim — they count as epoch 0, i.e. they
+    work until the first revocation event."""
+    if not agent or agent.get("status") != "active":
+        return False
+    try:
+        return int(claims.get("epoch", 0)) == int(agent.get("token_epoch", 0))
+    except (TypeError, ValueError):
+        return False
+
 
 def client_fingerprint(request: Request) -> str:
     """Hash the best available client address for privacy-safe security telemetry."""

@@ -25,6 +25,8 @@ def _agent_from_api_key(request: Request) -> dict:
     from .provision import _hash_key
     digest = _hash_key(auth[7:].strip())
     state.runtime.reload_registry()
+    if digest in state.runtime.revoked_keys:
+        raise HTTPException(status_code=401, detail="API key revoked")
     agent = next((r for r in state.runtime.registry if r.get("key_hash") == digest), None)
     if not agent:
         raise HTTPException(status_code=401, detail="Invalid api_key")

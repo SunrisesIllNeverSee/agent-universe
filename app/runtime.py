@@ -61,6 +61,13 @@ class RuntimeState:
         provision_data = json.loads(prov_file.read_text(encoding="utf-8")) if prov_file.exists() else {}
         self.provision = provision_data.get("provision", {})
         self.registry = provision_data.get("registry", [])
+        # Revoked-key deny-list (H1 / 1G): digests of provision api_keys that
+        # must never be accepted again, consulted in-path before auth.
+        # Persisted separately from provision.json so revocation is durable
+        # even if a credential record is re-created.
+        revoked_file = self.data_dir / "revoked_keys.json"
+        revoked_data = json.loads(revoked_file.read_text(encoding="utf-8")) if revoked_file.exists() else []
+        self.revoked_keys: set[str] = set(revoked_data if isinstance(revoked_data, list) else [])
         vault_file = self.config_dir / "vault.json"
         vault_raw = json.loads(vault_file.read_text(encoding="utf-8")) if vault_file.exists() else {"vault": {}}
         self.vault = VaultState(vault_raw["vault"])
@@ -111,6 +118,36 @@ class RuntimeState:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(tmp_path, path)
+
+    @staticmethod
+    def _load_revoked_keys(path: Path) -> set:
+        """Strict deny-list load — fail loudly, never silently empty.
+        A malformed file raises so operator attention is forced instead
+        of quietly un-revoking every credential."""
+        if not path.exists():
+            return set()
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, list) or not all(
+            isinstance(d, str) and len(d) == 64 and
+            all(c in "0123456789abcdef" for c in d) for d in data
+        ):
+            raise ValueError(
+                f"revoked_keys.json malformed: expected list of sha256 hex digests, got {type(data).__name__}"
+            )
+        return set(data)
+
+    def persist_revoked_keys(self) -> None:
+        """Persist the revoked-key deny-list atomically."""
+        path = self.data_dir / "revoked_keys.json"
+        with self._lock:
+            self._atomic_write_json(path, sorted(self.revoked_keys))
+
+    def revoke_key_digest(self, digest: str) -> None:
+        """Record a credential digest as revoked and persist the deny-list."""
+        if not digest:
+            return
+        self.revoked_keys.add(digest)
+        self.persist_revoked_keys()
 
     def persist_registry(self) -> None:
         """Write provision.json back with current registry state.
@@ -165,6 +202,15 @@ class RuntimeState:
                     self.provision = data.get("provision", self.provision)
             except Exception:
                 pass
+        # Deny-list refresh on the same reload cycle — a revoke performed by
+        # another worker propagates without waiting for restart (H1F-05).
+        try:
+            refreshed = self._load_revoked_keys(self.data_dir / "revoked_keys.json")
+            self.revoked_keys = refreshed
+        except ValueError:
+            # Malformed file: keep the last-good in-memory set rather than
+            # silently un-revoking everything.
+            pass
 
     def persist(self) -> None:
         payload = {

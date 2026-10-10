@@ -20,6 +20,7 @@ import jwt as pyjwt
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
+from app.auth import agent_token_alive
 from app.deps import state
 from app.metrics_io import atomic_write
 from app.rate_limit import RATE_STORES as _rate_stores, check_rate_limit as _shared_check_rate_limit
@@ -744,7 +745,9 @@ async def thread_websocket(thread_id: str, websocket: WebSocket) -> None:
     # Verify access
     if jwt_token:
         claims = _verify_jwt(jwt_token)
-        if not claims or claims.get("sub") != thread.get("agent_id"):
+        _agent = next((r for r in state.runtime.registry
+                       if r.get("agent_id") == thread.get("agent_id")), None)
+        if not claims or claims.get("sub") != thread.get("agent_id") or not agent_token_alive(_agent, claims):
             await websocket.close(code=4003, reason="Not your thread")
             return
     elif magic:

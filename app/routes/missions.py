@@ -845,6 +845,7 @@ async def fill_slot(payload: FillSlotPayload, request: Request) -> dict:
         agent_id,
         registry=state.runtime.registry,
         admin_key=state.admin_key,
+        revoked_keys=state.runtime.revoked_keys,
     )
     registered = next((r for r in state.runtime.registry if r.get("agent_id") == agent_id), None)
     if not registered:
@@ -935,6 +936,7 @@ async def leave_slot(payload: LeaveSlotPayload, request: Request) -> dict:
         requesting_agent,
         registry=state.runtime.registry,
         admin_key=state.admin_key,
+        revoked_keys=state.runtime.revoked_keys,
     )
     async with state.slot_lock:
         slots = _load_slots()
@@ -989,6 +991,7 @@ async def post_bounty(payload: PostBountyPayload, request: Request) -> dict:
         agent_id,
         registry=state.runtime.registry,
         admin_key=state.admin_key,
+        revoked_keys=state.runtime.revoked_keys,
     )
     agent_name = payload.agent_name or agent_id
     label = payload.label or f"BOUNTY-{_secrets_mod.token_hex(3).upper()}"

@@ -57,8 +57,9 @@ def _hash_key(key: str) -> str:
     return hashlib.sha256(key.encode()).hexdigest()
 
 
-def _issue_jwt(agent_id: str, name: str) -> str:
-    return issue_agent_jwt(agent_id, name, expiry_hours=_JWT_EXPIRY_HOURS)
+def _issue_jwt(agent_id: str, name: str, agent: dict | None = None) -> str:
+    return issue_agent_jwt(agent_id, name, expiry_hours=_JWT_EXPIRY_HOURS,
+                           epoch=(agent or {}).get("token_epoch", 0))
 
 router = APIRouter(tags=["provision"])
 
@@ -72,6 +73,9 @@ def _require_agent_or_admin(request: Request, agent: dict) -> None:
         raise HTTPException(401, "Agent API key required")
 
     provided_key = auth[7:].strip()
+    provided_hash = _hash_key(provided_key) if provided_key else ""
+    if provided_hash and provided_hash in state.runtime.revoked_keys:
+        raise HTTPException(401, "API key revoked")
     stored_hash = agent.get("key_hash", "")
     if (
         not provided_key
@@ -256,7 +260,7 @@ async def agent_signup(request: Request, payload: dict) -> dict:
     except Exception:
         pass
 
-    token = _issue_jwt(agent_id, agent_name)
+    token = _issue_jwt(agent_id, agent_name, entry)
     _tag_span(action="signup", agent_id=agent_id, name=agent_name,
               status=status, governance_mode=runtime.governance.mode,
               governance_posture=runtime.governance.posture)
@@ -310,14 +314,17 @@ async def agent_login(request: Request, payload: dict) -> dict:
     if not agent:
         return JSONResponse({"error": "Invalid credentials"}, status_code=401)
 
+    presented_hash = _hash_key(api_key)
+    if presented_hash in state.runtime.revoked_keys:
+        return JSONResponse({"error": "Invalid credentials"}, status_code=401)
     stored_hash = agent.get("key_hash", "")
-    if not stored_hash or _hash_key(api_key) != stored_hash:
+    if not stored_hash or presented_hash != stored_hash:
         return JSONResponse({"error": "Invalid credentials"}, status_code=401)
 
     if agent.get("status") != "active":
         return JSONResponse({"error": f"Agent status: {agent.get('status')}"}, status_code=403)
 
-    token = _issue_jwt(agent_id, agent.get("name", ""))
+    token = _issue_jwt(agent_id, agent.get("name", ""), agent)
     agent["last_login"] = datetime.now(UTC).isoformat()
     state.runtime.persist_registry()
 
@@ -343,6 +350,11 @@ async def issue_agent_key(payload: IssueAgentKeyPayload) -> dict:
     if not agent:
         return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
 
+    # Superseded key enters the deny-list before the new one is issued
+    # (H1: rotation invalidates the old credential in-path, not only by
+    # hash replacement).
+    runtime.revoke_key_digest(agent.get("key_hash", ""))
+    agent["token_epoch"] = int(agent.get("token_epoch", 0)) + 1
     new_key = f"cmd_ak_{secrets.token_hex(8)}"
     agent["key_prefix"] = new_key[:12] + "***"
     agent["key_hash"] = _hash_key(new_key)
@@ -573,6 +585,53 @@ async def suspend_agent(request: Request, payload: dict) -> dict:
     return {"suspended": True, "agent_id": agent_id, "seed_doi": seed_doi}
 
 
+@router.post("/api/provision/revoke")
+async def revoke_agent_key(request: Request, payload: dict) -> dict:
+    """Revoke an agent's API key (P4 sovereign reserve — 1G deny-list).
+
+    Adds the credential digest to the deny-list consulted in-path before
+    key acceptance, and clears the credential from the agent record.
+    The principal record itself is untouched — suspension is the status
+    mechanism and remains distinct (1B: credential ≠ principal).
+    """
+    require_admin(request, state.admin_key)
+    runtime = state.runtime
+    audit = state.audit
+    emit = state.emit
+
+    agent_id = payload.get("agent_id", "")
+    agent = next((r for r in runtime.registry if r.get("agent_id") == agent_id), None)
+    if not agent:
+        return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
+
+    old_hash = agent.get("key_hash", "")
+    if not old_hash:
+        return JSONResponse({"error": f"Agent {agent_id} has no credential to revoke"}, status_code=409)
+
+    runtime.revoke_key_digest(old_hash)
+    agent["token_epoch"] = int(agent.get("token_epoch", 0)) + 1
+    agent["key_hash"] = ""
+    agent["key_prefix"] = ""
+    runtime.persist_registry()
+
+    _audit_entry = audit.log("provision", "key_revoked", {"agent_id": agent_id})
+    await emit("audit_event", _audit_entry.model_dump(mode="json"))
+    seed_doi = None
+    try:
+        seed_result = await create_seed(
+            source_type="key_revoked",
+            source_id=agent_id,
+            creator_id="operator",
+            creator_type="BI",
+            seed_type="planted",
+            metadata={"agent_id": agent_id},
+        )
+        seed_doi = seed_result.get("doi") if seed_result else None
+    except Exception:
+        pass
+    return {"revoked": True, "agent_id": agent_id, "seed_doi": seed_doi}
+
+
 @router.delete("/api/provision/decommission/{agent_id}")
 async def decommission_agent(request: Request, agent_id: str) -> dict:
     """Permanently remove an agent from the registry."""
@@ -584,6 +643,7 @@ async def decommission_agent(request: Request, agent_id: str) -> dict:
     idx = next((i for i, r in enumerate(runtime.registry) if r.get("agent_id") == agent_id), None)
     if idx is None:
         return JSONResponse({"error": f"Agent {agent_id} not found"}, status_code=404)
+    runtime.revoke_key_digest(runtime.registry[idx].get("key_hash", ""))
     runtime.registry.pop(idx)
     runtime.persist_registry()
     _audit_entry = audit.log("provision", "agent_decommissioned", {"agent_id": agent_id})

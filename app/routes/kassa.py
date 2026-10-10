@@ -29,7 +29,7 @@ import jwt as pyjwt
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 
-from app.auth import admin_key_matches, require_admin
+from app.auth import admin_key_matches, agent_token_alive, require_admin
 from app.deps import state
 from app.jwt_config import issue_agent_jwt
 from app.sanitize import sanitize_text, sanitize_name, detect_prompt_injection
@@ -70,8 +70,9 @@ def _hash_key(key: str) -> str:
     return hashlib.sha256(key.encode()).hexdigest()
 
 
-def _issue_jwt(agent_id: str, name: str) -> str:
-    return issue_agent_jwt(agent_id, name, expiry_hours=_JWT_EXPIRY_HOURS)
+def _issue_jwt(agent_id: str, name: str, agent: dict | None = None) -> str:
+    return issue_agent_jwt(agent_id, name, expiry_hours=_JWT_EXPIRY_HOURS,
+                           epoch=(agent or {}).get("token_epoch", 0))
 
 def _verify_jwt(token: str) -> dict | None:
     from app.jwt_config import verify_jwt
@@ -107,8 +108,8 @@ def _get_agent_from_token(request: Request) -> dict:
     if not claims:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     agent = next((r for r in state.runtime.registry if r.get("agent_id") == claims.get("sub", claims.get("agent_id", ""))), None)
-    if not agent or agent.get("status") != "active":
-        raise HTTPException(status_code=403, detail="Agent not active")
+    if not agent_token_alive(agent, claims):
+        raise HTTPException(status_code=403, detail="Agent not active or credential superseded")
     return agent
 
 
@@ -221,7 +222,7 @@ async def kassa_agent_register(payload: KassaRegisterPayload) -> dict:
     except Exception:
         pass
 
-    token = _issue_jwt(agent_id, agent_name)
+    token = _issue_jwt(agent_id, agent_name, entry)
 
     return {
         "agent_id": agent_id,
@@ -245,14 +246,17 @@ async def kassa_agent_login(payload: KassaLoginPayload) -> dict:
     if not agent:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
+    presented_hash = _hash_key(api_key)
+    if presented_hash in state.runtime.revoked_keys:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     stored_hash = agent.get("key_hash", "")
-    if not stored_hash or _hash_key(api_key) != stored_hash:
+    if not stored_hash or presented_hash != stored_hash:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if agent.get("status") != "active":
         raise HTTPException(status_code=403, detail=f"Agent status: {agent.get('status')}")
 
-    token = _issue_jwt(agent_id, agent.get("name", ""))
+    token = _issue_jwt(agent_id, agent.get("name", ""), agent)
     agent["last_login"] = datetime.now(UTC).isoformat()
     state.runtime.persist_registry()
 
@@ -603,7 +607,9 @@ async def get_thread(thread_id: str, request: Request, magic: str = "") -> dict:
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         claims = _verify_jwt(auth_header[7:])
-        if not claims or claims.get("sub") != thread.get("agent_id"):
+        _agent = next((r for r in state.runtime.registry
+                       if r.get("agent_id") == thread.get("agent_id")), None)
+        if not claims or claims.get("sub") != thread.get("agent_id") or not agent_token_alive(_agent, claims):
             raise HTTPException(status_code=403, detail="Not your thread")
     elif magic:
         if _hash_key(magic) != thread.get("magic_token"):
@@ -626,7 +632,9 @@ async def get_thread_messages(thread_id: str, request: Request, magic: str = "")
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         claims = _verify_jwt(auth_header[7:])
-        if not claims or claims.get("sub") != thread.get("agent_id"):
+        _agent = next((r for r in state.runtime.registry
+                       if r.get("agent_id") == thread.get("agent_id")), None)
+        if not claims or claims.get("sub") != thread.get("agent_id") or not agent_token_alive(_agent, claims):
             raise HTTPException(status_code=403, detail="Not your thread")
     elif magic:
         if _hash_key(magic) != thread.get("magic_token"):
@@ -658,7 +666,9 @@ async def post_thread_message(thread_id: str, request: Request) -> dict:
 
     if auth_header.startswith("Bearer "):
         claims = _verify_jwt(auth_header[7:])
-        if not claims or claims.get("sub") != thread.get("agent_id"):
+        _agent = next((r for r in state.runtime.registry
+                       if r.get("agent_id") == thread.get("agent_id")), None)
+        if not claims or claims.get("sub") != thread.get("agent_id") or not agent_token_alive(_agent, claims):
             raise HTTPException(status_code=403, detail="Not your thread")
         sender_type = "agent"
         sender_name = claims.get("name", thread.get("agent_name", "Agent"))
@@ -856,6 +866,9 @@ async def submit_kassa_post(request: Request) -> dict:
         claims = _extract_jwt(request)
         if not claims:
             raise HTTPException(status_code=401, detail="Agent login required to post. Use /api/provision/login.")
+        _poster = next((r for r in state.runtime.registry if r.get("agent_id") == claims.get("sub")), None)
+        if not agent_token_alive(_poster, claims):
+            raise HTTPException(status_code=401, detail="Credential revoked or principal inactive")
         _check_rate_limit(request, "kassa_posts", max_hits=5)
     payload = await request.json()
     tab = (payload.get("tab") or "").strip()

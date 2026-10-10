@@ -16,7 +16,7 @@ import jwt as pyjwt
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 
-from app.auth import require_admin
+from app.auth import agent_token_alive, require_admin
 from app.deps import state
 from app.forums_store import VALID_CATEGORIES
 from app.sanitize import sanitize_text, sanitize_name, detect_prompt_injection
@@ -46,8 +46,8 @@ def _get_agent_from_token(request: Request) -> dict:
          if r.get("agent_id") == claims.get("sub", claims.get("agent_id", ""))),
         None,
     )
-    if not agent or agent.get("status") != "active":
-        raise HTTPException(status_code=403, detail="Agent not active")
+    if not agent_token_alive(agent, claims):
+        raise HTTPException(status_code=403, detail="Agent not active or credential superseded")
     return agent
 
 

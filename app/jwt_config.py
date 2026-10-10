@@ -58,8 +58,13 @@ def issue_agent_jwt(
     name: str,
     *,
     expiry_hours: int = 24,
+    epoch: int = 0,
 ) -> str:
-    """Issue a scoped CIVITAE agent-session JWT."""
+    """Issue a scoped CIVITAE agent-session JWT.
+
+    `epoch` binds the token to the agent's credential generation —
+    bumped on revoke/rotate/decommission so outstanding tokens die with
+    the credential that minted them (H1/1G)."""
     now = datetime.now(UTC)
     payload = {
         "sub": agent_id,
@@ -69,6 +74,7 @@ def issue_agent_jwt(
         "iat": now,
         "exp": now + timedelta(hours=expiry_hours),
         "ver": 2,
+        "epoch": int(epoch),
     }
     return pyjwt.encode(payload, get_kassa_jwt_secret(), algorithm="HS256")
 

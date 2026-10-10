@@ -70,6 +70,19 @@ def _verify_jwt(request: Request) -> dict | None:
     from app.jwt_config import extract_jwt
     return extract_jwt(request)
 
+
+def _jwt_live_agent(request: Request) -> "dict | None":
+    """JWT + registry liveness (H1): principal must be active and the
+    token's credential epoch current — dead for revoked/rotated/
+    decommissioned credentials even before expiry."""
+    from app.auth import agent_token_alive
+    claims = _verify_jwt(request)
+    if not claims:
+        return None
+    agent = next((r for r in state.runtime.registry
+                  if r.get("agent_id") == claims.get("sub")), None)
+    return agent if agent_token_alive(agent, claims) else None
+
 router = APIRouter(tags=["economy"])
 
 
@@ -106,6 +119,9 @@ async def process_payment(payload: dict, request: Request) -> dict:
     claims = _verify_jwt(request)
     if not claims:
         return JSONResponse({"error": "Valid Bearer token required"}, status_code=401)
+    _principal = _jwt_live_agent(request)
+    if _principal is None:
+        return JSONResponse({"error": "Credential revoked or principal inactive"}, status_code=401)
 
     gate = state.runtime.check_action("process payment")
     if not gate["permitted"]:
@@ -166,6 +182,9 @@ async def process_mission_payout(payload: dict, request: Request) -> dict:
     claims = _verify_jwt(request)
     if not claims:
         return JSONResponse({"error": "Valid Bearer token required"}, status_code=401)
+    _principal = _jwt_live_agent(request)
+    if _principal is None:
+        return JSONResponse({"error": "Credential revoked or principal inactive"}, status_code=401)
 
     gate = state.runtime.check_action("mission payout")
     if not gate["permitted"]:
