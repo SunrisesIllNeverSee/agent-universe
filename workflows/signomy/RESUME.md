@@ -18,6 +18,14 @@ python3 -m roadmap_engine --project workflows/signomy status
 - Shell falsifier corrections + real-browser QA (screenshots in reviews/p3-shell-qa/).
 - X-Agent-Key credential transport; /api/pages census fix.
 
+## Wiring Atlas v0.2 (completed 2026-10-10)
+Archive: ~/Developer/_7_labs/signomy-control-surface/reports/wiring-atlas/
+- v0.2 census: stable IDs, evidence classes, 284 routes, JS+WS extraction,
+  drift tracking (--check-drift), 19 tests, falsifier PASS post-correction.
+- Refresh: `python3 build_atlas.py --repo <repo> --archive <archive> --out <atlas>`
+  then `validate_runtime.py --base <local-url>` then `--check-drift`.
+- Serve: `python3 -m http.server 8931 --directory <atlas>`.
+
 ## Next eligible work (no new authorization needed)
 1. Extend ctx derivation: /slots + /deploy query-param objects → Inspector.
 2. P2 visual delta group specs → workflows/signomy/out/p2-delta-specs/
