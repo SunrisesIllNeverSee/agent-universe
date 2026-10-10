@@ -55,8 +55,13 @@ def tmp_root(tmp_path_factory) -> Path:
         "rate_limit": 10,
     }))
 
-    # Frontend dir — empty but must exist for StaticFiles mounts
+    # Frontend dir — copy the shell page so its route is servable in tests;
+    # everything else stays empty (StaticFiles mounts only need the dir).
     (root / "frontend").mkdir()
+    shell_src = Path(__file__).resolve().parents[1] / "frontend" / "shell.html"
+    if shell_src.is_file():
+        import shutil as _sh
+        _sh.copy2(shell_src, root / "frontend" / "shell.html")
     (root / "vault").mkdir()
     (root / "data").mkdir()
 

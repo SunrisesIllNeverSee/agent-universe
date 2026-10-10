@@ -54,6 +54,13 @@ async def campaign_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "campaign.html")
 
 
+@router.get("/shell")
+async def shell_page() -> FileResponse:
+    """Phase 3 persistent shell — hosts existing surfaces unchanged.
+    Deep link: /shell?route=/kassa (or any registered route)."""
+    return FileResponse(state.frontend_dir / "shell.html")
+
+
 @router.get("/kassa")
 async def kassa_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "kassa.html")

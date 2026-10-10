@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>SIGNOMY — Persistent Shell (P3 preview)</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#12161f; --panel2:#171c28; --line:#242b3d;
+    --txt:#dfe5f2; --dim:#8b94ab; --acc:#3DAA6A; --warn:#D48C2E; --off:#5a4f7a;
+    --rail-w:64px; --side-w:230px; --insp-w:260px; --hud-h:34px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--bg);color:var(--txt);
+    font:13px/1.45 "SF Mono",Menlo,Consolas,monospace}
+  #layout{display:grid;height:100%;
+    grid-template-columns:var(--rail-w) var(--side-w) 1fr var(--insp-w);
+    grid-template-rows:1fr var(--hud-h);
+    grid-template-areas:"rail side canvas insp" "hud hud hud hud"}
+  body.insp-off #layout{grid-template-columns:var(--rail-w) var(--side-w) 1fr 0}
+  body.insp-off #inspector{display:none}
+  /* ── Rail ── */
+  #rail{grid-area:rail;background:var(--panel);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;padding:6px 0}
+  #rail .logo{color:var(--acc);font-weight:700;text-align:center;font-size:15px;
+    padding:8px 0 14px;letter-spacing:1px}
+  .mode{writing-mode:vertical-rl;transform:rotate(180deg);display:block;
+    padding:10px 0;margin:2px auto;color:var(--dim);font-size:10px;
+    letter-spacing:2px;text-transform:uppercase;cursor:pointer;
+    border-radius:4px;min-height:88px;text-align:center;width:34px;
+    border:1px solid transparent}
+  .mode:hover{color:var(--txt);background:var(--panel2)}
+  .mode.on{color:var(--acc);background:var(--panel2);border-color:var(--line)}
+  #rail .util{margin-top:auto}
+  /* ── Sidebar ── */
+  #sidebar{grid-area:side;background:var(--panel);border-right:1px solid var(--line);
+    overflow-y:auto;display:flex;flex-direction:column}
+  #sidebar h2{font-size:10px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--dim);padding:14px 14px 6px}
+  .surf{padding:8px 14px;cursor:pointer;color:var(--txt);font-size:12px;
+    border-left:2px solid transparent}
+  .surf small{display:block;color:var(--dim);font-size:10px}
+  .surf:hover{background:var(--panel2)}
+  .surf.on{border-left-color:var(--acc);background:var(--panel2)}
+  .surf .st{float:right;font-size:9px;padding:1px 5px;border-radius:3px;
+    background:var(--panel2);border:1px solid var(--line)}
+  #principal{border-top:1px solid var(--line);padding:12px 14px;margin-top:auto}
+  #principal .who{font-size:13px;color:var(--acc)}
+  #principal .sub{color:var(--dim);font-size:10px;margin-top:2px}
+  /* ── Canvas ── */
+  #canvas{grid-area:canvas;position:relative;background:#000}
+  #frame{width:100%;height:100%;border:0;display:block;background:#fff}
+  #empty{position:absolute;inset:0;display:none;align-items:center;
+    justify-content:center;color:var(--dim);text-align:center;padding:40px}
+  /* ── Inspector ── */
+  #inspector{grid-area:insp;background:var(--panel);border-left:1px solid var(--line);
+    overflow-y:auto;padding:14px}
+  #inspector h2{font-size:10px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--dim);margin-bottom:10px}
+  .kv{display:flex;justify-content:space-between;padding:4px 0;
+    border-bottom:1px solid var(--line);font-size:11px;gap:8px}
+  .kv b{color:var(--dim);font-weight:400;white-space:nowrap}
+  .kv span{text-align:right;word-break:break-all}
+  .kv span.future{color:var(--off);font-style:italic}
+  #insp-note{margin-top:14px;font-size:10px;color:var(--dim);
+    border:1px dashed var(--line);padding:8px;border-radius:4px;line-height:1.6}
+  /* ── HUD ── */
+  #hud{grid-area:hud;background:var(--panel);border-top:1px solid var(--line);
+    display:flex;align-items:center;gap:18px;padding:0 14px;
+    font-size:10px;color:var(--dim);overflow:hidden;white-space:nowrap}
+  #hud .live{color:var(--acc)}
+  #hud .err{color:var(--warn)}
+  #hud .sp{flex:1}
+  #hud .toggle{cursor:pointer}
+  #hud .toggle:hover{color:var(--txt)}
+  @media (max-width:1100px){:root{--insp-w:0}#inspector{display:none}}
+  @media (max-width:820px){:root{--side-w:150px}}
+</style>
+</head>
+<body>
+<div id="layout">
+  <nav id="rail" aria-label="Global rail">
+    <div class="logo" title="SIGNOMY">§</div>
+    <div id="modes"></div>
+    <div class="util">
+      <span class="mode" id="util-console" title="Operator console">CONSOLE</span>
+      <span class="mode" id="util-outside" title="Leave shell (open route directly)">OUT</span>
+    </div>
+  </nav>
+  <aside id="sidebar" aria-label="Context sidebar">
+    <h2 id="mode-name">Mode</h2>
+    <div id="surfaces"></div>
+    <div id="principal"><div class="who" id="who">…</div><div class="sub" id="who-sub"></div></div>
+  </aside>
+  <main id="canvas" aria-label="Canvas">
+    <iframe id="frame" title="Hosted surface"></iframe>
+    <div id="empty"><div>Select a surface.<br>Existing 0.4.0 pages are hosted, not rebuilt.</div></div>
+  </main>
+  <aside id="inspector" aria-label="Inspector">
+    <h2>Inspector</h2>
+    <div id="insp-fields"></div>
+    <div id="insp-note">Read-only projection. Consequential actions execute inside
+      the hosted surface under backend authority — the shell grants no permissions.
+      Agreement / WorkEntry fields are Phase&nbsp;4 placeholders, not records.</div>
+  </aside>
+  <footer id="hud">
+    <span id="hud-gov">governance …</span>
+    <span id="hud-agents"></span>
+    <span class="sp"></span>
+    <span id="hud-msg">shell P3 preview — hosted surfaces unchanged</span>
+    <span class="toggle" id="insp-toggle">[inspector]</span>
+  </footer>
+</div>
+<script>
+(() => {
+  "use strict";
+  // ── Mode map: distinct semantics per separation rules ────────────────
+  // Mission Control != COMMAND != DEPLOY != CAMPAIGN; KA§§A != Switchboard;
+  // Town Hall != Governance.
+  const MODES = [
+    {id:"orient",  label:"ORIENT",    routes:["/portal","/world","/kingdoms"]},
+    {id:"find",    label:"FIND WORK", routes:["/kassa","/missions","/bountyboard","/openroles"]},
+    {id:"mc",      label:"MISSION CONTROL", routes:["/agentdash","/dashboard","/mission","/slots"]},
+    {id:"deploy",  label:"DEPLOY",    routes:["/deploy"]},
+    {id:"command", label:"COMMAND",   routes:["/command"]},
+    {id:"campaign",label:"CAMPAIGN",  routes:["/campaign"]},
+    {id:"govern",  label:"GOVERN",    routes:["/governance","/senate","/forums"]},
+    {id:"econ",    label:"ECONOMY",   routes:["/economics","/treasury","/connect","/earnings-matrix"]},
+    {id:"ref",     label:"REFERENCE", routes:["/vault","/academia","/guides","/moses"]},
+  ];
+  const DEFAULT_MODE = "orient";
+  const ctxStore = () => { try { return JSON.parse(sessionStorage.getItem("p3_ctx")||"{}"); } catch(e){ return {}; } };
+  const setCtx = (k,v) => { const c=ctxStore(); c[k]=v; sessionStorage.setItem("p3_ctx",JSON.stringify(c)); };
+
+  const $ = id => document.getElementById(id);
+  const frame = $("frame"), empty = $("empty");
+  let pages = [], currentRoute = null;
+
+  // ── Pages registry (page census source of truth) ─────────────────────
+  fetch("/config/pages.json").then(r=>r.json()).then(j=>{
+    pages = [];
+    const walk = arr => (arr||[]).forEach(x=>{
+      if (x.pages) walk(x.pages);
+      else if (x.route && x.file) pages.push(x);
+    });
+    if (j.tileZero) walk(j.tileZero.pages);
+    (j.layers||[]).forEach(l=>walk(l.pages));
+    renderMode(modeFromLocation());
+  }).catch(()=>{ renderMode(modeFromLocation()); });
+
+  const pageFor = route =>
+    pages.find(p=>p.route===route) ||
+    pages.find(p=>route.startsWith(p.route+"/")) ||
+    pages.find(p=>route.startsWith(p.route+"?"));
+
+  const modeFromLocation = () => {
+    const route = routeFromLocation();
+    const m = MODES.find(m=>m.routes.some(r=>route===r||route.startsWith(r+"/")));
+    return (m||MODES.find(m=>m.id===DEFAULT_MODE)).id;
+  };
+  const routeFromLocation = () =>
+    new URLSearchParams(location.search).get("route") || MODES.find(m=>m.id===DEFAULT_MODE).routes[0];
+
+  // ── Rail ─────────────────────────────────────────────────────────────
+  const modesEl = $("modes");
+  MODES.forEach(m=>{
+    const el = document.createElement("span");
+    el.className="mode"; el.id="mode-"+m.id; el.textContent=m.label;
+    el.addEventListener("click",()=>nav(m.routes[0]));
+    modesEl.appendChild(el);
+  });
+  $("util-console").addEventListener("click",()=>nav("/console"));
+  $("util-outside").addEventListener("click",()=>{ if(currentRoute) location.href=currentRoute; });
+  $("insp-toggle").addEventListener("click",()=>document.body.classList.toggle("insp-off"));
+
+  // ── Sidebar surfaces ─────────────────────────────────────────────────
+  function renderMode(modeId){
+    const m = MODES.find(m=>m.id===modeId);
+    MODES.forEach(x=>$("mode-"+x.id).classList.toggle("on",x.id===modeId));
+    $("mode-name").textContent = m.label;
+    const s = $("surfaces"); s.innerHTML="";
+    m.routes.forEach(r=>{
+      const p = pageFor(r) || {name:r.replace("/"," "),status:"planned",note:""};
+      const el = document.createElement("div");
+      el.className="surf"+(r===currentRoute?" on":"");
+      el.innerHTML = `<span class="st">${p.status||""}</span>${p.name}<small>${p.note||r}</small>`;
+      el.addEventListener("click",()=>nav(r));
+      s.appendChild(el);
+    });
+  }
+
+  // ── Navigation + history ─────────────────────────────────────────────
+  function nav(route){
+    currentRoute = route;
+    frame.src = route;
+    empty.style.display="none";
+    history.pushState({route},"","/shell?route="+encodeURIComponent(route));
+    document.title = "SIGNOMY — " + route;
+    renderInspector();
+    renderMode(modeFromLocation());
+  }
+  window.addEventListener("popstate", e=>{
+    const r = (e.state&&e.state.route)||routeFromLocation();
+    currentRoute=r; frame.src=r; renderInspector(); renderMode(modeFromLocation());
+  });
+
+  // ── Object context: derived from hosted URL (zero page changes) ──────
+  function deriveContext(){
+    try {
+      const u = new URL(frame.contentWindow.location.href);
+      const path = u.pathname;
+      if (path.startsWith("/kassa/post/")) setCtx("post_id", path.split("/").pop());
+      if (path.startsWith("/kassa/thread/")) setCtx("thread_id", path.split("/").pop());
+      if (path === "/mission") { const m=u.searchParams.get("id"); if(m) setCtx("mission_id",m); }
+      if (path.startsWith("/mission/")) setCtx("mission_id", path.split("/").pop());
+      if (path === "/deploy" || path === "/slots") {
+        const s=u.searchParams.get("slot")||u.searchParams.get("id");
+        if (s) setCtx("slot_id", s);
+      }
+      renderInspector();
+    } catch(e){ /* cross-nav safety — same-origin expected */ }
+  }
+  frame.addEventListener("load", deriveContext);
+
+  // ── Inspector (read-only) ────────────────────────────────────────────
+  function renderInspector(){
+    const p = pageFor(currentRoute)||{};
+    const c = ctxStore();
+    const rows = [
+      ["route", currentRoute||"—"],
+      ["surface", p.name||"—"],
+      ["registry status", p.status||"—"],
+      ["section", p.slot||"—"],
+      ["opportunity/post", c.post_id||"—"],
+      ["thread", c.thread_id||"—"],
+      ["mission_id", c.mission_id||"—"],
+      ["slot/formation", c.slot_id||"—"],
+      ["agreement_id", "PHASE-4 — not implemented"],
+      ["workentry", "PHASE-4 — not implemented"],
+      ["seed evidence", c.seed_doi||"—"],
+    ];
+    $("insp-fields").innerHTML = rows.map(([k,v])=>
+      `<div class="kv"><b>${k}</b><span class="${String(v).startsWith("PHASE-4")?"future":""}">${v}</span></div>`).join("");
+  }
+
+  // ── Principal (existing credential surfaces only) ────────────────────
+  async function loadPrincipal(){
+    const who=$("who"), sub=$("who-sub");
+    const jwt = localStorage.getItem("kassa_jwt")||sessionStorage.getItem("kassa_jwt")
+              || localStorage.getItem("kassa_token")||"";
+    if (jwt){
+      try {
+        const r = await fetch("/api/kassa/agent/me",{headers:{Authorization:"Bearer "+jwt}});
+        if (r.ok){
+          const a = await r.json();
+          who.textContent = a.name||a.agent_id;
+          sub.textContent = `${a.agent_id} · ${a.role||"agent"} · ${a.status}`;
+          return;
+        }
+      } catch(e){}
+    }
+    try {
+      const ca = JSON.parse(localStorage.getItem("civitas_auth")||"null");
+      if (ca && ca.agentId){
+        const r = await fetch("/api/provision/status/"+encodeURIComponent(ca.agentId)+"?api_key="+encodeURIComponent(ca.key||""));
+        if (r.ok){
+          const a = await r.json();
+          who.textContent = a.name||ca.agentId;
+          sub.textContent = `${ca.agentId} · provisioned`;
+          return;
+        }
+      }
+    } catch(e){}
+    who.textContent = "guest";
+    sub.textContent = "no credential in this browser";
+  }
+  loadPrincipal();
+
+  // ── HUD: existing public read model, no new subscriptions ────────────
+  async function hud(){
+    try {
+      const r = await fetch("/api/state");
+      if(!r.ok) throw 0;
+      const st = await r.json();
+      const g = (st.governance||{});
+      $("hud-gov").textContent = `governance ${g.mode||"?"} · ${g.posture||"?"}`;
+      $("hud-gov").className="live";
+      const sys = st.systems?Object.keys(st.systems).length:"";
+      $("hud-agents").textContent = sys?`${sys} systems observed`:"";
+    } catch(e){
+      $("hud-gov").textContent="runtime read unavailable";
+      $("hud-gov").className="err";
+    }
+  }
+  hud(); setInterval(hud, 15000);
+
+  // ── Boot: deep link support (/shell?route=/kassa/post/xyz) ───────────
+  nav(routeFromLocation());
+})();
+</script>
+</body>
+</html>
