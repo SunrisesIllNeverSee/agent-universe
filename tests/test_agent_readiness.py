@@ -243,7 +243,7 @@ def test_cockpit_bearer_rejects_suspended_agent(client, admin_client) -> None:
     data = signup.json()
     headers = {"Authorization": f"Bearer {data['api_key']}"}
 
-    active = client.post("/api/deploy", json={}, headers=headers)
+    active = client.post("/api/missions", json={"label": "st003"}, headers=headers)
     assert active.status_code == 200
 
     suspended = admin_client.post(
@@ -252,7 +252,7 @@ def test_cockpit_bearer_rejects_suspended_agent(client, admin_client) -> None:
     )
     assert suspended.status_code == 200
 
-    blocked = client.post("/api/deploy", json={}, headers=headers)
+    blocked = client.post("/api/missions", json={"label": "st003"}, headers=headers)
     assert blocked.status_code == 403
     assert blocked.json()["error"]["code"] == "admin_key_required"
 
