@@ -1,0 +1,1317 @@
+{
+  "status": "PROVISIONAL",
+  "statement": "Preparation only - does not satisfy P2_FINAL.",
+  "baseline_inventory_sha256": "11c94aa77e2724a0a0820bf37692a45a7499b9c282e6a537ce4c57f7d84f94d3",
+  "contracts": {
+    "1A": {
+      "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+      "sha256": "e05ddd1efa871618b6258d6adcca8bc0285a9f03792b5a1cc51264a46716f746"
+    },
+    "1B": {
+      "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+      "sha256": "d90410ed373a17bc67b72304c1cca72898fc38593a9200087f65fad1418a4b5a"
+    },
+    "1C": {
+      "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+      "sha256": "c643a41b7e432f918713613c92b67a54e126407e663da21c07cc170400e261c0"
+    },
+    "1D": {
+      "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+      "sha256": "f5b3f5dcc17d1c4f1e50d7f0d151efa5894099d8614244c67794d3cedba2ebfa"
+    },
+    "1E": {
+      "file": "reports/phase-1/PHASE-1E-ENTERPRISE-NODE.md",
+      "sha256": "71bd899f677218e84b7604dd121aaffc75e54853fb618d3e6e54885d868d2c6c"
+    },
+    "1F": {
+      "file": "reports/phase-1/PHASE-1F-WORKENTRY-UNBLOCK.md",
+      "sha256": "6a67089bc4e9a722cca3f2205ec8e1813144d6873cc23ffb9c8dee48efdce48a"
+    },
+    "1G": {
+      "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+      "sha256": "cc5e1fc4acb9c554f3da921a38cf3968c3812e99b0229f793a84356e30da7d22"
+    }
+  },
+  "groups": [
+    {
+      "group_id": "DG1",
+      "artifact": "System Interaction Map",
+      "spec_file": "DG1-system-interaction-map.md",
+      "standing": "PROVISIONAL",
+      "master_refs": [
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/canonical-figjam-board.jam",
+          "sha256": "40d96db605cfdc21796241076ea0ec6615973d70549c4888173199a3838efb64"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/system-interaction-map.png",
+          "sha256": "91d70965ba29dcc7a554f5cfa6331fb3297f34e7a9a76aa9dd37790451bb454d"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/system-interaction-map.pdf",
+          "sha256": "486fe0581b5f5ee2806599a39305911f44e9f2f77fc409cb9f9d7b4ccf7d7a62"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/system-interaction-map-text.txt",
+          "sha256": "fcae333ec2b55d95f78b5f86be964f5f04f6d0dd2e93b72410c8659546acfd14"
+        }
+      ],
+      "preserve": "Original FigJam layout is visual master, new simplified overlay is explanatory only",
+      "update_required": "Agreement classes, WorkEntry authority, Node Recognition Office, Entity/Root/Secondary Seed, Enterprise, read-only Refinery & Switchboard",
+      "update_items": [
+        {
+          "id": "DG1-U1",
+          "title": "Add an Agreement Stack layer between KA§§A / MARKET and MISSION / WORK",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§1.1 Definition"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§2 Canonical ordering"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§5.11 Class registry summary"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§7 Ordering recap + WorkEntry placement"
+            }
+          ]
+        },
+        {
+          "id": "DG1-U2",
+          "title": "Re-route the opportunity-to-work edges through WorkEntryAgreement (no direct post->slot edge)",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§2 Canonical ordering (reading rule 2: the Agreement relationship may not be skipped)"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§5.2 WorkEntryAgreement (F13: not enabled: direct post_id->slot_id write)"
+            },
+            {
+              "contract": "1F",
+              "file": "reports/phase-1/PHASE-1F-WORKENTRY-UNBLOCK.md",
+              "section": "§1.1 Agreement relationship ordering"
+            }
+          ]
+        },
+        {
+          "id": "DG1-U3",
+          "title": "WorkEntry authority box with hybrid resolution annotation",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§6 O-J-1 owner-resolved (hybrid by governance mode)"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§6.2 Anti-collapse guarantees"
+            },
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§5.B Agreement lifecycle & entry"
+            }
+          ]
+        },
+        {
+          "id": "DG1-U4",
+          "title": "Entity / Entity Node / Root Seed / Secondary Seeds / Relations+Flows / Ecosystem chain",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§0 Canonical invariants (non-compressible)"
+            },
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§1 Definitions (contract vocabulary)"
+            },
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§5.1 Root Seed role (K6)"
+            },
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§5.2 Secondary Seed attribution"
+            }
+          ]
+        },
+        {
+          "id": "DG1-U5",
+          "title": "Node Recognition Office distinct from Town Hall",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§4.3 Recognition request and formalization"
+            },
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§0 Canonical invariants (Town Hall != recognition authority)"
+            },
+            {
+              "contract": "1B",
+              "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+              "section": "§1 Load-bearing invariants (I-9)"
+            }
+          ]
+        },
+        {
+          "id": "DG1-U6",
+          "title": "Enterprise branch: Commercial Agreement -> Enterprise Entity Node -> Delegated Governance Domain -> Subordinate Nodes",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1E",
+              "file": "reports/phase-1/PHASE-1E-ENTERPRISE-NODE.md",
+              "section": "§0 Canonical enterprise chain (non-compressible)"
+            },
+            {
+              "contract": "1E",
+              "file": "reports/phase-1/PHASE-1E-ENTERPRISE-NODE.md",
+              "section": "§5 Delegated governance domain"
+            },
+            {
+              "contract": "1E",
+              "file": "reports/phase-1/PHASE-1E-ENTERPRISE-NODE.md",
+              "section": "§6 Parent constitutional override"
+            },
+            {
+              "contract": "1E",
+              "file": "reports/phase-1/PHASE-1E-ENTERPRISE-NODE.md",
+              "section": "§8.1 The three classes"
+            }
+          ]
+        },
+        {
+          "id": "DG1-U7",
+          "title": "Read-only Refinery and Switchboard as derived projections",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§7.2 Privilege rules (derived projections may NOT write back)"
+            },
+            {
+              "contract": "1B",
+              "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+              "section": "§1 Load-bearing invariants (I-5, I-9)"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§5.6 EntityRelationAgreement (F13: Switchboard eligibility context, read-only consumption)"
+            },
+            {
+              "contract": "1C",
+              "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+              "section": "§10.2 What this contract forbids economically"
+            }
+          ]
+        },
+        {
+          "id": "DG1-U8",
+          "title": "Formal governance boundary vs Town Hall",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1B",
+              "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+              "section": "§1 Load-bearing invariants (I-9, I-10)"
+            },
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§0 Canonical invariants"
+            },
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§5.E Governance verbs (Town Hall != formal governance)"
+            }
+          ]
+        },
+        {
+          "id": "DG1-X1",
+          "title": "Exact content of Refinery and Switchboard beyond the read-only/derived boundary (inputs, outputs, activation)",
+          "status": "UNRESOLVED",
+          "contract_citations": []
+        }
+      ],
+      "crosscheck": [
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "Original map has no Agreement, Entity Node, Enterprise, Refinery, Switchboard or Node Recognition node: text export (system-interaction-map-text.txt, sha fcae333e...) contains none of those labels. Original has 'Districts / Entities' and 'Seeds' overlay nodes only."
+        },
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "Shell does not render a system map; the Inspector shows 'agreement_id' and 'workentry' as 'PHASE-4 - not implemented' (frontend/shell.html:265-266) and the note at shell.html:103-105 states these are placeholders, not records. DG1 has no shell dependency."
+        }
+      ],
+      "owner_questions": [
+        "Q1: Is the Agreement Stack drawn as its own zone, or folded into MISSION / WORK (design choice; semantics unchanged)?",
+        "Q2: Accept Refinery/Switchboard shown at boundary level only until Phase 6B/6C semantics are frozen (see UNRESOLVED DG1-X1)?"
+      ]
+    },
+    {
+      "group_id": "DG2",
+      "artifact": "Operational Spine",
+      "spec_file": "DG2-operational-spine.md",
+      "standing": "PROVISIONAL",
+      "master_refs": [
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/operational-spine.png",
+          "sha256": "1927c900f226463a05e9be82ae2be17d07a0c86906b0418ffd26e4aea9c18678"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/operational-spine.pdf",
+          "sha256": "011879292916420fe63aee9a4c9fe61c9fff61565374cf5eda75676ca0610782"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/operational-spine-text.txt",
+          "sha256": "eaa609dbb5107fbb56c099031f04d491713fd9aa8d93fcec0dafb9b0790fffef"
+        }
+      ],
+      "preserve": "Preserve original densely connected composition",
+      "update_required": "opportunity > intent > Agreement > mission/work > slot/formation > execution; Open/Standard/Constitutional resolution, delivery/acceptance/settlement, provenance",
+      "update_items": [
+        {
+          "id": "DG2-U1",
+          "title": "Canonical ordering spine: opportunity > entry intent > Agreement > mission/work > slot/formation > governed execution",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§2 Canonical ordering (established by this contract)"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§7 Ordering recap + WorkEntry placement"
+            }
+          ]
+        },
+        {
+          "id": "DG2-U2",
+          "title": "Open / Standard / Constitutional resolution branch at entry",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§6 O-J-1 owner-resolved"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§6.1 How each resolution maps"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§5.2 WorkEntryAgreement (F6, F7, F8)"
+            }
+          ]
+        },
+        {
+          "id": "DG2-U3",
+          "title": "Governance gate only on consequential transitions (per-transition rule)",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§3 Reading rules and invariants (rule 10: O-J-4 governance-gate rule)"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§5.2 WorkEntryAgreement (F8)"
+            }
+          ]
+        },
+        {
+          "id": "DG2-U4",
+          "title": "Delivery, acceptance, settlement with evidence class",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1C",
+              "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+              "section": "§5 The three classes - comparison"
+            },
+            {
+              "contract": "1C",
+              "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+              "section": "§9.1 The acceptance record"
+            },
+            {
+              "contract": "1C",
+              "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+              "section": "§10.1 Dependency direction (locked)"
+            }
+          ]
+        },
+        {
+          "id": "DG2-U5",
+          "title": "Provenance: Seeds at consequential transitions, failure writes no success Seed",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§4.2 Evidence rules"
+            },
+            {
+              "contract": "1C",
+              "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+              "section": "§3 Locked rules (L6, L8, L9)"
+            },
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§0 Canonical invariants (generic Seed != Root Seed)"
+            }
+          ]
+        },
+        {
+          "id": "DG2-U6",
+          "title": "Projections stay read-only: World, Tier/Leaderboard, Refinery, Switchboard",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§7.2 Privilege rules"
+            },
+            {
+              "contract": "1B",
+              "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+              "section": "§1 Load-bearing invariants (I-5, I-9)"
+            }
+          ]
+        },
+        {
+          "id": "DG2-U7",
+          "title": "Runtime context ribbon shown as a separate lens, not the spine",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§2 Canonical ordering (reading rule 4: not the runtime ribbon)"
+            },
+            {
+              "contract": "1F",
+              "file": "reports/phase-1/PHASE-1F-WORKENTRY-UNBLOCK.md",
+              "section": "§1.1 Agreement relationship ordering"
+            }
+          ]
+        },
+        {
+          "id": "DG2-X1",
+          "title": "Exact ribbon key list ('motion', 'settlement' ids) and slot pre-existence vs create-at-entry",
+          "status": "OWNER DECISION",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§6.3 What stays open"
+            }
+          ]
+        }
+      ],
+      "crosscheck": [
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "Original spine (operational-spine.png sha 1927c900...) draws Opportunity -> Slots ('can expose bounty'), Opportunity -> Mission ('creates') and Slots -> Agent Identity ('filled by') with no Agreement node; confirmed visually and by text export."
+        },
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "shell.html:225-249 derives only post_id, thread_id, mission_id, slot_id from the hosted URL; no agreement/entry key exists (shell.html:265-266 placeholders). Ribbon in DG2-U7 is therefore design-only today."
+        },
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "Mode map comment shell.html:118-120 encodes 'Mission Control != COMMAND != DEPLOY != CAMPAIGN; KA§§A != Switchboard; Town Hall != Governance' (aligned with Visual Re-Baseline Register exit conditions)."
+        }
+      ],
+      "owner_questions": [
+        "Q3: Should the Agreement node sit inline on the spine or as a stacked layer over Mission (visual only)?",
+        "Q4 (OWNER DECISION DG2-X1): confirm resolver/timeout/notification details stay out of the diagram until 1F sub-decisions are made."
+      ]
+    },
+    {
+      "group_id": "DG3",
+      "artifact": "Mission Lifecycle",
+      "spec_file": "DG3-mission-lifecycle.md",
+      "standing": "PROVISIONAL",
+      "master_refs": [
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/mission-lifecycle.png",
+          "sha256": "c612a5445a8a6e89480bfdfe94a8f961f41bd4a8819335226b797a3027fad12c"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/mission-lifecycle.pdf",
+          "sha256": "001ca7e21097b41ca429f3ebad228e5e1cf164975598790c7ef18f2af5d8d545"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/mission-lifecycle-text.txt",
+          "sha256": "5ad7336d02e4401502a9516222217b4494a31c9fc98e4d6f10fc99959e4709db"
+        }
+      ],
+      "preserve": "Maintain established state and feedback complexity",
+      "update_required": "hybrid WorkEntry, DeliveryEvidenceClass, authoritative receipt/Seed, formation and governed transition gates",
+      "update_items": [
+        {
+          "id": "DG3-U1",
+          "title": "Hybrid WorkEntry states before MissionDraft/FormationOpen",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§5.2 WorkEntryAgreement (F6 state model, F7 transitions)"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§6.1 How each resolution maps"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§4.1 State-model skeleton"
+            }
+          ]
+        },
+        {
+          "id": "DG3-U2",
+          "title": "Formation and MissionWork Agreement gates on existing transitions",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§5.3 MissionWorkAgreement"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§5.4 FormationAgreement"
+            },
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§5.C Work objects - mission / slot / formation / task / deploy"
+            }
+          ]
+        },
+        {
+          "id": "DG3-U3",
+          "title": "Governed-transition gates drawn per-transition, not per-phase",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§3 Reading rules and invariants (rule 10)"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§5.2 WorkEntryAgreement (F8)"
+            }
+          ]
+        },
+        {
+          "id": "DG3-U4",
+          "title": "DeliveryEvidenceClass on Review / deliverable-ready",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1C",
+              "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+              "section": "§5 The three classes - comparison"
+            },
+            {
+              "contract": "1C",
+              "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+              "section": "§9.1 The acceptance record"
+            },
+            {
+              "contract": "1C",
+              "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+              "section": "§3 Locked rules (L1, L4)"
+            }
+          ]
+        },
+        {
+          "id": "DG3-U5",
+          "title": "Authoritative receipt and Seed after Settlement; failure writes no Seed",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§4.2 Evidence rules"
+            },
+            {
+              "contract": "1C",
+              "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+              "section": "§3 Locked rules (L8, L9)"
+            },
+            {
+              "contract": "1C",
+              "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+              "section": "§10.1 Dependency direction (locked)"
+            }
+          ]
+        },
+        {
+          "id": "DG3-U6",
+          "title": "Entry/terminal exception states: rejected, expired, withdrawn, disputed",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§5.2 WorkEntryAgreement (F11, F12, F15)"
+            },
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§5.D Delivery & acceptance (dispute row)"
+            }
+          ]
+        },
+        {
+          "id": "DG3-X1",
+          "title": "Escrow/funding precondition drawn on mission activation",
+          "status": "OWNER DECISION",
+          "contract_citations": [
+            {
+              "contract": "1E",
+              "file": "reports/phase-1/PHASE-1E-ENTERPRISE-NODE.md",
+              "section": "§10.1 Honest status: committed-to-build"
+            },
+            {
+              "contract": "1B",
+              "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+              "section": "§1 Load-bearing invariants (I-6, I-7)"
+            }
+          ]
+        }
+      ],
+      "crosscheck": [
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "Original lifecycle (mission-lifecycle.png sha c612a544...) has no entry-agreement states and no evidence-class element; 'Matching - agents fill slots' goes straight to FormationReady."
+        },
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "shell.html:253-278 Inspector shows 'agreement_id' / 'workentry' as 'PHASE-4 - not implemented' (class 'future' purple italics, shell.html:275) and 'seed evidence' from ctx.seed_doi, which no code sets (only post_id/thread_id/mission_id/slot_id are set, shell.html:236-243). No lifecycle state is rendered by the shell."
+        }
+      ],
+      "owner_questions": [
+        "Q5: Depict escrow/funding precondition (DG3-X1) or omit until mechanism exists?",
+        "Q6: Keep terminal exception nodes on the main canvas or on a collapsible overlay?"
+      ]
+    },
+    {
+      "group_id": "DG4",
+      "artifact": "Unified Control Grammar",
+      "spec_file": "DG4-unified-control-grammar.md",
+      "standing": "PROVISIONAL",
+      "master_refs": [
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/unified-control-grammar.png",
+          "sha256": "a0d398978dfbd972acbfbc85184c786059176b5e3d79f4a220836ebdef0fe528"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/unified-control-grammar.pdf",
+          "sha256": "e73074d585587dfd94eabe271c9ffca8de6a3b65e9b1f2089743c4c5a71010a5"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/unified-control-grammar-text.txt",
+          "sha256": "53f0a23a4876ab6798b059b6c227d85c9d14d6e51c12aa0ca5eeea6b3b13bb62"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/unified-control-grammar/offline-preview.html",
+          "sha256": "f770cf5bb3b7ec4a9db8010f5f65cf4b4afa178c8bcaf1a1468de552f67b5863"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/shared-component-language/offline-preview.html",
+          "sha256": "d28ac9d775b4bee91f5e6e1f134c4c99b41a422f6f336c8711caba038afa8c97"
+        }
+      ],
+      "preserve": "Reuse original grammar and update vocabulary",
+      "update_required": "principal, Agreement, object context, economic/evidence effects, consequential preflight, read-only projections",
+      "update_items": [
+        {
+          "id": "DG4-U1",
+          "title": "'Resolve active principal' step names the principal class",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1B",
+              "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+              "section": "§2 Principal classes"
+            },
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§3 Reading rules and invariants (rule 9: operator acts FOR a named principal)"
+            }
+          ]
+        },
+        {
+          "id": "DG4-U2",
+          "title": "Agreement as object context in Context Breadcrumb and Object Identity Block",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§3 Common envelope - every Agreement instance"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§1.3 Agreement != neighbors"
+            }
+          ]
+        },
+        {
+          "id": "DG4-U3",
+          "title": "Preflight economic and evidence effects (disclosure, treasury != escrow != stake)",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§7 Consistency obligations (canonical preflight reads this table)"
+            },
+            {
+              "contract": "1B",
+              "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+              "section": "§1 Load-bearing invariants (I-7)"
+            },
+            {
+              "contract": "1C",
+              "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+              "section": "§10.1 Dependency direction (locked)"
+            }
+          ]
+        },
+        {
+          "id": "DG4-U4",
+          "title": "Consequential-action flow: governance gate only where O-J-4 categories fire",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§3 Reading rules and invariants (rule 10)"
+            },
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§7 Consistency obligations (preflight sequence)"
+            }
+          ]
+        },
+        {
+          "id": "DG4-U5",
+          "title": "Read-only projection adapters: World, Rank/Refinery, Switchboard canvas adapters marked read-only",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§7.2 Privilege rules"
+            },
+            {
+              "contract": "1B",
+              "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+              "section": "§1 Load-bearing invariants (I-9)"
+            }
+          ]
+        },
+        {
+          "id": "DG4-U6",
+          "title": "Action Stack inherits the authority-table row of the verb invoked",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§7 Consistency obligations (O-IA-8 cockpit scopes)"
+            },
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§3 Reading rules and invariants (rule 2: consent classes distinct)"
+            }
+          ]
+        },
+        {
+          "id": "DG4-X1",
+          "title": "Command Palette (item 7) and Live Event Stream (item 8): vocabulary for agreement/evidence events",
+          "status": "UNRESOLVED",
+          "contract_citations": []
+        }
+      ],
+      "crosscheck": [
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "shell.html implements grammar items 1 (rail, :83-90), 2 (sidebar, :91-95), 4 (canvas host, :96-99), 5 (Inspector, :100-106), 6 (HUD, :107-113). Items 3 (Context Tabs), 7 (Command Palette), 8 (Live Event Stream) are not present in shell.html."
+        },
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "Inspector (shell.html:253-278) shows route/surface/status/section/post/thread/mission/slot/agreement_id/workentry/seed rows; no STATE/AUTHORITY/GOVERNANCE/ECONOMY/PROVENANCE grouping from the preserved Inspector grammar."
+        }
+      ],
+      "owner_questions": [
+        "Q7: Is DG4-X1 (event vocabulary for palette/stream) deferred to a later phase?"
+      ]
+    },
+    {
+      "group_id": "DG5",
+      "artifact": "Shell States and Control Board",
+      "spec_file": "DG5-shell-states-control-board.md",
+      "standing": "PROVISIONAL",
+      "master_refs": [
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/shell-states.png",
+          "sha256": "c5bf074a20deec7bd491c3ce048998f50c140972ebcad1daf96a09de1847214d"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/shell-states.pdf",
+          "sha256": "41e68172c5700173e9f4cc7d65fdd85d53893a4711e0db9549ad7fd095d8fa07"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/shell-states-text.txt",
+          "sha256": "f1f077773bdb629980b24f96803a26d8158bba8a7207841e7670581367bef29a"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/canonical-board-page-1-overview.png",
+          "sha256": "47f8614f2bc744b3ee97fd8d7139c60d208b80030d21b68a1f7e57ef1466ba0d"
+        }
+      ],
+      "preserve": "Retain original nine-mode rail/sidebar/canvas/Inspector/HUD grammar",
+      "update_required": "acting principal, context carry, Agreement/WorkEntry status, Entity/Node distinctions; Town Hall not governance",
+      "update_items": [
+        {
+          "id": "DG5-U1",
+          "title": "Acting principal shown in HUD and Inspector, with principal class",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1B",
+              "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+              "section": "§2 Principal classes"
+            },
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§3 Reading rules and invariants (rule 9)"
+            }
+          ]
+        },
+        {
+          "id": "DG5-U2",
+          "title": "Context carry: Agreement/WorkEntry fields in sidebar/inspector",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§2 Canonical ordering (rule 4: not the runtime ribbon)"
+            },
+            {
+              "contract": "1F",
+              "file": "reports/phase-1/PHASE-1F-WORKENTRY-UNBLOCK.md",
+              "section": "§1.2 Authoritative mapping shape"
+            }
+          ]
+        },
+        {
+          "id": "DG5-U3",
+          "title": "Agreement/WorkEntry status badge using 1A state names",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§4.1 State-model skeleton"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§5.2 WorkEntryAgreement (F6)"
+            }
+          ]
+        },
+        {
+          "id": "DG5-U4",
+          "title": "Entity vs Entity Node vs Ecosystem distinctions in World and relevant Inspectors",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§0 Canonical invariants (non-compressible)"
+            },
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§7.1 The four states"
+            }
+          ]
+        },
+        {
+          "id": "DG5-U5",
+          "title": "Town Hall is not governance: relocate/annotate Town Hall in the mode taxonomy",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1B",
+              "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+              "section": "§1 Load-bearing invariants (I-9)"
+            },
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§4.3 Recognition request and formalization (Town Hall = intake/deliberation/notice only)"
+            },
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§5.E Governance verbs (Town Hall != formal governance)"
+            }
+          ]
+        },
+        {
+          "id": "DG5-U6",
+          "title": "Control Board: show latent/gated systems and derived layers hidden by rail compression",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§7.1 The four states"
+            },
+            {
+              "contract": "1B",
+              "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+              "section": "§1 Load-bearing invariants (I-9)"
+            }
+          ]
+        },
+        {
+          "id": "DG5-U7",
+          "title": "Rail mode set: original nine-mode vs shell's nine modes",
+          "status": "OWNER DECISION",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§2 Canonical ordering (rule 4)"
+            }
+          ]
+        },
+        {
+          "id": "DG5-X1",
+          "title": "Where Rank/Refinery and Switchboard live in the rail",
+          "status": "UNRESOLVED",
+          "contract_citations": []
+        }
+      ],
+      "crosscheck": [
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "Shell layout: rail 64px, sidebar 230px, canvas, inspector 260px, HUD 34px (shell.html:9-13, 17-20)."
+        },
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "Shell modes (shell.html:121-131): orient[/portal,/world,/kingdoms], find[/kassa,/missions,/bountyboard,/openroles], mc[/agentdash,/dashboard,/mission,/slots], deploy[/deploy], command[/command], campaign[/campaign], govern[/governance,/senate,/forums], econ[/economics,/treasury,/connect,/earnings-matrix], ref[/vault,/academia,/guides,/moses]."
+        },
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "POTENTIAL CONFLICT: shell.html:128 places /forums (Town Hall Forums per COMMS-TOWN-HALL-MAP.md section 4) inside GOVERN, while shell.html:119-120 comment asserts 'Town Hall != Governance'. Contract basis: 1B I-9, 1D §0. Flagged for owner, not changed."
+        },
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "Inspector rows (shell.html:256-267) incl. agreement_id/workentry 'PHASE-4 - not implemented'; note text shell.html:103-105 says read-only projection, shell grants no permissions (consistent with 1D §7.2 rule 1)."
+        },
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "Principal block (shell.html:94, 281-311) shows agent name/role/status from existing credentials only, else 'guest'; no principal class (P1-P8) or acting-for shown."
+        },
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "HUD (shell.html:107-113, 315-330) shows governance mode/posture and systems-observed count only; no context ribbon."
+        }
+      ],
+      "owner_questions": [
+        "Q8: Move Town Hall out of CIVITAS (COMMS only) or keep and annotate? And should /forums leave GOVERN in the shell (shell.html:128)?",
+        "Q9 (DG5-U7): Which nine-mode rail is the visual master for P2_FINAL: the original (HOME/MISSIONS/.../WORLD) or the shell's (ORIENT/.../REFERENCE)?",
+        "Q10: Accept that Rank/Refinery/Switchboard placement is UNRESOLVED (DG5-X1)?"
+      ]
+    },
+    {
+      "group_id": "DG6",
+      "artifact": "High-fidelity MagicPath concepts",
+      "spec_file": "DG6-magicpath-concepts.md",
+      "standing": "PROVISIONAL",
+      "master_refs": [
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/civitae-world/offline-preview.html",
+          "sha256": "48c26a82e32b6e5a0e9046f3a9caa545dc0542279688f98b6e98a9462c0937b7"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/civitas-chamber/offline-preview.html",
+          "sha256": "5132ccc498ac57ddf876f601820f2b77df902b43cba783ac422ffecab6eebe8e"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/command-deploy/offline-preview.html",
+          "sha256": "53e4e4b64c8eba6a5dfad8378464a2659c7a83c178507ebbc066f6268a31540e"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/kassa-find-work/offline-preview.html",
+          "sha256": "df86b489407069557c7eb27178f188bcf29fb1b66c0062f2e22fcd4b6bff9ae0"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/mission-control/offline-preview.html",
+          "sha256": "36c6d98dc8cce206e335f5b602ef7ac3f65416a786d4b51dd3b00af922cc7e15"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/reality-constraints/offline-preview.html",
+          "sha256": "d7562b066a809893239645f1991386136f4361e7088fed434bd569c0eb02d165"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/shared-component-language/offline-preview.html",
+          "sha256": "d28ac9d775b4bee91f5e6e1f134c4c99b41a422f6f336c8711caba038afa8c97"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/unified-control-grammar/offline-preview.html",
+          "sha256": "f770cf5bb3b7ec4a9db8010f5f65cf4b4afa178c8bcaf1a1468de552f67b5863"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/exploratory-civic-world-map/offline-preview.html",
+          "sha256": "b76127cdb208de28343d3f040385c17657e37b24c76bf332e73f3b79faeae526"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/exploratory-mission-command-deck/offline-preview.html",
+          "sha256": "4c42081516f325868f09f32faa8a13bc22a8fb517a6fe528d48d19bad53e0d8c"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/exploratory-tactical-deploy-board/offline-preview.html",
+          "sha256": "da83594f3d7fabc90c525dce8bc1c146452044316670bad5eabd07277617be9c"
+        },
+        {
+          "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/exploratory-visual-directions/offline-preview.html",
+          "sha256": "363b5da42c34847a6d3cb343f54b53834d2ff037a6634375b23d1948c9652d30"
+        }
+      ],
+      "preserve": "Adopt the eight canonical designs as provisional visual references",
+      "update_required": "Find Work, COMMAND, World, Rank/Refinery, Switchboard, Enterprise/Entity, consequential preflight; inspect in offline prototypes",
+      "update_items": [
+        {
+          "id": "DG6-U1",
+          "title": "KA§§A Find Work: entry via WorkEntryAgreement with mode-dependent resolution",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§5.2 WorkEntryAgreement"
+            },
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§6 O-J-1 owner-resolved"
+            },
+            {
+              "contract": "1F",
+              "file": "reports/phase-1/PHASE-1F-WORKENTRY-UNBLOCK.md",
+              "section": "§1.1 Agreement relationship ordering"
+            }
+          ]
+        },
+        {
+          "id": "DG6-U2",
+          "title": "COMMAND (command-deploy): consequential preflight with Agreement-bound deploy authority; DEPLOY != COMMAND != CAMPAIGN",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§5.C Work objects - mission / slot / formation / task / deploy (deploy row)"
+            },
+            {
+              "contract": "1E",
+              "file": "reports/phase-1/PHASE-1E-ENTERPRISE-NODE.md",
+              "section": "§0 Canonical enterprise chain (COMMAND != DEPLOY != CAMPAIGN)"
+            }
+          ]
+        },
+        {
+          "id": "DG6-U3",
+          "title": "World: Entity/Node/Ecosystem distinction and read-only projection",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§0 Canonical invariants (non-compressible)"
+            },
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§7.2 Privilege rules"
+            }
+          ]
+        },
+        {
+          "id": "DG6-U4",
+          "title": "Mission Control: Agreement in the control graph and context",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§7 Ordering recap + WorkEntry placement"
+            },
+            {
+              "contract": "1C",
+              "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+              "section": "§9.1 The acceptance record"
+            }
+          ]
+        },
+        {
+          "id": "DG6-U5",
+          "title": "Civitas chamber: Town Hall vs formal governance labeling",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1B",
+              "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+              "section": "§1 Load-bearing invariants (I-9, I-10)"
+            },
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§5.E Governance verbs (Town Hall != formal governance)"
+            }
+          ]
+        },
+        {
+          "id": "DG6-U6",
+          "title": "Rank / Refinery concept (read-only derived projection)",
+          "status": "OWNER DECISION",
+          "contract_citations": [
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§7.2 Privilege rules"
+            },
+            {
+              "contract": "1B",
+              "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+              "section": "§1 Load-bearing invariants (I-5)"
+            },
+            {
+              "contract": "1C",
+              "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+              "section": "§10.2 What this contract forbids economically"
+            }
+          ]
+        },
+        {
+          "id": "DG6-U7",
+          "title": "Switchboard concept (read-only derived routing/suggestion)",
+          "status": "OWNER DECISION",
+          "contract_citations": [
+            {
+              "contract": "1A",
+              "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+              "section": "§5.6 EntityRelationAgreement (F13: Switchboard eligibility context, read-only)"
+            },
+            {
+              "contract": "1B",
+              "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+              "section": "§1 Load-bearing invariants (I-5)"
+            }
+          ]
+        },
+        {
+          "id": "DG6-U8",
+          "title": "Enterprise / Entity concept (Entity, Entity Node, Enterprise domain, Recognition Office)",
+          "status": "OWNER DECISION",
+          "contract_citations": [
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§1 Definitions (contract vocabulary)"
+            },
+            {
+              "contract": "1E",
+              "file": "reports/phase-1/PHASE-1E-ENTERPRISE-NODE.md",
+              "section": "§0 Canonical enterprise chain (non-compressible)"
+            },
+            {
+              "contract": "1D",
+              "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+              "section": "§4.3 Recognition request and formalization"
+            }
+          ]
+        },
+        {
+          "id": "DG6-U9",
+          "title": "Consequential preflight pattern across concepts (shared-component-language, unified-control-grammar)",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§7 Consistency obligations (canonical preflight)"
+            },
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§3 Reading rules and invariants (rule 10)"
+            }
+          ]
+        },
+        {
+          "id": "DG6-X1",
+          "title": "Inspect updates in offline prototypes only",
+          "status": "PROPOSED",
+          "contract_citations": [
+            {
+              "contract": "1G",
+              "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+              "section": "§7 Consistency obligations (nothing here is a runtime grant yet)"
+            }
+          ]
+        }
+      ],
+      "crosscheck": [
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "Prototype behaviour recorded in SIGNOMY-DESIGN-JOURNEY-MAP.md 'Verified prototype findings': Find Work CONFIRM ENTRY closes dialog only; Mission Control Open Deploy is a no-op; Command/Deploy palette has no handlers; Civitas CONFIRM VOTE closes only. These are prototype states, not defects of this spec."
+        },
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "Shell hosts existing 0.4.0 pages rather than rebuilding concepts (shell.html:98 'Existing 0.4.0 pages are hosted, not rebuilt')."
+        },
+        {
+          "label": "VERIFIED CURRENT",
+          "text": "Only a 'Rank' rail glyph appears in the preview text; no Refinery, Switchboard, Enterprise, Agreement or WorkEntry strings in any concept preview-visible-text.txt (grep over 01-magicpath); 'Entity' appears only as an identity/context label (e.g. 'ENTITY: ACME' in mission-control), not as Entity Node."
+        }
+      ],
+      "owner_questions": [
+        "Q11: For the three concepts with no original master (Rank/Refinery, Switchboard, Enterprise/Entity): author offline later, wait for quota reset, or defer past P2_FINAL?",
+        "Q12: Is boundary-level depiction of Refinery/Switchboard sufficient for P2_FINAL while Phase 6B/6C is unfrozen?"
+      ]
+    }
+  ],
+  "totals": {
+    "update_items": 49,
+    "contract_citations": 113,
+    "unresolved": 3,
+    "owner_decision": 6,
+    "proposed": 40
+  },
+  "owner_questions": [
+    "Q1: Is the Agreement Stack drawn as its own zone, or folded into MISSION / WORK (design choice; semantics unchanged)?",
+    "Q2: Accept Refinery/Switchboard shown at boundary level only until Phase 6B/6C semantics are frozen (see UNRESOLVED DG1-X1)?",
+    "Q3: Should the Agreement node sit inline on the spine or as a stacked layer over Mission (visual only)?",
+    "Q4 (OWNER DECISION DG2-X1): confirm resolver/timeout/notification details stay out of the diagram until 1F sub-decisions are made.",
+    "Q5: Depict escrow/funding precondition (DG3-X1) or omit until mechanism exists?",
+    "Q6: Keep terminal exception nodes on the main canvas or on a collapsible overlay?",
+    "Q7: Is DG4-X1 (event vocabulary for palette/stream) deferred to a later phase?",
+    "Q8: Move Town Hall out of CIVITAS (COMMS only) or keep and annotate? And should /forums leave GOVERN in the shell (shell.html:128)?",
+    "Q9 (DG5-U7): Which nine-mode rail is the visual master for P2_FINAL: the original (HOME/MISSIONS/.../WORLD) or the shell's (ORIENT/.../REFERENCE)?",
+    "Q10: Accept that Rank/Refinery/Switchboard placement is UNRESOLVED (DG5-X1)?",
+    "Q11: For the three concepts with no original master (Rank/Refinery, Switchboard, Enterprise/Entity): author offline later, wait for quota reset, or defer past P2_FINAL?",
+    "Q12: Is boundary-level depiction of Refinery/Switchboard sufficient for P2_FINAL while Phase 6B/6C is unfrozen?"
+  ],
+  "per_group": [
+    {
+      "id": "DG1",
+      "items": 9,
+      "citations": 28,
+      "unresolved": 1,
+      "owner_decision": 0,
+      "proposed": 8
+    },
+    {
+      "id": "DG2",
+      "items": 8,
+      "citations": 18,
+      "unresolved": 0,
+      "owner_decision": 1,
+      "proposed": 7
+    },
+    {
+      "id": "DG3",
+      "items": 7,
+      "citations": 18,
+      "unresolved": 0,
+      "owner_decision": 1,
+      "proposed": 6
+    },
+    {
+      "id": "DG4",
+      "items": 7,
+      "citations": 13,
+      "unresolved": 1,
+      "owner_decision": 0,
+      "proposed": 6
+    },
+    {
+      "id": "DG5",
+      "items": 8,
+      "citations": 14,
+      "unresolved": 1,
+      "owner_decision": 1,
+      "proposed": 6
+    },
+    {
+      "id": "DG6",
+      "items": 10,
+      "citations": 22,
+      "unresolved": 0,
+      "owner_decision": 3,
+      "proposed": 7
+    }
+  ]
+}
