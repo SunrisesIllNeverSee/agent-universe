@@ -440,15 +440,35 @@ async def update_mission(mission_id: str, payload: UpdateMissionPayload, request
 # ══════════════════════════════════════════════════════════════════════════════
 
 
+# Campaign principal binding — mirrors the mission binding above. Campaign
+# authority is DISTINCT from mission authority (1B D16-P7: COMMAND != DEPLOY !=
+# CAMPAIGN; 1G §5.C deploy row). Owner is derived server-side from the live
+# Bearer key; ownerless legacy campaigns fail closed for agents. Order of
+# checks: 401 (principal) -> 404 (campaign) -> 403 (owner), all before writes.
+
+def _find_campaign_for_mutation(
+    request: Request, campaigns: list[dict], campaign_id: str
+) -> tuple[dict | None, JSONResponse | None]:
+    agent_id = _acting_agent_id(request)  # 401
+    campaign = next((c for c in campaigns if c["id"] == campaign_id), None)
+    if not campaign:
+        return None, JSONResponse({"error": "Campaign not found"}, status_code=404)
+    if agent_id is not None:
+        owner = campaign.get("owner_agent_id")
+        if not owner or owner != agent_id:
+            raise HTTPException(403, "Only the campaign owner or an operator may modify this campaign")
+    return campaign, None
+
+
 @router.post("/api/campaigns")
-async def create_campaign(payload: CreateCampaignPayload) -> dict:
+async def create_campaign(payload: CreateCampaignPayload, request: Request) -> dict:
     """Create a CAMPAIGN — long-term strategy container for missions."""
+    owner_agent_id = _acting_agent_id(request)
     campaigns = _load_campaigns()
     campaign = {
         "id": f"campaign-{_secrets_mod.token_hex(4)}",
         "name": payload.name,
         "objective": payload.objective,
-        "created_by": payload.created_by,
         "ecosystems": payload.ecosystems,
         "revenue_target": payload.revenue_target,
         "status": "active",
@@ -456,13 +476,14 @@ async def create_campaign(payload: CreateCampaignPayload) -> dict:
         "created_at": datetime.now(UTC).isoformat(),
         "closed_at": None,
         "missions": [],
+        **_owner_fields(owner_agent_id),
     }
     campaigns.append(campaign)
     _save_campaigns(campaigns)
     _audit_entry = state.audit.log("campaign", "created", {"campaign_id": campaign["id"], "name": campaign["name"]})
     await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     try:
-        await create_seed(source_type="campaign", source_id=campaign["id"], creator_id=campaign.get("created_by") or "operator", creator_type="BI", seed_type="planted", metadata={"name": campaign["name"]})
+        await create_seed(source_type="campaign", source_id=campaign["id"], creator_id=owner_agent_id or "operator", creator_type="BI", seed_type="planted", metadata={"name": campaign["name"]})
     except Exception:
         pass
     return campaign
@@ -482,11 +503,11 @@ async def get_campaign(campaign_id: str) -> dict:
 
 
 @router.post("/api/campaigns/{campaign_id}/add_mission")
-async def add_mission_to_campaign(campaign_id: str, payload: AddMissionToCampaignPayload) -> dict:
+async def add_mission_to_campaign(campaign_id: str, payload: AddMissionToCampaignPayload, request: Request) -> dict:
     campaigns = _load_campaigns()
-    campaign = next((c for c in campaigns if c["id"] == campaign_id), None)
-    if not campaign:
-        return JSONResponse({"error": "Campaign not found"}, status_code=404)
+    campaign, err = _find_campaign_for_mutation(request, campaigns, campaign_id)
+    if err:
+        return err
     mission_id = payload.mission_id
     if mission_id and mission_id not in campaign["missions"]:
         campaign["missions"].append(mission_id)
@@ -495,11 +516,11 @@ async def add_mission_to_campaign(campaign_id: str, payload: AddMissionToCampaig
 
 
 @router.post("/api/campaigns/{campaign_id}/close")
-async def close_campaign(campaign_id: str, payload: CloseCampaignPayload) -> dict:
+async def close_campaign(campaign_id: str, payload: CloseCampaignPayload, request: Request) -> dict:
     campaigns = _load_campaigns()
-    campaign = next((c for c in campaigns if c["id"] == campaign_id), None)
-    if not campaign:
-        return JSONResponse({"error": "Campaign not found"}, status_code=404)
+    campaign, err = _find_campaign_for_mutation(request, campaigns, campaign_id)
+    if err:
+        return err
     campaign["status"] = "closed"
     campaign["closed_at"] = datetime.now(UTC).isoformat()
     campaign["outcome"] = payload.outcome
@@ -514,12 +535,12 @@ async def close_campaign(campaign_id: str, payload: CloseCampaignPayload) -> dic
 
 
 @router.post("/api/campaigns/{campaign_id}/activate")
-async def activate_campaign(campaign_id: str) -> dict:
+async def activate_campaign(campaign_id: str, request: Request) -> dict:
     """Set a campaign to active status."""
     campaigns = _load_campaigns()
-    campaign = next((c for c in campaigns if c["id"] == campaign_id), None)
-    if not campaign:
-        return JSONResponse({"error": "Campaign not found"}, status_code=404)
+    campaign, err = _find_campaign_for_mutation(request, campaigns, campaign_id)
+    if err:
+        return err
     if campaign.get("status") == "closed":
         return JSONResponse({"error": "Cannot reactivate a closed campaign"}, status_code=400)
     campaign["status"] = "active"
