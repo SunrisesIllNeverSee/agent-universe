@@ -20,7 +20,7 @@ import jwt as pyjwt
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
-from app.auth import agent_token_alive
+from app.auth import admin_key_matches, agent_token_alive
 from app.deps import state
 from app.metrics_io import atomic_write
 from app.rate_limit import RATE_STORES as _rate_stores, check_rate_limit as _shared_check_rate_limit
@@ -160,13 +160,25 @@ async def get_hash() -> dict:
 #  GOVERNANCE CHECK / UPDATE
 # ═══════════════════════════════════════════════════════════════════════════
 
+def _require_operator(request: Request) -> None:
+    """Global-state mutations: valid admin key only; agent Bearer keys are denied.
+
+    The server middleware lets live agent keys reach these prefixes; they are
+    not authority over GLOBAL governance/deploy state. With no admin key
+    configured (local dev) the middleware has already authorized the request.
+    """
+    if state.admin_key and not admin_key_matches(request, state.admin_key):
+        raise HTTPException(403, "Operator authority (admin key) required")
+
+
 @router.post("/api/governance/check")
 async def check_governed_action(payload: GovernanceCheckPayload) -> dict:
     return state.runtime.check_action(payload.action)
 
 
 @router.post("/api/governance")
-async def update_governance(payload: GovernanceUpdate) -> dict:
+async def update_governance(payload: GovernanceUpdate, request: Request) -> dict:
+    _require_operator(request)
     runtime = state.runtime
     audit = state.audit
     _ac = state.audit_cursor()
@@ -432,7 +444,9 @@ async def list_forks() -> dict:
 # ═══════════════════════════════════════════════════════════════════════════
 
 @router.post("/api/deploy")
-async def update_deploy(payload: DeployUpdate) -> dict:
+async def update_deploy(payload: DeployUpdate, request: Request) -> dict:
+    # Operator-only until agreement-bound deployment authority exists (O-IA-5).
+    _require_operator(request)
     runtime = state.runtime
     audit = state.audit
     _ac = state.audit_cursor()
