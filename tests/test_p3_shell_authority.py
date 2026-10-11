@@ -75,11 +75,8 @@ def test_shell_origin_grants_nothing_vs_anonymous_baseline(client):
         assert _call(client, method, path, body, SHELL_HDRS) >= 400, path
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "REAL FINDING (pre-existing, not shell-induced): POST /api/availability/{agent_id} "
-    "is in server.py _PUBLIC_WRITE_PREFIXES and app/routes/availability.py:60 performs no "
-    "agent-claim check, so an anonymous caller can overwrite any agent's availability. "
-    "Backend authority logic is out of scope for the shell lane; report only."))
+# Regression: formerly a strict xfail (anonymous availability write accepted);
+# fixed by claude/h1-availability-auth 3036503 (owner credential required).
 def test_availability_write_requires_authority(client):
     r = client.post("/api/availability/victim-agent", json={"available_now": True})
     assert r.status_code in (401, 403)
