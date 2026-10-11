@@ -617,8 +617,7 @@ renderDrawer();
 // Load live agents from registry
 (async () => {
   try {
-    const base = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      ? 'http://localhost:8300' : '';
+    const base = '';
     const res = await fetch(base + '/api/agents', { signal: AbortSignal.timeout(5000) });
     if (!res.ok) return;
     const data = await res.json();

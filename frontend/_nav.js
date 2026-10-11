@@ -19,7 +19,7 @@
     gs.id = 'gtag-js';
     gs.async = true;
     gs.src = 'https://www.googletagmanager.com/gtag/js?id=G-FD4VLSCHY8';
-    document.head.appendChild(gs);
+    (document.head || document.documentElement).appendChild(gs);
     window.dataLayer = window.dataLayer || [];
     function gtag(){window.dataLayer.push(arguments);}
     gtag('js', new Date());
@@ -411,6 +411,7 @@
       if (adopted && adopted.parentNode) {
         adopted.parentNode.replaceChild(nav, adopted);
       } else {
+        if (!document.body) return;
         document.body.insertBefore(nav, document.body.firstChild);
       }
     }
@@ -491,7 +492,7 @@
       right.appendChild(xLink);
 
       footer.appendChild(right);
-      document.body.appendChild(footer);
+      if (document.body) document.body.appendChild(footer);
     }
   }
 
@@ -506,7 +507,7 @@
     var wmcp = document.createElement('script');
     wmcp.id = 'webmcp-bridge';
     wmcp.src = '/webmcp.js';
-    document.body.appendChild(wmcp);
+    (document.body || document.documentElement).appendChild(wmcp);
   }
 
   }); // end fetch callback
