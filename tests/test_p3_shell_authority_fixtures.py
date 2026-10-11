@@ -317,6 +317,8 @@ def test_canary_claim_guard_removal_is_detected(client, world, monkeypatch):
 
 def test_canary_middleware_removal_is_detected(client, world, monkeypatch):
     import app.server as server
-    assert not _breached(client, world, "mission_end")
+    # Mission verbs now also enforce principal ownership in the handler (D-B),
+    # so they no longer rely on the middleware alone; probe a verb that does.
+    assert not _breached(client, world, "withdraw")
     monkeypatch.setattr(server, "admin_key_matches", lambda *a, **kw: True)
-    assert _breached(client, world, "mission_end")
+    assert _breached(client, world, "withdraw")
