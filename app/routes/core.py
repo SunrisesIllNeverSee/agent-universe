@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import time as _time
 from datetime import datetime, timezone
@@ -20,7 +21,7 @@ import jwt as pyjwt
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
-from app.auth import admin_key_matches, agent_token_alive
+from app.auth import active_agent_from_bearer, admin_key_matches, agent_token_alive
 from app.deps import state
 from app.metrics_io import atomic_write
 from app.rate_limit import RATE_STORES as _rate_stores, check_rate_limit as _shared_check_rate_limit
@@ -193,7 +194,17 @@ async def update_governance(payload: GovernanceUpdate, request: Request) -> dict
 # ═══════════════════════════════════════════════════════════════════════════
 
 @router.post("/api/messages")
-async def post_message(message: MessageCreate) -> dict:
+async def post_message(message: MessageCreate, request: Request) -> dict:
+    # Agent Bearer keys may post only as themselves; the operator role and other
+    # senders are operator (admin key) authority.
+    if state.admin_key and not admin_key_matches(request, state.admin_key):
+        principal = active_agent_from_bearer(request, state.runtime.registry, state.runtime.revoked_keys)
+        if principal is None:
+            raise HTTPException(403, "Operator authority (admin key) required")
+        own = {str(principal.get(k)) for k in ("agent_id", "name") if principal.get(k)}
+        if message.sender not in own:
+            raise HTTPException(403, "Agents may only post messages as themselves")
+        message = message.model_copy(update={"role_context": "agent"})
     runtime = state.runtime
     audit = state.audit
     _ac = state.audit_cursor()
@@ -471,13 +482,19 @@ def _load_stars() -> list[dict]:
     return []
 
 
+_STAR_TAG_RE = re.compile(r"[A-Za-z0-9_-]{1,32}")
+
+
 def _save_stars(stars: list[dict]):
     atomic_write(_stars_path(), json.dumps(stars, indent=2))
 
 
 @router.post("/api/messages/star")
-async def star_message(payload: StarMessagePayload) -> dict:
+async def star_message(payload: StarMessagePayload, request: Request) -> dict:
     """Star/favorite a message by ID with optional note and tag."""
+    _require_operator(request)  # operator vault + loaded context
+    if not _STAR_TAG_RE.fullmatch(payload.tag or ""):
+        return JSONResponse({"error": "tag must be 1-32 letters, digits, '-' or '_'"}, status_code=400)
     runtime = state.runtime
     audit = state.audit
     store = state.store
@@ -556,8 +573,9 @@ async def star_message(payload: StarMessagePayload) -> dict:
 
 
 @router.post("/api/messages/unstar")
-async def unstar_message(payload: UnstarMessagePayload) -> dict:
+async def unstar_message(payload: UnstarMessagePayload, request: Request) -> dict:
     """Remove star from a message."""
+    _require_operator(request)
     msg_id = payload.id
     stars = _load_stars()
     stars = [s for s in stars if s.get("id") != msg_id]
