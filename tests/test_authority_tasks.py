@@ -141,10 +141,10 @@ def test_create_in_unknown_mission_404_for_agent(client, bare):
     assert _snap() == before
 
 
-def test_agent_cannot_attach_campaign(client, bare):
+def test_agent_cannot_attach_unknown_campaign(client, bare):
     _, h, _ = _agent(client)
     before = _snap()
-    assert bare.post("/api/tasks", json={"title": "t", "campaign_id": "c1"}, headers=h).status_code == 403
+    assert bare.post("/api/tasks", json={"title": "t", "campaign_id": "c1"}, headers=h).status_code == 404
     assert _snap() == before
 
 
@@ -290,4 +290,6 @@ def test_assignee_on_ownerless_legacy_task_denied(client, bare):
 
 def test_edge_keeps_tasks_admin_only_for_agents(client):
     _, h, _ = _agent(client)
-    assert client.post("/api/tasks", json={"title": "t"}, headers=h).status_code == 403
+    # Only POST /api/tasks (create) is opened, by exact path; lifecycle verbs stay admin-only.
+    assert client.post("/api/tasks", json={"title": "t"}, headers=h).status_code == 200
+    assert client.post("/api/tasks/task-x/assign", json={"agent_id": "a"}, headers=h).status_code == 403

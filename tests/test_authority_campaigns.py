@@ -59,6 +59,14 @@ VERBS = {
 verbs = pytest.mark.parametrize("verb", list(VERBS))
 
 
+def _allowed(client, verb, cid, h):
+    """Call a verb as an authorized caller (add_mission needs an existing, same-owner mission)."""
+    if verb == "add_mission":
+        mid = client.post("/api/missions", json={"label": "m"}, headers=h).json()["id"]
+        return client.post(f"/api/campaigns/{cid}/add_mission", json={"mission_id": mid}, headers=h)
+    return VERBS[verb](client, cid, h)
+
+
 # ── creation ────────────────────────────────────────────────────────────────
 
 def test_agent_creation_records_authentic_owner(client):
@@ -162,14 +170,14 @@ def test_other_agent_denied_no_write(client, verb):
 def test_owner_agent_allowed(client, verb):
     _, h, _ = _agent(client)
     cid = _campaign(client, h)["id"]
-    assert VERBS[verb](client, cid, h).status_code == 200
+    assert _allowed(client, verb, cid, h).status_code == 200
 
 
 @verbs
 def test_admin_allowed_on_agent_campaign(client, verb):
     _, h, _ = _agent(client)
     cid = _campaign(client, h)["id"]
-    assert VERBS[verb](client, cid, ADMIN).status_code == 200
+    assert _allowed(client, verb, cid, ADMIN).status_code == 200
 
 
 @verbs
@@ -180,7 +188,7 @@ def test_legacy_ownerless_denied_for_agent_allowed_for_admin(client, verb):
     before = _snap()
     assert VERBS[verb](client, cid, h).status_code == 403
     assert _snap() == before
-    assert VERBS[verb](client, cid, ADMIN).status_code == 200
+    assert _allowed(client, verb, cid, ADMIN).status_code == 200
 
 
 @verbs
@@ -203,16 +211,14 @@ def test_owner_jwt_does_not_authorize(client, verb):
     assert _snap() == before
 
 
-# ── held owner decision ─────────────────────────────────────────────────────
+# ── add_mission requires mission ownership too (resolved; see test_ophard_campaigns_tasks) ──
 
-@pytest.mark.xfail(strict=True, reason=(
-    "HELD owner decision: add_mission touches two objects. Today only campaign "
-    "authority is required; whether the caller must ALSO own the mission is not "
-    "defined by frozen contracts (1B D16-P7 / 1G §5.C only separate the layers)."))
 def test_add_mission_requires_mission_ownership_too(client):
     _, camp_h, _ = _agent(client)
     _, mis_h, _ = _agent(client)
     mid = client.post("/api/missions", json={"label": "m"}, headers=mis_h).json()["id"]
     cid = _campaign(client, camp_h)["id"]
+    before = _snap()
     r = client.post(f"/api/campaigns/{cid}/add_mission", json={"mission_id": mid}, headers=camp_h)
-    assert r.status_code == 403
+    assert r.status_code == 404  # uniform mission-not-found (no existence oracle)
+    assert _snap() == before
