@@ -750,7 +750,16 @@ async def cancel_task(task_id: str) -> dict:
 @router.post("/api/slots/create")
 async def create_slots_from_formation(payload: CreateSlotsPayload) -> dict:
     """Create slots from a formation. Each slot has position, role, governance, revenue split."""
-    mission_id = payload.mission_id or f"mission-{_secrets_mod.token_hex(4)}"
+    # P4: an id minted here must resolve to a mission record (see bounty fix
+    # b06ae00). Caller-supplied ids are passed through unchanged.
+    minted = not payload.mission_id
+    mission_id = payload.mission_id
+    if minted:
+        taken = {m.get(k) for m in _load_missions() for k in ("id", "mission_id")}
+        taken |= {sl.get("mission_id") for sl in _load_slots()}
+        mission_id = f"mission-{_secrets_mod.token_hex(4)}"
+        while mission_id in taken:
+            mission_id = f"mission-{_secrets_mod.token_hex(4)}"
     formation_id = payload.formation_id
     posture = payload.posture
     label = payload.label
@@ -788,6 +797,37 @@ async def create_slots_from_formation(payload: CreateSlotsPayload) -> dict:
         }
         new_slots.append(slot)
         slots.append(slot)
+
+    if minted:
+        # Mission record first: a failure between the two writes leaves an
+        # empty mission, never a slot pointing at a nonexistent mission.
+        missions = _load_missions()
+        missions.append({
+            "id": mission_id,
+            "mission_id": mission_id,
+            "label": label,
+            "objective": "",
+            "posture": posture,
+            "formation": formation_id,
+            "target": "",
+            "duration": "",
+            "limits": {},
+            "systems": [],
+            "agents": [],
+            "status": "active",
+            "origin": "slots_create",
+            "created_at": datetime.now(UTC).isoformat(),
+            "ended_at": None,
+            "governance_at_launch": {
+                "mode": state.runtime.governance.mode,
+                "posture": state.runtime.governance.posture,
+                "role": state.runtime.governance.role,
+            },
+            "results": [],
+            "channel": f"mission-{mission_id}",
+            "slot_ids": [s["id"] for s in new_slots],
+        })
+        _save_missions(missions)
 
     _save_slots(slots)
     _audit_entry = state.audit.log("deploy", "slots_created", {
