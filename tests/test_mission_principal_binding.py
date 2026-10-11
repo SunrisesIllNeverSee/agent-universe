@@ -2,7 +2,7 @@
 
 A mission records the authentic creating agent (server-derived from the live
 Bearer API key). end / update / slot-create on an existing mission require that
-same agent or the admin key; other agents get 403 before any write. Missions
+same agent or the admin key; other agents get a uniform 404 (existence oracle closed) before any write. Missions
 with no recorded owner fail closed for agents. Runs on the session tmp root
 (see conftest) — never real data/.
 """
@@ -144,7 +144,7 @@ def test_other_agent_denied_no_write(client, verb):
     _, other_h = _agent(client)
     mid = _mission(client, owner_h)["id"]
     before = _snap()
-    assert VERBS[verb](client, mid, other_h).status_code == 403
+    assert VERBS[verb](client, mid, other_h).status_code == 404  # oracle: was 403
     assert _snap() == before
 
 
@@ -168,7 +168,7 @@ def test_legacy_ownerless_denied_for_agent_allowed_for_admin(client, verb):
     _legacy(mid)
     _, h = _agent(client)
     before = _snap()
-    assert VERBS[verb](client, mid, h).status_code == 403
+    assert VERBS[verb](client, mid, h).status_code == 404  # oracle: was 403
     assert _snap() == before
     assert VERBS[verb](client, mid, ADMIN).status_code == 200
 
@@ -178,7 +178,7 @@ def test_operator_created_mission_denied_for_agents(client, admin_client, verb):
     mid = admin_client.post("/api/missions", json={"label": "op"}).json()["id"]
     _, h = _agent(client)
     before = _snap()
-    assert VERBS[verb](client, mid, h).status_code == 403
+    assert VERBS[verb](client, mid, h).status_code == 404  # oracle: was 403
     assert _snap() == before
 
 
