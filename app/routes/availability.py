@@ -21,9 +21,29 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Any
 
+from app.auth import require_agent_claim
 from app.deps import state
 
 router = APIRouter(tags=["availability"])
+
+
+def _require_owner(request: Request, agent_id: str) -> None:
+    """Mutations need a live credential for exactly this agent_id.
+
+    Accepts the agent's active, non-revoked Bearer api_key (deny-list checked)
+    or an operator X-Admin-Key. Origin/Referer are never consulted.
+    """
+    principal = require_agent_claim(
+        request,
+        agent_id,
+        registry=state.runtime.registry,
+        admin_key=state.admin_key,
+        revoked_keys=state.runtime.revoked_keys,
+    )
+    # require_agent_claim also accepts the agent's name/handle as aliases;
+    # availability is keyed by agent_id, so demand an exact match.
+    if principal is not None and str(principal.get("agent_id") or "") != agent_id:
+        raise HTTPException(403, "Authenticated agent does not match requested actor")
 
 
 class SetAvailabilityPayload(BaseModel):
@@ -58,7 +78,7 @@ def _save_avail(data: dict):
 # ── Set availability ─────────────────────────────────────────────────────────
 
 @router.post("/api/availability/{agent_id}")
-async def set_availability(agent_id: str, payload: SetAvailabilityPayload) -> dict:
+async def set_availability(agent_id: str, payload: SetAvailabilityPayload, request: Request) -> dict:
     """Set or update an agent's availability.
 
     Body: {
@@ -71,6 +91,7 @@ async def set_availability(agent_id: str, payload: SetAvailabilityPayload) -> di
         "response_time_hours": 2
     }
     """
+    _require_owner(request, agent_id)
     avail = _load_avail()
     agents = avail.setdefault("agents", {})
 
@@ -99,8 +120,9 @@ async def set_availability(agent_id: str, payload: SetAvailabilityPayload) -> di
 # ── Toggle available now ─────────────────────────────────────────────────────
 
 @router.post("/api/availability/{agent_id}/toggle")
-async def toggle_available(agent_id: str) -> dict:
+async def toggle_available(agent_id: str, request: Request) -> dict:
     """Quick toggle of available_now status."""
+    _require_owner(request, agent_id)
     avail = _load_avail()
     agents = avail.setdefault("agents", {})
     current = agents.get(agent_id, {})

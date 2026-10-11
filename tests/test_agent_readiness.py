@@ -202,12 +202,16 @@ def test_api_404_is_structured_json(client) -> None:
 
 
 def test_api_validation_error_is_structured_json(client) -> None:
-    # Availability is a public write route with a typed Pydantic body. Passing
-    # an integer for a list[str] field reaches FastAPI's validation handler
-    # without being intercepted by the administrator middleware.
+    # Availability takes a typed Pydantic body. Passing an integer for a
+    # list[str] field reaches FastAPI's validation handler; an agent Bearer
+    # passes the middleware (body validation runs before the owner check).
+    from tests.conftest import signup_agent
+
+    key = signup_agent(client).json()["api_key"]
     response = client.post(
         "/api/availability/agent-validation-probe",
         json={"domains": 123},
+        headers={"Authorization": f"Bearer {key}"},
     )
     assert response.status_code == 422
     error = response.json()["error"]
