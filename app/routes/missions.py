@@ -534,9 +534,45 @@ async def activate_campaign(campaign_id: str) -> dict:
 # ══════════════════════════════════════════════════════════════════════════════
 
 
+# ── Task principal binding ───────────────────────────────────────────────────
+# A task records the authentic agent that created it (`owner_agent_id`, derived
+# server-side from the live Bearer key, never from the body). Attaching a task
+# to a mission requires owning that mission (1G §5 contract basis), so a task's
+# owner is also its mission's owner. assign / close / cancel are owner-only;
+# start / deliver additionally admit the recorded `assigned_agent`. Ownerless
+# (legacy / operator-created) tasks fail closed for agents; admin keeps
+# operator authority. The edge middleware currently keeps /api/tasks
+# admin-only; this is defense in depth should that prefix ever open to agents.
+
+def _authorize_task_mutation(request: Request, task: dict, *, allow_assignee: bool = False) -> None:
+    """Deny (403) any agent that is not the task owner (or, if allowed, assignee)."""
+    agent_id = _acting_agent_id(request)
+    if agent_id is None:
+        return
+    owner = task.get("owner_agent_id")
+    if not owner:
+        raise HTTPException(403, "Only the task owner or an operator may modify this task")
+    if agent_id == owner:
+        return
+    if allow_assignee and task.get("assigned_agent") == agent_id:
+        return
+    raise HTTPException(403, "Only the task owner or an operator may modify this task")
+
+
 @router.post("/api/tasks")
-async def create_task(payload: CreateTaskPayload) -> dict:
+async def create_task(payload: CreateTaskPayload, request: Request) -> dict:
     """Create an individual agent mission (task). The atomic unit of work."""
+    owner_agent_id = _acting_agent_id(request)
+    if owner_agent_id is not None:
+        # Agents cannot attach tasks to campaigns (no campaign authority model).
+        if payload.campaign_id:
+            raise HTTPException(403, "Only an operator may attach a task to a campaign")
+        if payload.mission_id:
+            parent = next((m for m in _load_missions()
+                           if payload.mission_id in (m.get("id"), m.get("mission_id"))), None)
+            if parent is None:
+                return JSONResponse({"error": "Mission not found", "mission_id": payload.mission_id}, status_code=404)
+            _authorize_mission_mutation(request, parent)
     task_type = payload.type
     track = payload.track
     if not payload.title:
@@ -557,7 +593,7 @@ async def create_task(payload: CreateTaskPayload) -> dict:
         "mission_id": payload.mission_id,
         "status": "open",
         "deliverable": "",
-        "created_by": payload.created_by,
+        **_owner_fields(owner_agent_id),
         "created_at": datetime.now(UTC).isoformat(),
         "assigned_at": None,
         "delivered_at": None,
@@ -573,7 +609,7 @@ async def create_task(payload: CreateTaskPayload) -> dict:
         seed_result = await create_seed(
             source_type="task",
             source_id=task["id"],
-            creator_id=task["created_by"],
+            creator_id=owner_agent_id or "operator",
             creator_type="BI",
             seed_type="planted",
             metadata={"title": task["title"], "type": task_type, "track": track},
@@ -612,15 +648,17 @@ async def get_task(task_id: str) -> dict:
 
 
 @router.post("/api/tasks/{task_id}/assign")
-async def assign_task(task_id: str, payload: AssignTaskPayload) -> dict:
+async def assign_task(task_id: str, payload: AssignTaskPayload, request: Request) -> dict:
     """Assign an agent to an open task."""
+    _acting_agent_id(request)
     agent_id = payload.agent_id
-    if not agent_id:
-        return JSONResponse({"error": "agent_id required"}, status_code=400)
     tasks = _load_tasks()
     task = next((t for t in tasks if t["id"] == task_id), None)
     if not task:
         return JSONResponse({"error": "Task not found"}, status_code=404)
+    _authorize_task_mutation(request, task)
+    if not agent_id:
+        return JSONResponse({"error": "agent_id required"}, status_code=400)
     if task["status"] not in ("open",):
         return JSONResponse({"error": f"Task is {task['status']} — cannot assign"}, status_code=409)
     task["assigned_agent"] = agent_id
@@ -646,12 +684,14 @@ async def assign_task(task_id: str, payload: AssignTaskPayload) -> dict:
 
 
 @router.post("/api/tasks/{task_id}/start")
-async def start_task(task_id: str) -> dict:
+async def start_task(task_id: str, request: Request) -> dict:
     """Mark task in-progress."""
+    _acting_agent_id(request)
     tasks = _load_tasks()
     task = next((t for t in tasks if t["id"] == task_id), None)
     if not task:
         return JSONResponse({"error": "Task not found"}, status_code=404)
+    _authorize_task_mutation(request, task, allow_assignee=True)
     task["status"] = "in_progress"
     _save_tasks(tasks)
     try:
@@ -662,12 +702,14 @@ async def start_task(task_id: str) -> dict:
 
 
 @router.post("/api/tasks/{task_id}/deliver")
-async def deliver_task(task_id: str, payload: DeliverTaskPayload) -> dict:
+async def deliver_task(task_id: str, payload: DeliverTaskPayload, request: Request) -> dict:
     """Agent submits output/deliverable. Moves task to delivered — awaiting close."""
+    _acting_agent_id(request)
     tasks = _load_tasks()
     task = next((t for t in tasks if t["id"] == task_id), None)
     if not task:
         return JSONResponse({"error": "Task not found"}, status_code=404)
+    _authorize_task_mutation(request, task, allow_assignee=True)
     task["deliverable"] = payload.deliverable
     task["status"] = "delivered"
     task["delivered_at"] = datetime.now(UTC).isoformat()
@@ -691,13 +733,15 @@ async def deliver_task(task_id: str, payload: DeliverTaskPayload) -> dict:
 
 
 @router.post("/api/tasks/{task_id}/close")
-async def close_task(task_id: str, payload: CloseTaskPayload) -> dict:
+async def close_task(task_id: str, payload: CloseTaskPayload, request: Request) -> dict:
     """Close a task — awards EXP to agent, triggers economic payout if payout > 0."""
+    acting_agent_id = _acting_agent_id(request)
 
     tasks = _load_tasks()
     task = next((t for t in tasks if t["id"] == task_id), None)
     if not task:
         return JSONResponse({"error": "Task not found"}, status_code=404)
+    _authorize_task_mutation(request, task)
     if task["status"] == "closed":
         return JSONResponse({"error": "Task already closed"}, status_code=409)
     task["status"] = "closed"
@@ -739,7 +783,7 @@ async def close_task(task_id: str, payload: CloseTaskPayload) -> dict:
         seed_result = await create_seed(
             source_type="task_close",
             source_id=task_id,
-            creator_id=payload.requestor or agent_id or "operator",
+            creator_id=acting_agent_id or payload.requestor or agent_id or "operator",
             creator_type="BI",
             seed_type="grown",
             metadata={"task_id": task_id, "agent_id": agent_id, "exp_awarded": task["exp_reward"], "payout": task["payout"]},
@@ -777,11 +821,13 @@ async def close_task(task_id: str, payload: CloseTaskPayload) -> dict:
 
 
 @router.post("/api/tasks/{task_id}/cancel")
-async def cancel_task(task_id: str) -> dict:
+async def cancel_task(task_id: str, request: Request) -> dict:
+    _acting_agent_id(request)
     tasks = _load_tasks()
     task = next((t for t in tasks if t["id"] == task_id), None)
     if not task:
         return JSONResponse({"error": "Task not found"}, status_code=404)
+    _authorize_task_mutation(request, task)
     task["status"] = "cancelled"
     _save_tasks(tasks)
     state.audit.log("mission", "task_cancelled", {"task_id": task_id})
