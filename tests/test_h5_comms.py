@@ -193,7 +193,7 @@ def test_b1_console_targets_canonical_route():
 
 def _make_slot(admin_client):
     r = admin_client.post("/api/slots/create", json={
-        "mission_id": _uniq("mission"), "formation_id": "test-formation",
+        "formation_id": "test-formation",
         "posture": "SCOUT", "label": "H5 Test Mission",
         "positions": [{"row": 0, "col": 0}],
         "roles": ["primary"], "revenue_splits": [100],

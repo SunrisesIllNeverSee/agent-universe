@@ -751,9 +751,14 @@ async def cancel_task(task_id: str) -> dict:
 async def create_slots_from_formation(payload: CreateSlotsPayload) -> dict:
     """Create slots from a formation. Each slot has position, role, governance, revenue split."""
     # P4: an id minted here must resolve to a mission record (see bounty fix
-    # b06ae00). Caller-supplied ids are passed through unchanged.
+    # b06ae00). A caller-supplied id must already resolve to one (exact match
+    # on id/mission_id, as in get_mission) or we fail closed before any write.
     minted = not payload.mission_id
     mission_id = payload.mission_id
+    if not minted and not any(
+        mission_id in (m.get("id"), m.get("mission_id")) for m in _load_missions()
+    ):
+        return JSONResponse({"error": "Mission not found", "mission_id": mission_id}, status_code=404)
     if minted:
         taken = {m.get(k) for m in _load_missions() for k in ("id", "mission_id")}
         taken |= {sl.get("mission_id") for sl in _load_slots()}

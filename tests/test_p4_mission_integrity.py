@@ -93,20 +93,6 @@ def test_create_logs_one_slots_created_audit_event(admin_client):
     assert hits[0].detail["slots_created"] == 2
 
 
-# ── pinned: caller-supplied mission_id is passed through unchanged ──────────
-
-def test_supplied_unknown_mission_id_passthrough_unchanged(admin_client):
-    """Supplied-but-unknown ids are NOT validated here (would break existing
-    callers; binding preconditions belong to later P4 nodes)."""
-    mid = _uniq("caller-mission")
-    r = admin_client.post("/api/slots/create", json={**CREATE, "mission_id": mid})
-    assert r.status_code == 200
-    assert r.json()["mission_id"] == mid
-    missions, slots = _stores()
-    assert sum(1 for s in slots if s["mission_id"] == mid) == 2
-    assert not any(m.get("mission_id") == mid for m in missions)  # no record minted
-
-
 # ── repair: minted ids resolve, linkage both ways, no collisions ────────────
 
 def test_minted_mission_id_resolves_to_mission_record(admin_client):
