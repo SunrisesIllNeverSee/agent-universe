@@ -540,10 +540,22 @@ async def add_mission_to_campaign(campaign_id: str, payload: AddMissionToCampaig
     campaign, err = _find_campaign_for_mutation(request, campaigns, campaign_id)
     if err:
         return err
-    mission_id = payload.mission_id
-    if mission_id and mission_id not in campaign["missions"]:
+    mission_id = (payload.mission_id or "").strip()
+    if not mission_id:
+        return JSONResponse({"error": "mission_id required"}, status_code=400)
+    # The mission must exist and (for an agent) be owned by the same agent. The
+    # uniform 404 covers unknown AND foreign/ownerless ids for agents, and
+    # unknown ids for admin too (admin may attach any EXISTING mission).
+    mission = next((m for m in _load_missions()
+                    if mission_id in (m.get("id"), m.get("mission_id"))), None)
+    denied = _mission_gate(request, mission_id, mission)
+    if denied is not None:
+        return denied
+    # Idempotent: re-attaching an already-attached mission is a 200 no-op
+    # (no write, no duplicate entry).
+    if mission_id not in campaign["missions"]:
         campaign["missions"].append(mission_id)
-    _save_campaigns(campaigns)
+        _save_campaigns(campaigns)
     return campaign
 
 
@@ -617,9 +629,21 @@ async def create_task(payload: CreateTaskPayload, request: Request) -> dict:
     """Create an individual agent mission (task). The atomic unit of work."""
     owner_agent_id = _acting_agent_id(request)
     if owner_agent_id is not None:
-        # Agents cannot attach tasks to campaigns (no campaign authority model).
+        # Financial/EXP claims are operator-only: close_task credits payout to
+        # the assignee's treasury and awards exp_reward, so an agent-chosen
+        # value would let an agent mint either. Agents get the default EXP and
+        # no payout.
+        if payload.payout:
+            raise HTTPException(403, "Only an operator may set a task payout")
+        if payload.exp_reward is not None and payload.exp_reward != TASK_EXP_BASE.get(payload.type, 100):
+            raise HTTPException(403, "Only an operator may set a custom task exp_reward")
+        campaign = None
         if payload.campaign_id:
-            raise HTTPException(403, "Only an operator may attach a task to a campaign")
+            campaign = next((c for c in _load_campaigns() if c.get("id") == payload.campaign_id), None)
+            owner = campaign.get("owner_agent_id") if campaign else None
+            if campaign is None or not owner or owner != owner_agent_id:
+                # Uniform 404: unknown, foreign and ownerless look identical.
+                return JSONResponse({"error": "Campaign not found", "campaign_id": payload.campaign_id}, status_code=404)
         if payload.mission_id:
             parent = next((m for m in _load_missions()
                            if payload.mission_id in (m.get("id"), m.get("mission_id"))), None)
@@ -628,6 +652,10 @@ async def create_task(payload: CreateTaskPayload, request: Request) -> dict:
             denied = _mission_gate(request, payload.mission_id, parent)  # uniform 404 (no oracle)
             if denied is not None:
                 return denied
+            if campaign is not None and payload.mission_id not in campaign.get("missions", []):
+                return JSONResponse({"error": "Mission is not part of this campaign",
+                                     "mission_id": payload.mission_id,
+                                     "campaign_id": payload.campaign_id}, status_code=409)
     task_type = payload.type
     track = payload.track
     if not payload.title:
