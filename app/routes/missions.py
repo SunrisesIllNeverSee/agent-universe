@@ -269,14 +269,46 @@ def _acting_agent_id(request: Request) -> str | None:
     raise HTTPException(401, "Active agent API key or admin key required")
 
 
-def _authorize_mission_mutation(request: Request, mission: dict) -> None:
-    """Deny (403) any agent that is not the mission's recorded owner."""
-    agent_id = _acting_agent_id(request)
+def _agent_may_mutate(agent_id: str | None, mission: dict) -> bool:
+    """Operator (None) always; an agent only as the recorded owner."""
     if agent_id is None:
-        return
+        return True
     owner = mission.get("owner_agent_id")
-    if not owner or owner != agent_id:
-        raise HTTPException(403, "Only the mission owner or an operator may modify this mission")
+    return bool(owner) and owner == agent_id
+
+
+def _mission_not_found(mission_id: str) -> JSONResponse:
+    """The single 404 body for unknown / other-owner / ownerless-legacy ids."""
+    return JSONResponse({"error": "Mission not found", "mission_id": mission_id}, status_code=404)
+
+
+def _mission_gate(request: Request, mission_id: str, mission: dict | None) -> JSONResponse | None:
+    """Existence-oracle-safe gate for mission handlers.
+
+    Resolves the principal first (401 for a bad credential, before any lookup
+    result is revealed), then returns the uniform 404 for an unknown mission
+    AND for an existing mission the ordinary agent does not own (other owner,
+    ownerless legacy, operator-created). Admin/operator gets the real result.
+    Returns None when the caller may proceed.
+    """
+    agent_id = _acting_agent_id(request)
+    if mission is None or not _agent_may_mutate(agent_id, mission):
+        return _mission_not_found(mission_id)
+    return None
+
+
+def _authorize_mission_mutation(request: Request, mission: dict) -> None:
+    """Deny any agent that is not the mission's recorded owner.
+
+    SEMANTIC CHANGE (existence oracle): the denial is now 404 "Mission not
+    found" (was 403 "Only the mission owner or an operator ...") so an ordinary
+    agent cannot tell an existing foreign mission from an unknown id. Signature
+    unchanged; still never allows what it previously denied. Mission handlers
+    use _mission_gate for a byte-identical JSON body; this raising form yields
+    the server's generic structured 404 for any other caller.
+    """
+    if not _agent_may_mutate(_acting_agent_id(request), mission):
+        raise HTTPException(404, "Mission not found")
 
 
 def _owner_fields(agent_id: str | None) -> dict:
@@ -362,9 +394,9 @@ async def get_mission(mission_id: str) -> dict:
 async def end_mission(mission_id: str, request: Request, payload: EndMissionPayload | None = None) -> dict:
     missions = _load_missions()
     mission = next((m for m in missions if m["id"] == mission_id), None)
-    if not mission:
-        return JSONResponse({"error": "Mission not found"}, status_code=404)
-    _authorize_mission_mutation(request, mission)
+    denied = _mission_gate(request, mission_id, mission)
+    if denied is not None:
+        return denied
     mission["status"] = "completed"
     mission["ended_at"] = datetime.now(UTC).isoformat()
 
@@ -418,9 +450,9 @@ async def end_mission(mission_id: str, request: Request, payload: EndMissionPayl
 async def update_mission(mission_id: str, payload: UpdateMissionPayload, request: Request) -> dict:
     missions = _load_missions()
     mission = next((m for m in missions if m["id"] == mission_id), None)
-    if not mission:
-        return JSONResponse({"error": "Mission not found"}, status_code=404)
-    _authorize_mission_mutation(request, mission)
+    denied = _mission_gate(request, mission_id, mission)
+    if denied is not None:
+        return denied
     updates = {}
     for k in ["posture", "formation", "status", "target", "limits"]:
         val = getattr(payload, k, None)
@@ -812,9 +844,9 @@ async def create_slots_from_formation(payload: CreateSlotsPayload, request: Requ
     if not minted:
         existing = next((m for m in _load_missions()
                          if mission_id in (m.get("id"), m.get("mission_id"))), None)
-        if existing is None:
-            return JSONResponse({"error": "Mission not found", "mission_id": mission_id}, status_code=404)
-        _authorize_mission_mutation(request, existing)
+        denied = _mission_gate(request, mission_id, existing)
+        if denied is not None:
+            return denied
     if minted:
         taken = {m.get(k) for m in _load_missions() for k in ("id", "mission_id")}
         taken |= {sl.get("mission_id") for sl in _load_slots()}
