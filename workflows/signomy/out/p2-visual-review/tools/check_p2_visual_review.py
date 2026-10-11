@@ -54,6 +54,12 @@ for p in M["pages"] + [M["decision_board"]]:
         elif sha(mp) != m["sha256"]: fails.append(f"{label}: master hash mismatch {m['path']}")
         elif m["sha256"] not in h: fails.append(f"{label}: page does not display master sha {m['path']}")
 
+ex = (OUT / "Q8-Q9-exhibit.html").read_text(); checks += 1
+for need in ("PROPOSAL", "P2_FINAL", "PENDING", "Town Hall != formal Governance", "ORIENT", "WORLD", "no tenth primary mode"):
+    if need not in ex.replace("&gt;", ">"): fails.append(f"exhibit lacks '{need}'")
+if re.search(r'(src|href)="https?://', ex) or "/Users/" in ex: fails.append("exhibit: external ref or local path")
+if 'Q8-Q9-exhibit.html' not in (OUT / "index.html").read_text(): fails.append("index lacks exhibit link")
+
 for s in ("Rank/Refinery", "Switchboard", "Enterprise Entity Node"):
     checks += 1
     if s not in M["no_original_master"]: fails.append(f"no-master list missing {s}")
