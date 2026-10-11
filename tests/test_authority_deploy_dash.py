@@ -264,7 +264,6 @@ def test_owner_may_advance_non_settlement_status(client):
 # ST-003 contract test (agent Bearer -> 200). Strict xfail records the gap;
 # flip when the owner picks a model.
 
-@pytest.mark.xfail(strict=True, reason="HELD: O-IA-5 deploy authority model undefined (owner decision)")
 def test_deploy_agent_bearer_cannot_rewrite_global_board(client):
     _, h = _agent(client)
     before = _snap()
