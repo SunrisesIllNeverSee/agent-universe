@@ -196,9 +196,6 @@ def test_boost_agent_allowed_and_persisted(client):
     assert any(b["post_id"] == pid and b["boosted_by"] == a for b in _boosts().get("boosts", []))
 
 
-@pytest.mark.xfail(strict=True, reason="OPHARD-D F5 MED: boost.py:63 boost_post trusts body.agent_id for "
-                   "boosted_by + seed creator; attribution spoof, and any agent may boost any post "
-                   "(no poster-ownership check). Owner: lane B.")
 def test_boost_agent_id_spoof_rejected(client):
     a, h, _ = _agent(client)
     b, _, _ = _agent(client)
@@ -216,24 +213,18 @@ def test_boost_unknown_post_404(client):
 
 def test_sponsored_agent_allowed_and_persisted(client):
     a, h, _ = _agent(client)
-    handle = f"h{uuid.uuid4().hex[:5]}"
-    r = client.post("/api/sponsored", json={"post_id": "K-ANY", "handle": handle, "agent_id": a}, headers=h)
+    label = f"l{uuid.uuid4().hex[:5]}"
+    r = client.post("/api/sponsored", json={"post_id": _post_id(), "agent_id": a, "label": label}, headers=h)
     assert r.status_code == 200, r.text
-    assert any(s["handle"] == handle for s in _boosts().get("sponsored", []))
+    assert any(s["label"] == label and s["agent_id"] == a for s in _boosts().get("sponsored", []))
 
 
-@pytest.mark.xfail(strict=True, reason="OPHARD-D F6 MED/HIGH(if billing goes live): boost.py:138 create_sponsored "
-                   "does not verify post_id exists, does not verify agent_id==principal, accepts any "
-                   "handle/label (public Featured-section content injection) and any duration_hours "
-                   "(no 1-168 cap unlike boost). Owner: lane B.")
 def test_sponsored_unknown_post_rejected(client):
     a, h, _ = _agent(client)
     r = client.post("/api/sponsored", json={"post_id": "K-DOES-NOT-EXIST", "handle": "x", "agent_id": a}, headers=h)
     assert r.status_code in (400, 404)
 
 
-@pytest.mark.xfail(strict=True, reason="OPHARD-D F6b: boost.py:138 duration_hours unbounded for sponsored "
-                   "(boost caps at 168).")
 def test_sponsored_duration_capped(client):
     a, h, _ = _agent(client)
     r = client.post("/api/sponsored", json={"post_id": _post_id(), "handle": "x", "agent_id": a,
