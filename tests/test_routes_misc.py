@@ -31,27 +31,33 @@ def test_availability_stats(client):
     assert r.status_code == 200
 
 
+def _avail_agent(client):
+    from tests.conftest import signup_agent
+    d = signup_agent(client, name=f"avail-{uuid.uuid4().hex[:6]}").json()
+    return d["agent_id"], {"Authorization": f"Bearer {d['api_key']}"}
+
+
 def test_availability_set(client):
-    # /api/availability/{agent_id} is in _PUBLIC_WRITE_PREFIXES
-    agent_id = f"avail-test-{uuid.uuid4().hex[:6]}"
+    # Mutations require the owning agent's credential (H1).
+    agent_id, auth = _avail_agent(client)
     r = client.post(f"/api/availability/{agent_id}", json={
         "available_now": True,
         "domains": ["research", "code"],
         "blocks": [],
         "response_time_hours": 4,
-    })
+    }, headers=auth)
     assert r.status_code == 200
     assert r.json().get("ok") is True
 
 
 def test_availability_get(client):
-    agent_id = f"avail-get-{uuid.uuid4().hex[:6]}"
+    agent_id, auth = _avail_agent(client)
     client.post(f"/api/availability/{agent_id}", json={
         "available_now": True,
         "domains": ["governance"],
         "blocks": [],
         "response_time_hours": 1,
-    })
+    }, headers=auth)
     r = client.get(f"/api/availability/{agent_id}")
     assert r.status_code == 200
     d = r.json()
@@ -59,11 +65,11 @@ def test_availability_get(client):
 
 
 def test_availability_toggle(client):
-    agent_id = f"avail-toggle-{uuid.uuid4().hex[:6]}"
+    agent_id, auth = _avail_agent(client)
     client.post(f"/api/availability/{agent_id}", json={
         "available_now": True, "domains": [], "blocks": [], "response_time_hours": 1,
-    })
-    r = client.post(f"/api/availability/{agent_id}/toggle")
+    }, headers=auth)
+    r = client.post(f"/api/availability/{agent_id}/toggle", headers=auth)
     assert r.status_code == 200
 
 
