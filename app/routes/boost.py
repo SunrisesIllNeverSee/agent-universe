@@ -165,6 +165,10 @@ async def create_sponsored(payload: CreateSponsoredPayload, request: Request) ->
     """
     principal = _bound_principal(request)
     post_id = payload.post_id.strip()
+    if not post_id or not state.kassa.get_post(post_id):
+        raise HTTPException(404, f"Post {post_id} not found")
+    if int(payload.duration_hours) < 1 or int(payload.duration_hours) > 168:  # max 1 week, as boost
+        raise HTTPException(400, "duration_hours must be 1-168")
     handle = payload.handle.strip()
     agent_id = (payload.agent_id or handle).strip()
     if principal is not None:

@@ -100,31 +100,48 @@ def _sp(raw, sid):
 
 
 def test_sponsored_binds_to_principal_when_body_omits(client):
+    pid = _post(client)
     aid, h = _agent(client)
-    r = client.post("/api/sponsored", json={"post_id": "K-1", "label": "L"}, headers=h)
+    r = client.post("/api/sponsored", json={"post_id": pid, "label": "L"}, headers=h)
     assert r.status_code == 200, r.text
     assert _sp(_boosts(), r.json()["sponsored_id"])["agent_id"] == aid
     assert r.json()["fee_usd"] == 0  # no billing path
 
 
 def test_sponsored_forged_agent_or_handle_denied_no_write(client):
+    pid = _post(client)
     _, h = _agent(client)
     victim, _ = _agent(client)
     before = _snap()
-    assert client.post("/api/sponsored", json={"post_id": "K-1", "agent_id": victim}, headers=h).status_code == 403
-    assert client.post("/api/sponsored", json={"post_id": "K-1", "handle": "someone-else"}, headers=h).status_code == 403
+    assert client.post("/api/sponsored", json={"post_id": pid, "agent_id": victim}, headers=h).status_code == 403
+    assert client.post("/api/sponsored", json={"post_id": pid, "handle": "someone-else"}, headers=h).status_code == 403
     assert _snap() == before
 
 
 def test_sponsored_forged_credential_and_anonymous_denied(client):
+    pid = _post(client)
     before = _snap()
     forged = {"Authorization": "Bearer forged-" + uuid.uuid4().hex}
-    assert client.post("/api/sponsored", json={"post_id": "K-1"}, headers=forged).status_code in (401, 403)
-    assert client.post("/api/sponsored", json={"post_id": "K-1"}).status_code in (401, 403)
+    assert client.post("/api/sponsored", json={"post_id": pid}, headers=forged).status_code in (401, 403)
+    assert client.post("/api/sponsored", json={"post_id": pid}).status_code in (401, 403)
     assert _snap() == before
 
 
 def test_sponsored_admin_keeps_free_form_attribution(client):
-    r = client.post("/api/sponsored", json={"post_id": "K-1", "agent_id": "agent-any"}, headers=ADMIN)
+    pid = _post(client)
+    r = client.post("/api/sponsored", json={"post_id": pid, "agent_id": "agent-any"}, headers=ADMIN)
     assert r.status_code == 200
     assert _sp(_boosts(), r.json()["sponsored_id"])["agent_id"] == "agent-any"
+
+
+def test_sponsored_unknown_post_and_unbounded_duration_rejected_no_write(client):
+    pid = _post(client)
+    aid, h = _agent(client)
+    before = _snap()
+    for hdr in (h, ADMIN):
+        assert client.post("/api/sponsored", json={"post_id": "K-DOES-NOT-EXIST"}, headers=hdr).status_code == 404
+        assert client.post("/api/sponsored", json={"post_id": ""}, headers=hdr).status_code == 404
+        for d in (0, 169, 10_000_000):
+            r = client.post("/api/sponsored", json={"post_id": pid, "duration_hours": d}, headers=hdr)
+            assert r.status_code == 400, (d, r.status_code)
+    assert _snap() == before
