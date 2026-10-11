@@ -23,7 +23,7 @@ from pydantic import BaseModel
 from typing import Any
 
 from app.deps import state
-from app.routes.missions import _acting_agent_id, _authorize_mission_mutation, _load_missions
+from app.routes.missions import _acting_agent_id, _agent_may_mutate, _load_missions
 
 router = APIRouter(tags=["mission_dash"])
 
@@ -74,7 +74,7 @@ def _save_dash(data: dict):
 
 
 # ── Authority: dashboard follows the mission's recorded owner ───────────────
-# Order 401 (no live principal) -> 404 (unknown mission) -> 403 (not owner).
+# Order 401 (no live principal) -> 404 (unknown or not owned by the calling agent).
 # Agents may not set the settlement status ``paid`` (operator-only).
 
 SETTLEMENT_STATUSES = {"paid"}
@@ -86,9 +86,9 @@ def _authorize_dash_write(request: Request, mission_id: str, status: str | None 
         (m for m in _load_missions() if m.get("id") == mission_id or m.get("mission_id") == mission_id),
         None,
     )
-    if not mission:
+    # Unknown and not-yours are indistinguishable to an ordinary agent (no existence oracle).
+    if not mission or not _agent_may_mutate(agent_id, mission):
         raise HTTPException(404, f"Mission {mission_id} not found")
-    _authorize_mission_mutation(request, mission)  # 403
     if agent_id is not None and status in SETTLEMENT_STATUSES:
         raise HTTPException(403, f"Only an operator may set status '{status}'")
 

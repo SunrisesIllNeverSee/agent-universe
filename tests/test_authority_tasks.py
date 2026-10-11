@@ -122,7 +122,9 @@ def test_create_in_foreign_mission_denied(client, bare):
     _, other_h, _ = _agent(client)
     mid = client.post("/api/missions", json={"label": "m"}, headers=owner_h).json()["id"]
     before = _snap()
-    assert bare.post("/api/tasks", json={"title": "t", "mission_id": mid}, headers=other_h).status_code == 403
+    r = bare.post("/api/tasks", json={"title": "t", "mission_id": mid}, headers=other_h)
+    assert r.status_code == 404  # uniform with unknown mission (existence oracle closed)
+    assert r.json() == {"error": "Mission not found", "mission_id": mid}
     assert _snap() == before
 
 
