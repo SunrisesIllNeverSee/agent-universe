@@ -51,3 +51,64 @@ def test_shell_principal_readonly():
     assert "/api/provision/status/" in html
     # HUD reads the existing public state model, no new event subscription
     assert "/api/state" in html
+
+
+# ── Object-context derivation (Task A, RESUME item 1) ────────────────────────
+def _derive_src():
+    html = Path("frontend/shell.html").read_text()
+    start = html.index("function deriveContext()")
+    end = html.index('frame.addEventListener("load", deriveContext)')
+    return html[start:end]
+
+
+def test_hosted_deploy_slots_pages_expose_no_url_params():
+    """Evidence for why deriveContext adds no new keys for /deploy and /slots:
+    neither hosted page reads location.search/hash/URLSearchParams (their slot,
+    formation and deployment state is in-memory only). If this fails, a hosted
+    page gained a real URL param and deriveContext/Inspector should be extended."""
+    for page in ("frontend/deploy.html", "frontend/slots.html"):
+        src = Path(page).read_text()
+        for needle in ("URLSearchParams", "location.search", "location.hash",
+                       "searchParams"):
+            assert needle not in src, f"{page} now reads {needle}"
+
+
+def test_derive_context_clears_all_keys_on_navigation_and_catch():
+    src = _derive_src()
+    keys = '["post_id","thread_id","mission_id","slot_id"]'
+    # cleared at the top of every derivation AND in the catch path
+    assert src.count(keys + ".forEach(k=>setCtx(k,null))") == 2
+    # every key that deriveContext sets is in the cleared list
+    import re
+    for k in set(re.findall(r'setCtx\("(\w+)"\s*,\s*(?!null)', src)):
+        assert f'"{k}"' in keys, f"{k} is set but never cleared"
+
+
+def test_inspector_phase4_rows_are_placeholders_never_values():
+    html = Path("frontend/shell.html").read_text()
+    assert '["agreement_id", "PHASE-4 — not implemented"]' in html
+    assert '["workentry", "PHASE-4 — not implemented"]' in html
+    # deriveContext must never populate Phase-4 objects
+    src = _derive_src()
+    for forbidden in ("agreement", "workentry", "work_entry"):
+        assert forbidden not in src.lower()
+
+
+def test_inspector_values_use_textcontent_only():
+    html = Path("frontend/shell.html").read_text()
+    start = html.index("function renderInspector()")
+    end = html.index("// ── Principal")
+    body = html[start:end]
+    assert "sp.textContent = v" in body
+    assert "innerHTML" not in body.replace('host.innerHTML = ""', "")
+    assert "insertAdjacentHTML" not in body
+
+
+def test_derive_context_known_param_shapes_pinned():
+    """Pin the shapes that ARE real (kassa path ids, /mission?id= and
+    /mission/<id>) and that deploy/slots only use the legacy optional
+    ?slot=/?id= read (no hosted page emits it today; see EVIDENCE.md)."""
+    src = _derive_src()
+    assert '"/kassa/post/"' in src and '"/kassa/thread/"' in src
+    assert 'path === "/mission"' in src and 'path.startsWith("/mission/")' in src
+    assert 'searchParams.get("slot")' in src
