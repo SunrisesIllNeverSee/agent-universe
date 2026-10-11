@@ -16,12 +16,12 @@ import secrets as _secrets_mod
 from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Any
 
-from app.auth import require_agent_claim
+from app.auth import active_agent_from_bearer, admin_key_matches, require_agent_claim
 from app.deps import state
 from app.metrics_io import atomic_write
 from app.otel_setup import get_tracer as _get_tracer
@@ -240,9 +240,56 @@ def _award_exp(agent_id: str, exp: int, track: str) -> dict:
 # ══════════════════════════════════════════════════════════════════════════════
 
 
+# ── Mission principal binding (D-B) ──────────────────────────────────────────
+# A mission records the authentic agent that created it (`owner_agent_id`,
+# derived server-side from the live, non-revoked Bearer API key — never from
+# the request body). Agent mutations (end/update/slot-create) require that
+# same principal; a valid admin key keeps operator authority. Missions with no
+# recorded owner (legacy, or operator-created) fail closed for agents.
+
+def _acting_agent_id(request: Request) -> str | None:
+    """Agent id of the live Bearer principal, or None for admin/operator.
+
+    Admin key wins (operator authority). Otherwise the Bearer key must resolve
+    to an active, non-revoked agent. With neither, only the no-admin-key local
+    dev path (already authorized by the server middleware) is treated as
+    operator; anything else is rejected.
+    """
+    if admin_key_matches(request, state.admin_key):
+        return None
+    principal = active_agent_from_bearer(
+        request, state.runtime.registry, state.runtime.revoked_keys
+    )
+    if principal is not None:
+        agent_id = str(principal.get("agent_id") or "")
+        if agent_id:
+            return agent_id
+    if not state.admin_key:
+        return None
+    raise HTTPException(401, "Active agent API key or admin key required")
+
+
+def _authorize_mission_mutation(request: Request, mission: dict) -> None:
+    """Deny (403) any agent that is not the mission's recorded owner."""
+    agent_id = _acting_agent_id(request)
+    if agent_id is None:
+        return
+    owner = mission.get("owner_agent_id")
+    if not owner or owner != agent_id:
+        raise HTTPException(403, "Only the mission owner or an operator may modify this mission")
+
+
+def _owner_fields(agent_id: str | None) -> dict:
+    return {
+        "owner_agent_id": agent_id or None,
+        "created_by": "agent" if agent_id else "operator",
+    }
+
+
 @router.post("/api/missions")
-async def create_mission(payload: CreateMissionPayload) -> dict:
+async def create_mission(payload: CreateMissionPayload, request: Request) -> dict:
     """Create a new DEPLOY mission."""
+    owner_agent_id = _acting_agent_id(request)
     missions = _load_missions()
     mid = f"mission-{_secrets_mod.token_hex(4)}"
     mission = {
@@ -267,6 +314,7 @@ async def create_mission(payload: CreateMissionPayload) -> dict:
         },
         "results": [],
         "channel": payload.channel or f"mission-{(payload.label or 'unnamed').lower().replace(' ', '-')}",
+        **_owner_fields(owner_agent_id),
     }
     missions.append(mission)
     _save_missions(missions)
@@ -283,7 +331,7 @@ async def create_mission(payload: CreateMissionPayload) -> dict:
         seed_result = await create_seed(
             source_type="mission",
             source_id=mission["id"],
-            creator_id=payload.agent_id or "operator",
+            creator_id=owner_agent_id or payload.agent_id or "operator",
             creator_type="BI",
             seed_type="planted",
             metadata={"label": mission["label"], "posture": mission["posture"]},
@@ -311,11 +359,12 @@ async def get_mission(mission_id: str) -> dict:
 
 
 @router.post("/api/missions/{mission_id}/end")
-async def end_mission(mission_id: str, payload: EndMissionPayload | None = None) -> dict:
+async def end_mission(mission_id: str, request: Request, payload: EndMissionPayload | None = None) -> dict:
     missions = _load_missions()
     mission = next((m for m in missions if m["id"] == mission_id), None)
     if not mission:
         return JSONResponse({"error": "Mission not found"}, status_code=404)
+    _authorize_mission_mutation(request, mission)
     mission["status"] = "completed"
     mission["ended_at"] = datetime.now(UTC).isoformat()
 
@@ -366,11 +415,12 @@ async def end_mission(mission_id: str, payload: EndMissionPayload | None = None)
 
 
 @router.post("/api/missions/{mission_id}/update")
-async def update_mission(mission_id: str, payload: UpdateMissionPayload) -> dict:
+async def update_mission(mission_id: str, payload: UpdateMissionPayload, request: Request) -> dict:
     missions = _load_missions()
     mission = next((m for m in missions if m["id"] == mission_id), None)
     if not mission:
         return JSONResponse({"error": "Mission not found"}, status_code=404)
+    _authorize_mission_mutation(request, mission)
     updates = {}
     for k in ["posture", "formation", "status", "target", "limits"]:
         val = getattr(payload, k, None)
@@ -748,12 +798,20 @@ async def cancel_task(task_id: str) -> dict:
 
 
 @router.post("/api/slots/create")
-async def create_slots_from_formation(payload: CreateSlotsPayload) -> dict:
+async def create_slots_from_formation(payload: CreateSlotsPayload, request: Request) -> dict:
     """Create slots from a formation. Each slot has position, role, governance, revenue split."""
     # P4: an id minted here must resolve to a mission record (see bounty fix
     # b06ae00). Caller-supplied ids are passed through unchanged.
     minted = not payload.mission_id
     mission_id = payload.mission_id
+    owner_agent_id = _acting_agent_id(request)
+    if not minted:
+        # Only an existing mission has an owner to enforce; unknown-id handling
+        # is a separate concern (referential integrity) and is left unchanged.
+        existing = next((m for m in _load_missions()
+                         if mission_id in (m.get("id"), m.get("mission_id"))), None)
+        if existing is not None:
+            _authorize_mission_mutation(request, existing)
     if minted:
         taken = {m.get(k) for m in _load_missions() for k in ("id", "mission_id")}
         taken |= {sl.get("mission_id") for sl in _load_slots()}
@@ -826,6 +884,7 @@ async def create_slots_from_formation(payload: CreateSlotsPayload) -> dict:
             "results": [],
             "channel": f"mission-{mission_id}",
             "slot_ids": [s["id"] for s in new_slots],
+            **_owner_fields(owner_agent_id),
         })
         _save_missions(missions)
 
@@ -1026,13 +1085,14 @@ async def post_bounty(payload: PostBountyPayload, request: Request) -> dict:
     agent_id = payload.agent_id
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
-    require_agent_claim(
+    claimed = require_agent_claim(
         request,
         agent_id,
         registry=state.runtime.registry,
         admin_key=state.admin_key,
         revoked_keys=state.runtime.revoked_keys,
     )
+    owner_agent_id = str(claimed.get("agent_id") or "") if claimed else None
     agent_name = payload.agent_name or agent_id
     label = payload.label or f"BOUNTY-{_secrets_mod.token_hex(3).upper()}"
     description = payload.description
@@ -1119,6 +1179,7 @@ async def post_bounty(payload: PostBountyPayload, request: Request) -> dict:
         "results": [],
         "channel": f"bounty-{mission_id}",
         "slot_ids": [s["id"] for s in new_slots],
+        **_owner_fields(owner_agent_id),
     })
     _save_missions(missions)
 
