@@ -1,0 +1,970 @@
+{
+ "status": "PROVISIONAL",
+ "p2_final": "PENDING - owner must view and sign off",
+ "statement": "Offline review evidence only. No new architecture semantics. Originals remain visual master.",
+ "control_workspace_root": "/Users/dericmchenry/Developer/_7_labs/signomy-control-surface",
+ "frozen_contracts": {
+  "1A": {
+   "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+   "sha256": "e05ddd1efa871618b6258d6adcca8bc0285a9f03792b5a1cc51264a46716f746"
+  },
+  "1B": {
+   "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+   "sha256": "d90410ed373a17bc67b72304c1cca72898fc38593a9200087f65fad1418a4b5a"
+  },
+  "1C": {
+   "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+   "sha256": "c643a41b7e432f918713613c92b67a54e126407e663da21c07cc170400e261c0"
+  },
+  "1D": {
+   "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+   "sha256": "f5b3f5dcc17d1c4f1e50d7f0d151efa5894099d8614244c67794d3cedba2ebfa"
+  },
+  "1E": {
+   "file": "reports/phase-1/PHASE-1E-ENTERPRISE-NODE.md",
+   "sha256": "71bd899f677218e84b7604dd121aaffc75e54853fb618d3e6e54885d868d2c6c"
+  },
+  "1F": {
+   "file": "reports/phase-1/PHASE-1F-WORKENTRY-UNBLOCK.md",
+   "sha256": "6a67089bc4e9a722cca3f2205ec8e1813144d6873cc23ffb9c8dee48efdce48a"
+  },
+  "1G": {
+   "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+   "sha256": "cc5e1fc4acb9c554f3da921a38cf3968c3812e99b0229f793a84356e30da7d22"
+  }
+ },
+ "decision_board": {
+  "file": "index.html",
+  "cited_contract_headings": [
+   {
+    "contract": "1G",
+    "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+    "section": "§5.E Governance verbs"
+   },
+   {
+    "contract": "1B",
+    "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+    "section": "§1 Load-bearing invariants"
+   },
+   {
+    "contract": "1D",
+    "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+    "section": "§0 Canonical invariants (non-compressible)"
+   },
+   {
+    "contract": "1A",
+    "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+    "section": "§2 Canonical ordering"
+   }
+  ],
+  "acceptance_criteria": [
+   "AC-BOARD-01",
+   "AC-BOARD-02",
+   "AC-BOARD-03",
+   "AC-BOARD-04",
+   "AC-BOARD-05",
+   "AC-BOARD-06"
+  ]
+ },
+ "pages": [
+  {
+   "id": "DG1",
+   "file": "DG1.html",
+   "title": "System Interaction Map",
+   "masters": [
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/canonical-figjam-board.jam",
+     "sha256": "40d96db605cfdc21796241076ea0ec6615973d70549c4888173199a3838efb64"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/system-interaction-map.png",
+     "sha256": "91d70965ba29dcc7a554f5cfa6331fb3297f34e7a9a76aa9dd37790451bb454d"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/system-interaction-map.pdf",
+     "sha256": "486fe0581b5f5ee2806599a39305911f44e9f2f77fc409cb9f9d7b4ccf7d7a62"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/system-interaction-map-text.txt",
+     "sha256": "fcae333ec2b55d95f78b5f86be964f5f04f6d0dd2e93b72410c8659546acfd14"
+    }
+   ],
+   "supplementary_display_files": [],
+   "master_missing": [],
+   "cited_contract_headings": [
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§1.1 Definition"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§2 Canonical ordering"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§5.11 Class registry summary"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§7 Ordering recap + WorkEntry placement"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§2 Canonical ordering (reading rule 2: the Agreement relationship may not be skipped)"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§5.2 WorkEntryAgreement (F13: not enabled: direct post_id->slot_id write)"
+    },
+    {
+     "contract": "1F",
+     "file": "reports/phase-1/PHASE-1F-WORKENTRY-UNBLOCK.md",
+     "section": "§1.1 Agreement relationship ordering"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§6 O-J-1 owner-resolved (hybrid by governance mode)"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§6.2 Anti-collapse guarantees"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§5.B Agreement lifecycle & entry"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§0 Canonical invariants (non-compressible)"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§1 Definitions (contract vocabulary)"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§5.1 Root Seed role (K6)"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§5.2 Secondary Seed attribution"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§4.3 Recognition request and formalization"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§0 Canonical invariants (Town Hall != recognition authority)"
+    },
+    {
+     "contract": "1B",
+     "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+     "section": "§1 Load-bearing invariants (I-9)"
+    },
+    {
+     "contract": "1E",
+     "file": "reports/phase-1/PHASE-1E-ENTERPRISE-NODE.md",
+     "section": "§0 Canonical enterprise chain (non-compressible)"
+    },
+    {
+     "contract": "1E",
+     "file": "reports/phase-1/PHASE-1E-ENTERPRISE-NODE.md",
+     "section": "§5 Delegated governance domain"
+    },
+    {
+     "contract": "1E",
+     "file": "reports/phase-1/PHASE-1E-ENTERPRISE-NODE.md",
+     "section": "§6 Parent constitutional override"
+    },
+    {
+     "contract": "1E",
+     "file": "reports/phase-1/PHASE-1E-ENTERPRISE-NODE.md",
+     "section": "§8.1 The three classes"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§7.2 Privilege rules (derived projections may NOT write back)"
+    },
+    {
+     "contract": "1B",
+     "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+     "section": "§1 Load-bearing invariants (I-5, I-9)"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§5.6 EntityRelationAgreement (F13: Switchboard eligibility context, read-only consumption)"
+    },
+    {
+     "contract": "1C",
+     "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+     "section": "§10.2 What this contract forbids economically"
+    },
+    {
+     "contract": "1B",
+     "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+     "section": "§1 Load-bearing invariants (I-9, I-10)"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§0 Canonical invariants"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§5.E Governance verbs (Town Hall != formal governance)"
+    }
+   ],
+   "acceptance_criteria": [
+    "AC-DG1-01",
+    "AC-DG1-02",
+    "AC-DG1-03",
+    "AC-DG1-04",
+    "AC-DG1-05",
+    "AC-DG1-06",
+    "AC-DG1-07",
+    "AC-DG1-08",
+    "AC-DG1-09",
+    "AC-DG1-10",
+    "AC-DG1-11"
+   ],
+   "delta_items": {
+    "DG1-U1": "PROPOSED",
+    "DG1-U2": "PROPOSED",
+    "DG1-U3": "PROPOSED",
+    "DG1-U4": "PROPOSED",
+    "DG1-U5": "PROPOSED",
+    "DG1-U6": "PROPOSED",
+    "DG1-U7": "PROPOSED",
+    "DG1-U8": "PROPOSED",
+    "DG1-X1": "UNRESOLVED"
+   }
+  },
+  {
+   "id": "DG2",
+   "file": "DG2.html",
+   "title": "Operational Spine",
+   "masters": [
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/operational-spine.png",
+     "sha256": "1927c900f226463a05e9be82ae2be17d07a0c86906b0418ffd26e4aea9c18678"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/operational-spine.pdf",
+     "sha256": "011879292916420fe63aee9a4c9fe61c9fff61565374cf5eda75676ca0610782"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/operational-spine-text.txt",
+     "sha256": "eaa609dbb5107fbb56c099031f04d491713fd9aa8d93fcec0dafb9b0790fffef"
+    }
+   ],
+   "supplementary_display_files": [],
+   "master_missing": [],
+   "cited_contract_headings": [
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§2 Canonical ordering (established by this contract)"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§7 Ordering recap + WorkEntry placement"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§6 O-J-1 owner-resolved"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§6.1 How each resolution maps"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§5.2 WorkEntryAgreement (F6, F7, F8)"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§3 Reading rules and invariants (rule 10: O-J-4 governance-gate rule)"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§5.2 WorkEntryAgreement (F8)"
+    },
+    {
+     "contract": "1C",
+     "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+     "section": "§5 The three classes - comparison"
+    },
+    {
+     "contract": "1C",
+     "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+     "section": "§9.1 The acceptance record"
+    },
+    {
+     "contract": "1C",
+     "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+     "section": "§10.1 Dependency direction (locked)"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§4.2 Evidence rules"
+    },
+    {
+     "contract": "1C",
+     "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+     "section": "§3 Locked rules (L6, L8, L9)"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§0 Canonical invariants (generic Seed != Root Seed)"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§7.2 Privilege rules"
+    },
+    {
+     "contract": "1B",
+     "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+     "section": "§1 Load-bearing invariants (I-5, I-9)"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§2 Canonical ordering (reading rule 4: not the runtime ribbon)"
+    },
+    {
+     "contract": "1F",
+     "file": "reports/phase-1/PHASE-1F-WORKENTRY-UNBLOCK.md",
+     "section": "§1.1 Agreement relationship ordering"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§6.3 What stays open"
+    }
+   ],
+   "acceptance_criteria": [
+    "AC-DG2-01",
+    "AC-DG2-02",
+    "AC-DG2-03",
+    "AC-DG2-04",
+    "AC-DG2-05",
+    "AC-DG2-06",
+    "AC-DG2-07",
+    "AC-DG2-08"
+   ],
+   "delta_items": {
+    "DG2-U1": "PROPOSED",
+    "DG2-U2": "PROPOSED",
+    "DG2-U3": "PROPOSED",
+    "DG2-U4": "PROPOSED",
+    "DG2-U5": "PROPOSED",
+    "DG2-U6": "PROPOSED",
+    "DG2-U7": "PROPOSED",
+    "DG2-X1": "OWNER DECISION"
+   }
+  },
+  {
+   "id": "DG3",
+   "file": "DG3.html",
+   "title": "Mission Lifecycle",
+   "masters": [
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/mission-lifecycle.png",
+     "sha256": "c612a5445a8a6e89480bfdfe94a8f961f41bd4a8819335226b797a3027fad12c"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/mission-lifecycle.pdf",
+     "sha256": "001ca7e21097b41ca429f3ebad228e5e1cf164975598790c7ef18f2af5d8d545"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/mission-lifecycle-text.txt",
+     "sha256": "5ad7336d02e4401502a9516222217b4494a31c9fc98e4d6f10fc99959e4709db"
+    }
+   ],
+   "supplementary_display_files": [],
+   "master_missing": [],
+   "cited_contract_headings": [
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§5.2 WorkEntryAgreement (F6 state model, F7 transitions)"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§6.1 How each resolution maps"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§4.1 State-model skeleton"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§5.3 MissionWorkAgreement"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§5.4 FormationAgreement"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§5.C Work objects - mission / slot / formation / task / deploy"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§3 Reading rules and invariants (rule 10)"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§5.2 WorkEntryAgreement (F8)"
+    },
+    {
+     "contract": "1C",
+     "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+     "section": "§5 The three classes - comparison"
+    },
+    {
+     "contract": "1C",
+     "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+     "section": "§9.1 The acceptance record"
+    },
+    {
+     "contract": "1C",
+     "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+     "section": "§3 Locked rules (L1, L4)"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§4.2 Evidence rules"
+    },
+    {
+     "contract": "1C",
+     "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+     "section": "§3 Locked rules (L8, L9)"
+    },
+    {
+     "contract": "1C",
+     "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+     "section": "§10.1 Dependency direction (locked)"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§5.2 WorkEntryAgreement (F11, F12, F15)"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§5.D Delivery & acceptance (dispute row)"
+    },
+    {
+     "contract": "1E",
+     "file": "reports/phase-1/PHASE-1E-ENTERPRISE-NODE.md",
+     "section": "§10.1 Honest status: committed-to-build"
+    },
+    {
+     "contract": "1B",
+     "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+     "section": "§1 Load-bearing invariants (I-6, I-7)"
+    }
+   ],
+   "acceptance_criteria": [
+    "AC-DG3-01",
+    "AC-DG3-02",
+    "AC-DG3-03",
+    "AC-DG3-04",
+    "AC-DG3-05",
+    "AC-DG3-06",
+    "AC-DG3-07",
+    "AC-DG3-08"
+   ],
+   "delta_items": {
+    "DG3-U1": "PROPOSED",
+    "DG3-U2": "PROPOSED",
+    "DG3-U3": "PROPOSED",
+    "DG3-U4": "PROPOSED",
+    "DG3-U5": "PROPOSED",
+    "DG3-U6": "PROPOSED",
+    "DG3-X1": "OWNER DECISION"
+   }
+  },
+  {
+   "id": "DG4",
+   "file": "DG4.html",
+   "title": "Unified Control Grammar",
+   "masters": [
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/unified-control-grammar.png",
+     "sha256": "a0d398978dfbd972acbfbc85184c786059176b5e3d79f4a220836ebdef0fe528"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/unified-control-grammar.pdf",
+     "sha256": "e73074d585587dfd94eabe271c9ffca8de6a3b65e9b1f2089743c4c5a71010a5"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/unified-control-grammar-text.txt",
+     "sha256": "53f0a23a4876ab6798b059b6c227d85c9d14d6e51c12aa0ca5eeea6b3b13bb62"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/unified-control-grammar/offline-preview.html",
+     "sha256": "f770cf5bb3b7ec4a9db8010f5f65cf4b4afa178c8bcaf1a1468de552f67b5863"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/shared-component-language/offline-preview.html",
+     "sha256": "d28ac9d775b4bee91f5e6e1f134c4c99b41a422f6f336c8711caba038afa8c97"
+    }
+   ],
+   "supplementary_display_files": [],
+   "master_missing": [],
+   "cited_contract_headings": [
+    {
+     "contract": "1B",
+     "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+     "section": "§2 Principal classes"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§3 Reading rules and invariants (rule 9: operator acts FOR a named principal)"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§3 Common envelope - every Agreement instance"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§1.3 Agreement != neighbors"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§7 Consistency obligations (canonical preflight reads this table)"
+    },
+    {
+     "contract": "1B",
+     "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+     "section": "§1 Load-bearing invariants (I-7)"
+    },
+    {
+     "contract": "1C",
+     "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+     "section": "§10.1 Dependency direction (locked)"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§3 Reading rules and invariants (rule 10)"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§7 Consistency obligations (preflight sequence)"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§7.2 Privilege rules"
+    },
+    {
+     "contract": "1B",
+     "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+     "section": "§1 Load-bearing invariants (I-9)"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§7 Consistency obligations (O-IA-8 cockpit scopes)"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§3 Reading rules and invariants (rule 2: consent classes distinct)"
+    }
+   ],
+   "acceptance_criteria": [
+    "AC-DG4-01",
+    "AC-DG4-02",
+    "AC-DG4-03",
+    "AC-DG4-04",
+    "AC-DG4-05",
+    "AC-DG4-06",
+    "AC-DG4-07",
+    "AC-DG4-08",
+    "AC-DG4-09"
+   ],
+   "delta_items": {
+    "DG4-U1": "PROPOSED",
+    "DG4-U2": "PROPOSED",
+    "DG4-U3": "PROPOSED",
+    "DG4-U4": "PROPOSED",
+    "DG4-U5": "PROPOSED",
+    "DG4-U6": "PROPOSED",
+    "DG4-X1": "UNRESOLVED"
+   }
+  },
+  {
+   "id": "DG5",
+   "file": "DG5.html",
+   "title": "Shell States and Control Board",
+   "masters": [
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/shell-states.png",
+     "sha256": "c5bf074a20deec7bd491c3ce048998f50c140972ebcad1daf96a09de1847214d"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/shell-states.pdf",
+     "sha256": "41e68172c5700173e9f4cc7d65fdd85d53893a4711e0db9549ad7fd095d8fa07"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/shell-states-text.txt",
+     "sha256": "f1f077773bdb629980b24f96803a26d8158bba8a7207841e7670581367bef29a"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/02-diagrams/canonical-board-page-1-overview.png",
+     "sha256": "47f8614f2bc744b3ee97fd8d7139c60d208b80030d21b68a1f7e57ef1466ba0d"
+    }
+   ],
+   "supplementary_display_files": [],
+   "master_missing": [],
+   "cited_contract_headings": [
+    {
+     "contract": "1B",
+     "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+     "section": "§2 Principal classes"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§3 Reading rules and invariants (rule 9)"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§2 Canonical ordering (rule 4: not the runtime ribbon)"
+    },
+    {
+     "contract": "1F",
+     "file": "reports/phase-1/PHASE-1F-WORKENTRY-UNBLOCK.md",
+     "section": "§1.2 Authoritative mapping shape"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§4.1 State-model skeleton"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§5.2 WorkEntryAgreement (F6)"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§0 Canonical invariants (non-compressible)"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§7.1 The four states"
+    },
+    {
+     "contract": "1B",
+     "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+     "section": "§1 Load-bearing invariants (I-9)"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§4.3 Recognition request and formalization (Town Hall = intake/deliberation/notice only)"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§5.E Governance verbs (Town Hall != formal governance)"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§2 Canonical ordering (rule 4)"
+    }
+   ],
+   "acceptance_criteria": [
+    "AC-DG5-01",
+    "AC-DG5-02",
+    "AC-DG5-03",
+    "AC-DG5-04",
+    "AC-DG5-05",
+    "AC-DG5-06",
+    "AC-DG5-07",
+    "AC-DG5-08",
+    "AC-DG5-09",
+    "AC-DG5-10"
+   ],
+   "delta_items": {
+    "DG5-U1": "PROPOSED",
+    "DG5-U2": "PROPOSED",
+    "DG5-U3": "PROPOSED",
+    "DG5-U4": "PROPOSED",
+    "DG5-U5": "PROPOSED",
+    "DG5-U6": "PROPOSED",
+    "DG5-U7": "OWNER DECISION",
+    "DG5-X1": "UNRESOLVED"
+   }
+  },
+  {
+   "id": "DG6",
+   "file": "DG6.html",
+   "title": "High-fidelity MagicPath concepts",
+   "masters": [
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/civitae-world/offline-preview.html",
+     "sha256": "48c26a82e32b6e5a0e9046f3a9caa545dc0542279688f98b6e98a9462c0937b7"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/civitas-chamber/offline-preview.html",
+     "sha256": "5132ccc498ac57ddf876f601820f2b77df902b43cba783ac422ffecab6eebe8e"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/command-deploy/offline-preview.html",
+     "sha256": "53e4e4b64c8eba6a5dfad8378464a2659c7a83c178507ebbc066f6268a31540e"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/kassa-find-work/offline-preview.html",
+     "sha256": "df86b489407069557c7eb27178f188bcf29fb1b66c0062f2e22fcd4b6bff9ae0"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/mission-control/offline-preview.html",
+     "sha256": "36c6d98dc8cce206e335f5b602ef7ac3f65416a786d4b51dd3b00af922cc7e15"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/reality-constraints/offline-preview.html",
+     "sha256": "d7562b066a809893239645f1991386136f4361e7088fed434bd569c0eb02d165"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/shared-component-language/offline-preview.html",
+     "sha256": "d28ac9d775b4bee91f5e6e1f134c4c99b41a422f6f336c8711caba038afa8c97"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/unified-control-grammar/offline-preview.html",
+     "sha256": "f770cf5bb3b7ec4a9db8010f5f65cf4b4afa178c8bcaf1a1468de552f67b5863"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/exploratory-civic-world-map/offline-preview.html",
+     "sha256": "b76127cdb208de28343d3f040385c17657e37b24c76bf332e73f3b79faeae526"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/exploratory-mission-command-deck/offline-preview.html",
+     "sha256": "4c42081516f325868f09f32faa8a13bc22a8fb517a6fe528d48d19bad53e0d8c"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/exploratory-tactical-deploy-board/offline-preview.html",
+     "sha256": "da83594f3d7fabc90c525dce8bc1c146452044316670bad5eabd07277617be9c"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/exploratory-visual-directions/offline-preview.html",
+     "sha256": "363b5da42c34847a6d3cb343f54b53834d2ff037a6634375b23d1948c9652d30"
+    }
+   ],
+   "supplementary_display_files": [
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/kassa-find-work/rendered-preview.png",
+     "sha256": "9233a8a11684536807eb69a73b91b7e1b5f8df2ebc8169b78a0713f589ee1005",
+     "note": "rendered-preview.png: display derivative of the offline-preview.html master; not in the P2 baseline inventory"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/command-deploy/rendered-preview.png",
+     "sha256": "50beeeecf782fcbe2784186306462fab0748b0386cc27ea8021903f6ffddd4a6",
+     "note": "rendered-preview.png: display derivative of the offline-preview.html master; not in the P2 baseline inventory"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/civitae-world/rendered-preview.png",
+     "sha256": "7bf06d5c30ae5a13667f21eec5795d4f0630bb205173343e34feeb73cc2a31d3",
+     "note": "rendered-preview.png: display derivative of the offline-preview.html master; not in the P2 baseline inventory"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/mission-control/rendered-preview.png",
+     "sha256": "f7eef4d49cb809e37a82391aa138388d1b41c1f44a7026d8db76e76dbae5780d",
+     "note": "rendered-preview.png: display derivative of the offline-preview.html master; not in the P2 baseline inventory"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/civitas-chamber/rendered-preview.png",
+     "sha256": "6acdfb92fa7ab56cf6152bb8b52f8534ed01e4ef4aa4c49680537e224a2a5ed5",
+     "note": "rendered-preview.png: display derivative of the offline-preview.html master; not in the P2 baseline inventory"
+    },
+    {
+     "path": "source/SIGNOMY-CIVITAE-design-handoff/01-magicpath/shared-component-language/rendered-preview.png",
+     "sha256": "ea987dd824ad07d5211e0862232fbc4c99f604b78f97d9f02d07863a59f723dd",
+     "note": "rendered-preview.png: display derivative of the offline-preview.html master; not in the P2 baseline inventory"
+    }
+   ],
+   "master_missing": [],
+   "cited_contract_headings": [
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§5.2 WorkEntryAgreement"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§6 O-J-1 owner-resolved"
+    },
+    {
+     "contract": "1F",
+     "file": "reports/phase-1/PHASE-1F-WORKENTRY-UNBLOCK.md",
+     "section": "§1.1 Agreement relationship ordering"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§5.C Work objects - mission / slot / formation / task / deploy (deploy row)"
+    },
+    {
+     "contract": "1E",
+     "file": "reports/phase-1/PHASE-1E-ENTERPRISE-NODE.md",
+     "section": "§0 Canonical enterprise chain (COMMAND != DEPLOY != CAMPAIGN)"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§0 Canonical invariants (non-compressible)"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§7.2 Privilege rules"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§7 Ordering recap + WorkEntry placement"
+    },
+    {
+     "contract": "1C",
+     "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+     "section": "§9.1 The acceptance record"
+    },
+    {
+     "contract": "1B",
+     "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+     "section": "§1 Load-bearing invariants (I-9, I-10)"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§5.E Governance verbs (Town Hall != formal governance)"
+    },
+    {
+     "contract": "1B",
+     "file": "reports/phase-1/PHASE-1B-ENTITLEMENT-MATRIX.md",
+     "section": "§1 Load-bearing invariants (I-5)"
+    },
+    {
+     "contract": "1C",
+     "file": "reports/phase-1/PHASE-1C-DELIVERY-EVIDENCE.md",
+     "section": "§10.2 What this contract forbids economically"
+    },
+    {
+     "contract": "1A",
+     "file": "reports/phase-1/PHASE-1A-AGREEMENT-STACK.md",
+     "section": "§5.6 EntityRelationAgreement (F13: Switchboard eligibility context, read-only)"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§1 Definitions (contract vocabulary)"
+    },
+    {
+     "contract": "1E",
+     "file": "reports/phase-1/PHASE-1E-ENTERPRISE-NODE.md",
+     "section": "§0 Canonical enterprise chain (non-compressible)"
+    },
+    {
+     "contract": "1D",
+     "file": "reports/phase-1/PHASE-1D-ENTITY-NODE.md",
+     "section": "§4.3 Recognition request and formalization"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§7 Consistency obligations (canonical preflight)"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§3 Reading rules and invariants (rule 10)"
+    },
+    {
+     "contract": "1G",
+     "file": "reports/phase-1/PHASE-1G-AUTHORITY-TABLE.md",
+     "section": "§7 Consistency obligations (nothing here is a runtime grant yet)"
+    }
+   ],
+   "acceptance_criteria": [
+    "AC-DG6-01",
+    "AC-DG6-02",
+    "AC-DG6-03",
+    "AC-DG6-04",
+    "AC-DG6-05",
+    "AC-DG6-06",
+    "AC-DG6-07",
+    "AC-DG6-08",
+    "AC-DG6-09"
+   ],
+   "delta_items": {
+    "DG6-U1": "PROPOSED",
+    "DG6-U2": "PROPOSED",
+    "DG6-U3": "PROPOSED",
+    "DG6-U4": "PROPOSED",
+    "DG6-U5": "PROPOSED",
+    "DG6-U6": "OWNER DECISION",
+    "DG6-U7": "OWNER DECISION",
+    "DG6-U8": "OWNER DECISION",
+    "DG6-U9": "PROPOSED",
+    "DG6-X1": "PROPOSED"
+   }
+  }
+ ],
+ "no_original_master": [
+  "Rank/Refinery",
+  "Switchboard",
+  "Enterprise Entity Node"
+ ]
+}
