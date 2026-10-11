@@ -307,7 +307,6 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/contact",
         "/api/advisory/apply",
         "/api/advisory/messages/",
-        "/api/availability/",
         "/api/indexnow",
     )
 
@@ -331,6 +330,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/slots/",
         "/api/mission-dash/",
         "/api/agent/inbox",
+        "/api/availability/",
     )
 
     def _agent_bearer_ok(request: Request) -> bool:
