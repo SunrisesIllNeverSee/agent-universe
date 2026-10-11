@@ -7,7 +7,7 @@ Branch: feat/signomy-p3-shell (isolated; do NOT merge)
 ```bash
 cd ~/Developer/_5_Signomy/1_agent-universe
 git checkout feat/signomy-p3-shell
-.venv/bin/python -m pytest tests/ -x -q                    # expect 527/527
+.venv/bin/python -m pytest tests/ -x -q                    # expect 530/530
 python3 -m roadmap_engine --project workflows/signomy verify   # receipts
 python3 -m roadmap_engine --project workflows/signomy drift    # expect clean
 python3 -m roadmap_engine --project workflows/signomy status
@@ -39,6 +39,10 @@ Archive: ~/Developer/_7_labs/signomy-control-surface/reports/wiring-atlas/
 4. Kill the local QA server (port 8912) when done previewing.
 
 ## Owner decisions outstanding (one packet)
-workflows/signomy/evidence/OWNER-DECISION-PACKET.md — T0_ADVERSARIAL (now
-backed by genuinely independent falsifier + real correction), T0_GATE,
-P2_PROVISIONAL. P3_AUTHORIZE remains gated behind those in-graph.
+workflows/signomy/evidence/OWNER-DECISION-PACKET.md.
+APPROVED (recorded 4e53ca8 + OWNER-APPROVAL-2026-10-10-T0-P2.md):
+T0_ADVERSARIAL, T0_GATE, P2_PROVISIONAL.
+STILL PENDING: P2_FINAL (needs original-design alignment + owner signoff),
+P3_AUTHORIZE → P3_SHELL_IMPL → P3_SHELL_VERIFIED (bounded shell
+authorization existed; attestation ≠ authorization — do not conflate),
+P4–P8, R_LIVE. Never auto-attest.
