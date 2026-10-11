@@ -306,6 +306,20 @@ async def helpwanted_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "helpwanted.html")
 
 
+@router.get("/guides")
+async def guides_index() -> FileResponse:
+    return FileResponse(state.frontend_dir / "guides" / "index.html")
+
+
+@router.get("/guides/{slug}")
+async def guide_page(slug: str) -> FileResponse:
+    # slug is matched against the known guide files, never joined blindly
+    known = {f.stem: f for f in (state.frontend_dir / "guides").glob("how-to-*.html")}
+    if slug not in known:
+        raise HTTPException(status_code=404, detail="Guide not found")
+    return FileResponse(known[slug])
+
+
 @router.get("/iso-collaborators")
 async def iso_collaborators_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "iso-collaborators.html")
@@ -342,6 +356,11 @@ async def skill_md() -> FileResponse:
 
 
 # ── Agent discovery files ───────────────────────────────────────────────────
+
+@router.get("/webmcp.js")
+async def webmcp_js() -> FileResponse:
+    return FileResponse(state.frontend_dir / "webmcp.js", media_type="application/javascript")
+
 
 @router.get("/llms.txt")
 async def llms_txt() -> FileResponse:

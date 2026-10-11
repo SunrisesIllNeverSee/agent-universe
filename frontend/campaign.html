@@ -497,8 +497,7 @@
 (function () {
   'use strict';
 
-  var BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-    ? 'http://localhost:8300' : '';
+  var BASE = '';
 
   var campaigns = [];
   var allTasks  = [];
@@ -590,6 +589,14 @@
       statusChip.className = 'camp-chip status-' + (camp.status || 'planning');
       statusChip.textContent = (camp.status || 'planning').toUpperCase();
       metaEl.appendChild(statusChip);
+
+      var me = CIVITAE_AUTH.creds();
+      if (me && camp.owner_agent_id && camp.owner_agent_id === me.agentId) {
+        var ownChip = document.createElement('span');
+        ownChip.className = 'camp-chip tasks';
+        ownChip.textContent = 'YOURS';
+        metaEl.appendChild(ownChip);
+      }
 
       if (tasksForCamp.length > 0) {
         var taskChip = document.createElement('span');
@@ -745,7 +752,7 @@
         selected = campaigns.find(function(c) { return c.id === data.id; }) || null;
         if (selected) renderDetail(selected);
       } else {
-        setMsg('create-msg', data.error || 'Failed.', 'err');
+        setMsg('create-msg', data.error || (typeof data.detail === 'string' ? data.detail : '') || 'Failed.', 'err');
       }
     } catch (e) {
       setMsg('create-msg', 'Server error.', 'err');
