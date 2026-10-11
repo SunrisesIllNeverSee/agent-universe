@@ -333,6 +333,11 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/availability/",
     )
 
+    # Exact-path agent allowances (POST create only). Deliberately NOT the
+    # "/api/tasks" prefix: assign/start/deliver/close/cancel touch EXP/payout
+    # semantics and stay operator-only at the edge.
+    _OPERATOR_WRITE_EXACT = ("/api/tasks",)
+
     def _agent_bearer_ok(request: Request) -> bool:
         """Resolve and attach the active agent principal for cockpit Bearer auth."""
         registry = getattr(getattr(state, "runtime", None), "registry", None) or []
@@ -354,7 +359,8 @@ def create_app(root: Path | None = None) -> FastAPI:
             if not any(path.startswith(p) for p in _PUBLIC_WRITE_PREFIXES):
                 if _ADMIN_KEY:
                     bearer_ok = (
-                        any(path.startswith(p) for p in _OPERATOR_WRITE_PREFIXES)
+                        (any(path.startswith(p) for p in _OPERATOR_WRITE_PREFIXES)
+                         or (request.method == "POST" and path in _OPERATOR_WRITE_EXACT))
                         and _agent_bearer_ok(request)
                     )
                     admin_ok = admin_key_matches(request, _ADMIN_KEY)

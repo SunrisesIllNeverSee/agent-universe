@@ -23,6 +23,19 @@ from app.seeds import create_seed
 router = APIRouter(tags=["boost"])
 
 
+def _bound_principal(request: Request) -> dict | None:
+    """Live Bearer agent record, or None for admin/operator (401 otherwise).
+
+    Attribution (boosted_by / sponsored agent_id) comes from this, never from
+    the request body. A body identity that disagrees with it is rejected 403.
+    """
+    from app.routes.missions import _acting_agent_id
+    agent_id = _acting_agent_id(request)  # 401 on bad credential
+    if agent_id is None:
+        return None
+    return next((a for a in state.runtime.registry if a.get("agent_id") == agent_id), {"agent_id": agent_id})
+
+
 class BoostPostPayload(BaseModel):
     agent_id: str = ""
     duration_hours: int = 24
@@ -61,7 +74,7 @@ def _save_boosts(data: dict):
 # ── Sovereign Boost ──────────────────────────────────────────────────────────
 
 @router.post("/api/boost/{post_id}")
-async def boost_post(post_id: str, payload: BoostPostPayload) -> dict:
+async def boost_post(post_id: str, payload: BoostPostPayload, request: Request) -> dict:
     """Boost a KA§§A post for premium matching.
 
     Extra 2% fee (total 7% instead of 5%). Gets:
@@ -71,11 +84,16 @@ async def boost_post(post_id: str, payload: BoostPostPayload) -> dict:
 
     Body: { "agent_id": "...", "duration_hours": 24 }
     """
+    principal = _bound_principal(request)
     post = state.kassa.get_post(post_id)
     if not post:
         raise HTTPException(404, f"Post {post_id} not found")
 
     agent_id = payload.agent_id.strip()
+    if principal is not None:
+        if agent_id and agent_id != principal["agent_id"]:
+            raise HTTPException(403, "agent_id does not match the authenticated agent")
+        agent_id = principal["agent_id"]
     duration = int(payload.duration_hours)
     if duration < 1 or duration > 168:  # max 1 week
         raise HTTPException(400, "duration_hours must be 1-168")
@@ -136,7 +154,7 @@ async def list_active_boosts() -> dict:
 # ── Sponsored Visibility ─────────────────────────────────────────────────────
 
 @router.post("/api/sponsored")
-async def create_sponsored(payload: CreateSponsoredPayload) -> dict:
+async def create_sponsored(payload: CreateSponsoredPayload, request: Request) -> dict:
     """Create a sponsored visibility slot.
 
     Body: { "post_id": "K-00001", "agent_id": "...", "duration_hours": 24 }
@@ -145,9 +163,17 @@ async def create_sponsored(payload: CreateSponsoredPayload) -> dict:
     100% of fees go to treasury when billing is live.
     Shows in dedicated "Featured" section.
     """
+    principal = _bound_principal(request)
     post_id = payload.post_id.strip()
     handle = payload.handle.strip()
     agent_id = (payload.agent_id or handle).strip()
+    if principal is not None:
+        own = {principal["agent_id"], principal.get("handle"), principal.get("name")} - {None, ""}
+        if (payload.agent_id.strip() and payload.agent_id.strip() != principal["agent_id"]) \
+                or (handle and handle not in own):
+            raise HTTPException(403, "agent_id/handle does not match the authenticated agent")
+        agent_id = principal["agent_id"]
+        handle = handle or principal.get("handle") or agent_id
     label = (payload.label or handle or post_id).strip()
     duration = int(payload.duration_hours)
 
