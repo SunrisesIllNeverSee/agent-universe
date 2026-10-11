@@ -119,7 +119,7 @@ def test_wrong_agent_denied(client, verb):
     mid = _mission(client, owner)
     _seed_dash(client, mid)
     before = _snap()
-    assert VERBS[verb](client, mid, other).status_code == 403
+    assert VERBS[verb](client, mid, other).status_code == 404  # uniform with unknown mission (existence oracle closed)
     assert _snap() == before
 
 
@@ -144,7 +144,7 @@ def test_shell_spoof_with_other_agent_key_denied(client, verb):
     before = _snap()
     spoof = {**other, "Referer": "http://127.0.0.1:8300/console", "Origin": "http://127.0.0.1:8300",
              "X-Forwarded-For": "127.0.0.1", "X-Shell-Role": "operator"}
-    assert VERBS[verb](client, mid, spoof).status_code == 403
+    assert VERBS[verb](client, mid, spoof).status_code == 404  # uniform with unknown mission (existence oracle closed)
     assert _snap() == before
 
 
@@ -168,7 +168,7 @@ def test_garbage_admin_header_plus_other_agent_key_denied(client, verb):
     _seed_dash(client, mid)
     before = _snap()
     h = {**other, "X-Admin-Key": "not-the-admin-key"}
-    assert VERBS[verb](client, mid, h).status_code == 403
+    assert VERBS[verb](client, mid, h).status_code == 404  # uniform with unknown mission (existence oracle closed)
     assert _snap() == before
 
 
@@ -209,7 +209,7 @@ def test_ownerless_legacy_mission_denies_agents(client, verb):
     _legacy(mid)
     _seed_dash(client, mid)
     before = _snap()
-    assert VERBS[verb](client, mid, h).status_code == 403
+    assert VERBS[verb](client, mid, h).status_code == 404  # uniform with unknown mission (existence oracle closed)
     assert _snap() == before
 
 
@@ -286,3 +286,16 @@ def test_deploy_anonymous_and_spoof_denied(client):
 
 def test_deploy_admin_success(client):
     assert client.post("/api/deploy", json={"label": "ok"}, headers=ADMIN).status_code == 200
+
+
+@pytest.mark.parametrize("verb", list(VERBS))
+def test_foreign_and_unknown_mission_bodies_identical(client, verb):
+    """Integration: an ordinary agent cannot distinguish a foreign mission from an unknown id."""
+    owner_id, owner_h = _agent(client)
+    _, other = _agent(client)
+    mid = _mission(client, owner_h)
+    foreign = VERBS[verb](client, mid, other)
+    unknown = VERBS[verb](client, mid + "-x", other)
+    assert foreign.status_code == unknown.status_code == 404
+    # Byte-identical once the (caller-supplied) id itself is normalised away.
+    assert foreign.text.replace(mid, "<ID>") == unknown.text.replace(mid + "-x", "<ID>")

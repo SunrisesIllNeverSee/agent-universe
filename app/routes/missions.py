@@ -625,7 +625,9 @@ async def create_task(payload: CreateTaskPayload, request: Request) -> dict:
                            if payload.mission_id in (m.get("id"), m.get("mission_id"))), None)
             if parent is None:
                 return JSONResponse({"error": "Mission not found", "mission_id": payload.mission_id}, status_code=404)
-            _authorize_mission_mutation(request, parent)
+            denied = _mission_gate(request, payload.mission_id, parent)  # uniform 404 (no oracle)
+            if denied is not None:
+                return denied
     task_type = payload.type
     track = payload.track
     if not payload.title:
