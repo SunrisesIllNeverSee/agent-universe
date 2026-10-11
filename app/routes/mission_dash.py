@@ -23,6 +23,7 @@ from pydantic import BaseModel
 from typing import Any
 
 from app.deps import state
+from app.routes.missions import _acting_agent_id, _authorize_mission_mutation, _load_missions
 
 router = APIRouter(tags=["mission_dash"])
 
@@ -72,10 +73,30 @@ def _save_dash(data: dict):
     os.replace(tmp, p)
 
 
+# ── Authority: dashboard follows the mission's recorded owner ───────────────
+# Order 401 (no live principal) -> 404 (unknown mission) -> 403 (not owner).
+# Agents may not set the settlement status ``paid`` (operator-only).
+
+SETTLEMENT_STATUSES = {"paid"}
+
+
+def _authorize_dash_write(request: Request, mission_id: str, status: str | None = None) -> None:
+    agent_id = _acting_agent_id(request)  # 401
+    mission = next(
+        (m for m in _load_missions() if m.get("id") == mission_id or m.get("mission_id") == mission_id),
+        None,
+    )
+    if not mission:
+        raise HTTPException(404, f"Mission {mission_id} not found")
+    _authorize_mission_mutation(request, mission)  # 403
+    if agent_id is not None and status in SETTLEMENT_STATUSES:
+        raise HTTPException(403, f"Only an operator may set status '{status}'")
+
+
 # ── Create / Initialize dashboard for a mission ─────────────────────────────
 
 @router.post("/api/mission-dash/{mission_id}")
-async def init_mission_dashboard(mission_id: str, payload: InitDashboardPayload) -> dict:
+async def init_mission_dashboard(mission_id: str, payload: InitDashboardPayload, request: Request) -> dict:
     """Initialize or update a mission's dashboard state.
 
     Body: {
@@ -86,6 +107,7 @@ async def init_mission_dashboard(mission_id: str, payload: InitDashboardPayload)
         "payout_amount": 500.00
     }
     """
+    _authorize_dash_write(request, mission_id, payload.status)
     dash = _load_dash()
     missions = dash.setdefault("missions", {})
 
@@ -127,11 +149,12 @@ async def init_mission_dashboard(mission_id: str, payload: InitDashboardPayload)
 # ── Update progress ──────────────────────────────────────────────────────────
 
 @router.post("/api/mission-dash/{mission_id}/progress")
-async def update_progress(mission_id: str, payload: UpdateProgressPayload) -> dict:
+async def update_progress(mission_id: str, payload: UpdateProgressPayload, request: Request) -> dict:
     """Agent updates progress percentage and optional note.
 
     Body: { "progress_pct": 45, "note": "Draft complete, starting review", "eta": "2026-04-08" }
     """
+    _authorize_dash_write(request, mission_id, payload.status)
     dash = _load_dash()
     mission = dash.get("missions", {}).get(mission_id)
     if not mission:
@@ -163,11 +186,12 @@ async def update_progress(mission_id: str, payload: UpdateProgressPayload) -> di
 # ── Complete milestone ───────────────────────────────────────────────────────
 
 @router.post("/api/mission-dash/{mission_id}/milestone")
-async def complete_milestone(mission_id: str, payload: CompleteMilestonePayload) -> dict:
+async def complete_milestone(mission_id: str, payload: CompleteMilestonePayload, request: Request) -> dict:
     """Mark a milestone as complete.
 
     Body: { "milestone": "Deliver draft" }
     """
+    _authorize_dash_write(request, mission_id)
     dash = _load_dash()
     mission = dash.get("missions", {}).get(mission_id)
     if not mission:
