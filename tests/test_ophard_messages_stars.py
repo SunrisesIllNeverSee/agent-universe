@@ -7,6 +7,7 @@ and is admin-key only. Star tags are validated before any write. Every denial
 leaves the message store, starred.json, vault/starred, audit.jsonl and
 seeds.jsonl untouched. Session tmp root only (see conftest).
 """
+import json
 import uuid
 
 import pytest
@@ -114,3 +115,57 @@ def test_admin_star_and_unstar_work(client):
     r = client.post("/api/messages/unstar", json={"id": mid}, headers=ADMIN)
     assert r.status_code == 200
     assert all(x.get("id") != mid for x in client.get("/api/messages/starred").json()["starred"])
+
+
+# ── /ws writes (WebSockets bypass the HTTP admin_key_guard) ──────────────────
+
+def _ws_send(client, payload, headers=None):
+    with client.websocket_connect("/ws", headers=headers or {}) as ws:
+        ws.receive_json()  # state snapshot
+        ws.send_json(payload)
+        ws.send_json({"action": "ping"})
+        replies = []
+        while True:
+            m = ws.receive_json()
+            replies.append(m)
+            if m.get("type") == "pong":
+                return replies
+
+
+def _presence():
+    return json.dumps(state.runtime.presence, sort_keys=True, default=str)
+
+
+@pytest.mark.parametrize("sender", ["operator", "victim-agent"])
+def test_ws_chat_send_anonymous_rejected(client, sender):
+    s = _snap()
+    replies = _ws_send(client, {"action": "chat_send", "payload": {"sender": sender, "text": "x"}})
+    assert any(r.get("type") == "error" for r in replies)
+    assert _snap() == s
+
+
+def test_ws_chat_send_agent_as_other_rejected_as_self_ok(client):
+    victim, _ = _agent(client)
+    d, h = _agent(client)
+    s = _snap()
+    _ws_send(client, {"action": "chat_send", "payload": {"sender": victim["agent_id"], "text": "x"}}, h)
+    assert _snap() == s
+    _ws_send(client, {"action": "chat_send", "payload": {"sender": d["agent_id"], "text": "me", "role_context": "operator"}}, h)
+    mine = [m for m in state.store.all() if m.sender == d["agent_id"]]
+    assert mine and mine[-1].role_context == "agent"
+
+
+def test_ws_agent_join_spoof_rejected_admin_ok(client):
+    victim, _ = _agent(client)
+    _, h = _agent(client)
+    p, s = _presence(), _snap()
+    for hdr in ({}, h):
+        _ws_send(client, {"action": "agent_join", "payload": {"name": victim["agent_id"]}}, hdr)
+    assert _presence() == p and _snap() == s
+    _ws_send(client, {"action": "chat_send", "payload": {"sender": "operator", "text": "op"}}, ADMIN)
+    assert any(m.sender == "operator" and m.text == "op" for m in state.store.all())
+
+
+def test_ws_reads_stay_public(client):
+    replies = _ws_send(client, {"action": "ping"})
+    assert replies[-1]["type"] == "pong"

@@ -668,6 +668,23 @@ async def ws_http_probe() -> dict:
     return {"ok": True, "type": "websocket_endpoint", "protocol": "ws://"}
 
 
+def _ws_actor_role(websocket: WebSocket, name: str) -> str | None:
+    """Who may write as `name` on /ws: "operator" (admin key), "agent" (own
+    Bearer key, name = own agent_id or registered name), else None.
+
+    WebSockets bypass the HTTP admin_key_guard; reads (ping, mcp_read) stay
+    open, writes that attribute a sender or presence need a principal.
+    """
+    if state.admin_key and admin_key_matches(websocket, state.admin_key):
+        return "operator"
+    principal = active_agent_from_bearer(websocket, state.runtime.registry, state.runtime.revoked_keys)
+    if principal is not None:
+        own = {str(principal.get(k)) for k in ("agent_id", "name") if principal.get(k)}
+        if name in own:
+            return "agent"
+    return None
+
+
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:
     """Main governance WebSocket — the public square.
@@ -696,11 +713,21 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
             if action == "ping":
                 await websocket.send_json({"type": "pong", "payload": {}})
             elif action == "chat_send":
+                msg = MessageCreate.model_validate(payload["payload"])
+                role = _ws_actor_role(websocket, msg.sender)
+                if role is None:
+                    await websocket.send_json({"type": "error", "payload": {"message": "Not authorized to post as this sender"}})
+                    continue
+                if role == "agent":
+                    msg = msg.model_copy(update={"role_context": "agent"})
                 _ac = state.audit_cursor()
-                saved = runtime.create_message(MessageCreate.model_validate(payload["payload"]))
+                saved = runtime.create_message(msg)
                 await state.emit("message_added", saved.model_dump(mode="json"))
                 await state.emit_audit_since(_ac)
             elif action == "agent_join":
+                if _ws_actor_role(websocket, payload["payload"]["name"]) is None:
+                    await websocket.send_json({"type": "error", "payload": {"message": "Not authorized to join as this agent"}})
+                    continue
                 _ac = state.audit_cursor()
                 joined = runtime.join_agent(payload["payload"]["name"])
                 await state.emit("presence_updated", {"presence": runtime.presence, "joined": joined})
