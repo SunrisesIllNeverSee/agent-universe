@@ -282,3 +282,55 @@ def test_campaign_owner_bound_to_principal_not_body(client):
 
 def test_campaign_admin_ok(client):
     assert client.post("/api/campaigns", json={"name": "c"}, headers=ADMIN).status_code == 200
+
+
+# ── WebSocket /ws (core.py websocket_endpoint) ────────────────────────────
+# WebSocket routes bypass the HTTP admin_key_guard middleware entirely, so
+# chat_send / agent_join are unauthenticated ("open by design" per docstring).
+
+def _ws_send(client, action, payload):
+    ip = f"10.8.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}"
+    with client.websocket_connect("/ws", headers={"x-forwarded-for": ip}) as ws:
+        ws.receive_json()  # initial state event
+        ws.send_json({"action": action, "payload": payload})
+        ws.send_json({"action": "ping"})
+        while ws.receive_json().get("type") != "pong":
+            pass
+
+
+def test_ws_chat_send_anonymous_writes_store_with_client_sender(client):
+    a, _, _ = _agent(client)
+    before = _msgs()
+    _ws_send(client, "chat_send", {"sender": a, "text": "forged over ws"})
+    assert _msgs() == before + 1
+    assert state.store.all()[-1].sender == a  # anonymous socket posted AS agent a
+
+
+def test_ws_agent_join_anonymous_sets_presence_for_any_name(client):
+    name = f"ghost-{uuid.uuid4().hex[:6]}"
+    _ws_send(client, "agent_join", {"name": name})
+    assert name in state.runtime.presence  # unregistered/spoofed name accepted; persisted + audited
+
+
+@pytest.mark.xfail(strict=True, reason="OPHARD-D F7 MED: core.py /ws chat_send needs no auth and trusts payload.sender "
+                   "(anonymous attribution spoof into the shared operator/agent store and broadcast to all hubs); "
+                   "WS bypasses admin_key_guard. Fix: require agent Bearer/JWT at connect, bind sender to principal "
+                   "(or restrict chat_send to admin) while keeping read/ping public.")
+def test_ws_chat_send_anonymous_rejected(client):
+    before = _msgs()
+    try:
+        _ws_send(client, "chat_send", {"sender": "operator", "text": "anon"})
+    except Exception:
+        pass
+    assert _msgs() == before
+
+
+@pytest.mark.xfail(strict=True, reason="OPHARD-D F8 LOW/MED: core.py /ws agent_join lets anyone mark any name present "
+                   "(fake presence, persisted to disk + audit log growth). Should require principal==name.")
+def test_ws_agent_join_spoof_rejected(client):
+    name = f"ghost-{uuid.uuid4().hex[:6]}"
+    try:
+        _ws_send(client, "agent_join", {"name": name})
+    except Exception:
+        pass
+    assert name not in state.runtime.presence
