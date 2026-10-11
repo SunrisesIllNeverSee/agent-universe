@@ -93,17 +93,14 @@ def test_bogus_bearer_rejected_403(client, path, body):
 
 # ── POST /api/messages ────────────────────────────────────────────────────
 
-def test_messages_agent_can_write_global_store(client):
-    _, h, _ = _agent(client)
+def test_messages_agent_can_write_global_store_as_self(client):
+    a, h, _ = _agent(client)
     before = _msgs()
-    r = client.post("/api/messages", json={"sender": "me", "text": "hello"}, headers=h)
+    r = client.post("/api/messages", json={"sender": a, "text": "hello"}, headers=h)
     assert r.status_code == 200, r.text
-    assert _msgs() == before + 1  # shared operator console store mutated
+    assert _msgs() == before + 1  # agents still post, but only as themselves (F1 fixed)
 
 
-@pytest.mark.xfail(strict=True, reason="OPHARD-D F1 MED: core.py:183 post_message trusts body.sender; "
-                   "an agent can post as another agent/operator (attribution spoof). "
-                   "Fix: bind sender to request.state.agent_principal or reject.")
 def test_messages_sender_spoof_rejected(client):
     a, ha, _ = _agent(client)
     b, _, _ = _agent(client)
@@ -123,20 +120,8 @@ def _seed_message(client):
     return r.json()["id"]
 
 
-def test_star_agent_mutates_operator_state(client):
-    _, h, _ = _agent(client)
-    mid = _seed_message(client)
-    tag = f"t{uuid.uuid4().hex[:4]}"
-    r = client.post("/api/messages/star", json={"id": mid, "tag": tag}, headers=h)
-    assert r.status_code == 200, r.text
-    assert any(s["id"] == mid for s in _stars())
-    # also writes a vault doc and auto-loads it into global active context
-    assert (state.root / "vault" / "starred" / f"star-{mid}-{tag}.md").exists()
 
 
-@pytest.mark.xfail(strict=True, reason="OPHARD-D F2 MED: core.py:464 star_message lets any agent key write the "
-                   "shared operator star list, vault/starred/*.md and global loaded context; "
-                   "tag is interpolated into a filename (see F3). Should be admin-only.")
 def test_star_agent_rejected(client):
     _, h, _ = _agent(client)
     mid = _seed_message(client)
@@ -153,10 +138,6 @@ def test_star_tag_with_separators_does_not_escape_vault(client):
     assert list(state.root.rglob(f"*{marker}*.md")) == []
 
 
-@pytest.mark.xfail(strict=True, reason="OPHARD-D F3 LOW/MED: core.py:464 star_message interpolates an unvalidated "
-                   "tag into the vault filename. A tag with '/' yields an unhandled 500 (FileNotFoundError) "
-                   "AFTER the star was already persisted to starred.json (partial write, inconsistent state). "
-                   "Fix: validate tag (^[A-Za-z0-9_-]{1,32}$) before any write.")
 def test_star_bad_tag_rejected_without_partial_state(client):
     mid = _seed_message(client)
     before = len(_stars())
@@ -164,18 +145,8 @@ def test_star_bad_tag_rejected_without_partial_state(client):
     assert r.status_code in (400, 422) and len(_stars()) == before
 
 
-def test_unstar_agent_can_delete_operator_star(client):
-    _, h, _ = _agent(client)
-    mid = _seed_message(client)
-    client.post("/api/messages/star", json={"id": mid, "tag": "gold"}, headers=ADMIN)
-    assert any(s["id"] == mid for s in _stars())
-    r = client.post("/api/messages/unstar", json={"id": mid}, headers=h)
-    assert r.status_code == 200
-    assert not any(s["id"] == mid for s in _stars())  # agent deleted operator state
 
 
-@pytest.mark.xfail(strict=True, reason="OPHARD-D F4 MED: core.py:544 unstar_message lets any agent key "
-                   "delete operator stars. Should be admin-only.")
 def test_unstar_agent_rejected(client):
     _, h, _ = _agent(client)
     r = client.post("/api/messages/unstar", json={"id": 1}, headers=h)
@@ -298,24 +269,10 @@ def _ws_send(client, action, payload):
             pass
 
 
-def test_ws_chat_send_anonymous_writes_store_with_client_sender(client):
-    a, _, _ = _agent(client)
-    before = _msgs()
-    _ws_send(client, "chat_send", {"sender": a, "text": "forged over ws"})
-    assert _msgs() == before + 1
-    assert state.store.all()[-1].sender == a  # anonymous socket posted AS agent a
 
 
-def test_ws_agent_join_anonymous_sets_presence_for_any_name(client):
-    name = f"ghost-{uuid.uuid4().hex[:6]}"
-    _ws_send(client, "agent_join", {"name": name})
-    assert name in state.runtime.presence  # unregistered/spoofed name accepted; persisted + audited
 
 
-@pytest.mark.xfail(strict=True, reason="OPHARD-D F7 MED: core.py /ws chat_send needs no auth and trusts payload.sender "
-                   "(anonymous attribution spoof into the shared operator/agent store and broadcast to all hubs); "
-                   "WS bypasses admin_key_guard. Fix: require agent Bearer/JWT at connect, bind sender to principal "
-                   "(or restrict chat_send to admin) while keeping read/ping public.")
 def test_ws_chat_send_anonymous_rejected(client):
     before = _msgs()
     try:
@@ -325,8 +282,6 @@ def test_ws_chat_send_anonymous_rejected(client):
     assert _msgs() == before
 
 
-@pytest.mark.xfail(strict=True, reason="OPHARD-D F8 LOW/MED: core.py /ws agent_join lets anyone mark any name present "
-                   "(fake presence, persisted to disk + audit log growth). Should require principal==name.")
 def test_ws_agent_join_spoof_rejected(client):
     name = f"ghost-{uuid.uuid4().hex[:6]}"
     try:
