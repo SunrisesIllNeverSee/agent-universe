@@ -1,6 +1,6 @@
 # SIGNOMY — Phase 2 Provisional Baseline / Phase 3 Host-First Transition — Executable Roadmap
 
-Generated: 2026-10-10T09:09:42+00:00
+Generated: 2026-10-11T09:04:22+00:00
 
 | Phase | Task | Status | Goal |
 |---|---|---|---|
@@ -14,7 +14,7 @@ Generated: 2026-10-10T09:09:42+00:00
 | P2 | P2_PROVISIONAL | PASSED | Owner accepts original visuals as PROVISIONAL Phase 2 baseline, not final alignment |
 | P3 | P3_SHELL_PREP | PASSED | Prepare non-mutating Phase 3 host-first shell plan and contract checks |
 | P2 | P2_FINAL | PENDING | Independent architecture-aligned visual QA + owner signoff (full Phase 2 exit) |
-| P3 | P3_AUTHORIZE | PENDING | Separate owner authorization: bounded shell implementation, no deployment (provisional-design exception) |
+| P3 | P3_AUTHORIZE | PASSED | Separate owner authorization: bounded shell implementation, no deployment (provisional-design exception) |
 | P3 | P3_SHELL_VERIFIED | PENDING | Host existing pages in shell; preserve principal/object context; regressions + falsifier PASS |
 | P4 | P4_WORKENTRY_VERIFIED | PENDING | Full Phase 2 QA plus frozen Agreement/WorkEntry workflow with authoritative bindings and receipts |
 | P5 | P5_HARDENING_VERIFIED | PENDING | H1-H5/H7 gates: provenance, revocation, finance/custody, privacy and parity independently verified |
@@ -31,7 +31,8 @@ Generated: 2026-10-10T09:09:42+00:00
 ## Next eligible work
 
 - P2_FINAL: Independent architecture-aligned visual QA + owner signoff (full Phase 2 exit)
-- P3_AUTHORIZE: Separate owner authorization: bounded shell implementation, no deployment (provisional-design exception)
+- P3_SHELL_VERIFIED: Host existing pages in shell; preserve principal/object context; regressions + falsifier PASS
+- P3_SHELL_IMPL: Record bounded isolated-branch shell implementation evidence (rail/sidebar/canvas/inspector/HUD)
 
 ## Held tasks
 
