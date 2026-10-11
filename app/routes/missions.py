@@ -801,17 +801,17 @@ async def cancel_task(task_id: str) -> dict:
 async def create_slots_from_formation(payload: CreateSlotsPayload, request: Request) -> dict:
     """Create slots from a formation. Each slot has position, role, governance, revenue split."""
     # P4: an id minted here must resolve to a mission record (see bounty fix
-    # b06ae00). Caller-supplied ids are passed through unchanged.
+    # b06ae00). A caller-supplied id must already resolve to one (exact match
+    # on id/mission_id, as in get_mission) or we fail closed before any write.
     minted = not payload.mission_id
     mission_id = payload.mission_id
     owner_agent_id = _acting_agent_id(request)
     if not minted:
-        # Only an existing mission has an owner to enforce; unknown-id handling
-        # is a separate concern (referential integrity) and is left unchanged.
         existing = next((m for m in _load_missions()
                          if mission_id in (m.get("id"), m.get("mission_id"))), None)
-        if existing is not None:
-            _authorize_mission_mutation(request, existing)
+        if existing is None:
+            return JSONResponse({"error": "Mission not found", "mission_id": mission_id}, status_code=404)
+        _authorize_mission_mutation(request, existing)
     if minted:
         taken = {m.get(k) for m in _load_missions() for k in ("id", "mission_id")}
         taken |= {sl.get("mission_id") for sl in _load_slots()}
