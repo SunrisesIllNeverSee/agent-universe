@@ -173,8 +173,15 @@ def test_mission_dash_list(client):
     assert r.status_code == 200
 
 
+def _real_mission(admin_client):
+    """Dashboards require an existing mission (authority follows the mission)."""
+    r = admin_client.post("/api/missions", json={"label": "dash"})
+    assert r.status_code == 200
+    return r.json()["id"]
+
+
 def test_mission_dash_init(admin_client):
-    mid = f"mission-{uuid.uuid4().hex[:6]}"
+    mid = _real_mission(admin_client)
     r = admin_client.post(f"/api/mission-dash/{mid}", json={
         "status": "posted",
         "milestones": ["Draft", "Review", "Final"],
@@ -186,7 +193,7 @@ def test_mission_dash_init(admin_client):
 
 def test_mission_dash_init_and_get(admin_client):
     """Init then get in same test — data persists within the session app."""
-    mid = f"mission-dash-{uuid.uuid4().hex[:6]}"
+    mid = _real_mission(admin_client)
     init = admin_client.post(f"/api/mission-dash/{mid}", json={
         "status": "posted",
         "milestones": ["Step 1"],
@@ -200,7 +207,7 @@ def test_mission_dash_init_and_get(admin_client):
 
 
 def test_mission_dash_progress(admin_client):
-    mid = f"mission-prog-{uuid.uuid4().hex[:6]}"
+    mid = _real_mission(admin_client)
     admin_client.post(f"/api/mission-dash/{mid}", json={
         "status": "posted", "milestones": ["Draft"], "payout_amount": 50.0,
     })
@@ -212,7 +219,7 @@ def test_mission_dash_progress(admin_client):
 
 
 def test_mission_dash_milestone(admin_client):
-    mid = f"mission-ms-{uuid.uuid4().hex[:6]}"
+    mid = _real_mission(admin_client)
     admin_client.post(f"/api/mission-dash/{mid}", json={
         "status": "posted", "milestones": ["Step 1", "Step 2"], "payout_amount": 75.0,
     })
