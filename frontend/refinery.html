@@ -252,6 +252,7 @@
     color: var(--purple);
     opacity: 0.4;
   }
+  .metric-val.metric-unmeasured { font-size: 12px; font-weight: 500; letter-spacing: 0.04em; }
   .metric-bar {
     height: 3px;
     background: var(--border);
@@ -471,6 +472,14 @@
     if (bar) { bar.style.width = pct + '%'; bar.style.opacity = '0.8'; }
   }
 
+  // Phase 6 (Refinery scoring) is gated: no aggregate is published yet, so an
+  // absent value is shown as unmeasured instead of a fabricated 0.00.
+  function setScore(id, barId, val) {
+    if (typeof val === 'number' && isFinite(val)) return setMetric(id, barId, val, 1);
+    const el = document.getElementById(id);
+    if (el) { el.textContent = 'Not yet measured'; el.classList.add('metric-unmeasured'); }
+  }
+
   try {
     const [metricsRes, regRes] = await Promise.allSettled([
       fetch(base + '/api/metrics', { signal: AbortSignal.timeout(5000) }),
@@ -480,10 +489,12 @@
     if (metricsRes.status === 'fulfilled' && metricsRes.value.ok) {
       const d = await metricsRes.value.json();
       const agg = d.aggregates || {};
-      setMetric('m-compliance', 'mb-compliance', agg.avg_compliance_score || 0, 1);
-      setMetric('m-performance', 'mb-performance', agg.avg_performance_score || 0, 1);
-      setMetric('m-governance', 'mb-governance', agg.avg_governance_adherence || 0, 1);
-      setMetric('m-quality', 'mb-quality', agg.avg_output_quality || 0, 1);
+      setScore('m-compliance', 'mb-compliance', agg.avg_compliance_score);
+      setScore('m-performance', 'mb-performance', agg.avg_performance_score);
+      setScore('m-governance', 'mb-governance', agg.avg_governance_adherence);
+      setScore('m-quality', 'mb-quality', agg.avg_output_quality);
+    } else {
+      ['compliance', 'performance', 'governance', 'quality'].forEach(k => setScore('m-' + k, 'mb-' + k));
     }
 
     if (regRes.status === 'fulfilled' && regRes.value.ok) {
