@@ -10,16 +10,41 @@ window.CIVITAE_AUTH = (function () {
   var STORAGE_KEY = 'civitas_auth';
   var LOGIN_PATH = '/dashboard';
 
-  function creds() {
+  // Entry signup (/entry) stores the same agent's own provision key as
+  // au_agent_id + au_api_key rather than civitas_auth. Read it as a fallback
+  // so the shell and hosted cockpit pages agree on the acting principal.
+  // Same door (provision api_key), still verified by verify(); never written.
+  var FALLBACK_REJECTED = 'civitas_auth_fallback_rejected';
+
+  function entryCreds() {
     try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return null;
-      var c = JSON.parse(raw);
-      return (c && c.agentId && c.key) ? c : null;
+      var id = localStorage.getItem('au_agent_id');
+      var key = localStorage.getItem('au_api_key');
+      if (!id || !key) return null;
+      if (sessionStorage.getItem(FALLBACK_REJECTED) === id) return null;
+      return { agentId: id, key: key, agentData: null, source: 'entry' };
     } catch (e) { return null; }
   }
 
-  function clear() { localStorage.removeItem(STORAGE_KEY); }
+  function creds() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var c = JSON.parse(raw);
+        if (c && c.agentId && c.key) return c;
+      }
+    } catch (e) {}
+    return entryCreds();
+  }
+
+  function clear() {
+    var c = creds();
+    if (c && c.source === 'entry') {
+      try { sessionStorage.setItem(FALLBACK_REJECTED, c.agentId); } catch (e) {}
+      return;
+    }
+    localStorage.removeItem(STORAGE_KEY);
+  }
 
   function headers() {
     var c = creds();

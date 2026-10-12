@@ -112,6 +112,7 @@
     <span class="toggle" id="insp-toggle">[inspector]</span>
   </footer>
 </div>
+<script src="/assets/_auth.js"></script>
 <script>
 (() => {
   "use strict";
@@ -138,7 +139,8 @@
   let pages = [], currentRoute = null;
 
   // ── Pages registry (page census source of truth) ─────────────────────
-  fetch("/api/pages").then(r=>r.json()).then(j=>{
+  let registryLoaded = false;
+  const registryReady = fetch("/api/pages").then(r=>r.json()).then(j=>{
     pages = [];
     const walk = arr => (arr||[]).forEach(x=>{
       if (x.pages) walk(x.pages);
@@ -146,8 +148,9 @@
     });
     if (j.tileZero) walk(j.tileZero.pages);
     (j.layers||[]).forEach(l=>walk(l.pages));
+    registryLoaded = true;
     renderMode(modeFromLocation());
-  }).catch(()=>{ renderMode(modeFromLocation()); });
+  }).catch(()=>{ registryLoaded = true; renderMode(modeFromLocation()); });
 
   const pageFor = route =>
     pages.find(p=>p.route===route) ||
@@ -164,9 +167,11 @@
     if (!r || !VALID_ROUTE.test(r) || r.startsWith("//") || r.startsWith("/api/")) return null;
     const path = r.split("?")[0];
     if (path === "/shell") return null;
-    // Registry still loading → allow structurally-valid internal routes;
-    // once loaded, route must be registered, a mode surface, or /console.
-    if (!pages.length) return r;
+    if (path.split("/").some(seg=>seg==="."||seg==="..")) return null;
+    // Fail closed: a route must be registered, a mode surface, or /console.
+    // Until the registry loads (or if it fails), only mode surfaces pass.
+    if (!registryLoaded || !pages.length)
+      return (MODES.some(m=>m.routes.includes(path)) || path==="/console") ? r : null;
     return (pageFor(path) || MODES.some(m=>m.routes.includes(path)) || path==="/console") ? r : null;
   };
   const routeFromLocation = () =>
@@ -218,7 +223,7 @@
     renderMode(modeFromLocation());
   }
   window.addEventListener("popstate", e=>{
-    const r = (e.state&&e.state.route)||routeFromLocation();
+    const r = allowedRoute(e.state&&e.state.route)||routeFromLocation();
     currentRoute=r; frame.src=r; renderInspector(); renderMode(modeFromLocation());
   });
 
@@ -289,6 +294,9 @@
           const a = await r.json();
           who.textContent = a.name||a.agent_id;
           sub.textContent = `${a.agent_id} · ${a.role||"agent"} · ${a.status}`;
+          const ck = window.CIVITAE_AUTH && window.CIVITAE_AUTH.creds();
+          if (!ck) sub.textContent += " · cockpit pages: not signed in";
+          else if (ck.agentId !== a.agent_id) sub.textContent += ` · cockpit pages act as ${ck.agentId}`;
           return;
         }
       } catch(e){}
@@ -330,7 +338,8 @@
   hud(); setInterval(hud, 15000);
 
   // ── Boot: deep link support (/shell?route=/kassa/post/xyz) ───────────
-  nav(routeFromLocation());
+  // Wait for the registry so the first navigation is checked against it.
+  registryReady.then(()=>nav(routeFromLocation()));
 })();
 </script>
 </body>
