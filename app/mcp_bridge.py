@@ -313,7 +313,8 @@ class MCPBridge:
                 if existing:
                     span.set_attribute("mcp.result", "already_registered")
                     return {"error": f"Agent '{agent_name}' or handle '{agent_handle}' already registered", "agent_id": existing.get("agent_id")}
-                api_key = f"cmd_ak_{secrets.token_hex(8)}"
+                from .auth import new_agent_api_key
+                api_key = new_agent_api_key()
                 agent_id = f"agent-{secrets.token_hex(4)}"
                 import re as _re
                 slug = _re.sub(r"[^a-z0-9-]", "", agent_handle.lower().replace(" ", "-").replace("_", "-"))

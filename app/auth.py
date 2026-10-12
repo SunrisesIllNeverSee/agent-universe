@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+import secrets
 import time
 from typing import Final
 
@@ -27,6 +28,16 @@ def secret_matches(provided: str | None, expected: str | None) -> bool:
     if not provided or not expected:
         return False
     return hmac.compare_digest(provided, expected)
+
+
+AGENT_KEY_PREFIX: Final[str] = "cmd_ak_"
+AGENT_KEY_BYTES: Final[int] = 32  # 256-bit entropy for newly issued agent keys
+
+
+def new_agent_api_key() -> str:
+    """Issue a fresh agent API key. Existing keys are looked up by hash, so
+    shorter legacy keys keep working; only new issuance changes length."""
+    return f"{AGENT_KEY_PREFIX}{secrets.token_hex(AGENT_KEY_BYTES)}"
 
 
 def admin_key_matches(request: Request, expected: str | None) -> bool:
