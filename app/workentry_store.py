@@ -42,6 +42,14 @@ TERMINAL_STATES = frozenset({"rejected", "withdrawn", "retired", "terminated", "
 LIVE_STATES = ("intent", "pending", "dormant", "accepted", "active")  # F12 "non-terminal"
 DORMANT_AFTER = timedelta(days=14)
 
+# Constitutional gate (slice 5). GOV-001 s9.3: committee recommendations are advisory unless the
+# Council delegates binding authority by a two-thirds vote; the setting flips without code change.
+BINDING_ADVISORY = "advisory_with_owner_countersign"
+BINDING_DELEGATED = "council_delegated"
+BINDING_AUTHORITIES = (BINDING_ADVISORY, BINDING_DELEGATED)
+GATE_QUORUM_FRACTION = 0.5        # GOV-005 Art. 2: constitutional quorum = 50% of eligible attendees
+DEFAULT_GATE_WINDOW_HOURS = 24.0  # GOV-005 s5.3: async votes stay open at least 24 h
+
 # name -> allowed source states, target state, who may perform it.
 #   entrant / owner / party (entrant or owner) / system (no human actor)
 TRANSITIONS: dict[str, dict[str, Any]] = {
@@ -107,6 +115,12 @@ class DuplicateEntryError(WorkEntryError):
         self.existing_agreement_id = existing_agreement_id
 
 
+class GateRequired(WorkEntryError):
+    """Constitutional gate (P4 slice 5) is not satisfied."""
+    status = 409
+    code = "governance_gate_required"
+
+
 class ProvenanceError(WorkEntryError):
     status = 500
     code = "provenance_failure"
@@ -114,6 +128,10 @@ class ProvenanceError(WorkEntryError):
     def __init__(self, message: str, gap_id: str):
         super().__init__(message)
         self.gap_id = gap_id
+
+
+class OwnerCountersignRequired(GateRequired):
+    code = "owner_countersign_required"
 
 
 class _ProvenanceFailure(Exception):
@@ -225,6 +243,45 @@ CREATE TABLE IF NOT EXISTS evidence_gaps (
     idempotency_key      TEXT,
     resolution           TEXT NOT NULL,
     at                   TEXT NOT NULL
+);
+
+-- Constitutional gate results recorded on the agreement (slice 5). Append-only except the
+-- one-time owner countersign.
+CREATE TABLE IF NOT EXISTS agreement_gates (
+    gate_id              TEXT PRIMARY KEY,
+    agreement_id         TEXT NOT NULL,
+    meeting_id           TEXT NOT NULL,
+    motion_id            TEXT NOT NULL UNIQUE,
+    result               TEXT NOT NULL,
+    yeas                 INTEGER NOT NULL,
+    nays                 INTEGER NOT NULL,
+    abstain              INTEGER NOT NULL,
+    eligible             INTEGER NOT NULL,
+    quorum_required      INTEGER NOT NULL,
+    quorum_met           INTEGER NOT NULL,
+    opened_at            TEXT,
+    closes_at            TEXT,
+    recorded_at          TEXT NOT NULL,
+    binding_authority    TEXT NOT NULL,
+    record_seed_doi      TEXT,
+    record_audit_hash    TEXT,
+    countersigned_by     TEXT,
+    countersigned_at     TEXT,
+    countersign_credential TEXT,
+    countersign_seed_doi TEXT,
+    countersign_audit_hash TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_gate_agr ON agreement_gates(agreement_id);
+CREATE TRIGGER IF NOT EXISTS trg_gate_no_delete BEFORE DELETE ON agreement_gates
+BEGIN SELECT RAISE(ABORT, 'agreement_gates are never deleted (archive)'); END;
+CREATE TRIGGER IF NOT EXISTS trg_gate_countersign_once BEFORE UPDATE ON agreement_gates
+WHEN OLD.countersigned_at IS NOT NULL OR NEW.result IS NOT OLD.result OR NEW.motion_id IS NOT OLD.motion_id
+BEGIN SELECT RAISE(ABORT, 'agreement_gates are append-only'); END;
+
+CREATE TABLE IF NOT EXISTS workentry_settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    at    TEXT NOT NULL
 );
 
 -- Non-authoritative marks (e.g. the 48 h "ask the poster" prompt was sent for
@@ -671,7 +728,12 @@ class WorkEntryStore:
                     f"cannot {name} agreement {agreement_id}: state is '{state}' ({kind}); "
                     f"'{name}' requires {sorted(spec['from'])}")
             self._check_authority(row, name, actor, acting_for)
-            receipt = self._step(agreement_id, name, actor=actor, acting_for=acting_for, reason=reason,
+            step_reason = reason
+            if name in ("accept", "activate") and row["entry_mode"] == "constitutional":
+                note = self._gate_note(agreement_id)      # raises GateRequired when not satisfied
+                if name == "accept":
+                    step_reason = note
+            receipt = self._step(agreement_id, name, actor=actor, acting_for=acting_for, reason=step_reason,
                                  key=key, seq=self._next_seq(agreement_id), credential=credential)
             return {"agreement": self._agreement(self._row(agreement_id)), "receipt": receipt, "replayed": False}
 
@@ -760,6 +822,186 @@ class WorkEntryStore:
                 return self._txn(run)
             finally:
                 self._policy = prior
+
+    # ── constitutional gate (slice 5) ───────────────────────────────────
+
+    def now_dt(self) -> datetime:
+        return self._clock()
+
+    def _setting(self, key: str, default: str) -> str:
+        r = self._conn.execute("SELECT value FROM workentry_settings WHERE key=?", (key,)).fetchone()
+        return r["value"] if r else default
+
+    @property
+    def binding_authority(self) -> str:
+        import os
+        with self._lock:
+            return self._setting("binding_authority",
+                                 os.environ.get("CIVITAE_BINDING_AUTHORITY", BINDING_ADVISORY))
+
+    @property
+    def gate_window_hours(self) -> float:
+        import os
+        with self._lock:
+            return float(self._setting("gate_window_hours",
+                                       os.environ.get("CIVITAE_GATE_WINDOW_HOURS",
+                                                      str(DEFAULT_GATE_WINDOW_HOURS))))
+
+    def gate_settings(self) -> dict:
+        return {"binding_authority": self.binding_authority, "gate_window_hours": self.gate_window_hours,
+                "quorum_fraction": GATE_QUORUM_FRACTION, "binding_authorities": list(BINDING_AUTHORITIES)}
+
+    def set_gate_settings(self, *, binding_authority: str | None = None,
+                          gate_window_hours: float | None = None, actor: str = "operator:admin") -> dict:
+        if binding_authority is not None and binding_authority not in BINDING_AUTHORITIES:
+            raise WorkEntryError(f"binding_authority must be one of {list(BINDING_AUTHORITIES)}")
+        if gate_window_hours is not None and gate_window_hours < 0:
+            raise WorkEntryError("gate_window_hours must be >= 0")
+        with self._lock:
+            for k, v in (("binding_authority", binding_authority), ("gate_window_hours", gate_window_hours)):
+                if v is not None:
+                    self._conn.execute(
+                        "INSERT INTO workentry_settings (key, value, at) VALUES (?,?,?)"
+                        " ON CONFLICT(key) DO UPDATE SET value=excluded.value, at=excluded.at",
+                        (k, str(v), self._now()))
+                    if self._audit_fn is not None:
+                        self._audit_fn("workentry", "gate_setting_changed",
+                                       {"setting": k, "value": v, "agent": actor})
+        return self.gate_settings()
+
+    @staticmethod
+    def _gate(r: sqlite3.Row) -> dict:
+        d = dict(r)
+        d["quorum_met"] = bool(d["quorum_met"])
+        return d
+
+    def gates(self, agreement_id: str) -> list[dict]:
+        with self._lock:
+            self._row(agreement_id)
+            return [self._gate(r) for r in self._conn.execute(
+                "SELECT * FROM agreement_gates WHERE agreement_id=? ORDER BY recorded_at, gate_id",
+                (agreement_id,)).fetchall()]
+
+    def gate_status(self, agreement_id: str) -> dict:
+        with self._lock:
+            row = self._row(agreement_id)
+            authority = self.binding_authority
+            required = row["entry_mode"] == "constitutional"
+            gates = self.gates(agreement_id)
+            sat = next((g for g in reversed(gates) if g["result"] == "passed"
+                        and (authority == BINDING_DELEGATED or g["countersigned_at"])), None)
+            passed = next((g for g in reversed(gates) if g["result"] == "passed"), None)
+            reason = None
+            if required and sat is None:
+                if passed is not None:
+                    reason = "owner_countersign_required"
+                else:
+                    reason = "governance_gate_required"
+            return {"agreement_id": agreement_id, "required": required, "binding_authority": authority,
+                    "satisfied": (not required) or sat is not None, "blocking": reason,
+                    "gate_id": sat["gate_id"] if sat else None, "gates": gates}
+
+    def _gate_note(self, agreement_id: str) -> str:
+        st = self.gate_status(agreement_id)
+        if st["satisfied"]:
+            return f"gate {st['gate_id']} ({st['binding_authority']})"
+        if st["blocking"] == "owner_countersign_required":
+            raise OwnerCountersignRequired(
+                "owner countersign required: the governance motion passed but is advisory "
+                "(GOV-001 s9.3); an owner-held countersign is the binding act")
+        raise GateRequired("governance gate required")
+
+    def record_gate_result(self, agreement_id: str, *, meeting_id: str, motion_id: str, result: str,
+                           yeas: int, nays: int, abstain: int, eligible: int, quorum_required: int,
+                           quorum_met: bool, opened_at: str | None, closes_at: str | None,
+                           actor: str = "system") -> dict:
+        """Record a resolved gate motion on the agreement (idempotent per motion). Seed + audit
+        are loud: failure rolls back and writes an evidence_gap."""
+        if result not in ("passed", "failed"):
+            raise WorkEntryError("gate result must be 'passed' or 'failed'")
+
+        def run() -> dict:
+            row = self._row(agreement_id)
+            if row["entry_mode"] != "constitutional":
+                raise InvalidTransition(f"agreement {agreement_id} is not constitutional; no gate applies")
+            ex = self._conn.execute("SELECT * FROM agreement_gates WHERE motion_id=?", (motion_id,)).fetchone()
+            if ex is not None:
+                return {"gate": self._gate(ex), "replayed": True}
+            if row["state"] in TERMINAL_STATES:
+                raise InvalidTransition(f"agreement {agreement_id} is terminal ('{row['state']}'); "
+                                        "a gate result cannot be recorded")
+            gate_id = f"gate-{uuid.uuid4().hex[:12]}"
+            seed_doi, audit_hash = self._gate_provenance(
+                agreement_id, "gate_record", actor, gate_id,
+                {"gate_id": gate_id, "motion_id": motion_id, "meeting_id": meeting_id, "result": result,
+                 "yeas": yeas, "nays": nays, "eligible": eligible, "quorum_met": quorum_met},
+                row["last_seed_doi"])
+            self._conn.execute(
+                "INSERT INTO agreement_gates (gate_id, agreement_id, meeting_id, motion_id, result, yeas, nays,"
+                " abstain, eligible, quorum_required, quorum_met, opened_at, closes_at, recorded_at,"
+                " binding_authority, record_seed_doi, record_audit_hash) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (gate_id, agreement_id, meeting_id, motion_id, result, yeas, nays, abstain, eligible,
+                 quorum_required, int(quorum_met), opened_at, closes_at, self._now(), self.binding_authority,
+                 seed_doi, audit_hash))
+            self._conn.execute("UPDATE agreements SET last_activity_at=? WHERE agreement_id=? AND state NOT IN ("
+                               + _TERMINAL_SQL + ")", (self._now(), agreement_id))
+            return {"gate": self._gate(self._conn.execute(
+                "SELECT * FROM agreement_gates WHERE gate_id=?", (gate_id,)).fetchone()), "replayed": False}
+
+        return self._txn(run)
+
+    def countersign_gate(self, agreement_id: str, *, actor: str, credential: str | None = None) -> dict:
+        """The owner-held binding act under advisory authority. Operator credential only."""
+        if not actor.startswith("operator:"):
+            raise AuthorityError("the gate countersign is owner-held: an operator (admin/owner) credential is required")
+
+        def run() -> dict:
+            row = self._row(agreement_id)
+            if row["entry_mode"] != "constitutional":
+                raise InvalidTransition(f"agreement {agreement_id} is not constitutional; no gate applies")
+            if row["state"] in TERMINAL_STATES:
+                raise InvalidTransition(f"agreement {agreement_id} is terminal ('{row['state']}')")
+            if self.binding_authority == BINDING_DELEGATED:
+                raise InvalidTransition("no countersign is needed: binding_authority is council_delegated")
+            g = self._conn.execute(
+                "SELECT * FROM agreement_gates WHERE agreement_id=? AND result='passed'"
+                " AND countersigned_at IS NULL ORDER BY recorded_at DESC LIMIT 1", (agreement_id,)).fetchone()
+            if g is None:
+                raise GateRequired("no passed governance motion awaiting countersign")
+            seed_doi, audit_hash = self._gate_provenance(
+                agreement_id, "gate_countersign", actor, g["gate_id"],
+                {"gate_id": g["gate_id"], "motion_id": g["motion_id"], "credential_ref": credential},
+                row["last_seed_doi"])
+            self._conn.execute(
+                "UPDATE agreement_gates SET countersigned_by=?, countersigned_at=?, countersign_credential=?,"
+                " countersign_seed_doi=?, countersign_audit_hash=? WHERE gate_id=?",
+                (actor, self._now(), credential, seed_doi, audit_hash, g["gate_id"]))
+            return {"gate": self._gate(self._conn.execute(
+                "SELECT * FROM agreement_gates WHERE gate_id=?", (g["gate_id"],)).fetchone())}
+
+        return self._txn(run)
+
+    def _gate_provenance(self, aid: str, name: str, actor: str, gate_id: str, detail: dict,
+                         parent: str | None) -> tuple[str | None, str | None]:
+        """Seed + audit for a gate event. Failure is loud (rolls back, evidence_gap)."""
+        try:
+            seed = self._seed_fn(source_type="work_entry_gate", source_id=gate_id, creator_id=actor,
+                                 creator_type="AAI", seed_type="grown", parent_doi=parent,
+                                 metadata={**{k: str(v) for k, v in detail.items()}, "event": name,
+                                           "agreement_id": aid, "agreement_class": AGREEMENT_CLASS})
+            seed_doi = (seed or {}).get("doi")
+            if not seed_doi:
+                raise RuntimeError("seed writer returned no doi")
+        except Exception as exc:  # noqa: BLE001
+            raise _ProvenanceFailure("seed", f"{type(exc).__name__}: {exc}", name, aid, actor, None)
+        audit_hash = None
+        if self._audit_fn is not None:
+            try:
+                audit_hash = self._audit_fn("workentry", name,
+                                            {"agreement_id": aid, "seed_doi": seed_doi, "agent": actor, **detail})
+            except Exception as exc:  # noqa: BLE001
+                raise _ProvenanceFailure("audit", f"{type(exc).__name__}: {exc}", name, aid, actor, None)
+        return seed_doi, audit_hash
 
     # ── dormancy (no auto-expiry) ───────────────────────────────────────
 

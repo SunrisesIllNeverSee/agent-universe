@@ -22,6 +22,8 @@ from app.metrics_io import atomic_write, load_metrics
 from app.otel_setup import get_tracer as _get_tracer
 from app.sanitize import sanitize_text, sanitize_name
 from app.seeds import create_seed, _read_seeds
+from app.workentry_gate import GATE_KIND, default_motion_text, open_motion
+from app.workentry_store import WorkEntryError
 
 router = APIRouter(tags=["governance"])
 _tracer = _get_tracer("civitae.governance")
@@ -51,6 +53,8 @@ class JoinMeetingPayload(BaseModel):
 class ProposeMotionPayload(BaseModel):
     proposer: str = ""
     motion: str = ""
+    kind: str = ""          # additive typed motion; "work_entry_gate" binds the motion to an agreement
+    agreement_id: str = ""
 
 
 class CastVotePayload(BaseModel):
@@ -224,7 +228,17 @@ async def join_meeting(meeting_id: str, payload: JoinMeetingPayload, request: Re
 async def propose_motion(meeting_id: str, payload: ProposeMotionPayload, request: Request) -> dict:
     """Propose a motion in a meeting. Requires quorum."""
     proposer = sanitize_name(payload.proposer, max_length=80)
+    kind = (payload.kind or "").strip()
+    if kind not in ("", GATE_KIND):
+        return JSONResponse({"error": f"unknown motion kind {kind!r}"}, status_code=400)
+    agreement_id = (payload.agreement_id or "").strip()
     motion_text = sanitize_text(payload.motion)
+    if kind == GATE_KIND:
+        if not agreement_id:
+            return JSONResponse({"error": "work_entry_gate motions require agreement_id"}, status_code=400)
+        motion_text = motion_text or default_motion_text(agreement_id)
+    elif agreement_id:
+        return JSONResponse({"error": "agreement_id is only valid on a typed motion"}, status_code=400)
     if not proposer or not motion_text:
         return JSONResponse({"error": "proposer and motion required"}, status_code=400)
     require_agent_claim(
@@ -253,6 +267,23 @@ async def propose_motion(meeting_id: str, payload: ProposeMotionPayload, request
         "proposed_at": datetime.now(UTC).isoformat(),
         "resolved_at": None,
     }
+    if kind == GATE_KIND:
+        # Typed gate motion (P4 slice 5): must name a live constitutional agreement.
+        try:
+            agr = state.workentry.get(agreement_id)
+        except WorkEntryError as e:
+            return JSONResponse({"error": e.message, "code": e.code}, status_code=e.status)
+        if agr["entry_mode"] != "constitutional":
+            return JSONResponse({"error": "only constitutional work entries are gated", "code": "not_constitutional"},
+                                status_code=409)
+        if agr["state"] not in ("pending", "dormant"):
+            return JSONResponse({"error": f"agreement is '{agr['state']}'; a gate applies before acceptance",
+                                 "code": "invalid_transition"}, status_code=409)
+        if any(mo.get("kind") == GATE_KIND and mo.get("agreement_id") == agreement_id
+               and mo.get("status") == "pending" for mt in meetings for mo in mt["motions"]):
+            return JSONResponse({"error": "a gate motion for this agreement is already open",
+                                 "code": "gate_motion_open"}, status_code=409)
+        open_motion(state.workentry, motion, agreement_id)
     meeting["motions"].append(motion)
     meeting["minutes"].append({
         "type": "motion_proposed", "motion_id": motion["id"],
@@ -313,8 +344,9 @@ async def cast_vote(meeting_id: str, payload: CastVotePayload, request: Request)
         "voter": voter, "vote": vote,
         "timestamp": datetime.now(UTC).isoformat(),
     })
-    # Auto-resolve when all attendees have voted
-    if len(motion["votes"]) >= len(meeting["attendees"]):
+    # Auto-resolve when all attendees have voted (typed gate motions resolve only through the gate
+    # consumer once their GOV-005 window has elapsed)
+    if motion.get("kind") != GATE_KIND and len(motion["votes"]) >= len(meeting["attendees"]):
         yeas = sum(1 for v in motion["votes"].values() if v == "yea")
         nays = sum(1 for v in motion["votes"].values() if v == "nay")
         motion["status"] = "passed" if yeas > nays else "failed"

@@ -5,8 +5,9 @@ resolve it per mode:
 
     open            click 1 (file) -> accepted; click 2 (activate) -> active
     standard        the owner (or an operator acting FOR the named owner) accepts/rejects
-    constitutional  owner resolves AND a governance gate is required (lands in
-                    slice 5; until then accept returns 409 "governance gate required")
+    constitutional  owner resolves AND the governance gate is required (slice 5): a typed
+                    motion {kind: work_entry_gate, agreement_id}; advisory result + owner
+                    countersign by default, council_delegated switches it (see workentry_gate)
 
 No auto-expiry: 48 h with no answer -> the poster is asked (keep / decline /
 retire); 14 days -> ``dormant`` (non-terminal, hidden from live lists, revives on
@@ -32,6 +33,7 @@ from pydantic import BaseModel, Field
 from app.deps import state
 from app.principal import Principal, resolve_principal
 from app import slot_binding
+from app import workentry_gate
 from app.sanitize import sanitize_text
 from app.workentry_store import (
     DuplicateEntryError,
@@ -52,12 +54,6 @@ _EVIDENCE_CLASSES = {
     "2": "solution_proof", "solution_proof": "solution_proof", "solution+proof": "solution_proof",
     "3": "solution_proof_work_access", "solution_proof_work_access": "solution_proof_work_access",
     "solution+proof+work_access": "solution_proof_work_access",
-}
-GATE_REQUIRED = {
-    "error": "governance gate required",
-    "code": "governance_gate_required",
-    "detail": "Constitutional entries need the governance gate (typed motion bound to the "
-              "agreement) before they can be accepted. The gate lands in P4 slice 5.",
 }
 
 
@@ -385,10 +381,12 @@ async def _act(request: Request, aid: str, name: str, body: ActionPayload | None
     actor, acting_for, cred = _actor(p, a, body)
     store = _store()
     try:
-        if name == "accept" and a["state"] in ("pending", "dormant") and a["governance"]["mode"] == "constitutional":
-            # authority first so a stranger learns nothing, then the gate
-            if _actor_may_resolve(p, a, actor, acting_for):
-                return JSONResponse(GATE_REQUIRED, status_code=409)
+        if name in ("accept", "activate") and a["governance"]["mode"] == "constitutional" \
+                and a["state"] in ("pending", "dormant", "accepted") \
+                and (name == "activate" or _actor_may_resolve(p, a, actor, acting_for)):
+            # authority first so a stranger learns nothing; then read any passed gate motion (the
+            # consumer) so the store's gate check sees it. The store enforces the gate itself.
+            _sync_gate(aid)
         if name in ("accept", "reject"):
             _revive_if_dormant(aid, actor, acting_for, cred)
         kw = dict(actor=actor, acting_for=acting_for, idempotency_key=body.idempotency_key, credential=cred)
@@ -473,6 +471,95 @@ def activity(agreement_id: str, request: Request, body: ActionPayload | None = N
     return out
 
 
+# ── constitutional gate (slice 5) ────────────────────────────────────────
+
+def _sync_gate(aid: str) -> dict:
+    """The consumer: read gate motions for this agreement from the meetings store, resolve any whose
+    window has elapsed, and record the result on the agreement. Persists meetings only on success."""
+    from app.routes.governance import _load_meetings, _save_meetings
+    meetings = _load_meetings()
+    meetings, changed, out = workentry_gate.sync(_store(), aid, meetings)
+    if changed:
+        _save_meetings(meetings)
+    return out
+
+
+def _require_party_or_operator(p: Principal, a: dict) -> None:
+    if not _is_party_view(p, a):
+        raise HTTPException(403, "Only the parties to an entry (or an operator) may act on its gate")
+
+
+@router.get("/api/work-entry/gate/settings")
+def gate_settings_get(request: Request):
+    p = _principal(request)
+    if p.kind != "operator":
+        raise HTTPException(403, "Operator credential required")
+    return _store().gate_settings()
+
+
+@router.post("/api/work-entry/gate/settings")
+async def gate_settings_set(request: Request):
+    """Owner-held: flip binding_authority (advisory_with_owner_countersign | council_delegated)
+    or the async window (hours) without code change."""
+    p = _principal(request)
+    if p.kind != "operator":
+        raise HTTPException(403, "Operator credential required")
+    try:
+        body = await request.json()
+    except Exception:  # noqa: BLE001
+        body = {}
+    if not isinstance(body, dict):
+        raise HTTPException(422, "JSON object required")
+    window = body.get("gate_window_hours")
+    if window is not None and (isinstance(window, bool) or not isinstance(window, (int, float))):
+        raise HTTPException(422, "gate_window_hours must be a number")
+    try:
+        return _store().set_gate_settings(binding_authority=body.get("binding_authority"),
+                                          gate_window_hours=window, actor="operator:admin")
+    except WorkEntryError as e:
+        raise HTTPException(422, e.message)
+
+
+@router.get("/api/work-entry/{agreement_id}/gate")
+def gate_get(agreement_id: str, request: Request):
+    p = _principal(request)
+    a = _get_or_404(agreement_id)
+    _require_party_or_operator(p, a)
+    try:
+        sync_out = _sync_gate(agreement_id)
+    except WorkEntryError as e:
+        return _err(e)
+    return {**_store().gate_status(agreement_id), "open_motions": sync_out["open_motions"]}
+
+
+@router.post("/api/work-entry/{agreement_id}/gate/sync")
+def gate_sync(agreement_id: str, request: Request):
+    p = _principal(request)
+    a = _get_or_404(agreement_id)
+    _require_party_or_operator(p, a)
+    try:
+        out = _sync_gate(agreement_id)
+    except WorkEntryError as e:
+        return _err(e)
+    st = _store().gate_status(agreement_id)
+    return {**st, "open_motions": out["open_motions"], "recorded": out["recorded"]}
+
+
+@router.post("/api/work-entry/{agreement_id}/gate/countersign")
+def gate_countersign(agreement_id: str, request: Request):
+    """The owner-held binding act while the body is advisory (GOV-001 s9.3). Operator only."""
+    p = _principal(request)
+    _get_or_404(agreement_id)
+    if p.kind != "operator":
+        raise HTTPException(403, "The gate countersign is owner-held: operator credential required")
+    try:
+        _sync_gate(agreement_id)
+        out = _store().countersign_gate(agreement_id, actor="operator:admin", credential=p.ref)
+    except WorkEntryError as e:
+        return _err(e)
+    return {**out, "gate_status": _store().gate_status(agreement_id)}
+
+
 @router.get("/api/work-entry/{agreement_id}")
 def get_entry(agreement_id: str, request: Request):
     p = _principal(request)
@@ -481,6 +568,7 @@ def get_entry(agreement_id: str, request: Request):
     if not _is_party_view(p, a):
         raise HTTPException(403, "Only the parties to an entry (or an operator) may read it")
     return {"agreement": a, "receipts": _store().receipts(agreement_id),
+            "gates": _store().gates(agreement_id),
             "evidence_gaps": _store().evidence_gaps(agreement_id)}
 
 
