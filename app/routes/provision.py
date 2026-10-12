@@ -18,7 +18,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from app.auth import admin_key_matches, require_admin, secret_matches
+from app.auth import admin_key_matches, new_agent_api_key, require_admin, secret_matches
 from app.deps import state
 from app.jwt_config import issue_agent_jwt
 from app.metrics_io import atomic_write, load_metrics, save_metrics
@@ -149,7 +149,7 @@ async def agent_signup(request: Request, payload: dict) -> dict:
             return JSONResponse({"error": f"Agent '{agent_name}' or handle '{requested_handle}' already registered", "agent_id": existing.get("agent_id")}, status_code=409)
 
         # Generate agent key (full key returned once; hash stored)
-        api_key = f"cmd_ak_{secrets.token_hex(8)}"
+        api_key = new_agent_api_key()
         key_prefix = api_key[:12] + "***"
         key_hash = _hash_key(api_key)
         agent_id = f"agent-{secrets.token_hex(4)}"
@@ -356,7 +356,7 @@ async def issue_agent_key(payload: IssueAgentKeyPayload, request: Request) -> di
     # hash replacement).
     runtime.revoke_key_digest(agent.get("key_hash", ""))
     agent["token_epoch"] = int(agent.get("token_epoch", 0)) + 1
-    new_key = f"cmd_ak_{secrets.token_hex(8)}"
+    new_key = new_agent_api_key()
     agent["key_prefix"] = new_key[:12] + "***"
     agent["key_hash"] = _hash_key(new_key)
     runtime.persist_registry()
