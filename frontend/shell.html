@@ -271,6 +271,10 @@
       // P4 slice 7: an explicit ?agreement= on any hosted page is the object id (never rail position).
       { const ag=u.searchParams.get("agreement"); if (ag && /^[A-Za-z0-9._:-]+$/.test(ag)) setCtx("agreement_id",ag); }
       if (path.startsWith("/mission/")) setCtx("mission_id", path.split("/").pop());
+      // P4 slice 9: DEPLOY and COMMAND are armed on a mission; the address (?mission=) is the context.
+      if (path === "/deploy" || path === "/command") {
+        const m=u.searchParams.get("mission"); if (m && /^[A-Za-z0-9._:-]+$/.test(m)) setCtx("mission_id", m);
+      }
       if (path === "/deploy" || path === "/slots") {
         const s=u.searchParams.get("slot")||u.searchParams.get("id");
         if (s) setCtx("slot_id", s);
