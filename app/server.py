@@ -26,6 +26,7 @@ from .router import SequenceRouter
 from .runtime import RuntimeState
 from .store import MessageStore
 from .kassa_store import KassaStore
+from .workentry_store import WorkEntryStore
 from .inbox_store import InboxStore
 from .forums_store import ForumsStore
 from .jwt_config import get_kassa_jwt_secret
@@ -112,6 +113,12 @@ def create_app(root: Path | None = None) -> FastAPI:
     inbox = InboxStore(data_dir / "inbox.db")
     forums = ForumsStore(data_dir / "forums.db")
     audit = AuditSpine(data_dir / "audit.jsonl")
+
+    def _workentry_audit(component: str, action: str, detail: dict) -> str | None:
+        ev = audit.log(component, action, detail)
+        return (ev.detail or {}).get("hash")
+
+    workentry = WorkEntryStore(data_dir / "workentry.db", audit_fn=_workentry_audit)
     runtime = RuntimeState(root=root, data_dir=data_dir, store=store, audit=audit)
     router = SequenceRouter()
     assembler = ContextAssembler(router)
@@ -139,6 +146,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     state.data_dir = data_dir
     state.store = store
     state.kassa = kassa
+    state.workentry = workentry
     state.inbox = inbox
     state.forums = forums
     state.audit = audit
