@@ -896,14 +896,17 @@ async def update_kassa_post(post_id: str, request: Request) -> dict:
 @router.post("/api/kassa/posts")
 async def submit_kassa_post(request: Request) -> dict:
     is_admin = admin_key_matches(request, state.admin_key)
+    poster_agent_id = None
     if not is_admin:
-        # Non-admin posts require a valid JWT from a registered agent
-        claims = _extract_jwt(request)
-        if not claims:
+        # Non-admin posts require a registered agent: either credential door
+        # (provision api_key or KA§§A JWT) resolves to the same principal (P4 slice 2).
+        from app.principal import resolve_agent_credential
+        _principal = resolve_agent_credential(
+            request, registry=state.runtime.registry,
+            revoked_keys=state.runtime.revoked_keys)
+        if _principal is None:
             raise HTTPException(status_code=401, detail="Agent login required to post. Use /api/provision/login.")
-        _poster = next((r for r in state.runtime.registry if r.get("agent_id") == claims.get("sub")), None)
-        if not agent_token_alive(_poster, claims):
-            raise HTTPException(status_code=401, detail="Credential revoked or principal inactive")
+        poster_agent_id = _principal.agent_id
         _check_rate_limit(request, "kassa_posts", max_hits=5)
     payload = await request.json()
     tab = (payload.get("tab") or "").strip()
@@ -937,6 +940,8 @@ async def submit_kassa_post(request: Request) -> dict:
         "from_email": from_email,
         "created_at": now,
         "updated_at": now,
+        # P4 slice 2: authenticated counterparty; None for operator/legacy posts.
+        "poster_agent_id": poster_agent_id,
     }
     review_entry = {
         "_v": 1,

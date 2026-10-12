@@ -175,7 +175,18 @@ class KassaStore:
             )
         self._conn.execute("PRAGMA foreign_keys=ON")
         self._conn.executescript(_SCHEMA)
+        self._migrate_additive()
         self._conn.commit()
+
+    def _migrate_additive(self) -> None:
+        """Hand-written additive ALTERs. SQLite has no ADD COLUMN IF NOT EXISTS,
+        so each is guarded by a PRAGMA table_info check (idempotent)."""
+        def has_col(table: str, col: str) -> bool:
+            return any(r[1] == col for r in self._conn.execute(f"PRAGMA table_info({table})"))
+        # P4 slice 2: the authenticated poster (counterparty) of a post, when it was
+        # created with an agent credential. NULL for admin/legacy/email-only posts.
+        if not has_col("posts", "poster_agent_id"):
+            self._conn.execute("ALTER TABLE posts ADD COLUMN poster_agent_id TEXT")
 
     def close(self):
         self._conn.close()
@@ -227,14 +238,15 @@ class KassaStore:
         with self._lock:
             self._conn.execute(
                 """INSERT INTO posts (id, _v, tab, title, tag, body, status, urgency,
-                   upvotes, reply_count, reward, from_name, from_email, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   upvotes, reply_count, reward, from_name, from_email, created_at, updated_at,
+                   poster_agent_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (post["id"], post.get("_v", 1), post["tab"], post["title"],
                  post.get("tag", ""), post.get("body", ""), post.get("status", "open"),
                  post.get("urgency", "normal"), post.get("upvotes", 0),
                  post.get("reply_count", 0), json.dumps(post["reward"]) if isinstance(post.get("reward"), dict) else post.get("reward"),
                  post.get("from_name", ""), post.get("from_email", ""),
-                 post["created_at"], post["updated_at"]))
+                 post["created_at"], post["updated_at"], post.get("poster_agent_id")))
             self._conn.commit()
 
     def update_post(self, post_id: str, updates: dict) -> None:
