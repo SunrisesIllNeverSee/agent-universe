@@ -32,7 +32,15 @@
     border:1px solid transparent}
   .mode:hover{color:var(--txt);background:var(--panel2)}
   .mode.on{color:var(--acc);background:var(--panel2);border-color:var(--line)}
-  #rail .util{margin-top:auto}
+  #rail .group{font-size:8px;letter-spacing:1px;color:var(--off);text-align:center;
+    margin:10px 2px 2px;padding-top:6px;border-top:1px solid var(--line);
+    text-transform:uppercase;word-break:break-word}
+  #rail .group:first-child{border-top:0;margin-top:0}
+  #rail #modes{overflow-y:auto;min-height:0;flex:1}
+  #rail .mode{min-height:64px}
+  #rail .mode.gear{writing-mode:horizontal-tb;transform:none;min-height:0;font-size:18px;
+    letter-spacing:0;padding:6px 0;width:34px}
+  #rail .util{margin-top:auto;flex:none}
   /* ── Sidebar ── */
   #sidebar{grid-area:side;background:var(--panel);border-right:1px solid var(--line);
     overflow-y:auto;display:flex;flex-direction:column}
@@ -84,8 +92,8 @@
     <div class="logo" title="SIGNOMY">§</div>
     <div id="modes"></div>
     <div class="util">
-      <span class="mode" id="util-console" title="Operator console">CONSOLE</span>
-      <span class="mode" id="util-outside" title="Leave shell (open route directly)">OUT</span>
+      <span class="mode gear" id="util-console" role="button" aria-label="Console" title="Operator console">⚙</span>
+      <span class="mode" id="util-outside" role="button" aria-label="Out" title="Leave shell (open route directly)">OUT</span>
     </div>
   </nav>
   <aside id="sidebar" aria-label="Context sidebar">
@@ -119,16 +127,28 @@
   // ── Mode map: distinct semantics per separation rules ────────────────
   // Mission Control != COMMAND != DEPLOY != CAMPAIGN; KA§§A != Switchboard;
   // Town Hall != Governance.
+  // Rail groups follow the Canonical Control Board zones (owner, P4 slice 0).
+  // Navigation only: grouping never changes a route, API or hosted page.
+  const GROUPS = [
+    {id:"user",   title:"USER"},
+    {id:"work",   title:"WORK"},
+    {id:"civic",  title:"CIVIC"},
+    {id:"ledger", title:"LEDGER & WORLD"},
+  ];
+  // Town Hall (Comms/forums) is its own mode, kept apart from Civitas governance.
+  // Rank/Refinery/Switchboard are gated tiles, not rail modes (owner Q10).
   const MODES = [
-    {id:"orient",  label:"ORIENT",    routes:["/portal","/world","/kingdoms"]},
-    {id:"find",    label:"FIND WORK", routes:["/kassa","/missions","/bountyboard","/openroles"]},
-    {id:"mc",      label:"MISSION CONTROL", routes:["/agentdash","/dashboard","/mission","/slots"]},
-    {id:"deploy",  label:"DEPLOY",    routes:["/deploy"]},
-    {id:"command", label:"COMMAND",   routes:["/command"]},
-    {id:"campaign",label:"CAMPAIGN",  routes:["/campaign"]},
-    {id:"govern",  label:"GOVERN",    routes:["/governance","/senate","/forums"]},
-    {id:"econ",    label:"ECONOMY",   routes:["/economics","/treasury","/connect","/earnings-matrix"]},
-    {id:"ref",     label:"REFERENCE", routes:["/vault","/academia","/guides","/moses"]},
+    {id:"orient",  group:"user",   label:"ORIENT",    routes:["/portal","/kingdoms"]},
+    {id:"find",    group:"work",   label:"FIND WORK", routes:["/kassa","/missions","/bountyboard","/openroles"]},
+    {id:"mc",      group:"work",   label:"MISSION CONTROL", routes:["/agentdash","/dashboard","/mission","/slots"]},
+    {id:"deploy",  group:"work", label:"DEPLOY",    routes:["/deploy"]},
+    {id:"command", group:"work", label:"COMMAND",   routes:["/command"]},
+    {id:"campaign",group:"work", label:"CAMPAIGN",  routes:["/campaign"]},
+    {id:"civitas", group:"civic",  label:"CIVITAS",   routes:["/governance","/senate","/advisory"]},
+    {id:"comms",   group:"civic",  label:"COMMS",     routes:["/forums"]},
+    {id:"econ",    group:"ledger", label:"ECONOMY",   routes:["/economics","/treasury","/connect","/earnings-matrix","/earnings-journey","/seeds"]},
+    {id:"world",   group:"ledger", label:"WORLD",     routes:["/world"]},
+    {id:"ref",     group:"ledger", label:"REFERENCE", routes:["/vault","/academia","/guides","/moses"]},
   ];
   const DEFAULT_MODE = "orient";
   const ctxStore = () => { try { return JSON.parse(sessionStorage.getItem("p3_ctx")||"{}"); } catch(e){ return {}; } };
@@ -180,11 +200,16 @@
 
   // ── Rail ─────────────────────────────────────────────────────────────
   const modesEl = $("modes");
-  MODES.forEach(m=>{
-    const el = document.createElement("span");
-    el.className="mode"; el.id="mode-"+m.id; el.textContent=m.label;
-    el.addEventListener("click",()=>nav(m.routes[0]));
-    modesEl.appendChild(el);
+  GROUPS.forEach(g=>{
+    const h = document.createElement("div");
+    h.className="group"; h.id="group-"+g.id; h.textContent=g.title;
+    modesEl.appendChild(h);
+    MODES.filter(m=>m.group===g.id).forEach(m=>{
+      const el = document.createElement("span");
+      el.className="mode"; el.id="mode-"+m.id; el.textContent=m.label;
+      el.addEventListener("click",()=>nav(m.routes[0]));
+      modesEl.appendChild(el);
+    });
   });
   $("util-console").addEventListener("click",()=>nav("/console"));
   $("util-outside").addEventListener("click",()=>{ if(currentRoute) location.href=currentRoute; });

@@ -22,8 +22,10 @@ sync_api = pytest.importorskip("playwright.sync_api")
 MODES = [
     ("orient", "/portal"), ("find", "/kassa"), ("mc", "/agentdash"),
     ("deploy", "/deploy"), ("command", "/command"), ("campaign", "/campaign"),
-    ("govern", "/governance"), ("econ", "/economics"), ("ref", "/vault"),
+    ("civitas", "/governance"), ("comms", "/forums"), ("econ", "/economics"),
+    ("world", "/world"), ("ref", "/vault"),
 ]
+GROUPS = ["USER", "WORK", "CIVIC", "LEDGER & WORLD"]
 
 
 REPO = Path(__file__).resolve().parents[1]
@@ -93,7 +95,7 @@ def _wait_frame(page, path):
         " catch (e) { return false; } }", arg=path, timeout=15000)
 
 
-def test_shell_walks_nine_modes_signed_in(live_url, browser):
+def test_shell_walks_all_modes_signed_in_in_groups(live_url, browser):
     resp = httpx.post(live_url + "/api/provision/signup",
                       json={"name": "P3Walk-" + uuid.uuid4().hex[:6], "system": "claude"},
                       headers={"x-forwarded-for": "10.9.9.9"}, timeout=10)
@@ -113,6 +115,15 @@ def test_shell_walks_nine_modes_signed_in(live_url, browser):
         "id => document.getElementById('who-sub').textContent.includes(id)",
         arg=agent["agent_id"], timeout=15000)
     assert "cockpit pages" not in page.inner_text("#who-sub")
+
+    heads = page.eval_on_selector_all("#modes .group", "els => els.map(e => e.textContent.trim())")
+    assert heads == GROUPS
+    # each mode sits inside its group's container, in order
+    order = page.eval_on_selector_all("#modes .mode", "els => els.map(e => e.id)")
+    assert order == ["mode-" + m for m, _ in MODES]
+    assert page.inner_text("#util-console").strip() == "\u2699"
+    assert page.get_attribute("#util-console", "aria-label") == "Console"
+    assert page.is_visible("#util-outside")
 
     for mode_id, first in MODES:
         page.click(f"#mode-{mode_id}")
@@ -142,4 +153,28 @@ def test_cold_load_keeps_registered_deep_link(live_url, browser):
     page.goto(live_url + "/shell?route=/kassa")
     _wait_frame(page, "/kassa")
     assert page.inner_text("#mode-name") == "FIND WORK"
+    ctx.close()
+
+
+@pytest.mark.parametrize("route,mode", [
+    ("/seeds", "econ"), ("/earnings-journey", "econ"), ("/advisory", "civitas"),
+    ("/forums", "comms"), ("/world", "world"),
+])
+def test_deep_link_lands_in_its_mode_sidebar(live_url, browser, route, mode):
+    ctx = browser.new_context()
+    page = ctx.new_page()
+    page.goto(live_url + "/shell?route=" + route)
+    _wait_frame(page, route)
+    assert "on" in page.get_attribute(f"#mode-{mode}", "class")
+    assert page.locator("#surfaces .surf.on").count() == 1
+    ctx.close()
+
+
+def test_gear_opens_console(live_url, browser):
+    ctx = browser.new_context()
+    page = ctx.new_page()
+    page.goto(live_url + "/shell")
+    _wait_frame(page, "/portal")
+    page.click("#util-console")
+    _wait_frame(page, "/console")
     ctx.close()
