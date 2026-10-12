@@ -23,6 +23,7 @@ import pytest
 sync_api = pytest.importorskip("playwright.sync_api")
 
 REPO = Path(__file__).resolve().parents[1]
+GATE_WINDOW_HOURS = 0.004   # 14.4 s
 
 SERVE = """
 import sys
@@ -67,10 +68,12 @@ def live(tmp_path_factory):
         proc.terminate()
         pytest.fail("server did not start")
     lv = Live(url, admin)
-    # the async window is owner-configurable; a few seconds lets the real motion close without waiting a
-    # day (slice 10: votes at/after closes_at are refused, so 0 no longer admits any vote)
+    # the async window is owner-configurable; seconds let the real motion close without waiting a day
+    # (slice 10: votes at/after closes_at are refused, so 0 admits no vote). Slice 11 (G2): the window starts
+    # when the motion is created and every vote must land inside it, so it needs real headroom over the
+    # meeting/join/vote HTTP round trips on a loaded machine (~14 s; was 5.4 s, which left under 5 s of slack).
     r = httpx.post(url + "/api/work-entry/gate/settings", headers={"X-Admin-Key": admin},
-                   json={"gate_window_hours": 0.0015}, timeout=10)
+                   json={"gate_window_hours": GATE_WINDOW_HOURS}, timeout=10)
     assert r.status_code == 200, r.text
     yield lv
     proc.terminate()
@@ -276,8 +279,14 @@ def gate_through_governance(live, owner, ent, aid):
     from datetime import datetime, UTC
     wait = (datetime.fromisoformat(mo.json()["closes_at"]) - datetime.now(UTC)).total_seconds()
     time.sleep(max(0.0, wait) + 0.3)   # the window must elapse before the motion resolves
-    g = api(live, owner, "POST", f"/api/work-entry/{aid}/gate/sync").json()
-    assert g["gates"][0]["result"] == "passed"
+    # poll rather than trust one sync: a pending result right after the window is a clock edge, not a verdict
+    deadline = time.time() + 15
+    while True:
+        g = api(live, owner, "POST", f"/api/work-entry/{aid}/gate/sync").json()
+        if g["gates"] and g["gates"][0]["result"] != "pending" or time.time() > deadline:
+            break
+        time.sleep(0.5)
+    assert g["gates"][0]["result"] == "passed", g
     # a passed motion alone does not bind while the body is advisory
     r = api(live, owner, "POST", f"/api/work-entry/{aid}/accept")
     assert r.status_code == 409 and r.json()["code"] == "owner_countersign_required"

@@ -445,14 +445,17 @@ async def get_mission(mission_id: str) -> dict:
     return {"mission": {**mission, "agreements": slot_binding.summarize(ags)}}
 
 
-def _complete_mission_agreements(request: Request, mission_id: str) -> tuple[list[str], list[dict]]:
-    """Mission end -> every ACTIVE Agreement on it becomes ``completed`` (K: terminal, kept as archive).
-    A failure is returned loudly (and its evidence_gap is in the store), never swallowed."""
+def _complete_mission_agreements(request: Request | None, mission_id: str,
+                                 delegate: str = "operator:mission-end") -> tuple[list[str], list[dict]]:
+    """Mission end (explicit or auto-complete) -> every ACTIVE Agreement on it becomes ``completed``
+    (K: terminal, kept as archive). One store transition (receipt + chained Seed) for both paths.
+    A failure is returned loudly (and its evidence_gap is in the store), never swallowed.
+    ``request`` is None on the auto path: no caller, so the operator-class delegate speaks for the owner."""
     from app.workentry_store import WorkEntryError
     done: list[str] = []
     errors: list[dict] = []
     try:
-        acting = _acting_agent_id(request)
+        acting = _acting_agent_id(request) if request is not None else None
     except HTTPException:
         acting = None
     for a in state.workentry.list_by_object("mission_id", mission_id):
@@ -462,12 +465,14 @@ def _complete_mission_agreements(request: Request, mission_id: str) -> tuple[lis
         if acting and acting in parties.values():
             actor, acting_for = acting, None
         else:
-            actor, acting_for = "operator:mission-end", parties["owner"]
+            actor, acting_for = delegate, parties["owner"]
         try:
             state.workentry.complete(a["agreement_id"], actor=actor, acting_for=acting_for)
             done.append(a["agreement_id"])
         except WorkEntryError as e:
             errors.append({"agreement_id": a["agreement_id"], "error": e.message, "code": e.code})
+        except Exception as e:  # noqa: BLE001 - loud, never aborts the mission end
+            errors.append({"agreement_id": a["agreement_id"], "error": str(e), "code": "unexpected"})
     return done, errors
 
 
@@ -975,13 +980,20 @@ async def close_task(task_id: str, payload: CloseTaskPayload, request: Request) 
                     mission["ended_at"] = datetime.now(UTC).isoformat()
                     mission["auto_completed"] = True
                     _save_missions(missions)
+                    # P4 slice 11: bound active Agreements complete through the same helper as /end
+                    ag_done, ag_errors = _complete_mission_agreements(
+                        None, mission_id, delegate="operator:mission-auto-complete")
                     state.audit.log("deploy", "mission_auto_completed", {
                         "mission_id": mission_id,
                         "tasks_closed": len(active_tasks),
                         "total_payout": total_payout,
+                        "agreements_completed": ag_done,
+                        "agreement_errors": ag_errors,
                     })
                     await state.emit("mission_ended", {"mission_id": mission_id, "auto": True})
-                    mission_complete_result = {"mission_id": mission_id, "auto_completed": True}
+                    mission_complete_result = {"mission_id": mission_id, "auto_completed": True,
+                                               "agreements_completed": ag_done,
+                                               "agreement_errors": ag_errors}
 
     return {"task": task, "exp_awarded": exp_result, "payout": payout_result, "seed_doi": seed_doi, "mission_completed": mission_complete_result}
 
