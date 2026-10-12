@@ -319,6 +319,33 @@ CREATE TRIGGER IF NOT EXISTS trg_gap_no_update BEFORE UPDATE ON evidence_gaps
 BEGIN SELECT RAISE(ABORT, 'evidence_gaps are append-only'); END;
 CREATE TRIGGER IF NOT EXISTS trg_gap_no_delete BEFORE DELETE ON evidence_gaps
 BEGIN SELECT RAISE(ABORT, 'evidence_gaps are append-only'); END;
+
+-- Agreement-bound deploy receipts (slice 6). One row per mission-scoped deploy; append-only.
+-- Deploy is not an agreement state change; the receipt + Seed are the durable record.
+CREATE TABLE IF NOT EXISTS deployments (
+    deploy_id       TEXT PRIMARY KEY,
+    receipt_id      TEXT NOT NULL UNIQUE,
+    agreement_id    TEXT NOT NULL,
+    mission_id      TEXT NOT NULL,
+    actor           TEXT NOT NULL,
+    acting_for      TEXT,
+    credential_ref  TEXT,
+    entry_mode      TEXT NOT NULL,
+    gate_id         TEXT,
+    note            TEXT,
+    idempotency_key TEXT,
+    at              TEXT NOT NULL,
+    seed_doi        TEXT NOT NULL,
+    audit_hash      TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_dep_agr ON deployments(agreement_id);
+CREATE INDEX IF NOT EXISTS idx_dep_mission ON deployments(mission_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_dep_key ON deployments(agreement_id, actor, idempotency_key)
+    WHERE idempotency_key IS NOT NULL;
+CREATE TRIGGER IF NOT EXISTS trg_dep_no_update BEFORE UPDATE ON deployments
+BEGIN SELECT RAISE(ABORT, 'deployments are append-only'); END;
+CREATE TRIGGER IF NOT EXISTS trg_dep_no_delete BEFORE DELETE ON deployments
+BEGIN SELECT RAISE(ABORT, 'deployments are append-only'); END;
 """
 
 
@@ -1002,6 +1029,92 @@ class WorkEntryStore:
             except Exception as exc:  # noqa: BLE001
                 raise _ProvenanceFailure("audit", f"{type(exc).__name__}: {exc}", name, aid, actor, None)
         return seed_doi, audit_hash
+
+    # ── agreement-bound deploy (slice 6) ────────────────────────────────
+
+    @staticmethod
+    def _deployment(r: sqlite3.Row) -> dict:
+        return {"receipt_id": r["receipt_id"], "deploy_id": r["deploy_id"], "agreement_id": r["agreement_id"],
+                "mission_id": r["mission_id"], "transition": "deploy", "actor": r["actor"],
+                "acting_for": r["acting_for"], "credential_ref": r["credential_ref"],
+                "entry_mode": r["entry_mode"], "gate_id": r["gate_id"], "note": r["note"],
+                "idempotency_key": r["idempotency_key"], "at": r["at"], "seed_doi": r["seed_doi"],
+                "audit_hash": r["audit_hash"]}
+
+    def deployments(self, agreement_id: str | None = None, mission_id: str | None = None) -> list[dict]:
+        where, args = [], []
+        for col, val in (("agreement_id", agreement_id), ("mission_id", mission_id)):
+            if val is not None:
+                where.append(f"{col}=?"); args.append(val)
+        sql = "SELECT * FROM deployments" + (" WHERE " + " AND ".join(where) if where else "")
+        with self._lock:
+            return [self._deployment(r) for r in self._conn.execute(
+                sql + " ORDER BY at, deploy_id", args).fetchall()]
+
+    def record_deploy(self, agreement_id: str, *, mission_id: str, actor: str, acting_for: str | None = None,
+                      credential: str | None = None, entry_mode: str, gate_id: str | None = None,
+                      note: str | None = None, idempotency_key: str | None = None) -> dict:
+        """Receipt + Seed for a mission-scoped deploy under an ACTIVE agreement. Provenance is loud:
+        a failed Seed/audit rolls the receipt back and writes an evidence_gap. Same (agreement, actor,
+        key) returns the original receipt. Returns {receipt, replayed}."""
+        def run() -> dict:
+            row = self._row(agreement_id)
+            if idempotency_key:
+                ex = self._conn.execute(
+                    "SELECT * FROM deployments WHERE agreement_id=? AND actor=? AND idempotency_key=?",
+                    (agreement_id, actor, idempotency_key)).fetchone()
+                if ex is not None:
+                    return {"receipt": self._deployment(ex), "replayed": True}
+            if row["state"] != "active":
+                raise InvalidTransition(
+                    f"agreement {agreement_id} is '{row['state']}'; deploy needs an active agreement")
+            if json.loads(row["objects_json"]).get("mission_id") != mission_id:
+                raise InvalidTransition(f"agreement {agreement_id} is not bound to mission {mission_id}")
+            who = self._effective_principal(actor, acting_for)
+            if who != row["owner_id"]:
+                raise AuthorityError("deploy requires the agreement's owner (deploy authority); "
+                                     f"'{who}' is not")
+            deploy_id = f"dep-{uuid.uuid4().hex[:16]}"
+            receipt_id = f"rcpt-{uuid.uuid4().hex[:16]}"
+            now = self._now()
+            try:
+                seed = self._seed_fn(
+                    source_type="work_entry_deploy", source_id=deploy_id, creator_id=actor,
+                    creator_type="AAI", seed_type="grown", parent_doi=row["last_seed_doi"],
+                    metadata={"event": "deploy", "deploy_id": deploy_id, "receipt_id": receipt_id,
+                              "agreement_id": agreement_id, "mission_id": mission_id,
+                              "entry_mode": entry_mode, "gate_id": gate_id or "",
+                              "acting_for": acting_for or "", "agreement_class": AGREEMENT_CLASS})
+                seed_doi = (seed or {}).get("doi")
+                if not seed_doi:
+                    raise RuntimeError("seed writer returned no doi")
+            except Exception as exc:  # noqa: BLE001 - provenance must never be silent
+                raise _ProvenanceFailure("seed", f"{type(exc).__name__}: {exc}", "deploy",
+                                         agreement_id, actor, idempotency_key)
+            audit_hash = None
+            if self._audit_fn is not None:
+                try:
+                    audit_hash = self._audit_fn(
+                        "workentry", "mission_deploy",
+                        {"agreement_id": agreement_id, "mission_id": mission_id, "deploy_id": deploy_id,
+                         "receipt_id": receipt_id, "seed_doi": seed_doi, "agent": actor,
+                         "acting_for": acting_for, "credential_ref": credential, "entry_mode": entry_mode})
+                except Exception as exc:  # noqa: BLE001
+                    raise _ProvenanceFailure("audit", f"{type(exc).__name__}: {exc}", "deploy",
+                                             agreement_id, actor, idempotency_key)
+            self._conn.execute(
+                "INSERT INTO deployments (deploy_id, receipt_id, agreement_id, mission_id, actor, acting_for,"
+                " credential_ref, entry_mode, gate_id, note, idempotency_key, at, seed_doi, audit_hash)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (deploy_id, receipt_id, agreement_id, mission_id, actor, acting_for, credential, entry_mode,
+                 gate_id, note, idempotency_key, now, seed_doi, audit_hash))
+            # keep the Seed lineage one hash chain; deploy is activity on a live agreement
+            self._conn.execute("UPDATE agreements SET last_seed_doi=?, last_activity_at=? WHERE agreement_id=?",
+                               (seed_doi, now, agreement_id))
+            return {"receipt": self._deployment(self._conn.execute(
+                "SELECT * FROM deployments WHERE deploy_id=?", (deploy_id,)).fetchone()), "replayed": False}
+
+        return self._txn(run)
 
     # ── dormancy (no auto-expiry) ───────────────────────────────────────
 

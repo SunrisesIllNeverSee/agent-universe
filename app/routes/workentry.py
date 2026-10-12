@@ -560,6 +560,180 @@ def gate_countersign(agreement_id: str, request: Request):
     return {**out, "gate_status": _store().gate_status(agreement_id)}
 
 
+# ── agreement-bound deploy (slice 6) ─────────────────────────────────────
+# Mission-scoped DEPLOY: needs an ACTIVE Agreement on the mission whose owner principal holds deploy
+# authority there. The gate follows the mission's entry_mode (open: none beyond these checks;
+# standard: the resolver -- the owner who accepted -- is the only actor; constitutional: the slice-5
+# governance gate must be satisfied). Unavailable while frozen. Emits receipt + Seed. DEPLOY is not
+# COMMAND/CAMPAIGN, and the global POST /api/deploy is untouched (operator-only).
+
+class DeployPayload(BaseModel):
+    agreement_id: str | None = None
+    note: str | None = Field(default=None, max_length=2000)
+    acting_for: str | None = None         # operator only: the named principal it acts FOR
+    idempotency_key: str | None = None
+
+
+_ENDED_MISSION = ("completed", "cancelled", "closed", "ended")
+
+
+def _mission_or_404(mission_id: str) -> dict:
+    m = slot_binding.find_mission(mission_id)
+    if m is None:
+        raise HTTPException(404, "Mission not found")
+    return m
+
+
+def _mission_frozen(m: dict) -> bool:
+    return bool(m.get("frozen")) or m.get("status") == "frozen"
+
+
+def _deploy_mode(m: dict, a: dict | None) -> str:
+    """The mission's entry_mode (open when absent); an agreement filed stricter never relaxes it."""
+    mm = m.get("entry_mode") if m.get("entry_mode") in _MODE_RANK else "open"
+    am = a["entry_mode"] if a and a["entry_mode"] in _MODE_RANK else "open"
+    return mm if _MODE_RANK[mm] >= _MODE_RANK[am] else am
+
+
+def _deploy_gate(mode: str, a: dict | None) -> dict:
+    if mode == "open":
+        return {"required": False, "kind": "none", "satisfied": True, "blocking": None, "gate_id": None}
+    if mode == "standard":
+        return {"required": True, "kind": "resolver", "satisfied": a is not None, "blocking": None,
+                "gate_id": None, "resolver": _owner(a) if a else None}
+    if a is None:
+        return {"required": True, "kind": "governance", "satisfied": False,
+                "blocking": "governance_gate_required", "gate_id": None}
+    if a["entry_mode"] != "constitutional":
+        # the mission demands the gate but this agreement never opened one (no motion can bind to it)
+        return {"required": True, "kind": "governance", "satisfied": False,
+                "blocking": "governance_gate_required", "gate_id": None,
+                "binding_authority": _store().binding_authority}
+    try:
+        _sync_gate(a["agreement_id"])
+    except Exception as exc:  # noqa: BLE001 - reading the gate must not fail the preflight
+        logger.warning("deploy gate sync failed: %s", exc)
+    st = _store().gate_status(a["agreement_id"])
+    return {"required": True, "kind": "governance", "satisfied": st["satisfied"], "blocking": st["blocking"],
+            "gate_id": st["gate_id"], "binding_authority": st["binding_authority"]}
+
+
+def _deploy_principal(p: Principal, ags: list[dict], acting_for: str | None) -> tuple[str, str | None, str | None]:
+    """(actor, acting_for, who) -- who = the principal the caller speaks AS for deploy authority."""
+    if p.kind == "agent":
+        return p.agent_id, None, p.agent_id
+    if p.kind == "operator":
+        return "operator:admin", acting_for, (acting_for or None)
+    mine = [a for a in ags if a["objects"].get("post_id") and a["objects"]["post_id"] == p.post_id]
+    who = _owner(mine[0]) if mine else None
+    return f"poster-link:{p.thread_id}", who, who
+
+
+def _mission_agreements(mission: dict) -> list[dict]:
+    return _store().list_by_object("mission_id", mission.get("id") or mission.get("mission_id"))
+
+
+def _may_read_mission(p: Principal, mission: dict, ags: list[dict]) -> bool:
+    if p.kind == "operator":
+        return True
+    if p.kind == "agent":
+        return mission.get("owner_agent_id") == p.agent_id or any(_is_party_view(p, a) for a in ags)
+    return any(_is_party_view(p, a) for a in ags)
+
+
+def _deploy_view(p: Principal, mission: dict, ags: list[dict], acting_for: str | None,
+                 agreement_id: str | None = None) -> dict:
+    actor, af, who = _deploy_principal(p, ags, acting_for)
+    active = [a for a in ags if a["state"] == "active"]
+    holders = [a for a in active if who and _owner(a) == who]
+    chosen = None
+    if agreement_id:
+        chosen = next((a for a in holders if a["agreement_id"] == agreement_id), None)
+    elif holders:
+        chosen = holders[-1]
+    mode = _deploy_mode(mission, chosen or (active[-1] if active else None))
+    gate = _deploy_gate(mode, chosen)
+    frozen = _mission_frozen(mission)
+    blocking = None
+    if not active:
+        blocking = "no_active_agreement"
+    elif chosen is None:
+        blocking = "no_deploy_authority"
+    elif frozen:
+        blocking = "mission_frozen"
+    elif mission.get("status") in _ENDED_MISSION:
+        blocking = "mission_not_deployable"
+    elif not gate["satisfied"]:
+        blocking = gate["blocking"] or "governance_gate_required"
+    return {
+        "actor": actor, "acting_for": af, "who": who, "chosen": chosen, "mode": mode, "gate": gate,
+        "frozen": frozen, "blocking": blocking, "active": active,
+        "agreements": [{"agreement_id": a["agreement_id"], "state": a["state"], "entry_mode": a["entry_mode"],
+                        "owner": _owner(a), "entrant": _entrant(a), "slot_id": a["objects"].get("slot_id"),
+                        "holds_deploy_authority": a["state"] == "active" and bool(who) and _owner(a) == who}
+                       for a in ags],
+    }
+
+
+@router.get("/api/work-entry/mission/{mission_id}/deploy/preflight")
+def deploy_preflight(mission_id: str, request: Request, acting_for: str | None = None,
+                     agreement_id: str | None = None):
+    """ARM DEPLOY preflight: read-only. The mission's Agreement(s), entry_mode, the gate requirement,
+    frozen state, and whether THIS caller may deploy now (and if not, why)."""
+    p = _principal(request)
+    mission = _mission_or_404(mission_id)
+    ags = _mission_agreements(mission)
+    if not _may_read_mission(p, mission, ags):
+        raise HTTPException(403, "Only a party to an Agreement on this mission (or an operator) may read its deploy preflight")
+    v = _deploy_view(p, mission, ags, acting_for, agreement_id)
+    mid = mission.get("id") or mission_id
+    return {"mission_id": mid, "mission_status": mission.get("status"), "entry_mode": v["mode"],
+            "frozen": v["frozen"], "gate": v["gate"], "agreements": v["agreements"],
+            "agreement_id": v["chosen"]["agreement_id"] if v["chosen"] else None,
+            "can_deploy": v["blocking"] is None, "blocking": v["blocking"],
+            "caller": {"principal": v["who"], "credential": p.ref},
+            "mission_control": slot_binding.mission_control_ref(mid)}
+
+
+@router.post("/api/work-entry/mission/{mission_id}/deploy")
+async def deploy_mission(mission_id: str, request: Request, body: DeployPayload | None = None):
+    body = body or DeployPayload()
+    p = _principal(request)
+    mission = _mission_or_404(mission_id)
+    mid = mission.get("id") or mission_id
+    ags = _mission_agreements(mission)
+    v = _deploy_view(p, mission, ags, body.acting_for, body.agreement_id)
+    if v["blocking"] in ("no_active_agreement", "no_deploy_authority"):
+        return JSONResponse({"error": "Deploy requires an active Agreement whose principal holds deploy "
+                                      "authority on this mission", "code": v["blocking"]}, status_code=403)
+    if v["blocking"] in ("mission_frozen", "mission_not_deployable", "governance_gate_required",
+                         "owner_countersign_required"):
+        msg = {"mission_frozen": "Mission is frozen; deploy is unavailable until it is unfrozen",
+               "mission_not_deployable": f"Mission is {mission.get('status')}; it cannot be deployed",
+               "governance_gate_required": "The governance gate for this mission is not satisfied",
+               "owner_countersign_required": "The governance motion passed but is advisory; an "
+                                             "owner-held countersign is required"}[v["blocking"]]
+        return JSONResponse({"error": msg, "code": v["blocking"], "gate": v["gate"]}, status_code=409)
+    a = v["chosen"]
+    try:
+        out = _store().record_deploy(
+            a["agreement_id"], mission_id=mid, actor=v["actor"], acting_for=v["acting_for"],
+            credential=p.ref, entry_mode=v["mode"], gate_id=v["gate"].get("gate_id"), note=body.note,
+            idempotency_key=body.idempotency_key or request.headers.get("Idempotency-Key"))
+    except WorkEntryError as e:
+        return _err(e)
+    if not out["replayed"]:
+        try:
+            await state.emit("mission_deployed", {"mission_id": mid, "agreement_id": a["agreement_id"],
+                                                  "receipt_id": out["receipt"]["receipt_id"]})
+        except Exception as exc:  # noqa: BLE001 - the receipt is already durable
+            logger.warning("mission_deployed emit failed: %s", exc)
+    return JSONResponse({"deployed": True, "replayed": out["replayed"], "receipt": out["receipt"],
+                         "agreement_id": a["agreement_id"], "mission_id": mid, "entry_mode": v["mode"],
+                         "gate": v["gate"], "mission_control": slot_binding.mission_control_ref(mid)},
+                        status_code=200 if out["replayed"] else 201)
+
+
 @router.get("/api/work-entry/{agreement_id}")
 def get_entry(agreement_id: str, request: Request):
     p = _principal(request)
