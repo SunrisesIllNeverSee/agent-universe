@@ -31,6 +31,7 @@ from pydantic import BaseModel, Field
 
 from app.deps import state
 from app.principal import Principal, resolve_principal
+from app import slot_binding
 from app.sanitize import sanitize_text
 from app.workentry_store import (
     DuplicateEntryError,
@@ -209,6 +210,7 @@ _NOTE = {
     "retire": "Entry retired",
     "activate": "Entry is now active",
     "revive": "Entry revived by new activity",
+    "terminate": "Entry terminated (the slot could not be bound; evidence_gap recorded)",
     "go_dormant": "Entry went dormant (no activity for 14 days; kept, revives on activity)",
 }
 
@@ -309,8 +311,21 @@ def _revive_if_dormant(aid: str, actor: str, acting_for: str | None, cred: str) 
 
 # ── routes ───────────────────────────────────────────────────────────────
 
+def _bind_hint(a: dict, extra: dict | None = None) -> dict:
+    """O-J-2: hand Mission Control the mission_id (and slot) this agreement is bound to."""
+    mid = a["objects"].get("mission_id")
+    return {"mission_id": mid, "slot_id": a["objects"].get("slot_id"),
+            "mission_control": slot_binding.mission_control_ref(mid), **(extra or {})}
+
+
+def _bind_failed(e: "slot_binding.BindError") -> JSONResponse:
+    if e.agreement:
+        _notify(e.agreement, "terminate", None)
+    return JSONResponse(e.body(), status_code=e.status)
+
+
 @router.post("/api/work-entry")
-def file_entry(payload: FileEntryPayload, request: Request):
+async def file_entry(payload: FileEntryPayload, request: Request):
     p = _principal(request)
     entrant = p.require_agent()   # only a registered agent can file intent
     opp = _resolve_opportunity(payload.opportunity_ref.strip())
@@ -344,8 +359,16 @@ def file_entry(payload: FileEntryPayload, request: Request):
         return _err(e)
     a = out["agreement"]
     if not out["replayed"]:
+        if a["state"] == "accepted":
+            # open-mode post-origin: acceptance is immediate, so the slot/mission is minted now
+            try:
+                a = await slot_binding.mint_for_post(a)
+                out = {**out, "agreement": a}
+            except slot_binding.BindError as e:
+                return _bind_failed(e)
         _notify(a, "file" if mode != "open" else "resolve_open", entrant, opp["title"])
-    return JSONResponse({**out, "next": _next_hint(a)}, status_code=200 if out["replayed"] else 201)
+    return JSONResponse({**out, **_bind_hint(a), "next": _next_hint(a)},
+                        status_code=200 if out["replayed"] else 201)
 
 
 def _next_hint(a: dict) -> str:
@@ -355,7 +378,7 @@ def _next_hint(a: dict) -> str:
         a["state"], "terminal; kept as the archive")
 
 
-def _act(request: Request, aid: str, name: str, body: ActionPayload | None):
+async def _act(request: Request, aid: str, name: str, body: ActionPayload | None):
     p = _principal(request)
     a = _get_or_404(aid)
     body = body or ActionPayload()
@@ -378,9 +401,18 @@ def _act(request: Request, aid: str, name: str, body: ActionPayload | None):
     except WorkEntryError as e:
         return _err(e)
     if not out["replayed"]:
+        # Slice 4: acceptance mints the slot/mission for a post-origin entry; activation binds the
+        # slot (Agreement-first, then slot write; failure -> evidence_gap + compensating terminated).
+        try:
+            if name == "accept" and out["agreement"]["state"] == "accepted":
+                out = {**out, "agreement": await slot_binding.mint_for_post(out["agreement"])}
+            elif name == "activate":
+                await slot_binding.bind_on_activation(out["agreement"])
+        except slot_binding.BindError as e:
+            return _bind_failed(e)
         _notify(out["agreement"], name, actor if p.kind == "agent" else acting_for,
                 out["agreement"]["opportunity_ref"])
-    return {**out, "next": _next_hint(out["agreement"])}
+    return {**out, **_bind_hint(out["agreement"]), "next": _next_hint(out["agreement"])}
 
 
 def _actor_may_resolve(p: Principal, a: dict, actor: str, acting_for: str | None) -> bool:
@@ -397,33 +429,33 @@ def sweep(request: Request):
 
 
 @router.post("/api/work-entry/{agreement_id}/accept")
-def accept(agreement_id: str, request: Request, body: ActionPayload | None = None):
-    return _act(request, agreement_id, "accept", body)
+async def accept(agreement_id: str, request: Request, body: ActionPayload | None = None):
+    return await _act(request, agreement_id, "accept", body)
 
 
 @router.post("/api/work-entry/{agreement_id}/reject")
-def reject(agreement_id: str, request: Request, body: ActionPayload | None = None):
+async def reject(agreement_id: str, request: Request, body: ActionPayload | None = None):
     if not (body and body.reason and body.reason.strip()):
         _principal(request)
         _get_or_404(agreement_id)
         return JSONResponse({"error": "'reject' requires a named reason", "code": "reason_required"},
                             status_code=400)
-    return _act(request, agreement_id, "reject", body)
+    return await _act(request, agreement_id, "reject", body)
 
 
 @router.post("/api/work-entry/{agreement_id}/withdraw")
-def withdraw(agreement_id: str, request: Request, body: ActionPayload | None = None):
-    return _act(request, agreement_id, "withdraw", body)
+async def withdraw(agreement_id: str, request: Request, body: ActionPayload | None = None):
+    return await _act(request, agreement_id, "withdraw", body)
 
 
 @router.post("/api/work-entry/{agreement_id}/retire")
-def retire(agreement_id: str, request: Request, body: ActionPayload | None = None):
-    return _act(request, agreement_id, "retire", body)
+async def retire(agreement_id: str, request: Request, body: ActionPayload | None = None):
+    return await _act(request, agreement_id, "retire", body)
 
 
 @router.post("/api/work-entry/{agreement_id}/activate")
-def activate(agreement_id: str, request: Request, body: ActionPayload | None = None):
-    return _act(request, agreement_id, "activate", body)
+async def activate(agreement_id: str, request: Request, body: ActionPayload | None = None):
+    return await _act(request, agreement_id, "activate", body)
 
 
 @router.post("/api/work-entry/{agreement_id}/activity")

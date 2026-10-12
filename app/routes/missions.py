@@ -26,6 +26,7 @@ from app.deps import state
 from app.metrics_io import atomic_write
 from app.otel_setup import get_tracer as _get_tracer
 from app.seeds import create_seed
+from app import slot_binding
 
 router = APIRouter(tags=["missions"])
 _tracer = _get_tracer("civitae.missions")
@@ -53,6 +54,8 @@ class CreateMissionPayload(BaseModel):
     agents: dict[str, Any] = {}
     channel: str = ""
     agent_id: str = "operator"
+    entry_mode: str = ""
+    post_id: str = ""
 
 
 class EndMissionPayload(BaseModel):
@@ -119,6 +122,9 @@ class CreateSlotsPayload(BaseModel):
     roles: list[str] = []
     revenue_splits: list[int] = []
     governance_mode: str = ""
+    entry_mode: str = ""          # open (default) | standard | constitutional
+    post_id: str = ""             # the post this slot serves (poster-owned)
+    agreement_id: str = ""        # an existing WorkEntryAgreement this references
 
 
 class FillSlotPayload(BaseModel):
@@ -140,6 +146,9 @@ class PostBountyPayload(BaseModel):
     posture: str = "SCOUT"
     slots_needed: int = 3
     revenue_pool: float = 0
+    entry_mode: str = ""
+    post_id: str = ""
+    agreement_id: str = ""
 
 # ── JSON file loaders / savers ───────────────────────────────────────────────
 # FIX-12: JSON file-backed state — missions, slots, tasks, campaigns, metrics.
@@ -168,7 +177,12 @@ def _slots_path() -> Path:
 def _load_missions() -> list[dict]:
     p = _missions_path()
     if p.exists():
-        return json.loads(p.read_text())
+        rows = json.loads(p.read_text())
+        for m in rows:   # P4 slice 4: additive fields, legacy records default to open
+            m.setdefault("entry_mode", "open")
+            m.setdefault("post_id", None)
+            m.setdefault("agreement_id", None)
+        return rows
     return []
 
 
@@ -201,7 +215,12 @@ def _save_tasks(tasks: list[dict]) -> None:
 def _load_slots() -> list[dict]:
     p = _slots_path()
     if p.exists():
-        return json.loads(p.read_text())
+        rows = json.loads(p.read_text())
+        for sl in rows:  # P4 slice 4: additive fields, legacy records default to open
+            sl.setdefault("entry_mode", "open")
+            sl.setdefault("post_id", None)
+            sl.setdefault("agreement_id", None)
+        return rows
     return []
 
 
@@ -318,10 +337,40 @@ def _owner_fields(agent_id: str | None) -> dict:
     }
 
 
+def _resolve_refs(entry_mode: str, post_id: str, agreement_id: str,
+                  acting_agent_id: str | None, *, inherit: dict | None = None) -> tuple[str, str | None, str | None]:
+    """Validate the additive P4 refs (entry_mode / post_id / agreement_id) BEFORE any write.
+
+    Fails closed: bad mode 422, unknown post/agreement 404, a post that the acting agent
+    does not own (or an agreement it is not a party to) 403. Operators may reference any.
+    """
+    mode = entry_mode or (inherit or {}).get("entry_mode") or "open"
+    if mode not in slot_binding.ENTRY_MODES:
+        raise HTTPException(422, "entry_mode must be open, standard or constitutional")
+    post_id = post_id or (inherit or {}).get("post_id") or ""
+    if post_id:
+        post = state.kassa.get_post(post_id)
+        if not post:
+            raise HTTPException(404, f"Post {post_id} not found")
+        if acting_agent_id is not None and post.get("poster_agent_id") != acting_agent_id:
+            raise HTTPException(403, "Only the post's own poster (or an operator) may bind it to a mission")
+    if agreement_id:
+        from app.workentry_store import WorkEntryError
+        try:
+            a = state.workentry.get(agreement_id)
+        except WorkEntryError as e:
+            raise HTTPException(e.status, e.message)
+        parties = {p["id"] for p in a["principals"]}
+        if acting_agent_id is not None and acting_agent_id not in parties:
+            raise HTTPException(403, "Not a party to that agreement")
+    return mode, post_id or None, agreement_id or None
+
+
 @router.post("/api/missions")
 async def create_mission(payload: CreateMissionPayload, request: Request) -> dict:
     """Create a new DEPLOY mission."""
     owner_agent_id = _acting_agent_id(request)
+    m_mode, m_post, _ = _resolve_refs(payload.entry_mode, payload.post_id, "", owner_agent_id)
     missions = _load_missions()
     mid = f"mission-{_secrets_mod.token_hex(4)}"
     mission = {
@@ -346,6 +395,7 @@ async def create_mission(payload: CreateMissionPayload, request: Request) -> dic
         },
         "results": [],
         "channel": payload.channel or f"mission-{(payload.label or 'unnamed').lower().replace(' ', '-')}",
+        "entry_mode": m_mode, "post_id": m_post, "agreement_id": None,
         **_owner_fields(owner_agent_id),
     }
     missions.append(mission)
@@ -387,7 +437,38 @@ async def get_mission(mission_id: str) -> dict:
     mission = next((m for m in _load_missions() if m.get("id") == mission_id or m.get("mission_id") == mission_id), None)
     if not mission:
         return JSONResponse({"error": "Mission not found"}, status_code=404)
-    return {"mission": mission}
+    # O-J-2: Mission Control is handed the mission_id and the Agreements bound to it (server truth).
+    try:
+        ags = state.workentry.list_by_object("mission_id", mission.get("id") or mission_id)
+    except Exception:  # noqa: BLE001 - a read never fails on the projection
+        ags = []
+    return {"mission": {**mission, "agreements": slot_binding.summarize(ags)}}
+
+
+def _complete_mission_agreements(request: Request, mission_id: str) -> tuple[list[str], list[dict]]:
+    """Mission end -> every ACTIVE Agreement on it becomes ``completed`` (K: terminal, kept as archive).
+    A failure is returned loudly (and its evidence_gap is in the store), never swallowed."""
+    from app.workentry_store import WorkEntryError
+    done: list[str] = []
+    errors: list[dict] = []
+    try:
+        acting = _acting_agent_id(request)
+    except HTTPException:
+        acting = None
+    for a in state.workentry.list_by_object("mission_id", mission_id):
+        if a["state"] != "active":
+            continue
+        parties = {p["role"]: p["id"] for p in a["principals"]}
+        if acting and acting in parties.values():
+            actor, acting_for = acting, None
+        else:
+            actor, acting_for = "operator:mission-end", parties["owner"]
+        try:
+            state.workentry.complete(a["agreement_id"], actor=actor, acting_for=acting_for)
+            done.append(a["agreement_id"])
+        except WorkEntryError as e:
+            errors.append({"agreement_id": a["agreement_id"], "error": e.message, "code": e.code})
+    return done, errors
 
 
 @router.post("/api/missions/{mission_id}/end")
@@ -421,6 +502,7 @@ async def end_mission(mission_id: str, request: Request, payload: EndMissionPayl
 
     mission["payouts"] = payouts
     _save_missions(missions)
+    agreements_completed, agreement_errors = _complete_mission_agreements(request, mission_id)
     _audit_entry = state.audit.log("deploy", "mission_ended", {
         "mission_id": mission_id,
         "slots_paid": len(payouts),
@@ -443,7 +525,8 @@ async def end_mission(mission_id: str, request: Request, payload: EndMissionPayl
         pass
     _tag_span(action="end", mission_id=mission_id,
               slots_paid=len(payouts), payout_per_slot=payout_amount)
-    return {**mission, "seed_doi": seed_doi}
+    return {**mission, "seed_doi": seed_doi, "agreements_completed": agreements_completed,
+            "agreement_errors": agreement_errors}
 
 
 @router.post("/api/missions/{mission_id}/update")
@@ -938,12 +1021,16 @@ async def create_slots_from_formation(payload: CreateSlotsPayload, request: Requ
     # D-C: a supplied id must resolve to an existing mission or fail closed
     # before any write, then D-B: only that mission's owner or an operator.
     owner_agent_id = _acting_agent_id(request)
+    existing = None
     if not minted:
         existing = next((m for m in _load_missions()
                          if mission_id in (m.get("id"), m.get("mission_id"))), None)
         denied = _mission_gate(request, mission_id, existing)
         if denied is not None:
             return denied
+    # P4 slice 4: additive refs validated before any write (fail closed).
+    entry_mode, ref_post_id, ref_agreement_id = _resolve_refs(
+        payload.entry_mode, payload.post_id, payload.agreement_id, owner_agent_id, inherit=existing)
     if minted:
         taken = {m.get(k) for m in _load_missions() for k in ("id", "mission_id")}
         taken |= {sl.get("mission_id") for sl in _load_slots()}
@@ -984,6 +1071,9 @@ async def create_slots_from_formation(payload: CreateSlotsPayload, request: Requ
             "filled_at": None,
             "created_at": datetime.now(UTC).isoformat(),
             "metrics": {"messages": 0, "governance_checks": 0, "violations": 0, "revenue": 0},
+            "entry_mode": entry_mode,
+            "post_id": ref_post_id,
+            "agreement_id": ref_agreement_id,
         }
         new_slots.append(slot)
         slots.append(slot)
@@ -1016,6 +1106,9 @@ async def create_slots_from_formation(payload: CreateSlotsPayload, request: Requ
             "results": [],
             "channel": f"mission-{mission_id}",
             "slot_ids": [s["id"] for s in new_slots],
+            "entry_mode": entry_mode,
+            "post_id": ref_post_id,
+            "agreement_id": ref_agreement_id,
             **_owner_fields(owner_agent_id),
         })
         _save_missions(missions)
@@ -1087,6 +1180,18 @@ async def fill_slot(payload: FillSlotPayload, request: Request) -> dict:
     if registered.get("status") == "suspended":
         return JSONResponse({"error": "Agent suspended — contact admin"}, status_code=403)
 
+    # P4 slice 4: an entry Agreement is required ONLY where the contracts bind a commitment
+    # (slot fill in standard/constitutional mode). Open mode keeps working for callers by
+    # minting the WorkEntryAgreement atomically (pending->accepted->active, modeled).
+    from app.workentry_store import WorkEntryError, ProvenanceError, DuplicateEntryError
+    cred = None
+    try:
+        from app.principal import resolve_principal
+        cred = resolve_principal(request, state, allow_admin=True).ref
+    except Exception:  # noqa: BLE001 - credential naming is best-effort; authority was enforced above
+        cred = None
+    agreement: dict | None = None
+    fill_receipts: list[dict] = []
     async with state.slot_lock:
         slots = _load_slots()
         slot = next((s for s in slots if s["id"] == slot_id), None)
@@ -1094,12 +1199,50 @@ async def fill_slot(payload: FillSlotPayload, request: Request) -> dict:
             return JSONResponse({"error": "Slot not found"}, status_code=404)
         if slot["status"] != "open":
             return JSONResponse({"error": f"Slot already {slot['status']}"}, status_code=409)
-
-        slot["status"] = "filled"
-        slot["agent_id"] = agent_id
-        slot["agent_name"] = agent_name
-        slot["filled_at"] = datetime.now(UTC).isoformat()
-        _save_slots(slots)
+        mission = slot_binding.find_mission(slot.get("mission_id"))
+        mode = slot_binding.slot_mode(slot, mission)
+        if mode != "open":
+            return JSONResponse({
+                "error": f"This slot is {mode} mode: enter via agreement (POST /api/work-entry)",
+                "code": "enter_via_agreement", "entry_mode": mode,
+                "opportunity_ref": f"slot:{slot_id}", "enter": "/api/work-entry",
+            }, status_code=409)
+        try:
+            # Agreement FIRST (one commit) ...
+            mine = [a for a in slot_binding.live_for_slot(agent_id, slot_id)]
+            if mine and mine[0]["state"] == "accepted":
+                out = state.workentry.activate(mine[0]["agreement_id"], actor=agent_id, credential=cred)
+                agreement, fill_receipts = out["agreement"], [out["receipt"]]
+            elif mine:
+                return JSONResponse({"error": f"You already have an entry for this slot "
+                                              f"({mine[0]['state']})", "code": "duplicate_entry",
+                                     "agreement_id": mine[0]["agreement_id"]}, status_code=409)
+            else:
+                out = state.workentry.file_entry(
+                    entrant=agent_id, owner=slot_binding.mission_owner(mission),
+                    opportunity_ref=f"slot:{slot_id}", entry_mode="open",
+                    objects={"post_id": slot.get("post_id") or (mission or {}).get("post_id"),
+                             "mission_id": slot.get("mission_id"), "slot_id": slot_id},
+                    terms={"pitch": None, "delivery_evidence_class": "solution", "via": "slots/fill"},
+                    credential_refs={"entrant": cred}, auto_activate=True)
+                agreement, fill_receipts = out["agreement"], out["receipts"]
+        except DuplicateEntryError as e:
+            return JSONResponse({"error": e.message, "code": e.code,
+                                 "agreement_id": e.existing_agreement_id}, status_code=409)
+        except WorkEntryError as e:
+            body = {"error": e.message, "code": e.code}
+            if isinstance(e, ProvenanceError):
+                body["evidence_gap_id"] = e.gap_id
+            return JSONResponse(body, status_code=e.status)
+        # ... then the slot write; on failure: evidence_gap + compensating terminated.
+        try:
+            slot_binding.fill_slot_record(slot, agent_id=agent_id, agent_name=agent_name, agreement=agreement)
+            _save_slots(slots)
+        except Exception as exc:  # noqa: BLE001
+            err = slot_binding._compensate(agreement["agreement_id"], "slot_binding",
+                                           f"slot write failed: {type(exc).__name__}: {exc}",
+                                           500, "binding_failed")
+            return JSONResponse(err.body(), status_code=err.status)
 
     _audit_entry = state.audit.log("deploy", "slot_filled", {
         "slot_id": slot_id,
@@ -1116,6 +1259,7 @@ async def fill_slot(payload: FillSlotPayload, request: Request) -> dict:
         "agent_id": agent_id,
         "mission_id": slot["mission_id"],
         "role": slot["role"],
+        "agreement_id": agreement["agreement_id"],
     })
 
     try:
@@ -1151,6 +1295,12 @@ async def fill_slot(payload: FillSlotPayload, request: Request) -> dict:
         "governance_applied": slot["governance"],
         "role_assigned": slot["role"],
         "revenue_split": slot["revenue_split_pct"],
+        "agreement_id": agreement["agreement_id"],
+        "agreement_state": agreement["state"],
+        "receipt": fill_receipts[-1] if fill_receipts else None,
+        "receipts": fill_receipts,
+        "mission_id": slot["mission_id"],
+        "mission_control": slot_binding.mission_control_ref(slot["mission_id"]),
         "note": f"You are now governed under {slot['governance']['mode']} / {slot['governance']['posture']}. Role: {slot['role']}.",
     }
 
@@ -1169,22 +1319,72 @@ async def leave_slot(payload: LeaveSlotPayload, request: Request) -> dict:
         admin_key=state.admin_key,
         revoked_keys=state.runtime.revoked_keys,
     )
+    from app.workentry_store import WorkEntryError
+    cred = None
+    try:
+        from app.principal import resolve_principal
+        cred = resolve_principal(request, state, allow_admin=True).ref
+    except Exception:  # noqa: BLE001
+        cred = None
+    left_agreement: dict | None = None
     async with state.slot_lock:
         slots = _load_slots()
         slot = next((s for s in slots if s["id"] == slot_id), None)
         if not slot:
             return JSONResponse({"error": "Slot not found"}, status_code=404)
 
+        # P4 slice 4: an entry that is not (yet) the occupant -> withdrawn (pending) / terminated
+        # (accepted). The slot itself is untouched.
+        occupant = slot.get("agent_id")
+        mine = [a for a in slot_binding.live_for_slot(requesting_agent, slot_id)
+                if a["state"] != "active"] if occupant != requesting_agent else []
+        if mine:
+            ag = mine[0]
+            try:
+                if ag["state"] in ("pending", "dormant"):
+                    out = state.workentry.withdraw(ag["agreement_id"], actor=requesting_agent,
+                                                   reason="entrant left", credential=cred)
+                else:
+                    out = state.workentry.terminate(ag["agreement_id"], actor=requesting_agent,
+                                                    reason="entrant left", credential=cred)
+            except WorkEntryError as e:
+                return JSONResponse({"error": e.message, "code": e.code}, status_code=e.status)
+            if slot.get("status") == slot_binding.RESERVED and slot.get("agreement_id") == ag["agreement_id"]:
+                slot["status"] = "closed"
+                _save_slots(slots)
+            return {"vacated": False, "slot_id": slot_id, "agreement_id": ag["agreement_id"],
+                    "agreement_state": out["agreement"]["state"], "receipt": out["receipt"],
+                    "mission_id": slot.get("mission_id")}
+
         # Ownership check — only the occupying agent can leave
         if requesting_agent and slot.get("agent_id") and requesting_agent != slot["agent_id"]:
             return JSONResponse({"error": "Only the occupying agent can leave this slot"}, status_code=403)
 
         old_agent = slot["agent_name"]
-        slot["status"] = "open"
+        leaving_agreement_id = slot.get("agreement_id")
+        if leaving_agreement_id and occupant == requesting_agent:
+            # Agreement FIRST: the active entry is terminated by the entrant ...
+            try:
+                left_agreement = state.workentry.terminate(
+                    leaving_agreement_id, actor=requesting_agent, reason="occupant left the slot",
+                    credential=cred)
+            except WorkEntryError as e:
+                if e.status != 409:      # 409 = already terminal; the slot may still be vacated
+                    return JSONResponse({"error": e.message, "code": e.code}, status_code=e.status)
+        minted = slot.get("formation_id") == "post_entry"
+        slot["status"] = "closed" if minted else "open"
         slot["agent_id"] = None
         slot["agent_name"] = None
         slot["filled_at"] = None
-        _save_slots(slots)
+        slot["agreement_id"] = None
+        try:
+            _save_slots(slots)
+        except Exception as exc:  # noqa: BLE001
+            if leaving_agreement_id:
+                state.workentry.record_gap(leaving_agreement_id, attempted="leave", stage="slot_binding",
+                                           reason=f"slot write failed: {type(exc).__name__}: {exc}",
+                                           actor=requesting_agent, resolution="terminated_slot_unvacated")
+            raise
 
     _audit_entry = state.audit.log("deploy", "slot_vacated", {"slot_id": slot_id, "previous_agent": old_agent})
     await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
@@ -1207,7 +1407,12 @@ async def leave_slot(payload: LeaveSlotPayload, request: Request) -> dict:
         )
     except Exception:
         pass
-    return {"vacated": True, "slot_id": slot_id}
+    resp = {"vacated": True, "slot_id": slot_id}
+    if left_agreement:
+        resp.update({"agreement_id": left_agreement["agreement"]["agreement_id"],
+                     "agreement_state": left_agreement["agreement"]["state"],
+                     "receipt": left_agreement["receipt"], "mission_id": slot.get("mission_id")})
+    return resp
 
 
 @router.post("/api/slots/bounty")
@@ -1225,6 +1430,8 @@ async def post_bounty(payload: PostBountyPayload, request: Request) -> dict:
         revoked_keys=state.runtime.revoked_keys,
     )
     owner_agent_id = str(claimed.get("agent_id") or "") if claimed else None
+    b_mode, b_post, b_agreement = _resolve_refs(
+        payload.entry_mode, payload.post_id, payload.agreement_id, owner_agent_id)
     agent_name = payload.agent_name or agent_id
     label = payload.label or f"BOUNTY-{_secrets_mod.token_hex(3).upper()}"
     description = payload.description
@@ -1254,6 +1461,9 @@ async def post_bounty(payload: PostBountyPayload, request: Request) -> dict:
         "created_at": datetime.now(UTC).isoformat(),
         "metrics": {"messages": 0, "governance_checks": 0, "violations": 0, "revenue": 0},
         "bounty_description": description,
+        "entry_mode": b_mode,
+        "post_id": b_post,
+        "agreement_id": None,      # the posting agent owns the mission; it enters nothing
     }
     new_slots.append(primary_slot)
     slots.append(primary_slot)
@@ -1278,6 +1488,9 @@ async def post_bounty(payload: PostBountyPayload, request: Request) -> dict:
             "created_at": datetime.now(UTC).isoformat(),
             "metrics": {"messages": 0, "governance_checks": 0, "violations": 0, "revenue": 0},
             "bounty_description": description,
+            "entry_mode": b_mode,
+            "post_id": b_post,
+            "agreement_id": b_agreement,
         }
         new_slots.append(open_slot)
         slots.append(open_slot)
@@ -1311,6 +1524,9 @@ async def post_bounty(payload: PostBountyPayload, request: Request) -> dict:
         "results": [],
         "channel": f"bounty-{mission_id}",
         "slot_ids": [s["id"] for s in new_slots],
+        "entry_mode": b_mode,
+        "post_id": b_post,
+        "agreement_id": b_agreement,
         **_owner_fields(owner_agent_id),
     })
     _save_missions(missions)

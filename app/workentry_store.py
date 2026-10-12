@@ -384,6 +384,7 @@ class WorkEntryStore:
             "opportunity_ref": row["opportunity_ref"],
             "terms": json.loads(row["terms_json"]),
             "governance": json.loads(row["governance_json"]),
+            "entry_mode": row["entry_mode"],
             "state": row["state"],
             "state_history": self._history(row["agreement_id"]),
             "outcome_reason": row["outcome_reason"],
@@ -444,7 +445,7 @@ class WorkEntryStore:
 
     def _step(self, row_or_id: Any, name: str, *, actor: str, acting_for: str | None = None,
               reason: str | None = None, key: str, new_agreement: dict | None = None,
-              seq: int, credential: str | None = None) -> dict:
+              seq: int, credential: str | None = None, gap_note: dict | None = None) -> dict:
         """Apply one transition inside the current transaction; returns the receipt dict.
 
         When new_agreement is given the row is inserted here (the 'create' step).
@@ -494,6 +495,16 @@ class WorkEntryStore:
                  "committed_with_gap", now))
             if failure.stage == "seed":
                 seed_doi = None
+        if gap_note is not None:
+            # A compensating transition names the failure that forced it (slice 4):
+            # the explicit evidence_gap row is linked from the receipt.
+            note_id = f"gap-{uuid.uuid4().hex[:12]}"
+            self._conn.execute(
+                "INSERT INTO evidence_gaps (gap_id, agreement_id, receipt_id, attempted_transition, stage,"
+                " reason, actor, idempotency_key, resolution, at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (note_id, aid, receipt_id, gap_note.get("attempted", name), gap_note.get("stage", "binding"),
+                 gap_note.get("reason", ""), actor, key, gap_note.get("resolution", "compensated_terminated"), now))
+            gap_id = gap_id or note_id
 
         if creating:
             a = new_agreement
@@ -539,12 +550,18 @@ class WorkEntryStore:
         objects: dict | None = None, terms: dict | None = None,
         credential_refs: dict | None = None, posture: str = "",
         idempotency_key: str | None = None, supersedes: str | None = None,
+        auto_activate: bool = False,
     ) -> dict:
         """Create an Agreement (intent) and file it (-> pending).
 
         open mode: pending is crossed and resolved atomically to ``accepted``
         (the object is never skipped; activation is the entrant's second step).
+        ``auto_activate`` (open mode only; slice 4 /api/slots/fill) adds the
+        entrant's activate in the SAME commit: pending->accepted->active, each
+        step modeled with its own history row, receipt and Seed.
         """
+        if auto_activate and entry_mode != "open":
+            raise WorkEntryError("auto_activate is only valid in open mode")
         if entry_mode not in ENTRY_MODES:
             raise WorkEntryError(f"entry_mode must be one of {list(ENTRY_MODES)}; got {entry_mode!r}")
         for field, val in (("entrant", entrant), ("owner", owner), ("opportunity_ref", opportunity_ref)):
@@ -615,6 +632,9 @@ class WorkEntryStore:
                                        credential=creds.get("entrant")))
             if entry_mode == "open":
                 receipts.append(self._step(aid, "resolve_open", actor="system", key=key, seq=3))
+                if auto_activate:
+                    receipts.append(self._step(aid, "activate", actor=entrant, key=key, seq=4,
+                                               credential=creds.get("entrant")))
             if supersedes:
                 self._conn.execute("UPDATE agreements SET superseded_by=? WHERE agreement_id=?", (aid, supersedes))
             return {"agreement": self._agreement(self._row(aid)), "receipts": receipts, "replayed": False}
@@ -688,6 +708,58 @@ class WorkEntryStore:
     def revive(self, agreement_id, *, actor, acting_for=None, idempotency_key=None, credential=None):
         return self._transition(agreement_id, "revive", actor=actor, acting_for=acting_for,
                                 idempotency_key=idempotency_key, credential=credential)
+
+    # ── slot / mission binding (slice 4) ────────────────────────────────
+
+    def bind_objects(self, agreement_id: str, **objects: Any) -> dict:
+        """Set object refs (mission_id / slot_id / ...) on a NON-terminal agreement.
+
+        Not a state transition (no receipt); the change is audited. Terminal
+        agreements stay immutable (SQLite trigger + this check).
+        """
+        with self._lock:
+            row = self._row(agreement_id)
+            if row["state"] in TERMINAL_STATES:
+                raise InvalidTransition(
+                    f"cannot bind objects on agreement {agreement_id}: state is "
+                    f"'{row['state']}' (terminal and immutable)")
+            cur = json.loads(row["objects_json"] or "{}")
+            cur.update({k: v for k, v in objects.items() if v is not None})
+            self._conn.execute("UPDATE agreements SET objects_json=? WHERE agreement_id=?",
+                               (self._j(cur), agreement_id))
+            if self._audit_fn is not None:
+                try:
+                    self._audit_fn("workentry", "agreement_bind_objects",
+                                   {"agreement_id": agreement_id, "objects": objects, "agent": "system"})
+                except Exception:  # noqa: BLE001 - the transition receipts carry the provenance
+                    pass
+            return self._agreement(self._row(agreement_id))
+
+    def compensate(self, agreement_id: str, *, stage: str, reason: str,
+                   actor: str = "system") -> dict:
+        """Compensating ``terminated`` after a failed slot/mission write (H2: no orphans).
+
+        Writes an explicit evidence_gap linked from the terminate receipt. Provenance
+        failure inside the compensation itself commits with a gap rather than rolling
+        back, because leaving the orphan active agreement is the worse outcome.
+        """
+        key = f"compensate-{uuid.uuid4().hex}"
+
+        def run() -> dict:
+            row = self._row(agreement_id)
+            if row["state"] not in TRANSITIONS["terminate"]["from"]:
+                return {"agreement": self._agreement(row), "receipt": None, "replayed": True}
+            rc = self._step(agreement_id, "terminate", actor=actor, reason=f"compensating: {reason}",
+                            key=key, seq=self._next_seq(agreement_id),
+                            gap_note={"attempted": "bind", "stage": stage, "reason": reason})
+            return {"agreement": self._agreement(self._row(agreement_id)), "receipt": rc, "replayed": False}
+
+        with self._lock:
+            prior, self._policy = self._policy, "evidence_gap"
+            try:
+                return self._txn(run)
+            finally:
+                self._policy = prior
 
     # ── dormancy (no auto-expiry) ───────────────────────────────────────
 
@@ -767,6 +839,27 @@ class WorkEntryStore:
               + " ORDER BY created_at, agreement_id"
         with self._lock:
             return [self._agreement(r) for r in self._conn.execute(sql, args).fetchall()]
+
+    def list_by_object(self, key: str, value: str) -> list[dict]:
+        """Agreements whose ``objects[key] == value`` (e.g. mission_id / slot_id)."""
+        if key not in ("post_id", "mission_id", "slot_id"):
+            raise ValueError("unsupported object key")
+        with self._lock:
+            rows = self._conn.execute(
+                f"SELECT * FROM agreements WHERE json_extract(objects_json, '$.{key}')=?"
+                " ORDER BY created_at, agreement_id", (value,)).fetchall()
+            return [self._agreement(r) for r in rows]
+
+    def record_gap(self, agreement_id: str, *, attempted: str, stage: str, reason: str,
+                   actor: str = "system", resolution: str = "recorded") -> str:
+        """Append an explicit evidence_gap (never silent) for a failure outside a transition."""
+        gap_id = f"gap-{uuid.uuid4().hex[:12]}"
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO evidence_gaps (gap_id, agreement_id, receipt_id, attempted_transition, stage,"
+                " reason, actor, idempotency_key, resolution, at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (gap_id, agreement_id, None, attempted, stage, reason, actor, None, resolution, self._now()))
+        return gap_id
 
     def list_live(self, **filters: Any) -> list[dict]:
         """Non-terminal and not dormant (dormant entries are hidden, not removed)."""
