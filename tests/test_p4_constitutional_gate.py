@@ -184,8 +184,10 @@ def test_quorum_is_half_of_eligible(client, clock):
     g = _sync(client, owner, aid).json()["gates"][0]
     assert g["quorum_met"] is False and g["result"] == "failed" and g["eligible"] == 3
     assert g["quorum_required"] == 2
-    # exactly half rounded up passes
+    # exactly half rounded up passes (votes are cast inside the window, then the window elapses)
+    clock["offset"] = timedelta(0)
     o2, e2, aid2, mid2, mo2 = _setup_gate(client, votes=("yea", "yea", None))
+    clock["offset"] = timedelta(hours=25)
     g2 = _sync(client, o2, aid2).json()["gates"][0]
     assert g2["quorum_met"] is True and g2["result"] == "passed"
 

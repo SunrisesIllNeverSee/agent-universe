@@ -338,6 +338,11 @@ async def cast_vote(meeting_id: str, payload: CastVotePayload, request: Request)
         return JSONResponse({"error": "Motion not found"}, status_code=404)
     if motion["status"] != "pending":
         return JSONResponse({"error": "Motion is not pending"}, status_code=409)
+    if motion.get("kind") == GATE_KIND and motion.get("closes_at"):
+        # GOV-005 window: a typed gate motion takes no votes at or after closes_at
+        if state.workentry.now_dt() >= datetime.fromisoformat(motion["closes_at"]):
+            return JSONResponse({"error": "Voting window for this motion has closed", "code": "gate_window_closed"},
+                                status_code=409)
     motion["votes"][voter] = vote
     meeting["minutes"].append({
         "type": "vote_cast", "motion_id": motion_id,

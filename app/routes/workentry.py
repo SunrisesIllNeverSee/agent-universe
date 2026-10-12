@@ -69,6 +69,12 @@ class FileEntryPayload(BaseModel):
     entry_mode: str | None = None         # may only escalate the opportunity's own mode
     idempotency_key: str | None = None
     supersedes: str | None = None
+    # Entity / Node hooks (slice 10): nullable, open, never validated against stores that do not exist yet
+    objects: dict[str, Any] = Field(default_factory=dict)   # extra object refs (node_id, entity_id, ...)
+    participation_ref: str | None = None
+    agreement_class: str | None = None
+    class_version: int | None = None
+    principal_types: dict[str, str] | None = None
 
 
 class ActionPayload(BaseModel):
@@ -354,8 +360,10 @@ async def svc_file_entry(p: Principal, payload: FileEntryPayload, key: str | Non
     try:
         out = _store().file_entry(
             entrant=entrant, owner=opp["owner"], opportunity_ref=opp["ref"], entry_mode=mode,
-            objects=opp["objects"], terms=terms, credential_refs={"entrant": p.ref},
-            idempotency_key=key, supersedes=payload.supersedes)
+            objects={**payload.objects, **opp["objects"]}, terms=terms, credential_refs={"entrant": p.ref},
+            idempotency_key=key, supersedes=payload.supersedes,
+            principal_types=payload.principal_types, participation_ref=payload.participation_ref,
+            agreement_class=payload.agreement_class, class_version=payload.class_version)
     except WorkEntryError as e:
         return _err(e)
     a = out["agreement"]

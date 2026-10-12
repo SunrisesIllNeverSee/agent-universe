@@ -65,6 +65,27 @@ TRANSITIONS: dict[str, dict[str, Any]] = {
     "complete":     {"from": {"active"},                       "to": "completed", "by": "party"},
     "terminate":    {"from": {"accepted", "active"},           "to": "terminated", "by": "party"},
 }
+# Entity / Node hooks (slice 10). All nullable, additive and open: unknown keys / values are stored as given.
+OBJECT_HOOKS = ("formation_id", "node_id", "entity_id", "relation_id", "economic_terms_id",
+                "domain_id", "contribution_id", "escrow_id", "task_id")
+SEED_HOOKS = ("node_id", "entity_id", "formation_id")
+KNOWN_PRINCIPAL_TYPES = ("agent", "person", "operator", "poster_link", "platform", "entity", "node_actor")
+
+
+def derive_principal_type(ident: str | None, credential_ref: str | None = None) -> str:
+    """Default principal_type from the credential / actor kind (the field itself is open)."""
+    cred, who = credential_ref or "", ident or ""
+    if cred.startswith("poster-link:") or who.startswith("poster-link:"):
+        return "poster_link"
+    if cred.startswith("operator#") or who.startswith("operator"):
+        return "operator"
+    if who.startswith("poster:"):
+        return "person"
+    if who in ("system", "platform") or who.startswith("platform"):
+        return "platform"
+    return "agent"
+
+
 # actors that speak FOR a named principal (operator; email-only poster magic link)
 _DELEGATE_PREFIXES = ("operator:", "poster-link:")
 _REASON_REQUIRED = {"reject"}  # F11: rejection carries a named reason
@@ -187,7 +208,8 @@ CREATE TABLE IF NOT EXISTS agreements (
     last_seed_doi    TEXT,
     created_at       TEXT NOT NULL,
     updated_at       TEXT NOT NULL,
-    last_activity_at TEXT NOT NULL
+    last_activity_at TEXT NOT NULL,
+    participation_ref TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_agr_entrant ON agreements(entrant_id);
 CREATE INDEX IF NOT EXISTS idx_agr_owner ON agreements(owner_id);
@@ -391,6 +413,9 @@ class WorkEntryStore:
             cols = {r[1] for r in self._conn.execute(f"PRAGMA table_info({table})").fetchall()}
             if "credential_ref" not in cols:
                 self._conn.execute(f"ALTER TABLE {table} ADD COLUMN credential_ref TEXT")
+        acols = {r[1] for r in self._conn.execute("PRAGMA table_info(agreements)").fetchall()}
+        if "participation_ref" not in acols:   # slice 10: nullable parent link to the Participation agreement
+            self._conn.execute("ALTER TABLE agreements ADD COLUMN participation_ref TEXT")
 
     def close(self) -> None:
         self._conn.close()
@@ -463,8 +488,9 @@ class WorkEntryStore:
             "agreement_id": row["agreement_id"],
             "agreement_class": row["agreement_class"],
             "class_version": row["class_version"],
-            "principals": json.loads(row["principals_json"]),
-            "objects": json.loads(row["objects_json"]),
+            "principals": self._typed_principals(json.loads(row["principals_json"])),
+            "objects": {**dict.fromkeys(OBJECT_HOOKS), **json.loads(row["objects_json"])},
+            "participation_ref": row["participation_ref"],
             "opportunity_ref": row["opportunity_ref"],
             "terms": json.loads(row["terms_json"]),
             "governance": json.loads(row["governance_json"]),
@@ -482,8 +508,23 @@ class WorkEntryStore:
         }
 
     @staticmethod
-    def _receipt(r: sqlite3.Row) -> dict:
+    def _typed_principals(principals: list[dict]) -> list[dict]:
+        """Lazy backfill: derive principal_type for rows stored before slice 10 (read-only; never written)."""
+        out = []
+        for p in principals:
+            if isinstance(p, dict) and not p.get("principal_type"):
+                p = {**p, "principal_type": derive_principal_type(p.get("id"), p.get("credential_ref"))}
+            out.append(p)
+        return out
+
+    def _receipt(self, r: sqlite3.Row) -> dict:
+        obj_row = self._conn.execute("SELECT objects_json FROM agreements WHERE agreement_id=?",
+                                     (r["agreement_id"],)).fetchone()
+        objs = json.loads(obj_row[0]) if obj_row else {}
         return {
+            "actor_type": derive_principal_type(r["actor"], r["credential_ref"]),
+            "acting_for_type": derive_principal_type(r["acting_for"]) if r["acting_for"] else None,
+            "economic_terms_id": objs.get("economic_terms_id"), "escrow_id": objs.get("escrow_id"),
             "receipt_id": r["receipt_id"], "agreement_id": r["agreement_id"],
             "transition": r["transition"], "from": r["from_state"], "to": r["to_state"],
             "actor": r["actor"], "acting_for": r["acting_for"], "at": r["at"],
@@ -542,6 +583,17 @@ class WorkEntryStore:
         now = self._now()
         receipt_id = f"rcpt-{uuid.uuid4().hex[:16]}"
         last_seed = None if creating else self._row(aid)["last_seed_doi"]
+        if creating:
+            cur_objects, cur_class = new_agreement["objects"], new_agreement.get("agreement_class") or AGREEMENT_CLASS
+        else:
+            _r = self._row(aid)
+            cur_objects, cur_class = json.loads(_r["objects_json"] or "{}"), _r["agreement_class"]
+        seed_meta = {"transition": name, "from": from_state, "to": to_state,
+                     "receipt_id": receipt_id, "acting_for": acting_for or "",
+                     "reason": reason or "", "agreement_class": cur_class,
+                     # the genesis Seed is the Agreement's own origin, NOT a Node Root Seed (1D s5.4)
+                     "kind": "work_entry_genesis" if creating else "work_entry_transition",
+                     **{k: cur_objects[k] for k in SEED_HOOKS if cur_objects.get(k)}}
 
         seed_doi: str | None = None
         audit_hash: str | None = None
@@ -551,9 +603,7 @@ class WorkEntryStore:
             seed = self._seed_fn(
                 source_type=SEED_SOURCE_TYPE, source_id=aid, creator_id=actor, creator_type="AAI",
                 seed_type="planted" if creating else "grown", parent_doi=last_seed,
-                metadata={"transition": name, "from": from_state, "to": to_state,
-                          "receipt_id": receipt_id, "acting_for": acting_for or "",
-                          "reason": reason or "", "agreement_class": AGREEMENT_CLASS})
+                metadata=seed_meta)
             seed_doi = (seed or {}).get("doi")
             if not seed_doi:
                 raise RuntimeError("seed writer returned no doi")
@@ -596,13 +646,13 @@ class WorkEntryStore:
                 "INSERT INTO agreements (agreement_id, agreement_class, class_version, entrant_id, owner_id,"
                 " principals_json, objects_json, opportunity_ref, terms_json, governance_json, entry_mode,"
                 " state, outcome_reason, idempotency_key, supersedes, superseded_by, genesis_seed_doi,"
-                " last_seed_doi, created_at, updated_at, last_activity_at)"
-                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (aid, AGREEMENT_CLASS, CLASS_VERSION, a["entrant"], a["owner"],
+                " last_seed_doi, created_at, updated_at, last_activity_at, participation_ref)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (aid, cur_class, a.get("class_version") or CLASS_VERSION, a["entrant"], a["owner"],
                  self._j(a["principals"]), self._j(a["objects"]), a["opportunity_ref"],
                  self._j(a["terms"]), self._j(a["governance"]), a["entry_mode"], to_state, None,
                  key if a.get("key_supplied") else None, a.get("supersedes"), None, seed_doi, seed_doi,
-                 now, now, now))
+                 now, now, now, a.get("participation_ref")))
         else:
             outcome = reason if name in ("reject", "terminate", "retire", "withdraw") and reason else None
             self._conn.execute(
@@ -635,6 +685,8 @@ class WorkEntryStore:
         credential_refs: dict | None = None, posture: str = "",
         idempotency_key: str | None = None, supersedes: str | None = None,
         auto_activate: bool = False,
+        principal_types: dict | None = None, participation_ref: str | None = None,
+        agreement_class: str | None = None, class_version: int | None = None,
     ) -> dict:
         """Create an Agreement (intent) and file it (-> pending).
 
@@ -652,7 +704,9 @@ class WorkEntryStore:
             if not isinstance(val, str) or not val.strip():
                 raise WorkEntryError(f"{field} is required")
         terms = dict(terms or {})
-        objects = {"post_id": None, "mission_id": None, "slot_id": None, **(objects or {})}
+        objects = {"post_id": None, "mission_id": None, "slot_id": None, **dict.fromkeys(OBJECT_HOOKS),
+                   **(objects or {})}
+        ptypes = principal_types or {}
         creds = credential_refs or {}
         key_supplied = bool(idempotency_key)
         key = idempotency_key or f"auto-{uuid.uuid4().hex}"
@@ -697,8 +751,13 @@ class WorkEntryStore:
             envelope = {
                 "agreement_id": aid, "entrant": entrant, "owner": owner,
                 "principals": [
-                    {"role": "entrant", "id": entrant, "credential_ref": creds.get("entrant")},
-                    {"role": "owner", "id": owner, "credential_ref": creds.get("owner")}],
+                    {"role": "entrant", "id": entrant, "credential_ref": creds.get("entrant"),
+                     "principal_type": ptypes.get("entrant") or derive_principal_type(entrant, creds.get("entrant"))},
+                    {"role": "owner", "id": owner, "credential_ref": creds.get("owner"),
+                     "principal_type": ptypes.get("owner") or derive_principal_type(owner, creds.get("owner"))}],
+                "participation_ref": participation_ref,
+                "agreement_class": agreement_class or AGREEMENT_CLASS,
+                "class_version": class_version or CLASS_VERSION,
                 "objects": objects, "opportunity_ref": opportunity_ref,
                 "terms": {"pitch": terms.get("pitch"), "acceptance_payload": terms.get("acceptance_payload"),
                           "delivery_evidence_class": terms.get("delivery_evidence_class"),

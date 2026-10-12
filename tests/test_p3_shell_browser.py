@@ -16,6 +16,7 @@ from pathlib import Path
 
 import httpx
 import pytest
+from urllib.parse import urlparse
 
 sync_api = pytest.importorskip("playwright.sync_api")
 
@@ -175,6 +176,11 @@ def test_gear_opens_console(live_url, browser):
     page = ctx.new_page()
     page.goto(live_url + "/shell")
     _wait_frame(page, "/portal")
-    page.click("#util-console")
-    _wait_frame(page, "/console")
+    # /console is operator-only: for an unauthenticated visitor its own script redirects the frame to
+    # /dashboard?next=/console. Waiting for the frame to *rest* on /console therefore raced that redirect
+    # (passed only if polled before it fired). The gear's contract is that the shell requests /console in
+    # the hosted frame, so assert exactly that, deterministically.
+    with page.expect_request(lambda r: urlparse(r.url).path == "/console"
+                             and r.resource_type == "document" and r.frame.parent_frame is not None):
+        page.click("#util-console")
     ctx.close()

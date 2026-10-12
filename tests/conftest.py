@@ -24,6 +24,10 @@ os.environ.setdefault("CIVITAE_DEV_MODE", "1")
 os.environ.pop("RAILWAY_ENVIRONMENT", None)  # ensure dev mode kicks in
 
 
+# scratch debug file kept on disk (never delete); not collected as a test module
+collect_ignore = ["zz_dbg_test.py", "zz_dbg2_test.py"]
+
+
 @pytest.fixture(scope="session")
 def tmp_root(tmp_path_factory) -> Path:
     """Temporary root directory mimicking production layout."""

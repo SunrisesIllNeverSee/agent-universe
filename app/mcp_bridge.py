@@ -1543,6 +1543,9 @@ class MCPBridge:
             pitch: Annotated[str, Field(description="Why you / what you will deliver. Max 4000 chars.")] = "",
             delivery_evidence_class: Annotated[str, Field(description="1/solution, 2/solution_proof or 3/solution_proof_work_access. Empty = solution.")] = "",
             idempotency_key: Annotated[str, Field(description="Optional: replaying the same key returns the same entry.")] = "",
+            objects: Annotated[dict | None, Field(description="Optional open object refs (node_id, entity_id, formation_id, economic_terms_id, ...). Stored as given; never required.")] = None,
+            participation_ref: Annotated[str, Field(description="Optional reference to your participation record (not an Agreement).")] = "",
+            agreement_class: Annotated[str, Field(description="Optional agreement class string (open; default work entry).")] = "",
         ) -> _EntryResult:
             """File an entry intent (an Agreement in 'pending', or 'accepted' in open mode) against a post, slot or mission. Same rules, receipts and Seeds as POST /api/work-entry. Stake never auto-converts to entry."""
             principal = _entry_principal(api_key)
@@ -1552,7 +1555,9 @@ class MCPBridge:
                 payload = _we.FileEntryPayload(
                     opportunity_ref=opportunity_ref, pitch=pitch,
                     delivery_evidence_class=delivery_evidence_class or None,
-                    idempotency_key=idempotency_key or None)
+                    idempotency_key=idempotency_key or None,
+                    objects=objects or {}, participation_ref=participation_ref or None,
+                    agreement_class=agreement_class or None)
                 res = await _we.svc_file_entry(principal, payload, idempotency_key or None)
             except _HTTPException as exc:
                 return _entry_error("file", principal.agent_id, exc)

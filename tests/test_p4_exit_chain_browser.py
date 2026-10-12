@@ -67,9 +67,10 @@ def live(tmp_path_factory):
         proc.terminate()
         pytest.fail("server did not start")
     lv = Live(url, admin)
-    # the async window is owner-configurable; 0 lets the real motion close without waiting a day
+    # the async window is owner-configurable; a few seconds lets the real motion close without waiting a
+    # day (slice 10: votes at/after closes_at are refused, so 0 no longer admits any vote)
     r = httpx.post(url + "/api/work-entry/gate/settings", headers={"X-Admin-Key": admin},
-                   json={"gate_window_hours": 0}, timeout=10)
+                   json={"gate_window_hours": 0.0015}, timeout=10)
     assert r.status_code == 200, r.text
     yield lv
     proc.terminate()
@@ -272,6 +273,9 @@ def gate_through_governance(live, owner, ent, aid):
         v = api(live, who, "POST", f"/api/governance/meeting/{meet}/vote",
                 json={"voter": who["id"], "motion_id": mo.json()["id"], "vote": "yea"})
         assert v.status_code == 200, v.text
+    from datetime import datetime, UTC
+    wait = (datetime.fromisoformat(mo.json()["closes_at"]) - datetime.now(UTC)).total_seconds()
+    time.sleep(max(0.0, wait) + 0.3)   # the window must elapse before the motion resolves
     g = api(live, owner, "POST", f"/api/work-entry/{aid}/gate/sync").json()
     assert g["gates"][0]["result"] == "passed"
     # a passed motion alone does not bind while the body is advisory
