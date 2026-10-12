@@ -284,7 +284,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         ],
         allow_credentials=False,
         allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization", "X-Admin-Key", "X-API-Key"],
+        allow_headers=["Content-Type", "Authorization", "X-Admin-Key", "X-API-Key", "X-Magic-Token", "Idempotency-Key"],
     )
 
     # ── Admin key guard — protects all write endpoints ───────────────
@@ -301,6 +301,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/provision/heartbeat",
         "/api/slots/fill",
         "/api/slots/leave",
+        "/api/work-entry",  # P4 slice 3: authorized in-handler (one principal resolver)
         "/api/inbox/apply",
         "/api/metrics/",
         "/api/kassa/contact",
@@ -482,6 +483,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     from .routes.boost import router as boost_router
     from app.routes.indexnow import router as indexnow_router
     from app.routes.principal import router as principal_router
+    from app.routes.workentry import router as workentry_router
 
     app.include_router(pages_router)
     app.include_router(core_router)
@@ -503,6 +505,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     app.include_router(boost_router)
     app.include_router(indexnow_router)
     app.include_router(principal_router)
+    app.include_router(workentry_router)
 
     from app.routes.advisory import router as advisory_router
     app.include_router(advisory_router)

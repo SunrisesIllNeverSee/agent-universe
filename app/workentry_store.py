@@ -57,6 +57,8 @@ TRANSITIONS: dict[str, dict[str, Any]] = {
     "complete":     {"from": {"active"},                       "to": "completed", "by": "party"},
     "terminate":    {"from": {"accepted", "active"},           "to": "terminated", "by": "party"},
 }
+# actors that speak FOR a named principal (operator; email-only poster magic link)
+_DELEGATE_PREFIXES = ("operator:", "poster-link:")
 _REASON_REQUIRED = {"reject"}  # F11: rejection carries a named reason
 
 
@@ -225,6 +227,16 @@ CREATE TABLE IF NOT EXISTS evidence_gaps (
     at                   TEXT NOT NULL
 );
 
+-- Non-authoritative marks (e.g. the 48 h "ask the poster" prompt was sent for
+-- a given activity stamp). Not part of the agreement record.
+CREATE TABLE IF NOT EXISTS agreement_flags (
+    agreement_id TEXT NOT NULL,
+    flag         TEXT NOT NULL,
+    mark         TEXT NOT NULL,
+    at           TEXT NOT NULL,
+    PRIMARY KEY (agreement_id, flag)
+);
+
 -- Archive guarantees: nothing is ever deleted; history/receipts/gaps are
 -- append-only; terminal agreements are immutable (only the one-time
 -- superseded_by back-link may be set, per K9 re-entry).
@@ -287,6 +299,14 @@ class WorkEntryStore:
             logging.getLogger("civitae").warning(
                 "SQLite WAL mode failed for %s (got %s).", db_path, result[0])
         self._conn.executescript(_SCHEMA)
+        self._migrate()
+
+    def _migrate(self) -> None:
+        """Additive, guarded column adds (slice 3): receipts name the credential type."""
+        for table in ("agreement_history", "receipts"):
+            cols = {r[1] for r in self._conn.execute(f"PRAGMA table_info({table})").fetchall()}
+            if "credential_ref" not in cols:
+                self._conn.execute(f"ALTER TABLE {table} ADD COLUMN credential_ref TEXT")
 
     def close(self) -> None:
         self._conn.close()
@@ -347,6 +367,8 @@ class WorkEntryStore:
                     "receipt_id": h["receipt_id"]}
             if h["acting_for"]:
                 item["acting_for"] = h["acting_for"]
+            if h["credential_ref"]:
+                item["credential_ref"] = h["credential_ref"]
             if h["reason"]:
                 item["reason"] = h["reason"]
             out.append(item)
@@ -383,6 +405,7 @@ class WorkEntryStore:
             "seed_doi": r["seed_doi"], "audit_hash": r["audit_hash"],
             "idempotency_key": r["idempotency_key"], "reason": r["reason"],
             "evidence_gap_id": r["evidence_gap_id"],
+            "credential_ref": r["credential_ref"],
         }
 
     # ── authority (F3 / 1G): actor-level checks only; credential resolution is slice 2 ──
@@ -390,7 +413,7 @@ class WorkEntryStore:
     @staticmethod
     def _effective_principal(actor: str, acting_for: str | None) -> str | None:
         """The principal an actor speaks as. An operator acts only FOR a named principal."""
-        if actor.startswith("operator:"):
+        if actor.startswith(_DELEGATE_PREFIXES):
             return acting_for or None
         return actor
 
@@ -407,9 +430,9 @@ class WorkEntryStore:
             raise AuthorityError(f"'{name}' requires a party; 'system' may not perform it")
         who = self._effective_principal(actor, acting_for)
         if who is None:
-            raise AuthorityError(f"operator '{actor}' must name the principal it acts for (acting_for)")
-        if actor.startswith("operator:") is False and acting_for and acting_for != actor:
-            raise AuthorityError("acting_for is only valid for operator actors")
+            raise AuthorityError(f"delegate '{actor}' must name the principal it acts for (acting_for)")
+        if not actor.startswith(_DELEGATE_PREFIXES) and acting_for and acting_for != actor:
+            raise AuthorityError("acting_for is only valid for operator / poster-link actors")
         allowed = {"entrant": {entrant}, "owner": {owner}, "party": {entrant, owner},
                    "entrant_or_system": {entrant}}[by]
         if who not in allowed:
@@ -421,7 +444,7 @@ class WorkEntryStore:
 
     def _step(self, row_or_id: Any, name: str, *, actor: str, acting_for: str | None = None,
               reason: str | None = None, key: str, new_agreement: dict | None = None,
-              seq: int) -> dict:
+              seq: int, credential: str | None = None) -> dict:
         """Apply one transition inside the current transaction; returns the receipt dict.
 
         When new_agreement is given the row is inserted here (the 'create' step).
@@ -457,7 +480,7 @@ class WorkEntryStore:
                     "workentry", f"agreement_{name}",
                     {"agreement_id": aid, "transition": name, "from": from_state, "to": to_state,
                      "actor": actor, "acting_for": acting_for, "receipt_id": receipt_id,
-                     "seed_doi": seed_doi, "agent": actor})
+                     "seed_doi": seed_doi, "agent": actor, "credential_ref": credential})
             except Exception as exc:  # noqa: BLE001
                 failure = _ProvenanceFailure("audit", f"{type(exc).__name__}: {exc}", name, aid, actor, key)
         if failure is not None:
@@ -493,14 +516,15 @@ class WorkEntryStore:
                 (to_state, seed_doi, outcome, now, now, aid))
         self._conn.execute(
             "INSERT INTO agreement_history (agreement_id, seq, transition, from_state, to_state, actor,"
-            " acting_for, at, seed_doi, receipt_id, reason) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-            (aid, seq, name, from_state, to_state, actor, acting_for, now, seed_doi, receipt_id, reason))
+            " acting_for, at, seed_doi, receipt_id, reason, credential_ref) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (aid, seq, name, from_state, to_state, actor, acting_for, now, seed_doi, receipt_id, reason,
+             credential))
         self._conn.execute(
             "INSERT INTO receipts (receipt_id, agreement_id, seq, transition, from_state, to_state, actor,"
-            " acting_for, at, seed_doi, audit_hash, idempotency_key, reason, evidence_gap_id)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            " acting_for, at, seed_doi, audit_hash, idempotency_key, reason, evidence_gap_id, credential_ref)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (receipt_id, aid, seq, name, from_state, to_state, actor, acting_for, now, seed_doi,
-             audit_hash, key, reason, gap_id))
+             audit_hash, key, reason, gap_id, credential))
         return self._receipt(self._conn.execute("SELECT * FROM receipts WHERE receipt_id=?", (receipt_id,)).fetchone())
 
     def _next_seq(self, aid: str) -> int:
@@ -585,8 +609,10 @@ class WorkEntryStore:
                 "governance": {"mode": entry_mode, "posture": posture, "resolution_mode": resolution},
                 "entry_mode": entry_mode, "supersedes": supersedes, "key_supplied": key_supplied,
             }
-            receipts = [self._step(None, "create", actor=entrant, key=key, new_agreement=envelope, seq=1)]
-            receipts.append(self._step(aid, "file", actor=entrant, key=key, seq=2))
+            receipts = [self._step(None, "create", actor=entrant, key=key, new_agreement=envelope, seq=1,
+                                   credential=creds.get("entrant"))]
+            receipts.append(self._step(aid, "file", actor=entrant, key=key, seq=2,
+                                       credential=creds.get("entrant")))
             if entry_mode == "open":
                 receipts.append(self._step(aid, "resolve_open", actor="system", key=key, seq=3))
             if supersedes:
@@ -598,7 +624,8 @@ class WorkEntryStore:
     # ── transitions ─────────────────────────────────────────────────────
 
     def _transition(self, agreement_id: str, name: str, *, actor: str, acting_for: str | None = None,
-                    reason: str | None = None, idempotency_key: str | None = None) -> dict:
+                    reason: str | None = None, idempotency_key: str | None = None,
+                    credential: str | None = None) -> dict:
         if name in _REASON_REQUIRED and not (reason and reason.strip()):
             raise WorkEntryError(f"'{name}' requires a named reason")
         key = idempotency_key or f"auto-{uuid.uuid4().hex}"
@@ -625,52 +652,53 @@ class WorkEntryStore:
                     f"'{name}' requires {sorted(spec['from'])}")
             self._check_authority(row, name, actor, acting_for)
             receipt = self._step(agreement_id, name, actor=actor, acting_for=acting_for, reason=reason,
-                                 key=key, seq=self._next_seq(agreement_id))
+                                 key=key, seq=self._next_seq(agreement_id), credential=credential)
             return {"agreement": self._agreement(self._row(agreement_id)), "receipt": receipt, "replayed": False}
 
         return self._txn(run)
 
-    def accept(self, agreement_id, *, actor, acting_for=None, idempotency_key=None):
+    def accept(self, agreement_id, *, actor, acting_for=None, idempotency_key=None, credential=None):
         return self._transition(agreement_id, "accept", actor=actor, acting_for=acting_for,
-                                idempotency_key=idempotency_key)
+                                idempotency_key=idempotency_key, credential=credential)
 
-    def reject(self, agreement_id, *, actor, reason, acting_for=None, idempotency_key=None):
+    def reject(self, agreement_id, *, actor, reason, acting_for=None, idempotency_key=None, credential=None):
         return self._transition(agreement_id, "reject", actor=actor, acting_for=acting_for, reason=reason,
-                                idempotency_key=idempotency_key)
+                                idempotency_key=idempotency_key, credential=credential)
 
-    def withdraw(self, agreement_id, *, actor, reason=None, acting_for=None, idempotency_key=None):
+    def withdraw(self, agreement_id, *, actor, reason=None, acting_for=None, idempotency_key=None, credential=None):
         return self._transition(agreement_id, "withdraw", actor=actor, acting_for=acting_for, reason=reason,
-                                idempotency_key=idempotency_key)
+                                idempotency_key=idempotency_key, credential=credential)
 
-    def retire(self, agreement_id, *, actor, reason=None, acting_for=None, idempotency_key=None):
+    def retire(self, agreement_id, *, actor, reason=None, acting_for=None, idempotency_key=None, credential=None):
         return self._transition(agreement_id, "retire", actor=actor, acting_for=acting_for, reason=reason,
-                                idempotency_key=idempotency_key)
+                                idempotency_key=idempotency_key, credential=credential)
 
-    def activate(self, agreement_id, *, actor, acting_for=None, idempotency_key=None):
+    def activate(self, agreement_id, *, actor, acting_for=None, idempotency_key=None, credential=None):
         return self._transition(agreement_id, "activate", actor=actor, acting_for=acting_for,
-                                idempotency_key=idempotency_key)
+                                idempotency_key=idempotency_key, credential=credential)
 
-    def complete(self, agreement_id, *, actor, acting_for=None, idempotency_key=None):
+    def complete(self, agreement_id, *, actor, acting_for=None, idempotency_key=None, credential=None):
         return self._transition(agreement_id, "complete", actor=actor, acting_for=acting_for,
-                                idempotency_key=idempotency_key)
+                                idempotency_key=idempotency_key, credential=credential)
 
-    def terminate(self, agreement_id, *, actor, reason=None, acting_for=None, idempotency_key=None):
+    def terminate(self, agreement_id, *, actor, reason=None, acting_for=None, idempotency_key=None, credential=None):
         return self._transition(agreement_id, "terminate", actor=actor, acting_for=acting_for, reason=reason,
-                                idempotency_key=idempotency_key)
+                                idempotency_key=idempotency_key, credential=credential)
 
-    def revive(self, agreement_id, *, actor, acting_for=None, idempotency_key=None):
+    def revive(self, agreement_id, *, actor, acting_for=None, idempotency_key=None, credential=None):
         return self._transition(agreement_id, "revive", actor=actor, acting_for=acting_for,
-                                idempotency_key=idempotency_key)
+                                idempotency_key=idempotency_key, credential=credential)
 
     # ── dormancy (no auto-expiry) ───────────────────────────────────────
 
-    def record_activity(self, agreement_id: str, *, actor: str, acting_for: str | None = None) -> dict:
+    def record_activity(self, agreement_id: str, *, actor: str, acting_for: str | None = None,
+                        credential: str | None = None) -> dict:
         """Any activity by either party. Revives a dormant entry to pending;
         on other live states it only refreshes last_activity_at (no receipt)."""
         with self._lock:
             row = self._row(agreement_id)
             if row["state"] == "dormant":
-                return self.revive(agreement_id, actor=actor, acting_for=acting_for)
+                return self.revive(agreement_id, actor=actor, acting_for=acting_for, credential=credential)
             if row["state"] in TERMINAL_STATES:
                 raise InvalidTransition(
                     f"cannot record activity on agreement {agreement_id}: state is "
@@ -698,6 +726,29 @@ class WorkEntryStore:
                 except InvalidTransition:
                     continue  # raced with a real transition
         return changed
+
+    def pending_stale(self, *, older_than: timedelta) -> list[dict]:
+        """Pending agreements whose last activity is at least ``older_than`` old."""
+        cutoff = self._clock() - older_than
+        with self._lock:
+            rows = self._conn.execute("SELECT * FROM agreements WHERE state='pending'").fetchall()
+            return [self._agreement(r) for r in rows
+                    if datetime.fromisoformat(r["last_activity_at"]) <= cutoff]
+
+    def claim_flag(self, agreement_id: str, flag: str, mark: str) -> bool:
+        """Record a non-authoritative one-shot mark. True only the first time for this
+        ``mark`` (e.g. an activity stamp), so a prompt is sent once per quiet spell."""
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT mark FROM agreement_flags WHERE agreement_id=? AND flag=?",
+                (agreement_id, flag)).fetchone()
+            if row is not None and row["mark"] == mark:
+                return False
+            self._conn.execute(
+                "INSERT INTO agreement_flags (agreement_id, flag, mark, at) VALUES (?,?,?,?)"
+                " ON CONFLICT(agreement_id, flag) DO UPDATE SET mark=excluded.mark, at=excluded.at",
+                (agreement_id, flag, mark, self._now()))
+            return True
 
     # ── queries ─────────────────────────────────────────────────────────
 
