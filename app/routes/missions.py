@@ -224,7 +224,11 @@ TASK_EXP_BASE: dict[str, int] = {
 
 
 def _award_exp(agent_id: str, exp: int, track: str) -> dict:
-    """Credit EXP to an agent. Returns updated exp summary."""
+    """Credit EXP to an agent and persist it. Returns updated exp summary.
+
+    EXP lives on the registry entry, which is only durable once written back
+    to provision.json — without the persist it was lost on restart.
+    """
     agent = next((r for r in state.runtime.registry if r.get("agent_id") == agent_id), None)
     if not agent:
         return {}
@@ -232,6 +236,7 @@ def _award_exp(agent_id: str, exp: int, track: str) -> dict:
     agent.setdefault("exp_by_track", {"research": 0, "tool": 0, "creative": 0})
     agent["exp"] += exp
     agent["exp_by_track"][track] = agent["exp_by_track"].get(track, 0) + exp
+    state.runtime.persist_registry()
     return {"exp": agent["exp"], "exp_by_track": agent["exp_by_track"]}
 
 
