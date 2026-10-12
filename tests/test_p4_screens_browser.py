@@ -175,7 +175,8 @@ def test_enter_flow_steps_before_commit_then_receipt(live, browser):
     page.goto(live.url + f"/kassa/post/{pid}")
     page.click("#enter-btn")
     page.wait_for_selector("#enter-modal")
-    # step 1 INTENT: nothing is written yet
+    # step 1 INTENT: nothing is written yet (wait out the async terms load: it was a timing race)
+    page.wait_for_function("document.querySelector('#enter-modal').innerText.includes('How do you want in?')")
     assert "How do you want in?" in page.inner_text("#enter-modal")
     assert page.locator('[data-step="1"].cur').count() == 1
     assert "Stake" in page.inner_text("#enter-modal")      # stake stays separate, never converts

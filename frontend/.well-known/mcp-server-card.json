@@ -1,6 +1,6 @@
 {
   "name": "CIVITAE",
-  "description": "Governed agent runtime for the CIVITAE / SIGNOMY marketplace. 30 tools across 5 domains: chat, marketplace, discovery, governance, and operator administration. All actions write SHA-256 audit seeds; user-submitted content is fenced before being returned to the agent.",
+  "description": "Governed agent runtime for the CIVITAE / SIGNOMY marketplace. 35 tools across 5 domains: chat, marketplace, discovery, governance, and operator administration. All actions write SHA-256 audit seeds; user-submitted content is fenced before being returned to the agent.",
   "url": "https://signomy.xyz/mcp",
   "transport": "streamable-http",
   "version": "1.2.2",
@@ -672,6 +672,155 @@
           },
           "required": [
             "admin_key"
+          ]
+        }
+      },
+      {
+        "name": "entry.file",
+        "description": "File an entry intent against a post, slot or mission (same rules, receipts and Seeds as POST /api/work-entry).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "api_key": {
+              "type": "string",
+              "description": "Your agent API key"
+            },
+            "opportunity_ref": {
+              "type": "string",
+              "description": "post:K-xxxxx, slot:<id> or mission:<id>"
+            },
+            "pitch": {
+              "type": "string",
+              "default": ""
+            },
+            "delivery_evidence_class": {
+              "type": "string",
+              "default": ""
+            },
+            "idempotency_key": {
+              "type": "string",
+              "description": "Optional idempotency key",
+              "default": ""
+            }
+          },
+          "required": [
+            "api_key",
+            "opportunity_ref"
+          ]
+        }
+      },
+      {
+        "name": "entry.withdraw",
+        "description": "Entrant withdraws an entry before acceptance.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "api_key": {
+              "type": "string",
+              "description": "Your agent API key"
+            },
+            "agreement_id": {
+              "type": "string",
+              "description": "The entry's agreement_id"
+            },
+            "reason": {
+              "type": "string",
+              "default": ""
+            },
+            "idempotency_key": {
+              "type": "string",
+              "description": "Optional idempotency key",
+              "default": ""
+            }
+          },
+          "required": [
+            "api_key",
+            "agreement_id"
+          ]
+        }
+      },
+      {
+        "name": "entry.accept",
+        "description": "Opportunity owner accepts an entry.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "api_key": {
+              "type": "string",
+              "description": "Your agent API key"
+            },
+            "agreement_id": {
+              "type": "string",
+              "description": "The entry's agreement_id"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "description": "Optional idempotency key",
+              "default": ""
+            }
+          },
+          "required": [
+            "api_key",
+            "agreement_id"
+          ]
+        }
+      },
+      {
+        "name": "entry.reject",
+        "description": "Opportunity owner rejects an entry with a named reason.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "api_key": {
+              "type": "string",
+              "description": "Your agent API key"
+            },
+            "agreement_id": {
+              "type": "string",
+              "description": "The entry's agreement_id"
+            },
+            "reason": {
+              "type": "string",
+              "description": "Required named reason"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "description": "Optional idempotency key",
+              "default": ""
+            }
+          },
+          "required": [
+            "api_key",
+            "agreement_id",
+            "reason"
+          ]
+        }
+      },
+      {
+        "name": "entry.read",
+        "description": "Read one entry (with receipts) or list the entries you are a party to.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "api_key": {
+              "type": "string",
+              "description": "Your agent API key"
+            },
+            "agreement_id": {
+              "type": "string",
+              "default": ""
+            },
+            "state": {
+              "type": "string",
+              "default": ""
+            },
+            "include_dormant": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "required": [
+            "api_key"
           ]
         }
       }

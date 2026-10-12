@@ -322,7 +322,13 @@ def _bind_failed(e: "slot_binding.BindError") -> JSONResponse:
 
 @router.post("/api/work-entry")
 async def file_entry(payload: FileEntryPayload, request: Request):
-    p = _principal(request)
+    return await svc_file_entry(_principal(request), payload,
+                                payload.idempotency_key or request.headers.get("Idempotency-Key"))
+
+
+async def svc_file_entry(p: Principal, payload: FileEntryPayload, key: str | None):
+    """Service layer for filing an entry: shared by HTTP (/api/work-entry) and the MCP verbs.
+    Returns a dict / JSONResponse; raises HTTPException for authority and validation errors."""
     entrant = p.require_agent()   # only a registered agent can file intent
     opp = _resolve_opportunity(payload.opportunity_ref.strip())
     if opp["owner"] == entrant:
@@ -345,7 +351,6 @@ async def file_entry(payload: FileEntryPayload, request: Request):
              "acceptance_payload": payload.acceptance_payload,
              "delivery_evidence_class": ev or "solution",
              "stake_ref": payload.stake_ref}
-    key = payload.idempotency_key or request.headers.get("Idempotency-Key")
     try:
         out = _store().file_entry(
             entrant=entrant, owner=opp["owner"], opportunity_ref=opp["ref"], entry_mode=mode,
@@ -375,7 +380,15 @@ def _next_hint(a: dict) -> str:
 
 
 async def _act(request: Request, aid: str, name: str, body: ActionPayload | None):
-    p = _principal(request)
+    return await svc_act(_principal(request), aid, name, body)
+
+
+async def svc_act(p: Principal, aid: str, name: str, body: ActionPayload | None):
+    """Service layer for accept/reject/withdraw/retire/activate: shared by HTTP and MCP."""
+    if name == "reject" and not (body and body.reason and body.reason.strip()):
+        _get_or_404(aid)
+        return JSONResponse({"error": "'reject' requires a named reason", "code": "reason_required"},
+                            status_code=400)
     a = _get_or_404(aid)
     body = body or ActionPayload()
     actor, acting_for, cred = _actor(p, a, body)
@@ -433,11 +446,6 @@ async def accept(agreement_id: str, request: Request, body: ActionPayload | None
 
 @router.post("/api/work-entry/{agreement_id}/reject")
 async def reject(agreement_id: str, request: Request, body: ActionPayload | None = None):
-    if not (body and body.reason and body.reason.strip()):
-        _principal(request)
-        _get_or_404(agreement_id)
-        return JSONResponse({"error": "'reject' requires a named reason", "code": "reason_required"},
-                            status_code=400)
     return await _act(request, agreement_id, "reject", body)
 
 
@@ -837,7 +845,10 @@ def mission_agreements(mission_id: str, request: Request):
 
 @router.get("/api/work-entry/{agreement_id}")
 def get_entry(agreement_id: str, request: Request):
-    p = _principal(request)
+    return svc_get_entry(_principal(request), agreement_id)
+
+
+def svc_get_entry(p: Principal, agreement_id: str) -> dict:
     _lazy()
     a = _get_or_404(agreement_id)
     if not _is_party_view(p, a):
@@ -851,10 +862,15 @@ def get_entry(agreement_id: str, request: Request):
 def list_entries(request: Request, entrant: str | None = None, owner: str | None = None,
                  opportunity_ref: str | None = None, state_: str | None = None,
                  live: bool = False, include_dormant: bool = False):
-    p = _principal(request)
+    st = state_ or request.query_params.get("state")
+    return svc_list_entries(_principal(request), entrant=entrant, owner=owner,
+                            opportunity_ref=opportunity_ref, st=st, live=live,
+                            include_dormant=include_dormant)
+
+
+def svc_list_entries(p: Principal, *, entrant=None, owner=None, opportunity_ref=None, st=None,
+                     live: bool = False, include_dormant: bool = False) -> dict:
     _lazy()
-    q = request.query_params
-    st = state_ or q.get("state")
     opp = None
     if opportunity_ref:
         k, i = _kind_of(opportunity_ref.strip())

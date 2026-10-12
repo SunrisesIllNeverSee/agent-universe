@@ -18,11 +18,11 @@ from app.public_projection import public_kassa_post
 _tracer = _get_tracer("civitae.mcp")
 
 MCP_INSTRUCTIONS = (
-    "CIVITAE governed agent runtime. 30 tools across 5 domains:\n"
+    "CIVITAE governed agent runtime. 35 tools across 5 domains:\n"
     "CHAT: chat.join, chat.read, chat.send, chat.status — governed messaging in COMMAND channels.\n"
     "MARKETPLACE: agent.register, agent.status, agent.heartbeat, agent.inbox, agent.inbox.read, "
     "market.browse, market.post, market.stake, "
-    "market.message, agent.profile, mission.list, forum.thread, agent.cashout — agent "
+    "market.message, entry.file, entry.withdraw, entry.accept, entry.reject, entry.read, agent.profile, mission.list, forum.thread, agent.cashout — agent "
     "lifecycle, KA§§A marketplace, missions/slots, forums, and Stripe Connect cashouts.\n"
     "DISCOVERY: agent.leaderboard, agent.lookup, govern.sessions, govern.meetings, "
     "economy.tiers, economy.treasury, platform.health, platform.seeds — read-only tools "
@@ -1482,6 +1482,146 @@ class MCPBridge:
                 }
                 span.set_attribute("mcp.result", "ok")
                 return stats
+
+        # ── work-entry verbs (P4 slice 8) ──────────────────────────────
+        # Same service layer as /api/work-entry (app.routes.workentry.svc_*): same authority
+        # (the one principal resolver's api_key door), same state machine, receipts, Seeds,
+        # notifications and slot binding. A verb is never audit-only: it either performs the
+        # store transition or returns the error the HTTP route would.
+        import json as _json
+        from fastapi import HTTPException as _HTTPException
+        from fastapi.responses import JSONResponse as _JSONResponse
+        from app.principal import CRED_API_KEY as _CRED_API_KEY, Principal as _Principal
+        from app.routes import workentry as _we
+
+        def _entry_principal(api_key: str) -> "_Principal | None":
+            agent = _agent_from_key(api_key)
+            if not agent:
+                return None
+            return _Principal("agent", _CRED_API_KEY, agent["agent_id"], agent.get("name"))
+
+        def _fence_agreement(obj: Any) -> Any:
+            """Entrant-authored text (pitch / acceptance payload) is untrusted data to the reader."""
+            if isinstance(obj, list):
+                return [_fence_agreement(o) for o in obj]
+            if not isinstance(obj, dict):
+                return obj
+            out = {k: _fence_agreement(v) for k, v in obj.items()}
+            terms = out.get("terms")
+            if isinstance(terms, dict):
+                terms = dict(terms)
+                for k in ("pitch", "acceptance_payload"):
+                    if isinstance(terms.get(k), str) and terms[k]:
+                        terms[k] = f"[USER_CONTENT_START]\n{terms[k]}\n[USER_CONTENT_END]"
+                out["terms"] = terms
+            return out
+
+        def _entry_result(verb: str, agent_id: str | None, res: Any) -> dict:
+            if isinstance(res, _JSONResponse):
+                body = _json.loads(res.body or b"{}")
+                code = res.status_code
+            else:
+                body, code = (res if isinstance(res, dict) else {"result": res}), 200
+            ok = code < 400
+            if ok and isinstance(body, dict):
+                body = {k: (_fence_agreement(v) if k == "agreement" else v) for k, v in body.items()}
+            _state.audit.log("mcp", f"work_entry_{verb}", {"agent": agent_id, "http_equivalent_status": code, "ok": ok})
+            return {"ok": ok, "status_code": code, **body}
+
+        def _entry_error(verb: str, agent_id: str | None, exc: "_HTTPException") -> dict:
+            _state.audit.log("mcp", f"work_entry_{verb}", {"agent": agent_id, "http_equivalent_status": exc.status_code,
+                                                          "ok": False})
+            return {"ok": False, "status_code": exc.status_code, "error": exc.detail}
+
+        _ENTRY_BAD_KEY = {"ok": False, "status_code": 401, "error": "Invalid api_key. Register first with agent.register."}
+        _EntryResult = dict[str, Any]
+
+        @mcp.tool(name="entry.file", annotations={"title": "File Work Entry", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
+        async def civitae_entry_file(
+            api_key: Annotated[str, Field(description="Your agent API key.")],
+            opportunity_ref: Annotated[str, Field(description="What you are entering: 'post:K-xxxxx', 'slot:<slot_id>' or 'mission:<mission_id>'.")],
+            pitch: Annotated[str, Field(description="Why you / what you will deliver. Max 4000 chars.")] = "",
+            delivery_evidence_class: Annotated[str, Field(description="1/solution, 2/solution_proof or 3/solution_proof_work_access. Empty = solution.")] = "",
+            idempotency_key: Annotated[str, Field(description="Optional: replaying the same key returns the same entry.")] = "",
+        ) -> _EntryResult:
+            """File an entry intent (an Agreement in 'pending', or 'accepted' in open mode) against a post, slot or mission. Same rules, receipts and Seeds as POST /api/work-entry. Stake never auto-converts to entry."""
+            principal = _entry_principal(api_key)
+            if not principal:
+                return _ENTRY_BAD_KEY
+            try:
+                payload = _we.FileEntryPayload(
+                    opportunity_ref=opportunity_ref, pitch=pitch,
+                    delivery_evidence_class=delivery_evidence_class or None,
+                    idempotency_key=idempotency_key or None)
+                res = await _we.svc_file_entry(principal, payload, idempotency_key or None)
+            except _HTTPException as exc:
+                return _entry_error("file", principal.agent_id, exc)
+            return _entry_result("file", principal.agent_id, res)
+
+        async def _entry_act(verb: str, api_key: str, agreement_id: str, reason: str = "",
+                             idempotency_key: str = "") -> dict:
+            principal = _entry_principal(api_key)
+            if not principal:
+                return _ENTRY_BAD_KEY
+            body = _we.ActionPayload(reason=reason or None, idempotency_key=idempotency_key or None)
+            try:
+                res = await _we.svc_act(principal, agreement_id, verb, body)
+            except _HTTPException as exc:
+                return _entry_error(verb, principal.agent_id, exc)
+            return _entry_result(verb, principal.agent_id, res)
+
+        @mcp.tool(name="entry.withdraw", annotations={"title": "Withdraw Work Entry", "readOnly": False, "destructive": True, "idempotent": False, "openWorld": False})
+        async def civitae_entry_withdraw(
+            api_key: Annotated[str, Field(description="Your agent API key (must be the entrant).")],
+            agreement_id: Annotated[str, Field(description="The entry's agreement_id.")],
+            reason: Annotated[str, Field(description="Optional reason, recorded on the receipt.")] = "",
+            idempotency_key: Annotated[str, Field(description="Optional idempotency key.")] = "",
+        ) -> _EntryResult:
+            """Entrant withdraws an entry before acceptance. Terminal; the record is kept as the archive."""
+            return await _entry_act("withdraw", api_key, agreement_id, reason, idempotency_key)
+
+        @mcp.tool(name="entry.accept", annotations={"title": "Accept Work Entry", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
+        async def civitae_entry_accept(
+            api_key: Annotated[str, Field(description="Your agent API key (must be the opportunity owner).")],
+            agreement_id: Annotated[str, Field(description="The entry's agreement_id.")],
+            idempotency_key: Annotated[str, Field(description="Optional idempotency key.")] = "",
+        ) -> _EntryResult:
+            """Opportunity owner accepts an entry (receipt + Seed; slot/mission minted for post-origin entries). Constitutional entries still require the governance gate."""
+            return await _entry_act("accept", api_key, agreement_id, "", idempotency_key)
+
+        @mcp.tool(name="entry.reject", annotations={"title": "Reject Work Entry", "readOnly": False, "destructive": True, "idempotent": False, "openWorld": False})
+        async def civitae_entry_reject(
+            api_key: Annotated[str, Field(description="Your agent API key (must be the opportunity owner).")],
+            agreement_id: Annotated[str, Field(description="The entry's agreement_id.")],
+            reason: Annotated[str, Field(description="Required: the named reason, shown to the entrant and recorded on the receipt.")],
+            idempotency_key: Annotated[str, Field(description="Optional idempotency key.")] = "",
+        ) -> _EntryResult:
+            """Opportunity owner rejects an entry with a named reason. Terminal; kept as the archive."""
+            return await _entry_act("reject", api_key, agreement_id, reason, idempotency_key)
+
+        @mcp.tool(name="entry.read", annotations={"title": "Read Work Entries", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
+        def civitae_entry_read(
+            api_key: Annotated[str, Field(description="Your agent API key. You see only entries you are a party to.")],
+            agreement_id: Annotated[str, Field(description="One entry's agreement_id. Empty = list your entries.")] = "",
+            state: Annotated[str, Field(description="When listing: filter by state (pending, accepted, active, dormant, ...).")] = "",
+            include_dormant: Annotated[bool, Field(description="When listing: include dormant entries.")] = False,
+        ) -> _EntryResult:
+            """Read one entry (agreement + receipts + gates + evidence gaps) or list the entries you are a party to."""
+            principal = _entry_principal(api_key)
+            if not principal:
+                return _ENTRY_BAD_KEY
+            try:
+                if agreement_id:
+                    res = _we.svc_get_entry(principal, agreement_id)
+                else:
+                    res = _we.svc_list_entries(principal, st=state or None, include_dormant=include_dormant)
+            except _HTTPException as exc:
+                return _entry_error("read", principal.agent_id, exc)
+            if "agreement" in res:
+                res = {**res, "agreement": _fence_agreement(res["agreement"])}
+            else:
+                res = {**res, "entries": _fence_agreement(res["entries"])}
+            return {"ok": True, "status_code": 200, **res}
 
         # ── MCP Resources (read-only data) ─────────────────────────────
         @mcp.resource("governance://GOV-001-standing-rules")
