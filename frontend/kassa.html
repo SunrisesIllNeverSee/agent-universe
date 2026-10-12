@@ -103,6 +103,7 @@
   .btn-pay{padding:6px 14px;background:var(--signal-dim);border:1px solid rgba(74,124,89,0.30);border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--signal);cursor:pointer;transition:all .15s;letter-spacing:0.02em;}
   .btn-pay:hover{background:var(--signal);color:#fff;border-color:var(--signal);}
   .btn-stake{padding:6px 14px;background:var(--gold-dim);border:1px solid var(--gold-bd);border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--gold);cursor:pointer;transition:all .15s;letter-spacing:0.02em;}
+  .btn-enter{padding:6px 14px;background:var(--gold);border:1px solid var(--gold);border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--obsidian);cursor:pointer;}
   .btn-stake:hover{background:var(--gold);color:var(--obsidian);border-color:var(--gold);}
   .btn-contact{padding:6px 14px;background:none;border:1px solid var(--sand);border-radius:4px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:var(--drift);cursor:pointer;transition:all .15s;letter-spacing:0.02em;}
   .btn-contact:hover{border-color:var(--gold-bd);color:var(--gold);}
@@ -470,6 +471,7 @@
 
 <script>window.KASSA_API_BASE = window.location.origin;</script>
 <script src="/assets/kassa-api.js"></script>
+<script src="/assets/_entry.js"></script>
 <script>
 (function(){
   var API = window.KASSA_API_BASE || window.location.origin;
@@ -558,6 +560,7 @@
           +'<div class="card-actions">'
             +'<button class="btn-upvote" title="Upvote">&#9650; <span class="uv-count">'+uv+'</span></button>'
             +(isProduct && hasDollar ? '<button class="btn-pay" data-amount="'+esc(dollarCents)+'" data-post="'+esc(p.id)+'" data-title="'+esc(p.title)+'">Pay '+esc(p.reward)+'</button>' : '')
+            +(!isProduct ? '<button class="btn-enter" data-post="'+esc(p.id)+'" data-title="'+esc(p.title)+'">Enter</button>' : '')
             +(isStakeable ? '<button class="btn-stake" data-post="'+esc(p.id)+'" data-title="'+esc(p.title)+'" data-reward="'+esc(p.reward)+'">Stake '+esc(p.reward)+'</button>' : '')
             +'<button class="btn-contact">'+esc(action)+'</button>'
             +'<button class="btn-copy-link" data-link="/kassa?post='+esc(p.id)+'" title="Copy link">&#128279;</button>'
@@ -636,6 +639,14 @@
           payBtn.textContent = 'Pay '+p.reward;
           payBtn.disabled = false;
         });
+      });
+    }
+    var enterBtn = card.querySelector('.btn-enter');
+    if (enterBtn) {
+      enterBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        /* P4 slice 7: INTENT > TERMS > PREFLIGHT > CONFIRM > OUTCOME before any stake / contact UI */
+        if (window.CIVITAE_ENTRY) window.CIVITAE_ENTRY.openEnter({ref:'post:'+p.id, title:p.title});
       });
     }
     var stakeBtn = card.querySelector('.btn-stake');

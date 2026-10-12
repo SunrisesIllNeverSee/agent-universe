@@ -36,9 +36,10 @@ def test_shell_separation_semantics():
 
 def test_shell_no_fake_authority():
     html = Path("frontend/shell.html").read_text()
-    # Phase-4 objects must render as placeholders, never as records
-    assert "PHASE-4" in html
-    assert "not implemented" in html
+    # P4 slice 7: Agreement / WorkEntry rows are server lookups; with no record they
+    # read "none on record" (the PHASE-4 placeholder is gone), never an invented value
+    assert "PHASE-4" not in html
+    assert "none on record" in html
     # no write endpoints called by the shell itself — read-only + hosted pages
     import re
     assert not re.search(r'fetch\([^)]*method\s*:\s*["\']POST', html), \
@@ -76,7 +77,7 @@ def test_hosted_deploy_slots_pages_expose_no_url_params():
 
 def test_derive_context_clears_all_keys_on_navigation_and_catch():
     src = _derive_src()
-    keys = '["post_id","thread_id","mission_id","slot_id"]'
+    keys = '["post_id","thread_id","mission_id","slot_id","agreement_id","workentry","seed_doi"]'
     # cleared at the top of every derivation AND in the catch path
     assert src.count(keys + ".forEach(k=>setCtx(k,null))") == 2
     # every key that deriveContext sets is in the cleared list
@@ -85,14 +86,23 @@ def test_derive_context_clears_all_keys_on_navigation_and_catch():
         assert f'"{k}"' in keys, f"{k} is set but never cleared"
 
 
-def test_inspector_phase4_rows_are_placeholders_never_values():
+def test_inspector_agreement_rows_come_from_server_lookups():
+    """P4 slice 7: agreement_id / workentry are derived from ?agreement= or read-only
+    server lookups (/api/work-entry GETs), never typed in or invented client-side."""
     html = Path("frontend/shell.html").read_text()
-    assert '["agreement_id", "PHASE-4 — not implemented"]' in html
-    assert '["workentry", "PHASE-4 — not implemented"]' in html
-    # deriveContext must never populate Phase-4 objects
+    assert '["agreement_id", c.agreement_id||"none on record"]' in html
+    assert '["workentry", c.workentry||"none on record"]' in html
+    start = html.index("async function lookupAgreement()")
+    end = html.index("// ── Inspector (read-only)")
+    body = html[start:end]
+    for url in ("/api/work-entry/mission/", "/api/work-entry?include_dormant", '"/api/work-entry/"'):
+        assert url in body
+    # the workentry / seed rows are only ever set from a fetched record
+    assert html.count('setCtx("workentry"') == 2     # the record, or null
     src = _derive_src()
-    for forbidden in ("agreement", "workentry", "work_entry"):
-        assert forbidden not in src.lower()
+    assert 'setCtx("workentry"' not in src
+    # deriveContext may only take an agreement from the explicit ?agreement= object id
+    assert 'searchParams.get("agreement")' in src
 
 
 def test_inspector_values_use_textcontent_only():

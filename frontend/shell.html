@@ -257,7 +257,7 @@
     try {
       const u = new URL(frame.contentWindow.location.href);
       const path = u.pathname;
-      ["post_id","thread_id","mission_id","slot_id"].forEach(k=>setCtx(k,null));
+      ["post_id","thread_id","mission_id","slot_id","agreement_id","workentry","seed_doi"].forEach(k=>setCtx(k,null));
       // F7 reconcile: iframe-side navigation updates shell state too
       if (currentRoute && path !== currentRoute.split("?")[0] && allowedRoute(path + u.search)) {
         currentRoute = path + u.search;
@@ -265,7 +265,11 @@
       }
       if (path.startsWith("/kassa/post/")) setCtx("post_id", path.split("/").pop());
       if (path.startsWith("/kassa/thread/")) setCtx("thread_id", path.split("/").pop());
-      if (path === "/mission") { const m=u.searchParams.get("id"); if(m) setCtx("mission_id",m); }
+      if (path === "/mission" || path === "/missions") {
+        const m=u.searchParams.get("mission")||u.searchParams.get("id"); if(m) setCtx("mission_id",m);
+      }
+      // P4 slice 7: an explicit ?agreement= on any hosted page is the object id (never rail position).
+      { const ag=u.searchParams.get("agreement"); if (ag && /^[A-Za-z0-9._:-]+$/.test(ag)) setCtx("agreement_id",ag); }
       if (path.startsWith("/mission/")) setCtx("mission_id", path.split("/").pop());
       if (path === "/deploy" || path === "/slots") {
         const s=u.searchParams.get("slot")||u.searchParams.get("id");
@@ -273,11 +277,64 @@
       }
       renderInspector();
       renderMode(modeFromLocation());
+      lookupAgreement();
     } catch(e){
-      ["post_id","thread_id","mission_id","slot_id"].forEach(k=>setCtx(k,null));
+      ["post_id","thread_id","mission_id","slot_id","agreement_id","workentry","seed_doi"].forEach(k=>setCtx(k,null));
     }
   }
   frame.addEventListener("load", deriveContext);
+
+  // ── Agreement / WorkEntry values: server lookups only (read-only GETs) ──
+  // Keyed to object ids (?agreement=, mission_id, post_id, slot_id), never rail position.
+  // Nothing here is invented client-side; no match means "none on record".
+  let lookupSeq = 0;
+  const credHeaders = () => {
+    const out = [];
+    const ck = window.CIVITAE_AUTH && window.CIVITAE_AUTH.creds();
+    if (ck && ck.key) out.push({Authorization:"Bearer "+ck.key});
+    const jwt = localStorage.getItem("kassa_jwt")||sessionStorage.getItem("kassa_jwt")||localStorage.getItem("kassa_token")||"";
+    if (jwt) out.push({Authorization:"Bearer "+jwt});
+    return out.length ? out : [{}];
+  };
+  async function getJSON(path){
+    const cands = credHeaders();
+    for (let i=0;i<cands.length;i++){
+      try {
+        const r = await fetch(path,{headers:cands[i]});
+        if (r.status===401 && i+1<cands.length) continue;
+        return r.ok ? await r.json() : null;
+      } catch(e){ return null; }
+    }
+    return null;
+  }
+  async function lookupAgreement(){
+    const seq = ++lookupSeq, c = ctxStore();
+    let id = c.agreement_id || null;
+    if (!id && c.mission_id){
+      const m = await getJSON("/api/work-entry/mission/"+encodeURIComponent(c.mission_id));
+      if (m && m.node) id = m.node.agreement_id;
+    }
+    const byRef = async ref => {
+      const l = await getJSON("/api/work-entry?include_dormant=true&opportunity_ref="+encodeURIComponent(ref));
+      const e = l && l.entries && l.entries.length ? l.entries[l.entries.length-1] : null;
+      return e ? e.agreement_id : null;
+    };
+    if (!id && c.slot_id) id = await byRef("slot:"+c.slot_id);
+    if (!id && c.post_id) id = await byRef("post:"+c.post_id);
+    let got = id ? await getJSON("/api/work-entry/"+encodeURIComponent(id)) : null;
+    if (seq !== lookupSeq) return;          // a newer navigation superseded this lookup
+    if (got && got.agreement){
+      const a = got.agreement, rc = got.receipts||[];
+      setCtx("agreement_id", a.agreement_id);
+      setCtx("workentry", `${a.agreement_class} \u00b7 ${a.entry_mode} \u00b7 ${a.state}`);
+      setCtx("seed_doi", (rc.length && rc[rc.length-1].seed_doi) || a.genesis_seed_doi || null);
+    } else {
+      setCtx("agreement_id", id && c.agreement_id ? c.agreement_id : null);
+      setCtx("workentry", null);
+      setCtx("seed_doi", null);
+    }
+    renderInspector();
+  }
 
   // ── Inspector (read-only) ────────────────────────────────────────────
   function renderInspector(){
@@ -292,8 +349,8 @@
       ["thread", c.thread_id||"—"],
       ["mission_id", c.mission_id||"—"],
       ["slot/formation", c.slot_id||"—"],
-      ["agreement_id", "PHASE-4 — not implemented"],
-      ["workentry", "PHASE-4 — not implemented"],
+      ["agreement_id", c.agreement_id||"none on record"],
+      ["workentry", c.workentry||"none on record"],
       ["seed evidence", c.seed_doi||"—"],
     ];
     const host = $("insp-fields");
@@ -302,7 +359,6 @@
       const row = document.createElement("div"); row.className="kv";
       const b = document.createElement("b"); b.textContent = k;
       const sp = document.createElement("span"); sp.textContent = v;
-      if (String(v).startsWith("PHASE-4")) sp.className="future";
       row.append(b, sp); host.appendChild(row);
     });
   }

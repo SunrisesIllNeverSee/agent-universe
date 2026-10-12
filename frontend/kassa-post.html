@@ -189,6 +189,7 @@
 
 <script>window.KASSA_API_BASE = window.location.origin;</script>
 <script src="/assets/kassa-api.js"></script>
+<script src="/assets/_entry.js"></script>
 <script>
 (function(){
   var TAG_CLASS = {iso:'t-iso',products:'t-products',bounties:'t-bounties',hiring:'t-hiring',services:'t-services'};
@@ -281,6 +282,21 @@
     });
     stats.appendChild(uvBtn);
     wrap.appendChild(stats);
+
+    /* P4 slice 7: Enter flow (intent + terms steps) first; stake and contact stay separate below */
+    var enterBtn = document.createElement('button');
+    enterBtn.className = 'btn-upvote';
+    enterBtn.id = 'enter-btn';
+    enterBtn.textContent = 'Enter';
+    enterBtn.style.cssText = 'background:var(--gold);color:var(--obsidian);border-color:var(--gold);font-weight:700;margin-left:8px';
+    enterBtn.addEventListener('click', function(){
+      if (window.CIVITAE_ENTRY) window.CIVITAE_ENTRY.openEnter({ref:'post:'+p.id, title:p.title});
+    });
+    stats.appendChild(enterBtn);
+    var entryHost = document.createElement('div');
+    entryHost.id = 'entry-panel-host';
+    wrap.appendChild(entryHost);
+    if (window.CIVITAE_ENTRY) window.CIVITAE_ENTRY.mountPosterPanel(entryHost, {postId: p.id});
 
     /* Contact form */
     var contactSection = document.createElement('div');

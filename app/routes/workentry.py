@@ -734,6 +734,107 @@ async def deploy_mission(mission_id: str, request: Request, body: DeployPayload 
                         status_code=200 if out["replayed"] else 201)
 
 
+# ── screen read models (P4 slice 7): every value the screens show comes from these ──────────
+
+_EVIDENCE_LABELS = [("solution", "Solution"), ("solution_proof", "Solution + Proof"),
+                    ("solution_proof_work_access", "Solution + Proof + Work access")]
+_LIVE_FOR_PREVIEW = ("pending", "dormant", "accepted", "active")
+
+
+def _optional_principal(request: Request) -> Principal | None:
+    """Public read that personalises when a credential is presented. A presented-but-invalid
+    credential still fails closed (401); only 'no credential at all' reads as the public view."""
+    try:
+        return _principal(request)
+    except HTTPException as e:
+        if e.status_code == 401 and e.detail == "Authentication required":
+            return None
+        raise
+
+
+def _acceptance_view(mode: str) -> dict:
+    if mode == "open":
+        return {"kind": "auto_accept", "resolver": "none", "clicks": 2, "gate": None,
+                "text": "Open mode: the entry is accepted as soon as it is filed; a second explicit "
+                        "click activates it. Nothing compresses the Agreement itself."}
+    if mode == "standard":
+        return {"kind": "resolver", "resolver": "owner", "clicks": 2, "gate": None,
+                "text": "The opportunity owner (poster) accepts or rejects. No timer cuts the entry: "
+                        "if the poster is silent they are asked to keep it live, decline or retire it."}
+    binding = _store().binding_authority
+    return {"kind": "governance_gate", "resolver": "owner", "clicks": 2,
+            "gate": {"type": "work_entry_gate", "binding_authority": binding},
+            "text": "The owner resolves AND a governance gate (a typed motion bound to this Agreement) "
+                    "is required; while the body is advisory the owner's countersign is the binding act."}
+
+
+@router.get("/api/work-entry/opportunity/{ref:path}")
+def preview_opportunity(ref: str, request: Request):
+    """Terms preview for the Enter flow: mode, acceptance rule, evidence classes, objects, and (when a
+    credential is presented) the caller's own standing. The owner's identity is never disclosed."""
+    p = _optional_principal(request)
+    opp = _resolve_opportunity(ref.strip())
+    mode = opp["base_mode"] if opp["base_mode"] in _MODE_RANK else "standard"
+    caller = mine = None
+    if p is not None and p.kind == "agent":
+        caller = {"principal": p.agent_id, "credential_type": p.credential_type,
+                  "own_opportunity": opp["owner"] == p.agent_id}
+        live = [a for a in _store().list(entrant=p.agent_id, opportunity_ref=opp["ref"])
+                if a["state"] in _LIVE_FOR_PREVIEW]
+        if live:
+            mine = {"agreement_id": live[-1]["agreement_id"], "state": live[-1]["state"],
+                    "entry_mode": live[-1]["entry_mode"]}
+    return {"ref": opp["ref"], "kind": opp["kind"], "title": opp["title"], "entry_mode": mode,
+            "acceptance": _acceptance_view(mode),
+            "delivery_evidence_classes": [{"id": i, "label": lbl} for i, lbl in _EVIDENCE_LABELS],
+            "objects": opp["objects"],
+            "owner_kind": "agent" if not str(opp["owner"]).startswith(("poster:", "platform")) else "poster",
+            "withdrawal": "Free to withdraw while pending; retire by either party.",
+            "caller": caller, "mine": mine}
+
+
+def _acceptance_record(a: dict, receipts: list[dict]) -> dict:
+    acc = next((r for r in receipts if r["to"] == "accepted"), None)
+    act = next((r for r in receipts if r["to"] == "active"), None)
+    return {"terms_accepted_at": acc["at"] if acc else None,
+            "accepted_by": (acc["acting_for"] or acc["actor"]) if acc else None,
+            "accepted_via": acc["credential_ref"] if acc else None,
+            "acceptance_receipt_id": acc["receipt_id"] if acc else None,
+            "acceptance_seed_doi": acc["seed_doi"] if acc else None,
+            "active_at": act["at"] if act else None,
+            "delivery_evidence_class": a["terms"].get("delivery_evidence_class"),
+            "outcome_reason": a.get("outcome_reason")}
+
+
+@router.get("/api/work-entry/mission/{mission_id}")
+def mission_agreements(mission_id: str, request: Request):
+    """Mission Control read model: the Agreement node (terms_accepted -> active), the Acceptance
+    record and the receipts for PROGRESS. Party to an Agreement on the mission, its owner, or an operator."""
+    p = _principal(request)
+    _lazy()
+    mission = _mission_or_404(mission_id)
+    mid = mission.get("id") or mission_id
+    ags = _mission_agreements(mission)
+    if not _may_read_mission(p, mission, ags):
+        raise HTTPException(403, "Only a party to an Agreement on this mission (or an operator) may read it")
+    if p.kind != "operator":
+        ags = [a for a in ags if p.kind == "agent" and mission.get("owner_agent_id") == p.agent_id
+               or _is_party_view(p, a)]
+    rows = []
+    for a in ags:
+        rc = _store().receipts(a["agreement_id"])
+        rows.append({"agreement": a, "receipts": rc, "acceptance": _acceptance_record(a, rc),
+                     "gates": _store().gates(a["agreement_id"])})
+    chosen = next((r["agreement"] for r in reversed(rows) if r["agreement"]["state"] in _LIVE_FOR_PREVIEW),
+                  rows[-1]["agreement"] if rows else None)
+    return {"mission_id": mid, "mission_status": mission.get("status"),
+            "entry_mode": mission.get("entry_mode") or "open", "frozen": _mission_frozen(mission),
+            "agreements": rows,
+            "node": ({"label": "terms_accepted \u2192 active", "state": chosen["state"],
+                      "agreement_id": chosen["agreement_id"]} if chosen else None),
+            "deployments": _store().deployments(mission_id=mid)}
+
+
 @router.get("/api/work-entry/{agreement_id}")
 def get_entry(agreement_id: str, request: Request):
     p = _principal(request)

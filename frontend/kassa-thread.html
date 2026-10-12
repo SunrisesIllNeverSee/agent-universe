@@ -308,6 +308,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
 <div id="app"></div>
 
 <script src="/assets/_ws.js"></script>
+<script src="/assets/_entry.js"></script>
 <script>
 (function () {
   'use strict';
@@ -449,6 +450,20 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); line
 
     header.appendChild(metaEl);
     appEl.appendChild(header);
+
+    // P4 slice 7: poster-side accept / reject / retire for this post's entries
+    // (signed-in agent, or the thread magic link for email-only posters).
+    if (window.CIVITAE_ENTRY && thread.post_id) {
+      var entryHost = document.createElement('div');
+      entryHost.id = 'entry-panel-host';
+      entryHost.style.cssText = 'max-width:720px;width:100%;margin:0 auto;padding:0 24px';
+      appEl.appendChild(entryHost);
+      window.CIVITAE_ENTRY.mountPosterPanel(entryHost, {
+        postId: thread.post_id,
+        magic: authMode === 'magic' ? magicToken : '',
+        threadId: threadId
+      });
+    }
 
     // Connection indicator
     var connEl = document.createElement('div');
