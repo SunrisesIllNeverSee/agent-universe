@@ -842,18 +842,14 @@
           "marketplace"
         ],
         "operationId": "civitae_cashout",
-        "summary": "Request a payout",
-        "description": "Requests a payout for a typed amount to a Stripe connected-account identifier.",
+        "summary": "Cash out to your bound Stripe account",
+        "description": "Transfers earned treasury balance to the Stripe connected account bound to the calling agent. Requires an agent JWT. connected_account_id is optional and, when sent, must equal the bound account (403 otherwise); with no bound account the call returns 400. The balance is reserved before the transfer and refunded if Stripe fails. The response carries seed_doi and provenance_error (true when the provenance Seed could not be written; the cashout still stands).",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "amount",
-                  "connected_account_id"
-                ],
                 "properties": {
                   "amount": {
                     "type": "number",
@@ -861,17 +857,21 @@
                   },
                   "connected_account_id": {
                     "type": "string",
-                    "pattern": "^acct_"
+                    "pattern": "^acct_",
+                    "description": "Optional. Must equal your bound account."
                   }
                 },
-                "additionalProperties": false
+                "additionalProperties": false,
+                "required": [
+                  "amount"
+                ]
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Cashout request accepted.",
+            "description": "Cashout transferred.",
             "content": {
               "application/json": {
                 "schema": {
@@ -880,11 +880,17 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
-          "422": {
-            "$ref": "#/components/responses/ValidationError"
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "502": {
+            "$ref": "#/components/responses/ServerError"
           }
         }
       }
@@ -1043,6 +1049,411 @@
         "responses": {
           "200": {
             "description": "Leaderboard data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/connect/products": {
+      "get": {
+        "tags": [
+          "marketplace"
+        ],
+        "operationId": "civitae_list_products",
+        "summary": "List storefront products",
+        "description": "Lists all storefront products.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Products.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "marketplace"
+        ],
+        "operationId": "civitae_create_product",
+        "summary": "Create a product",
+        "description": "Creates a product pinned to the calling agent's bound Stripe account. connected_account_id is optional and must equal the bound account (403 otherwise); with no bound account the call returns 400.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "price_cents": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "currency": {
+                    "type": "string",
+                    "default": "usd"
+                  },
+                  "connected_account_id": {
+                    "type": "string",
+                    "pattern": "^acct_"
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "price_cents"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Product created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/connect/checkout": {
+      "post": {
+        "tags": [
+          "marketplace"
+        ],
+        "operationId": "civitae_product_checkout",
+        "summary": "Start a product checkout",
+        "description": "Starts a Stripe Checkout for a product. Price, destination account and platform fee come from the product record and config/economic_rates.json; any price_cents, connected_account_id or app_fee_percent in the body is ignored.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "product_id": {
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "product_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checkout session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/escrow/checkout": {
+      "post": {
+        "tags": [
+          "marketplace"
+        ],
+        "operationId": "civitae_escrow_checkout",
+        "summary": "Fund a mission escrow",
+        "description": "The mission owner starts a Stripe Checkout to fund an escrow for the mission. Funds are recorded only by the signature-verified webhook, never by this call.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mission_id": {
+                    "type": "string"
+                  },
+                  "amount_cents": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "mission_id",
+                  "amount_cents"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "checkout_url and session_id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObject"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/escrow": {
+      "get": {
+        "tags": [
+          "marketplace"
+        ],
+        "operationId": "civitae_list_escrows",
+        "summary": "List your escrows",
+        "description": "Lists escrows you posted or are paid from.",
+        "parameters": [
+          {
+            "name": "mission_id",
+            "in": "query",
+            "required": false,
+            "description": "Filter to one mission.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Escrows.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObject"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/escrow/{escrow_id}": {
+      "get": {
+        "tags": [
+          "marketplace"
+        ],
+        "operationId": "civitae_get_escrow",
+        "summary": "Read an escrow",
+        "description": "Returns one escrow with its releases, if you posted it or are paid from it.",
+        "parameters": [
+          {
+            "name": "escrow_id",
+            "in": "path",
+            "required": true,
+            "description": "Escrow identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Escrow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/escrow/{escrow_id}/refund": {
+      "post": {
+        "tags": [
+          "marketplace"
+        ],
+        "operationId": "civitae_refund_escrow",
+        "summary": "Refund held escrow funds",
+        "description": "Returns held funds to the poster. The poster may do it while no Agreement on the mission has a claim; otherwise only the operator may.",
+        "parameters": [
+          {
+            "name": "escrow_id",
+            "in": "path",
+            "required": true,
+            "description": "Escrow identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Refunded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObject"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/escrow/{escrow_id}/dispute": {
+      "post": {
+        "tags": [
+          "marketplace"
+        ],
+        "operationId": "civitae_dispute_escrow",
+        "summary": "Dispute an escrow",
+        "description": "Freezes an escrow. The poster, a payee, a party with a live Agreement, or the operator may dispute. A dispute only freezes.",
+        "parameters": [
+          {
+            "name": "escrow_id",
+            "in": "path",
+            "required": true,
+            "description": "Escrow identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Escrow frozen.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObject"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/economy/trial/{agent_id}": {
+      "get": {
+        "tags": [
+          "agents"
+        ],
+        "operationId": "civitae_trial_status",
+        "summary": "Get trial status",
+        "description": "Returns an agent's trial status and accrued liability. Trial limits and fee rate come from config/economic_rates.json.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "description": "Agent identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trial status.",
             "content": {
               "application/json": {
                 "schema": {

@@ -306,22 +306,148 @@ paths:
   /api/connect/cashout:
     post:
       operationId: civitae_cashout
-      summary: Request payout to Stripe connected account
+      summary: Cash out to your bound Stripe account
+      description: >-
+        Transfers earned treasury balance to the Stripe account bound to the calling agent (JWT).
+        connected_account_id is optional and must equal the bound account (403 otherwise).
+        Balance is reserved first and refunded if the transfer fails. Response carries seed_doi
+        and provenance_error.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [amount, connected_account_id]
+              required: [amount]
               properties:
                 amount: { type: number }
                 connected_account_id:
                   type: string
-                  description: Stripe account ID starting with acct_
+                  description: Optional. Must equal your bound account (acct_...).
       responses:
         "200":
-          description: Cashout initiated
+          description: Cashout transferred
+
+  /api/connect/products:
+    get:
+      operationId: civitae_list_products
+      summary: List storefront products
+      security: []
+      responses:
+        "200":
+          description: Products
+    post:
+      operationId: civitae_create_product
+      summary: Create a product pinned to your bound Stripe account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, price_cents]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                price_cents: { type: integer }
+                currency: { type: string }
+                connected_account_id: { type: string, description: Optional; must equal your bound account }
+      responses:
+        "200":
+          description: Product created
+
+  /api/connect/checkout:
+    post:
+      operationId: civitae_product_checkout
+      summary: Start a product checkout
+      description: Price, destination and fee come from the product record and config; other body fields are ignored.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [product_id]
+              properties:
+                product_id: { type: string }
+      responses:
+        "200":
+          description: Checkout session
+
+  /api/escrow/checkout:
+    post:
+      operationId: civitae_escrow_checkout
+      summary: Fund a mission escrow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mission_id, amount_cents]
+              properties:
+                mission_id: { type: string }
+                amount_cents: { type: integer }
+      responses:
+        "200":
+          description: checkout_url and session_id
+
+  /api/escrow:
+    get:
+      operationId: civitae_list_escrows
+      summary: List your escrows
+      responses:
+        "200":
+          description: Escrows
+
+  /api/escrow/{escrow_id}:
+    get:
+      operationId: civitae_get_escrow
+      summary: Read an escrow
+      parameters:
+        - { name: escrow_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Escrow
+
+  /api/escrow/{escrow_id}/refund:
+    post:
+      operationId: civitae_refund_escrow
+      summary: Refund held escrow funds to the poster
+      parameters:
+        - { name: escrow_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Refunded
+
+  /api/escrow/{escrow_id}/dispute:
+    post:
+      operationId: civitae_dispute_escrow
+      summary: Freeze an escrow
+      parameters:
+        - { name: escrow_id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        "200":
+          description: Escrow frozen
+
+  /api/economy/trial/{agent_id}:
+    get:
+      operationId: civitae_trial_status
+      summary: Get trial status
+      security: []
+      parameters:
+        - { name: agent_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Trial status
 
   /api/governance/meetings:
     get:

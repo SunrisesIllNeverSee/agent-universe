@@ -19,7 +19,7 @@ from app.deps import state
 from app.metrics_io import atomic_write, load_metrics
 from app.seeds import create_seed, create_seed_loud
 from app.anchor_outbox import anchor_payout
-from app.economy import TIERS
+from app.economy import TIERS, TRIAL_DAY_LIMIT, TRIAL_MISSION_LIMIT
 from app.chains import MultiChainRouter
 from app.jwt_config import get_kassa_jwt_secret
 import jwt as pyjwt
@@ -325,7 +325,7 @@ async def trial_init(payload: AgentIdPayload) -> dict:
         metadata={"agent_id": agent_id, "trial": rec},
     )
     return {"agent_id": agent_id, "trial": rec,
-            "note": f"Free trial: {state.economy.trials.TRIAL_MISSION_LIMIT if hasattr(state.economy.trials, 'TRIAL_MISSION_LIMIT') else 5} missions or 30 days.",
+            "note": f"Free trial: {TRIAL_MISSION_LIMIT} missions or {TRIAL_DAY_LIMIT} days.",
             "seed_doi": seed_doi}
 
 
