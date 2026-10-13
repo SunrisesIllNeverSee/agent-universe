@@ -119,7 +119,11 @@ def create_app(root: Path | None = None) -> FastAPI:
         ev = audit.log(component, action, detail)
         return (ev.detail or {}).get("hash")
 
-    workentry = WorkEntryStore(data_dir / "workentry.db", audit_fn=_workentry_audit)
+    # P5 ProofPress anchor outbox: OFF unless SIGNOMY_ANCHOR_OUTBOX=1 (then None -> fully inert).
+    from . import anchor_outbox
+    anchors = anchor_outbox.build_outbox(data_dir)
+    anchor_outbox.configure(anchors)
+    workentry = WorkEntryStore(data_dir / "workentry.db", audit_fn=_workentry_audit, anchors=anchors)
     runtime = RuntimeState(root=root, data_dir=data_dir, store=store, audit=audit)
     router = SequenceRouter()
     assembler = ContextAssembler(router)
@@ -202,9 +206,21 @@ def create_app(root: Path | None = None) -> FastAPI:
                     logger.info("work-entry dormancy sweep scheduled every %.2f h", interval / 3600)
             except Exception:
                 logger.exception("Could not schedule work-entry dormancy sweep; continuing")
+            anchor_task = None
+            if anchors is not None:
+                anchor_task = asyncio.create_task(
+                    anchor_outbox.drain_loop(float(os.environ.get("SIGNOMY_ANCHOR_DRAIN_SECONDS", "60"))),
+                    name="anchor-outbox-drain")
+                logger.info("anchor outbox drain scheduled (adapter=%s)", anchors.adapter.name)
             try:
                 yield
             finally:
+                if anchor_task is not None:
+                    anchor_task.cancel()
+                    try:
+                        await anchor_task
+                    except (asyncio.CancelledError, Exception):
+                        pass
                 if sweep_task is not None:
                     sweep_task.cancel()
                     try:
