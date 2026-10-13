@@ -13,6 +13,7 @@ Covers:
 """
 from __future__ import annotations
 
+import math
 import re
 
 from fastapi import APIRouter, HTTPException, Request
@@ -248,6 +249,9 @@ async def initiate_payment(post_id: str, request: Request) -> dict:
     # Check for MPP credential on retry
     if auth_header.startswith("MPP "):
         receipt = kassa_payments.mpp_verify_credential(auth_header)
+        # The credential pays for the resource and amount it was issued for, nothing else.
+        if receipt and (receipt.get("resource") != post_id or float(receipt.get("amount") or 0) < amount):
+            raise HTTPException(status_code=402, detail="MPP credential was not issued for this post")
         if receipt:
             state.audit.log("kassa", "mpp_payment_verified", {
                 "post_id": post_id, "amount": amount, "receipt": receipt,
@@ -466,6 +470,17 @@ async def list_connect_products() -> list:
 
 # ── Stripe Connect: Checkout ───────────────────────────────────────────────
 
+# Metadata keys the platform webhook acts on (escrow funding, fee-credit packs, bounty posts).
+# A buyer-supplied value for any of them would let a $1 product purchase mint escrow or fee credits.
+_RESERVED_METADATA = frozenset({"type", "poster_id", "mission_id", "agent_id", "pack_name",
+                                "price_cents", "post_id", "product_id"})
+
+
+def _buyer_metadata(raw) -> dict:
+    return {str(k): v for k, v in (raw or {}).items()
+            if isinstance(raw, dict) and str(k) not in _RESERVED_METADATA}
+
+
 @router.post("/api/connect/checkout")
 async def create_connect_checkout(payload: dict, request: Request) -> dict:
     """Create a checkout session with destination charge.
@@ -501,7 +516,7 @@ async def create_connect_checkout(payload: dict, request: Request) -> dict:
         success_url=f"{base}/connect/success?session_id={{CHECKOUT_SESSION_ID}}",
         cancel_url=f"{base}/connect?cancelled=1",
         app_fee_percent=app_fee_percent,
-        metadata={**(payload.get("metadata") or {}), "product_id": product_id},
+        metadata={**_buyer_metadata(payload.get("metadata")), "product_id": product_id},
     )
     if result.get("error"):
         raise HTTPException(status_code=503, detail=result["error"])
@@ -815,7 +830,7 @@ async def cashout(request: Request):
     connected_account_id = _bound_account(_principal)
     requested_account = (body.get("connected_account_id") or "").strip()
 
-    if amount_usd <= 0:
+    if not math.isfinite(amount_usd) or amount_usd <= 0:
         return JSONResponse({"error": "Amount must be positive"}, status_code=400)
     if not connected_account_id:
         return JSONResponse({"error": "No Stripe account linked to this agent — create one via /api/connect/accounts"}, status_code=400)

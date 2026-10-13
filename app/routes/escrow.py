@@ -125,6 +125,20 @@ async def refund_to_poster(escrow_id: str, *, actor: str = "operator", reason: s
     return {"escrow": rec, "refunded": amount, "to": rec["poster_id"], "transaction": txn, "seed": seed}
 
 
+def _worker_has_claim(mission_id: str, poster_id: str) -> bool:
+    """An entrant has a claim on the held funds: an Agreement on the mission is accepted, active,
+    dormant or completed, or the poster itself terminated one (walking away from a worker is not
+    a refund). Only the operator refunds past that."""
+    for a in state.workentry.list_by_object("mission_id", mission_id):
+        if a["state"] in ("accepted", "active", "dormant", "completed"):
+            return True
+        if a["state"] == "terminated":
+            term = [r for r in state.workentry.receipts(a["agreement_id"]) if r["transition"] == "terminate"]
+            if not term or any(poster_id in (r["actor"], r["acting_for"]) for r in term):
+                return True
+    return False
+
+
 def _acting(request: Request) -> str | None:
     from app.routes.missions import _acting_agent_id
     return _acting_agent_id(request)
@@ -250,8 +264,7 @@ async def refund(escrow_id: str, request: Request):
     try:
         rec = state.escrow.get(escrow_id)
         if acting is not None:
-            live = [a for a in state.workentry.list_by_object("mission_id", rec.get("mission_id") or "")
-                    if a["state"] == "active"]
+            live = _worker_has_claim(rec.get("mission_id") or "", rec["poster_id"])
             if acting != rec["poster_id"] or live:
                 return JSONResponse({"error": "Only the poster (with no active Agreement) or the operator may refund"},
                                     status_code=403)
@@ -268,7 +281,9 @@ async def dispute(escrow_id: str, payload: dict, request: Request):
         rec = state.escrow.get(escrow_id)
         if not _visible(rec, acting):
             ags = state.workentry.list_by_object("mission_id", rec.get("mission_id") or "")
-            if not any(p["id"] == acting for a in ags for p in a["principals"]):
+            # a party with a live stake: a withdrawn / rejected / terminated / pending entrant has none
+            if not any(p["id"] == acting for a in ags if a["state"] in ("accepted", "active", "dormant")
+                       for p in a["principals"]):
                 return JSONResponse({"error": "Not a party to this escrow"}, status_code=403)
         rec = state.escrow.dispute(escrow_id, by=acting or "operator", reason=str(payload.get("reason") or ""))
     except EscrowError as e:

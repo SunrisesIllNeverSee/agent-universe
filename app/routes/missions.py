@@ -569,6 +569,10 @@ async def end_mission(mission_id: str, request: Request, payload: EndMissionPayl
         return JSONResponse({"error": "Only an operator may set a mission payout"}, status_code=403)
     if payout_amount < 0 or payout_amount > MAX_SLOT_PAYOUT:
         return JSONResponse({"error": f"payout_per_slot must be between 0 and {MAX_SLOT_PAYOUT:,.0f}"}, status_code=400)
+    if payload and _acting_agent_id(request) is not None:
+        # The originator credit is a fee discount: an owner agent cannot name a sock puppet
+        # (or anyone) for it. The originator of a mission is its recorded owner.
+        payload.originator_id = mission.get("owner_agent_id") or ""
     mission["status"] = "completed"
     mission["ended_at"] = datetime.now(UTC).isoformat()
     payouts = []

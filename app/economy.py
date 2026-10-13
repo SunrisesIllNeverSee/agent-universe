@@ -91,6 +91,7 @@ except ImportError:
     fcntl = None  # Non-POSIX (Windows) — file locking unavailable
 import hashlib
 import json
+import math
 import os
 from datetime import UTC, datetime
 from pathlib import Path
@@ -423,7 +424,14 @@ class AgentTreasury:
     def balance(self, agent_id: str) -> float:
         return self._ledger["balances"].get(agent_id, 0.0)
 
+    @staticmethod
+    def _valid_amount(amount: float) -> bool:
+        """Finite and non-negative: NaN would pass every later balance check, a negative flips the sign."""
+        return isinstance(amount, (int, float)) and math.isfinite(amount) and amount >= 0
+
     def credit(self, agent_id: str, amount: float, reason: str, mission_id: str = "") -> dict:
+        if not self._valid_amount(amount):
+            raise ValueError(f"invalid credit amount: {amount!r}")
         self._ledger["balances"][agent_id] = self.balance(agent_id) + amount
         txn = {
             "id": hashlib.sha256(f"{agent_id}{amount}{datetime.now(UTC).isoformat()}".encode()).hexdigest()[:16],
@@ -441,6 +449,8 @@ class AgentTreasury:
 
     def debit(self, agent_id: str, amount: float, reason: str, chain: str = "") -> dict:
         current = self.balance(agent_id)
+        if not self._valid_amount(amount):
+            return {"error": "Invalid amount", "balance": current, "requested": amount}
         if amount > current:
             return {"error": "Insufficient balance", "balance": current, "requested": amount}
         self._ledger["balances"][agent_id] = current - amount
@@ -493,7 +503,13 @@ class FeeCreditLedger:
         return self._ledger["balances"].get(agent_id, 0.0)
 
     def credit(self, agent_id: str, amount: float, pack_name: str, stripe_session_id: str = "") -> dict:
-        """Add fee coverage credits to an agent's balance."""
+        """Add fee coverage credits to an agent's balance. Idempotent on stripe_session_id
+        (a replayed or retried webhook must not credit the same purchase twice)."""
+        if stripe_session_id:
+            prior = next((t for t in self._ledger["transactions"]
+                          if t.get("type") == "credit" and t.get("stripe_session_id") == stripe_session_id), None)
+            if prior is not None:
+                return {**prior, "duplicate": True}
         self._ledger["balances"][agent_id] = self.balance(agent_id) + amount
         txn = {
             "id": hashlib.sha256(f"{agent_id}{amount}{datetime.now(UTC).isoformat()}".encode()).hexdigest()[:16],
