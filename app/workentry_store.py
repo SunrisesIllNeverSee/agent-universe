@@ -43,7 +43,7 @@ ENTRY_MODES = ("open", "standard", "constitutional")
 TERMINAL_STATES = frozenset({"rejected", "withdrawn", "retired", "terminated", "completed"})
 LIVE_STATES = ("intent", "pending", "dormant", "accepted", "active")  # F12 "non-terminal"
 DORMANT_AFTER = timedelta(days=14)
-ANCHOR_STATES = frozenset({"accepted", "active", "completed"})   # P5: states anchored through ProofPress
+ANCHOR_STATES = frozenset({"completed"})   # P5/Q5: only completed Agreements anchor through ProofPress
 
 # Constitutional gate (slice 5). GOV-001 s9.3: committee recommendations are advisory unless the
 # Council delegates binding authority by a two-thirds vote; the setting flips without code change.
@@ -550,7 +550,7 @@ class WorkEntryStore:
             return {}
 
     def _anchor_after_commit(self, receipts: list[dict]) -> None:
-        """Queue anchor jobs for accepted/active/completed receipts. Runs AFTER the COMMIT; never raises."""
+        """Queue an anchor job for completed-Agreement receipts only (Q5). Runs AFTER the COMMIT; never raises."""
         if self._anchors is None:
             return
         for rc in receipts:

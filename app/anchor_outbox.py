@@ -5,9 +5,11 @@ attestation service) as small "mini hashed contracts". The rule is simple:
 
     commit first, anchor after.
 
-An interaction (Agreement accepted/active/completed, payout, cashout, escrow
-release) commits, writes its own receipt and Seed, and THEN a job is queued
-here. A worker drains the queue through an adapter. If ProofPress is down,
+Only COMPLETED Agreements anchor (owner Q5). Accepted/active transitions and
+standalone payout / cashout / escrow-release events are not anchored; the
+completed receipt already carries the escrow and economic-terms ids. A
+completed Agreement commits, writes its own receipt and Seed, and THEN a job
+is queued here. A worker drains the queue through an adapter. If ProofPress is down,
 slow or unconfigured the interaction has already happened; the job simply
 stays ``pending`` and the receipt shows ``anchor: pending``.
 
@@ -15,6 +17,9 @@ What leaves SIGNOMY is hashes plus a small projection of ids, nothing else:
 no terms text, no reasons, no prompts, no personal data. Receipts and Seeds
 are append-only, so the anchor status is kept HERE (own SQLite file) and
 joined onto the receipt view by receipt id / Seed DOI.
+
+The ProofPress credential is read from ``PROOFPRESS_TOKEN`` only; it is sent as
+a Bearer header and never stored, logged or returned.
 
 Feature-flagged OFF: nothing is created or queued unless
 ``SIGNOMY_ANCHOR_OUTBOX=1``. With the flag on and no ``PROOFPRESS_URL`` the
@@ -41,6 +46,9 @@ FLAG_ENV = "SIGNOMY_ANCHOR_OUTBOX"
 URL_ENV = "PROOFPRESS_URL"
 TOKEN_ENV = "PROOFPRESS_TOKEN"
 
+# Q5: the only job kind that may be queued. Everything else is refused at enqueue().
+ANCHOR_KINDS = frozenset({"agreement.completed"})
+
 STATUS_PENDING = "pending"
 STATUS_ANCHORED = "anchored"
 STATUS_FAILED = "failed"        # gave up after MAX_ATTEMPTS; never blocks anything
@@ -55,6 +63,11 @@ PROJECTION_KEYS = frozenset({
 })
 _EMAIL = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
 _MAX_STR = 128
+
+
+def redact(text: str, secret: str | None) -> str:
+    """Strip a credential from any text that might be stored or logged."""
+    return text.replace(secret, "[redacted]") if secret else text
 
 
 def anchor_enabled() -> bool:
@@ -150,7 +163,8 @@ class ProofPressAdapter:
             headers["Authorization"] = f"Bearer {self.token}"
         reply = self._transport(self.url, body, headers)
         if reply.get("error") or (reply.get("result") or {}).get("isError"):
-            raise AdapterUnavailable(f"proofpress rejected: {str(reply.get('error') or reply.get('result'))[:160]}")
+            msg = redact(str(reply.get("error") or reply.get("result")), self.token)
+            raise AdapterUnavailable(f"proofpress rejected: {msg[:160]}")
         rid = _find_evidence_id(reply)
         if not rid:
             raise AdapterUnavailable("proofpress reply carried no evidence id")
@@ -225,6 +239,8 @@ class AnchorOutbox:
                 receipt_id: str | None = None, seed_doi: str | None = None,
                 dedupe_key: str | None = None) -> str | None:
         """Queue one anchor job (idempotent on dedupe_key). Returns the job id, or None on failure."""
+        if kind not in ANCHOR_KINDS:
+            return None
         try:
             proj = scrub_projection({**projection, "kind": kind})
             dig = digest or content_digest(proj)
@@ -257,9 +273,10 @@ class AnchorOutbox:
                 except Exception as exc:  # noqa: BLE001 - unreachable ProofPress is normal, not an error
                     attempts = job["attempts"] + 1
                     status = STATUS_FAILED if attempts >= MAX_ATTEMPTS else STATUS_PENDING
+                    err = redact(f"{type(exc).__name__}: {exc}", getattr(self.adapter, "token", None))
                     self._conn.execute(
                         "UPDATE anchor_jobs SET attempts=?, last_error=?, status=? WHERE job_id=? AND status=?",
-                        (attempts, f"{type(exc).__name__}: {exc}"[:200], status, job["job_id"], STATUS_PENDING))
+                        (attempts, err[:200], status, job["job_id"], STATUS_PENDING))
                     tally["errors"] += 1
                     continue
                 if res.status == STATUS_ANCHORED and res.receipt_id:
@@ -320,44 +337,21 @@ def build_outbox(data_dir: Path) -> AnchorOutbox | None:
     return AnchorOutbox(Path(data_dir) / "anchor_outbox.db", adapter=default_adapter())
 
 
+# Q5: payout / cashout / escrow release are NOT anchored on their own. The hooks stay so call sites
+# are unchanged; the completed Agreement's receipt (which carries escrow_id / economic_terms_id) is
+# the single anchored artifact. enqueue() would refuse these kinds anyway.
+
 def anchor_payout(result: dict, *, source: str, seed_doi: str | None = None) -> None:
-    """Queue a per-payout anchor AFTER the ledger credit + Seed. Never raises."""
-    ob = _OUTBOX
-    if ob is None:
-        return
-    fee = result.get("fee_breakdown") or {}
-    mid = str(result.get("mission_id") or "")
-    ob.enqueue(
-        "payout", mid or str(result.get("agent_id") or ""),
-        {"actor": result.get("agent_id"), "mission_id": mid, "tier": result.get("tier"),
-         "source": source, "seed_doi": seed_doi,
-         "gross": fee.get("gross_amount", fee.get("gross")), "platform_fee": fee.get("platform_fee"),
-         "net_to_agent": fee.get("net_to_agent"), "trial": bool(result.get("trial", False)),
-         "at": ob._now()},
-        seed_doi=seed_doi,
-        dedupe_key=f"payout:{source}:{mid}:{result.get('agent_id')}:{fee.get('gross_amount', fee.get('gross'))}")
+    """No-op by owner decision Q5 (completed Agreements only)."""
 
 
 def anchor_cashout(*, agent_id: str, amount_usd: float, transfer_id: str, seed_doi: str | None) -> None:
-    ob = _OUTBOX
-    if ob is None:
-        return
-    ob.enqueue("cashout", transfer_id,
-               {"actor": agent_id, "amount_usd": amount_usd, "transfer_id": transfer_id,
-                "seed_doi": seed_doi, "at": ob._now()},
-               seed_doi=seed_doi, dedupe_key=f"cashout:{transfer_id}")
+    """No-op by owner decision Q5 (completed Agreements only)."""
 
 
 def anchor_escrow_release(*, escrow_id: str, agreement_id: str | None, actor: str, amount_usd: float | None,
                           release_id: str = "") -> None:
-    """Queue an anchor for one escrow release (release_id keeps partial releases distinct)."""
-    ob = _OUTBOX
-    if ob is None:
-        return
-    ob.enqueue("escrow_release", escrow_id,
-               {"actor": actor, "escrow_id": escrow_id, "agreement_id": agreement_id,
-                "amount_usd": amount_usd, "at": ob._now()},
-               dedupe_key=f"escrow_release:{escrow_id}:{release_id}" if release_id else f"escrow_release:{escrow_id}")
+    """No-op by owner decision Q5 (completed Agreements only)."""
 
 
 async def drain_loop(interval_s: float) -> None:
