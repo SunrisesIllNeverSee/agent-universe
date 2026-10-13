@@ -298,6 +298,47 @@ def sweep_entries() -> dict:
     return {"dormant": dormant, "asked_poster": asked}
 
 
+SWEEP_INTERVAL_ENV = "WORKENTRY_SWEEP_INTERVAL_HOURS"
+DEFAULT_SWEEP_INTERVAL_HOURS = 6.0
+
+
+def sweep_interval_seconds() -> float:
+    """Seconds between scheduled sweeps; 0 (or invalid/negative) disables the scheduler.
+    Default 6 h, override with WORKENTRY_SWEEP_INTERVAL_HOURS."""
+    import os
+    raw = os.environ.get(SWEEP_INTERVAL_ENV)
+    if raw is None or not raw.strip():
+        return DEFAULT_SWEEP_INTERVAL_HOURS * 3600.0
+    try:
+        hours = float(raw)
+    except ValueError:
+        logger.warning("%s=%r is not a number; scheduled sweep disabled", SWEEP_INTERVAL_ENV, raw)
+        return 0.0
+    return max(hours, 0.0) * 3600.0
+
+
+async def run_scheduled_sweep() -> dict | None:
+    """One scheduled pass: same sweep_entries() as the lazy path (same transition fn,
+    receipts and Seeds). Runs in a worker thread; never raises."""
+    import asyncio
+    try:
+        return await asyncio.to_thread(sweep_entries)
+    except Exception:  # noqa: BLE001
+        logger.exception("scheduled work-entry sweep failed; will retry next interval")
+        return None
+
+
+async def dormancy_sweep_loop(interval_s: float) -> None:
+    """Periodic dormancy sweep. Sleeps first (startup is not a sweep); cancelled on shutdown."""
+    import asyncio
+    while True:
+        await asyncio.sleep(interval_s)
+        res = await run_scheduled_sweep()
+        if res and (res["dormant"] or res["asked_poster"]):
+            logger.info("scheduled work-entry sweep: %d dormant, %d asked poster",
+                        len(res["dormant"]), len(res["asked_poster"]))
+
+
 def _lazy() -> None:
     try:
         sweep_entries()

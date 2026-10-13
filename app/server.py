@@ -191,7 +191,24 @@ def create_app(root: Path | None = None) -> FastAPI:
                 await backdate_gov_documents()
             except Exception:
                 logger.exception("Startup backdate failed; continuing")
-            yield
+            sweep_task = None
+            try:
+                from .routes.workentry import dormancy_sweep_loop, sweep_interval_seconds
+                interval = sweep_interval_seconds()
+                if interval > 0:
+                    sweep_task = asyncio.create_task(dormancy_sweep_loop(interval), name="workentry-dormancy-sweep")
+                    logger.info("work-entry dormancy sweep scheduled every %.2f h", interval / 3600)
+            except Exception:
+                logger.exception("Could not schedule work-entry dormancy sweep; continuing")
+            try:
+                yield
+            finally:
+                if sweep_task is not None:
+                    sweep_task.cancel()
+                    try:
+                        await sweep_task
+                    except (asyncio.CancelledError, Exception):
+                        pass
 
     app = FastAPI(title="COMMAND Runtime", version="0.1.0", lifespan=_lifespan)
 

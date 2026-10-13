@@ -888,6 +888,10 @@ class MCPBridge:
                 if motion.get("status") != "pending":
                     span.set_attribute("mcp.result", "not_pending")
                     return {"error": "Motion is not pending."}
+                from app.civitas_procedure import motion_is_blocked
+                if motion_is_blocked(motion):
+                    span.set_attribute("mcp.result", "motion_blocked")
+                    return {"error": "Motion is BLOCKED; no vote may be called except through appeal (GOV-001 5.3)."}
 
                 motion["votes"][voter] = vote
                 now = datetime.now(timezone.utc).isoformat()

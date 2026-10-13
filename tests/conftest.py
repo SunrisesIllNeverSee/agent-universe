@@ -21,6 +21,7 @@ from starlette.testclient import TestClient
 # Set env vars BEFORE importing create_app — they're read at import time
 os.environ.setdefault("CIVITAE_ADMIN_KEY", "test-admin-key-12345")
 os.environ.setdefault("CIVITAE_DEV_MODE", "1")
+os.environ.setdefault("WORKENTRY_SWEEP_INTERVAL_HOURS", "0")  # scheduler off in tests unless invoked
 os.environ.pop("RAILWAY_ENVIRONMENT", None)  # ensure dev mode kicks in
 
 
