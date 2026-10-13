@@ -152,7 +152,9 @@ def create_app(root: Path | None = None) -> FastAPI:
     state.store = store
     state.kassa = kassa
     state.workentry = workentry
-    state.escrow = EscrowStore(data_dir / "escrow.json")
+    # Durable SQLite (atomic release/refund); ESCROW_STORE=json keeps the legacy single-replica file.
+    state.escrow = (EscrowStore(data_dir / "escrow.json") if os.environ.get("ESCROW_STORE") == "json"
+                    else EscrowStore(data_dir / "escrow.db", import_json=data_dir / "escrow.json"))
     state.inbox = inbox
     state.forums = forums
     state.audit = audit
