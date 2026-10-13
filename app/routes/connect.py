@@ -19,7 +19,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-from app.auth import require_admin
+from app.auth import admin_key_matches, require_admin
 from app.deps import state
 from app.otel_setup import get_tracer as _get_tracer
 from app.seeds import create_seed
@@ -39,6 +39,18 @@ def _tag_payment_span(**attrs) -> None:
         pass
 
 router = APIRouter(tags=["connect"])
+
+# Fee-credit packs: name -> (price USD, coverage USD). The price a buyer pays and the coverage a
+# purchase earns are set here, never by the request body.
+FEE_PACKS = {"Starter": (25, 50), "Standard": (50, 100), "Builder": (100, 225),
+             "Founding": (250, 600), "Cycle Pack": (500, 1250)}
+
+
+def _require_operator(request: Request) -> None:
+    """Onboarding sessions/links let their holder edit an account (including payout destination).
+    Account ids are public and production has no account-to-agent binding, so operator only."""
+    if not admin_key_matches(request, state.admin_key):
+        raise HTTPException(status_code=403, detail="Operator admin key required")
 
 
 class ConnectAccountPayload(BaseModel):
@@ -312,12 +324,13 @@ async def create_recipient_account(payload: ConnectRecipientPayload) -> dict:
 
 
 @router.post("/api/connect/accounts/{account_id}/session")
-async def create_connect_session(account_id: str) -> dict:
+async def create_connect_session(account_id: str, request: Request) -> dict:
     """Create a Stripe Account Session for embedded Connect onboarding.
 
     Returns a client_secret for use with Stripe.js loadConnectAndInitialize().
     Enables embedded (non-redirect) onboarding for both V1 and V2 accounts.
     """
+    _require_operator(request)
     result = kassa_payments.create_account_session(account_id)
     if result.get("error"):
         raise HTTPException(status_code=503, detail=result["error"])
@@ -327,6 +340,7 @@ async def create_connect_session(account_id: str) -> dict:
 @router.post("/api/connect/accounts/{account_id}/onboard")
 async def onboard_connect_account(account_id: str, request: Request) -> dict:
     """Generate an onboarding link for a connected account (V1 hosted redirect)."""
+    _require_operator(request)
     proto = request.headers.get("x-forwarded-proto", "http")
     host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost")
     base = f"{proto}://{host}"
@@ -516,6 +530,10 @@ async def stripe_webhook_v1(request: Request) -> dict:
 
     if not kassa_payments.stripe_ready():
         raise HTTPException(status_code=503, detail="Stripe not configured")
+    if not kassa_payments.STRIPE_WEBHOOK_SECRET:
+        # An HMAC over an empty key verifies: without a signing secret anyone could forge a paid
+        # event. No secret, no webhook (fail closed).
+        raise HTTPException(status_code=503, detail="Stripe webhook signing secret not configured")
 
     try:
         import stripe
@@ -550,11 +568,10 @@ async def stripe_webhook_v1(request: Request) -> dict:
         if metadata.get("type") == "fee_credit_pack":
             pack_name = metadata.get("pack_name", "Unknown")
             agent_id = metadata.get("agent_id", "")
-            # Coverage amount = what the pack covers (from frontend PACKS data)
-            # We store price_cents in metadata; coverage is derived from pack config server-side
-            # For now credit coverage = 2× price (Standard pack logic) — exact amounts TBD
-            PACK_COVERAGE = {"Starter": 50, "Standard": 100, "Builder": 225, "Founding": 600, "Cycle Pack": 1250}
-            coverage = PACK_COVERAGE.get(pack_name, _stripe_amount * 2)
+            # Coverage comes from the pack table, scaled by what was actually paid (never above the
+            # pack's own coverage); a name outside the table earns the base 2x ratio on what was paid.
+            pack = FEE_PACKS.get(pack_name)
+            coverage = round(pack[1] * min(1.0, _stripe_amount / pack[0]), 4) if pack else _stripe_amount * 2
             if agent_id:
                 state.economy.fee_credits.credit(
                     agent_id=agent_id,
@@ -613,6 +630,8 @@ async def fee_credits_checkout(payload: dict, request: Request) -> dict:
     price_cents = int(payload.get("price_cents") or 0)
     if not pack_name:
         raise HTTPException(status_code=400, detail="pack_name required")
+    if pack_name in FEE_PACKS:
+        price_cents = FEE_PACKS[pack_name][0] * 100   # a named pack has one price; the body's is ignored
     if price_cents <= 0:
         raise HTTPException(status_code=400, detail="price_cents must be positive")
 
