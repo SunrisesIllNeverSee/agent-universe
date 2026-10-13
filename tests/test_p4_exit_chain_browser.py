@@ -415,3 +415,13 @@ def test_chain_refuses_deploy_without_the_chain(live, browser):
     assert tid(page, "arm-blocked").get_attribute("data-blocking") == "no_active_agreement"
     assert page.locator("#cve-deploy").count() == 0
     ctx.close()
+
+
+def test_browser_is_sealed_from_external_hosts(browser):
+    """Guard for the run-37 flake: external fonts/analytics must fail at once, never stall 'load'."""
+    page = browser.new_page()
+    t0 = time.time()
+    with pytest.raises(sync_api.Error, match="ERR_NAME_NOT_RESOLVED"):
+        page.goto("https://fonts.googleapis.com/", timeout=10000)
+    assert time.time() - t0 < 5
+    page.close()

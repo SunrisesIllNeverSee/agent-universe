@@ -1,0 +1,1 @@
+(eval):1: no such file or directory: /private/tmp/claude-501/-Users-dericmchenry-Developer--7-labs-signomy-control-surface/0d02a85a-e998-426a-9352-92cba804527a/scratchpad/p3venv/bin/python
