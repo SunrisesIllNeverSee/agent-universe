@@ -18,6 +18,7 @@ from typing import Any
 from app.deps import state
 from app.metrics_io import atomic_write, load_metrics
 from app.seeds import create_seed
+from app.anchor_outbox import anchor_payout
 from app.economy import TIERS
 from app.chains import MultiChainRouter
 from app.jwt_config import get_kassa_jwt_secret
@@ -239,6 +240,8 @@ async def process_mission_payout(payload: dict, request: Request) -> dict:
     except Exception as exc:
         state.audit.log("economy", "provenance_failed", {
             "action": "mission_payout", "agent_id": agent_id, "error": str(exc)[:200]})
+    anchor_payout({**result, "mission_id": payload.get("mission_id", ""), "agent_id": agent_id},
+                  source="api_payout", seed_doi=seed_doi)
     return {**result, "seed_doi": seed_doi, "provenance_error": seed_doi is None}
 
 

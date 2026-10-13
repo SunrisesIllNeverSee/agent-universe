@@ -26,6 +26,7 @@ from app.deps import state
 from app.metrics_io import atomic_write
 from app.otel_setup import get_tracer as _get_tracer
 from app.seeds import create_seed
+from app.anchor_outbox import anchor_payout
 from app import slot_binding
 
 router = APIRouter(tags=["missions"])
@@ -535,6 +536,7 @@ async def end_mission(mission_id: str, request: Request, payload: EndMissionPayl
                     originator_id=payload.originator_id if payload else "",
                 )
                 result["seed"] = await _payout_seed(result, source="mission_end")
+                anchor_payout(result, source="mission_end", seed_doi=result["seed"].get("doi"))
                 payouts.append(result)
             except Exception as exc:
                 payout_errors.append({"agent_id": slot["agent_id"], "error": str(exc)[:200]})
@@ -968,6 +970,7 @@ async def close_task(task_id: str, payload: CloseTaskPayload, request: Request) 
                 mission_id=task_id,
             )
             payout_result["seed"] = await _payout_seed(payout_result, source="task_close")
+            anchor_payout(payout_result, source="task_close", seed_doi=payout_result["seed"].get("doi"))
     state.audit.log("mission", "task_closed", {
         "task_id": task_id,
         "agent_id": agent_id,

@@ -856,6 +856,8 @@ async def cashout(request: Request):
         state.audit.log("economy", "provenance_failed", {
             "action": "cashout", "transfer_id": result["transfer_id"], "error": str(exc)[:200]})
 
+    from app.anchor_outbox import anchor_cashout
+    anchor_cashout(agent_id=agent_id, amount_usd=amount_usd, transfer_id=result["transfer_id"], seed_doi=seed_doi)
     return JSONResponse({
         "ok": True,
         "seed_doi": seed_doi,

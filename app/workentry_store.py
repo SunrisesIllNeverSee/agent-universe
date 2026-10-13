@@ -33,6 +33,8 @@ from pathlib import Path
 from threading import RLock
 from typing import Any, Callable
 
+from .anchor_outbox import content_digest
+
 AGREEMENT_CLASS = "WorkEntryAgreement"
 CLASS_VERSION = 1
 SEED_SOURCE_TYPE = "work_entry_agreement"
@@ -41,6 +43,7 @@ ENTRY_MODES = ("open", "standard", "constitutional")
 TERMINAL_STATES = frozenset({"rejected", "withdrawn", "retired", "terminated", "completed"})
 LIVE_STATES = ("intent", "pending", "dormant", "accepted", "active")  # F12 "non-terminal"
 DORMANT_AFTER = timedelta(days=14)
+ANCHOR_STATES = frozenset({"accepted", "active", "completed"})   # P5: states anchored through ProofPress
 
 # Constitutional gate (slice 5). GOV-001 s9.3: committee recommendations are advisory unless the
 # Council delegates binding authority by a two-thirds vote; the setting flips without code change.
@@ -386,6 +389,7 @@ class WorkEntryStore:
         audit_fn: Callable[[str, str, dict], str | None] | None = None,
         clock: Callable[[], datetime] | None = None,
         provenance_failure: str = "rollback",
+        anchors: Any | None = None,
     ) -> None:
         if provenance_failure not in ("rollback", "evidence_gap"):
             raise ValueError("provenance_failure must be 'rollback' or 'evidence_gap'")
@@ -396,6 +400,7 @@ class WorkEntryStore:
         self._audit_fn = audit_fn
         self._clock = clock or (lambda: datetime.now(UTC))
         self._policy = provenance_failure
+        self._anchors = anchors      # P5 ProofPress anchor outbox (None = feature off)
         # isolation_level=None: transactions are managed explicitly.
         self._conn = sqlite3.connect(str(self._db_path), check_same_thread=False, isolation_level=None)
         self._conn.row_factory = sqlite3.Row
@@ -532,7 +537,44 @@ class WorkEntryStore:
             "idempotency_key": r["idempotency_key"], "reason": r["reason"],
             "evidence_gap_id": r["evidence_gap_id"],
             "credential_ref": r["credential_ref"],
+            **self._anchor_view(r["receipt_id"]),
         }
+
+    def _anchor_view(self, receipt_id: str) -> dict:
+        """Receipts are append-only; the anchor status lives in the outbox and is joined here."""
+        if self._anchors is None:
+            return {}
+        try:
+            return {"anchor": self._anchors.for_receipt(receipt_id) or {"anchor": "none"}}
+        except Exception:  # noqa: BLE001 - a read never fails on the anchor side
+            return {}
+
+    def _anchor_after_commit(self, receipts: list[dict]) -> None:
+        """Queue anchor jobs for accepted/active/completed receipts. Runs AFTER the COMMIT; never raises."""
+        if self._anchors is None:
+            return
+        for rc in receipts:
+            try:
+                if rc.get("to") not in ANCHOR_STATES:
+                    continue
+                with self._lock:
+                    row = self._conn.execute("SELECT terms_json, objects_json FROM agreements WHERE agreement_id=?",
+                                             (rc["agreement_id"],)).fetchone()
+                terms_digest = content_digest(json.loads(row["terms_json"])) if row else None
+                self._anchors.enqueue(
+                    f"agreement.{rc['to']}", rc["agreement_id"],
+                    {"agreement_id": rc["agreement_id"], "receipt_id": rc["receipt_id"], "seed_doi": rc["seed_doi"],
+                     "transition": rc["transition"], "from": rc["from"], "to": rc["to"], "actor": rc["actor"],
+                     "acting_for": rc["acting_for"], "at": rc["at"], "terms_digest": terms_digest,
+                     "economic_terms_id": rc.get("economic_terms_id"), "escrow_id": rc.get("escrow_id")},
+                    digest=content_digest({"receipt_id": rc["receipt_id"], "agreement_id": rc["agreement_id"],
+                                           "transition": rc["transition"], "to": rc["to"], "at": rc["at"],
+                                           "seed_doi": rc["seed_doi"], "terms_digest": terms_digest}),
+                    receipt_id=rc["receipt_id"], seed_doi=rc["seed_doi"],
+                    dedupe_key=f"agreement:{rc['receipt_id']}")
+            except Exception as exc:  # noqa: BLE001 - the interaction already committed
+                import logging
+                logging.getLogger("civitae").warning("anchor enqueue skipped for %s: %s", rc.get("receipt_id"), exc)
 
     # ── authority (F3 / 1G): actor-level checks only; credential resolution is slice 2 ──
 
@@ -782,7 +824,10 @@ class WorkEntryStore:
                 self._conn.execute("UPDATE agreements SET superseded_by=? WHERE agreement_id=?", (aid, supersedes))
             return {"agreement": self._agreement(self._row(aid)), "receipts": receipts, "replayed": False}
 
-        return self._txn(run)
+        out = self._txn(run)
+        if not out.get("replayed"):
+            self._anchor_after_commit(out.get("receipts") or [])
+        return out
 
     # ── transitions ─────────────────────────────────────────────────────
 
@@ -823,7 +868,10 @@ class WorkEntryStore:
                                  key=key, seq=self._next_seq(agreement_id), credential=credential)
             return {"agreement": self._agreement(self._row(agreement_id)), "receipt": receipt, "replayed": False}
 
-        return self._txn(run)
+        out = self._txn(run)
+        if not out.get("replayed"):
+            self._anchor_after_commit([out["receipt"]])
+        return out
 
     def accept(self, agreement_id, *, actor, acting_for=None, idempotency_key=None, credential=None):
         return self._transition(agreement_id, "accept", actor=actor, acting_for=acting_for,
