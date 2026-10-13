@@ -173,3 +173,27 @@ def test_agent_product_is_pinned_to_its_bound_account(client, fake_stripe, monke
     assert client.post("/api/connect/products", json={**body, "connected_account_id": "acct_other"}, headers=jwt).status_code == 403
     assert client.post("/api/connect/products", json=body, headers=jwt).status_code == 200
     assert seen["connected_account_id"] == acct
+
+
+def test_cashout_refunds_reservation_when_stripe_fails(client, fake_stripe, monkeypatch):
+    d, _, jwt = _agent(client)
+    client.post("/api/connect/accounts", json={"display_name": "x", "email": "x@x.test"}, headers=jwt)
+    state.economy.treasury.credit(d["agent_id"], 25, reason="test_seed_balance")
+    before = state.economy.treasury.balance(d["agent_id"])
+    monkeypatch.setattr(kassa_payments, "create_transfer", lambda **kw: {"error": "stripe down"})
+    r = client.post("/api/connect/cashout", json={"amount": 10}, headers=jwt)
+    assert r.status_code == 502
+    assert state.economy.treasury.balance(d["agent_id"]) == before
+
+
+def test_cashout_seed_failure_is_loud_not_500(client, fake_stripe, monkeypatch):
+    from app.routes import connect as c
+
+    async def boom(**_):
+        raise RuntimeError("seed store down")
+    monkeypatch.setattr(c, "create_seed", boom)
+    d, _, jwt = _agent(client)
+    client.post("/api/connect/accounts", json={"display_name": "x", "email": "x@x.test"}, headers=jwt)
+    state.economy.treasury.credit(d["agent_id"], 25, reason="test_seed_balance")
+    r = client.post("/api/connect/cashout", json={"amount": 10}, headers=jwt)
+    assert r.status_code == 200 and r.json()["provenance_error"] is True

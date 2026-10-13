@@ -9,9 +9,11 @@ BLOCKED motion except through appeal), which the vote endpoint enforces.
 Flame Laws (GOV-003 section 1): I Origin, II Compression, III Force/Purpose,
 IV Modularity, V Fire/Verifiability, VI SR3 (Reciprocal Resonance).
 
-Evaluator v1 rules (case-insensitive, over motion text + declared flags):
+Evaluator v1 rules (case-insensitive, over motion text + declared flags).
+Wording never blocks on its own: keyword hits are WARNINGs noted for the Chair.
+BLOCKED comes only from a declared flag that maps to BLOCKED.
 
-  BLOCKED
+  WARNING (keyword hits, Chair to rule)
     Law I   : anonymous / impersonat / spoof identity / hide identity / untraceable
     Law IV  : bypass tier / override governance / suspend the flame / override the
               six fold flame / grant myself / without authorization / exceed authority
@@ -72,7 +74,10 @@ def review_motion(text: str, flags: list[str] | None = None) -> dict:
     for law, pat in _BLOCK_PATTERNS:
         m = re.search(pat, t)
         if m:
-            cite(law, "BLOCKED", f"text matches '{m.group(0)}'")
+            # Wording alone never blocks (owner: civics, not babysitting). It is
+            # flagged for the Chair; BLOCKED comes only from a declared flag,
+            # and either way the meeting rules and may appeal.
+            cite(law, "WARNING", f"text matches '{m.group(0)}' (Chair to rule)")
     words = re.findall(r"\w+", t)
     if len(words) < 3:
         cite("III", "WARNING", "fewer than 3 words; no discernible purpose")

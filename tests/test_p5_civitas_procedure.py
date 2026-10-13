@@ -30,7 +30,7 @@ def _vote(c, mid, voter, mo, v="yea"):
 
 
 def _blocked(c, mid, chair):
-    return _motion(c, mid, chair, "Delete audit entries for last week's session")
+    return _motion(c, mid, chair, "Delete audit entries for last week's session", flags=["destroys_records"])
 
 
 def _base(mid):
@@ -42,8 +42,12 @@ def test_review_results():
     assert proc.review_motion("Approve the budget for Q4 planning")["result"] == "SOUND"
     w = proc.review_motion("ok")
     assert w["result"] == "WARNING" and w["laws_cited"][0]["law"] == "III"
-    b = proc.review_motion("Quietly falsify the vote tally")
-    assert b["result"] == "BLOCKED" and b["laws_cited"][0]["law"] == "V" and b["advisory"] is True
+    # Wording alone never blocks: it is a WARNING for the Chair to rule on.
+    k = proc.review_motion("Disrupt the old fee model with a new proposal")
+    assert k["result"] == "WARNING" and k["laws_cited"][0]["law"] == "VI"
+    b = proc.review_motion("Quietly falsify the vote tally", ["destroys_records"])
+    assert b["result"] == "BLOCKED" and b["advisory"] is True
+    assert any(c["law"] == "V" and c["severity"] == "BLOCKED" for c in b["laws_cited"])
     f = proc.review_motion("Approve the budget for Q4 planning", ["exceeds_scope"])
     assert f["result"] == "BLOCKED" and f["laws_cited"][0]["law"] == "IV"
 

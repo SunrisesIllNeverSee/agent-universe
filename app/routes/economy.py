@@ -236,9 +236,10 @@ async def process_mission_payout(payload: dict, request: Request) -> dict:
             metadata={"action": "mission_payout", "tier": result["tier"], "gross": amount, "mission_id": payload.get("mission_id", "")},
         )
         seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
-    return {**result, "seed_doi": seed_doi}
+    except Exception as exc:
+        state.audit.log("economy", "provenance_failed", {
+            "action": "mission_payout", "agent_id": agent_id, "error": str(exc)[:200]})
+    return {**result, "seed_doi": seed_doi, "provenance_error": seed_doi is None}
 
 
 @router.get("/api/economy/balance/{agent_id}")

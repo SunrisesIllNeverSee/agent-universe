@@ -770,7 +770,6 @@ async def cashout(request: Request):
 
     The flow: treasury.debit(agent) → stripe.Transfer → seed created.
     """
-    from app.seeds import create_seed
     from app.jwt_config import extract_jwt
 
     payload = extract_jwt(request)
@@ -813,37 +812,54 @@ async def cashout(request: Request):
     if not acct_status.get("charges_enabled"):
         return JSONResponse({"error": "Connected account onboarding incomplete — complete Stripe setup first"}, status_code=400)
 
-    # Execute transfer
+    # Reserve first (P5 s2): debit before the transfer so two concurrent
+    # cashouts cannot both pass the balance check; refund if Stripe fails.
+    reserved = state.economy.treasury.debit(agent_id, amount_usd, reason="cashout_reserved")
+    if reserved.get("error"):
+        return JSONResponse({"error": "Insufficient balance", "balance": reserved.get("balance"),
+                             "requested": amount_usd}, status_code=400)
     amount_cents = int(round(amount_usd * 100))
-    result = kassa_payments.create_transfer(
+    try:
+        result = kassa_payments.create_transfer(
         amount_cents=amount_cents,
         connected_account_id=connected_account_id,
-        description=f"SIGNOMY payout — {agent_id}",
-        metadata={"agent_id": agent_id, "source": "treasury_cashout"},
-    )
-
+            description=f"SIGNOMY payout — {agent_id}",
+            metadata={"agent_id": agent_id, "source": "treasury_cashout"},
+        )
+    except Exception as exc:
+        result = {"error": str(exc)[:200]}
     if result.get("error"):
+        state.economy.treasury.credit(agent_id, amount_usd, reason="cashout_refund")
         return JSONResponse({"error": "Transfer failed", "detail": result["error"]}, status_code=502)
 
-    # Debit treasury only after successful transfer
-    state.economy.treasury.debit(agent_id, amount_usd, reason="cashout", chain=f"stripe:{result['transfer_id']}")
-
-    # Seed for audit trail
-    await create_seed(
-        source_type="cashout",
-        source_id=result["transfer_id"],
-        creator_id=agent_id,
-        creator_type="AAI",
-        seed_type="grown",
-        metadata={
-            "amount_usd": amount_usd,
-            "connected_account_id": connected_account_id,
-            "transfer_id": result["transfer_id"],
-        },
-    )
+    state.audit.log("economy", "cashout", {
+        "agent_id": agent_id, "amount_usd": amount_usd,
+        "connected_account_id": connected_account_id, "transfer_id": result["transfer_id"],
+    })
+    # Seed for audit trail. The money has moved: a Seed failure is loud, never a 500.
+    seed_doi = None
+    try:
+        seed = await create_seed(
+            source_type="cashout",
+            source_id=result["transfer_id"],
+            creator_id=agent_id,
+            creator_type="AAI",
+            seed_type="grown",
+            metadata={
+                "amount_usd": amount_usd,
+                "connected_account_id": connected_account_id,
+                "transfer_id": result["transfer_id"],
+            },
+        )
+        seed_doi = (seed or {}).get("doi")
+    except Exception as exc:
+        state.audit.log("economy", "provenance_failed", {
+            "action": "cashout", "transfer_id": result["transfer_id"], "error": str(exc)[:200]})
 
     return JSONResponse({
         "ok": True,
+        "seed_doi": seed_doi,
+        "provenance_error": seed_doi is None,
         "transfer_id": result["transfer_id"],
         "amount_usd": amount_usd,
         "remaining_balance": state.economy.treasury.balance(agent_id),
