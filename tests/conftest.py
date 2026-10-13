@@ -120,3 +120,11 @@ def fresh_agent(client, unique_ip):
     resp = signup_agent(client, ip=unique_ip)
     assert resp.status_code == 200, f"signup failed: {resp.text}"
     return resp.json()
+
+
+@pytest.fixture(autouse=True)
+def _webhook_signing_secret(monkeypatch):
+    """The Stripe webhook refuses to run with no signing secret; tests that mock construct_event
+    still need one configured. Tests of the unset case override it."""
+    from app import kassa_payments
+    monkeypatch.setattr(kassa_payments, "STRIPE_WEBHOOK_SECRET", "whsec_test")

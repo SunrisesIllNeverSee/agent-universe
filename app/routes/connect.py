@@ -613,6 +613,10 @@ async def stripe_webhook_v1(request: Request) -> dict:
 
     if not kassa_payments.stripe_ready():
         raise HTTPException(status_code=503, detail="Stripe not configured")
+    if not kassa_payments.STRIPE_WEBHOOK_SECRET:
+        # An HMAC over an empty key verifies: without a signing secret anyone could forge a paid
+        # escrow_funding event. No secret, no webhook (fail closed).
+        raise HTTPException(status_code=503, detail="Stripe webhook signing secret not configured")
 
     try:
         import stripe

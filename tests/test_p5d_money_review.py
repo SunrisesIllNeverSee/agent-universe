@@ -76,3 +76,27 @@ def test_poster_terminating_a_swarm_entrant_does_not_make_it_payable(client):
     client.post(f"/api/missions/{mid}/end", headers=poster["h"], json={})
     assert state.economy.treasury.balance(s["id"]) == 0
     assert state.economy.treasury.balance(worker["id"]) == 100.0
+
+
+# 2. Webhook with no signing secret configured: an HMAC over an empty key verifies, so anyone could
+#    forge a paid escrow_funding event and mint held funds. No secret = no webhook.
+def test_webhook_without_signing_secret_is_refused(client, monkeypatch):
+    import hashlib
+    import hmac
+    import json
+    import time
+
+    from app import kassa_payments
+    monkeypatch.setattr(kassa_payments, "stripe_ready", lambda: True)
+    monkeypatch.setattr(kassa_payments, "STRIPE_WEBHOOK_SECRET", "")
+    poster = _agent(client)
+    slot = _mk_slot(client, poster)
+    body = json.dumps({"id": "evt_forged", "object": "event", "type": "checkout.session.completed",
+                       "data": {"object": {"id": "cs_forged", "amount_total": 10_000_000, "payment_status": "paid",
+                                           "metadata": {"type": "escrow_funding", "mission_id": slot["mission_id"],
+                                                        "poster_id": poster["id"]}}}}).encode()
+    t = int(time.time())
+    sig = hmac.new(b"", f"{t}.".encode() + body, hashlib.sha256).hexdigest()
+    r = client.post("/api/kassa/webhooks/stripe", content=body, headers={"stripe-signature": f"t={t},v1={sig}"})
+    assert r.status_code in (400, 503), r.text
+    assert state.escrow.by_session("cs_forged") is None
