@@ -93,7 +93,8 @@ import hashlib
 import json
 import math
 import os
-from datetime import UTC, datetime
+import uuid
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 # ── Load flex rates from config (CIVITAS-voteable without code deploy) ──────
@@ -142,6 +143,10 @@ _RATES = _load_rates()
 _TIER_OVERRIDES  = _RATES.get("tiers", {})
 _CREDIT_CFG      = _RATES.get("credits", {})
 _TRIAL_CFG       = _RATES.get("trial", {})
+_SETTLE_CFG      = _RATES.get("settlement", {})
+
+# Card-funded money (and anything paid out of it) cannot be cashed out for this many days.
+CHARGEBACK_HOLD_DAYS = _SETTLE_CFG.get("chargeback_hold_days", 7)
 
 # ── Platform-level Credit Constants ──────────────────────────────
 # These apply on top of the tier fee rate at mission payout time.
@@ -416,7 +421,9 @@ class AgentTreasury:
         self._ledger = self._load()
 
     def _load(self) -> dict:
-        return _locked_load(self.path, {"balances": {}, "transactions": []})
+        led = _locked_load(self.path, {"balances": {}, "transactions": []})
+        led.setdefault("holds", [])
+        return led
 
     def _save(self):
         _atomic_save(self.path, self._ledger)
@@ -467,6 +474,43 @@ class AgentTreasury:
         self._ledger["transactions"].append(txn)
         self._save()
         return txn
+
+    # ── chargeback holds ────────────────────────────────────────────────
+    # A hold marks part of a balance as not yet cashable. It never moves money; cashout and
+    # withdrawal may only spend ``matured_balance``. Spending held money elsewhere is assumed
+    # to consume the matured part first, so a hold can never be dodged by many small debits.
+
+    def hold(self, agent_id: str, amount: float, *, reason: str, ref: str = "", days: float | None = None) -> dict:
+        if not self._valid_amount(amount):
+            raise ValueError(f"invalid hold amount: {amount!r}")
+        days = CHARGEBACK_HOLD_DAYS if days is None else days
+        rec = {"hold_id": f"hold-{uuid.uuid4().hex[:10]}", "agent_id": agent_id, "amount": round(float(amount), 4),
+               "reason": reason, "ref": ref, "created_at": datetime.now(UTC).isoformat(),
+               "matures_at": (datetime.now(UTC) + timedelta(days=days)).isoformat()}
+        self._ledger["holds"].append(rec)
+        self._save()
+        return rec
+
+    def release_hold(self, hold_id: str) -> None:
+        """Drop a hold (used only to undo one whose payout failed)."""
+        self._ledger["holds"] = [h for h in self._ledger["holds"] if h["hold_id"] != hold_id]
+        self._save()
+
+    def _open_holds(self, agent_id: str) -> list[dict]:
+        now = datetime.now(UTC)
+        return [h for h in self._ledger["holds"]
+                if h["agent_id"] == agent_id and datetime.fromisoformat(h["matures_at"]) > now]
+
+    def held_balance(self, agent_id: str) -> float:
+        return round(min(self.balance(agent_id), sum(h["amount"] for h in self._open_holds(agent_id))), 4)
+
+    def matured_balance(self, agent_id: str) -> float:
+        return round(max(0.0, self.balance(agent_id) - self.held_balance(agent_id)), 4)
+
+    def held_until(self, agent_id: str) -> str | None:
+        """When the last open hold matures (all of the balance is cashable from then), else None."""
+        holds = self._open_holds(agent_id)
+        return max(h["matures_at"] for h in holds) if holds and self.held_balance(agent_id) > 0 else None
 
     def all_balances(self) -> dict:
         return dict(self._ledger["balances"])
