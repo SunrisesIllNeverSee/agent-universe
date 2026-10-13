@@ -44,7 +44,7 @@ TERMINAL_STATES = frozenset({"rejected", "withdrawn", "retired", "terminated", "
 LIVE_STATES = ("intent", "pending", "dormant", "accepted", "active")  # F12 "non-terminal"
 DORMANT_AFTER = timedelta(days=14)          # fallback; the live value is config/economic_rates.json "workentry_pending"
 ASK_POSTER_AFTER = timedelta(hours=48)      # fallback, same source
-ANCHOR_STATES = frozenset({"accepted", "active", "completed"})   # P5: states anchored through ProofPress
+ANCHOR_STATES = frozenset({"completed"})   # P5/Q5: only completed Agreements anchor through ProofPress
 
 
 
@@ -572,7 +572,7 @@ class WorkEntryStore:
             return {}
 
     def _anchor_after_commit(self, receipts: list[dict]) -> None:
-        """Queue anchor jobs for accepted/active/completed receipts. Runs AFTER the COMMIT; never raises."""
+        """Queue an anchor job for completed-Agreement receipts only (Q5). Runs AFTER the COMMIT; never raises."""
         if self._anchors is None:
             return
         for rc in receipts:
