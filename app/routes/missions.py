@@ -301,6 +301,32 @@ def _mission_not_found(mission_id: str) -> JSONResponse:
     return JSONResponse({"error": "Mission not found", "mission_id": mission_id}, status_code=404)
 
 
+MAX_SLOT_PAYOUT = 1_000_000.0
+
+
+async def _payout_seed(result: dict, *, source: str) -> dict:
+    """One Seed per payout (P5 s2), loud on failure.
+
+    The ledger credit has already happened; a failed Seed is never silent:
+    it is audited as provenance_failed and returned so the caller surfaces it.
+    """
+    fee = result.get("fee_breakdown") or {}
+    meta = {"action": "mission_payout", "source": source, "agent_id": result.get("agent_id"),
+            "mission_id": result.get("mission_id"), "tier": result.get("tier"),
+            "trial": result.get("trial", False), "gross": fee.get("gross_amount", fee.get("gross")),
+            "platform_fee": fee.get("platform_fee"), "net_to_agent": fee.get("net_to_agent")}
+    try:
+        seed = await create_seed(source_type="mission_payout", source_id=str(result.get("mission_id") or ""),
+                                 creator_id=str(result.get("agent_id") or ""), creator_type="AAI",
+                                 seed_type="grown", metadata=meta)
+        if seed and seed.get("doi"):
+            return {"doi": seed["doi"]}
+        raise RuntimeError("create_seed returned no doi")
+    except Exception as exc:
+        state.audit.log("economy", "provenance_failed", {**meta, "error": str(exc)[:200]})
+        return {"doi": None, "error": str(exc)[:200]}
+
+
 def _mission_gate(request: Request, mission_id: str, mission: dict | None) -> JSONResponse | None:
     """Existence-oracle-safe gate for mission handlers.
 
@@ -483,12 +509,19 @@ async def end_mission(mission_id: str, request: Request, payload: EndMissionPayl
     denied = _mission_gate(request, mission_id, mission)
     if denied is not None:
         return denied
-    mission["status"] = "completed"
-    mission["ended_at"] = datetime.now(UTC).isoformat()
-
     # ── Economy: process payouts for all filled slots in this mission ──
     payout_amount = payload.payout_per_slot if payload else 0
+    # P5 s2: a payout credits treasury balances that cash out to Stripe, so the
+    # amount is an operator claim (same rule as task payouts). An owner agent
+    # may still end its mission; it may not name a payout.
+    if payout_amount and _acting_agent_id(request) is not None:
+        return JSONResponse({"error": "Only an operator may set a mission payout"}, status_code=403)
+    if payout_amount < 0 or payout_amount > MAX_SLOT_PAYOUT:
+        return JSONResponse({"error": f"payout_per_slot must be between 0 and {MAX_SLOT_PAYOUT:,.0f}"}, status_code=400)
+    mission["status"] = "completed"
+    mission["ended_at"] = datetime.now(UTC).isoformat()
     payouts = []
+    payout_errors = []
     if payout_amount > 0:
         all_slots = _load_slots()
         filled = [s for s in all_slots if s["mission_id"] == mission_id and s["status"] == "filled" and s.get("agent_id")]
@@ -501,9 +534,12 @@ async def end_mission(mission_id: str, request: Request, payload: EndMissionPayl
                     mission_id=mission_id,
                     originator_id=payload.originator_id if payload else "",
                 )
+                result["seed"] = await _payout_seed(result, source="mission_end")
                 payouts.append(result)
-            except Exception:
-                pass
+            except Exception as exc:
+                payout_errors.append({"agent_id": slot["agent_id"], "error": str(exc)[:200]})
+                state.audit.log("economy", "payout_failed", {
+                    "mission_id": mission_id, "agent_id": slot["agent_id"], "error": str(exc)[:200]})
 
     mission["payouts"] = payouts
     _save_missions(missions)
@@ -531,7 +567,8 @@ async def end_mission(mission_id: str, request: Request, payload: EndMissionPayl
     _tag_span(action="end", mission_id=mission_id,
               slots_paid=len(payouts), payout_per_slot=payout_amount)
     return {**mission, "seed_doi": seed_doi, "agreements_completed": agreements_completed,
-            "agreement_errors": agreement_errors}
+            "agreement_errors": agreement_errors, "payout_errors": payout_errors,
+            "provenance_errors": [p["agent_id"] for p in payouts if not (p.get("seed") or {}).get("doi")]}
 
 
 @router.post("/api/missions/{mission_id}/update")
@@ -930,6 +967,7 @@ async def close_task(task_id: str, payload: CloseTaskPayload, request: Request) 
                 gross_amount=task["payout"],
                 mission_id=task_id,
             )
+            payout_result["seed"] = await _payout_seed(payout_result, source="task_close")
     state.audit.log("mission", "task_closed", {
         "task_id": task_id,
         "agent_id": agent_id,

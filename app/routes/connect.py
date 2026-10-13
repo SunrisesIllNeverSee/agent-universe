@@ -19,7 +19,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-from app.auth import require_admin
+from app.auth import admin_key_matches, require_admin
 from app.deps import state
 from app.otel_setup import get_tracer as _get_tracer
 from app.seeds import create_seed
@@ -39,6 +39,45 @@ def _tag_payment_span(**attrs) -> None:
         pass
 
 router = APIRouter(tags=["connect"])
+
+
+# ── Money-path principal (P5 s2) ───────────────────────────────────────────
+# Stripe accounts are bound to the agent that created them; products, checkout
+# and cashout resolve price, fee and destination on the server from that
+# binding. Nothing that moves money is taken from the request body.
+
+def _connect_principal(request: Request) -> "dict | None":
+    """Live agent record from the JWT (revocation-aware), or None."""
+    from app.auth import agent_token_alive
+    from app.jwt_config import extract_jwt
+    claims = extract_jwt(request)
+    if not claims:
+        return None
+    agent_id = claims.get("agent_id") or claims.get("sub", "")
+    agent = next((r for r in state.runtime.registry if r.get("agent_id") == agent_id), None)
+    return agent if agent and agent_token_alive(agent, claims) else None
+
+
+def _is_operator(request: Request) -> bool:
+    return admin_key_matches(request, state.admin_key)
+
+
+def _bind_stripe_account(agent: dict, account_id: str) -> None:
+    agent["stripe_account_id"] = account_id
+    state.runtime.persist_registry()
+
+
+def _bound_account(agent: dict | None) -> str:
+    return (agent or {}).get("stripe_account_id", "") if agent else ""
+
+
+def _seller_fee_percent(account_id: str) -> int:
+    """Platform fee for a sale = the seller's tier rate from config.
+
+    Seller tier metrics are not stored on the account binding yet, so the
+    configured UNGOVERNED rate applies (the soft-launch rate is flat anyway).
+    """
+    return kassa_payments.DEFAULT_APP_FEE_PERCENT
 
 
 class ConnectAccountPayload(BaseModel):
@@ -257,11 +296,15 @@ async def initiate_payment(post_id: str, request: Request) -> dict:
 # ── Stripe Connect: Connected Accounts ─────────────────────────────────────
 
 @router.post("/api/connect/accounts")
-async def create_connect_account(payload: ConnectAccountPayload) -> dict:
+async def create_connect_account(payload: ConnectAccountPayload, request: Request) -> dict:
     """Create a Stripe connected account for an agent or operator.
 
     Body: { "display_name": "...", "email": "...", "country": "us" }
+    Requires an agent JWT (the account is bound to that agent) or the admin key.
     """
+    agent = _connect_principal(request)
+    if agent is None and not _is_operator(request):
+        raise HTTPException(status_code=401, detail="Agent JWT required")
     name = payload.display_name.strip()
     email = payload.email.strip()
     if not name or not email:
@@ -275,14 +318,17 @@ async def create_connect_account(payload: ConnectAccountPayload) -> dict:
     if result.get("error"):
         raise HTTPException(status_code=503, detail=result["error"])
 
+    if agent is not None:
+        _bind_stripe_account(agent, result["account_id"])
     state.audit.log("kassa", "connect_account_created", {
         "account_id": result["account_id"], "name": name,
+        "bound_agent": (agent or {}).get("agent_id"),
     })
     return result
 
 
 @router.post("/api/connect/v2/accounts")
-async def create_recipient_account(payload: ConnectRecipientPayload) -> dict:
+async def create_recipient_account(payload: ConnectRecipientPayload, request: Request) -> dict:
     """Create a Stripe V2 Recipient account for agent payouts.
 
     Body: { "display_name": "...", "email": "...", "country": "us" }
@@ -290,6 +336,9 @@ async def create_recipient_account(payload: ConnectRecipientPayload) -> dict:
     V2 Recipient accounts are machine-native — for autonomous agents receiving
     mission/bounty payouts. Falls back to V1 Express if V2 API not enabled.
     """
+    agent = _connect_principal(request)
+    if agent is None and not _is_operator(request):
+        raise HTTPException(status_code=401, detail="Agent JWT required")
     name = payload.display_name.strip()
     email = payload.email.strip()
     if not name:
@@ -303,7 +352,10 @@ async def create_recipient_account(payload: ConnectRecipientPayload) -> dict:
     if result.get("error"):
         raise HTTPException(status_code=503, detail=result["error"])
 
+    if agent is not None:
+        _bind_stripe_account(agent, result["account_id"])
     state.audit.log("kassa", "recipient_account_created", {
+        "bound_agent": (agent or {}).get("agent_id"),
         "account_id": result["account_id"],
         "type": result.get("type", "recipient"),
         "name": name,
@@ -352,7 +404,7 @@ async def connect_account_status(account_id: str) -> dict:
 # ── Stripe Connect: Products ───────────────────────────────────────────────
 
 @router.post("/api/connect/products")
-async def create_connect_product(payload: ConnectProductPayload) -> dict:
+async def create_connect_product(payload: ConnectProductPayload, request: Request) -> dict:
     """Create a product at the platform level, mapped to a connected account.
 
     Body: { "name": "...", "description": "...", "price_cents": 4900,
@@ -361,6 +413,20 @@ async def create_connect_product(payload: ConnectProductPayload) -> dict:
     name = payload.name.strip()
     if not name:
         raise HTTPException(status_code=400, detail="name required")
+    if payload.price_cents <= 0:
+        raise HTTPException(status_code=400, detail="price_cents must be positive")
+    if not _is_operator(request):
+        agent = _connect_principal(request)
+        if agent is None:
+            raise HTTPException(status_code=401, detail="Agent JWT required")
+        bound = _bound_account(agent)
+        if not bound:
+            raise HTTPException(status_code=400, detail="Link a Stripe account first (/api/connect/accounts)")
+        if payload.connected_account_id and payload.connected_account_id != bound:
+            raise HTTPException(status_code=403, detail="connected_account_id is not your linked account")
+        payload.connected_account_id = bound
+    elif not payload.connected_account_id:
+        raise HTTPException(status_code=400, detail="connected_account_id required")
 
     result = kassa_payments.create_product(
         name=name,
@@ -390,20 +456,29 @@ async def list_connect_products() -> list:
 async def create_connect_checkout(payload: dict, request: Request) -> dict:
     """Create a checkout session with destination charge.
 
-    Body: { "product_id": "...", "product_name": "...", "price_cents": 4900,
-            "connected_account_id": "acct_...", "app_fee_percent": 5 }
+    Body: { "product_id": "prod_..." }
+    Price, destination account and platform fee come from the product record
+    and config, never from the body (P5 s2). Client-sent price_cents,
+    connected_account_id and app_fee_percent are ignored.
     """
     proto = request.headers.get("x-forwarded-proto", "http")
     host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost")
     base = f"{proto}://{host}"
-    product_name = payload.get("product_name", "KA§§A Purchase")
-    price_cents = int(payload.get("price_cents", 0))
-    account_id = payload.get("connected_account_id", "")
+    product_id = (payload.get("product_id") or "").strip()
+    if not product_id:
+        raise HTTPException(status_code=400, detail="product_id required")
+    product = next((p for p in kassa_payments.list_products() if p.get("product_id") == product_id), None)
+    if product is None:
+        raise HTTPException(status_code=404, detail="Product not found")
+    product_name = product.get("name") or "KA§§A Purchase"
+    price_cents = int(product.get("price_cents") or 0)
+    account_id = product.get("connected_account_id", "")
 
     if price_cents <= 0:
-        raise HTTPException(status_code=400, detail="price_cents must be positive")
+        raise HTTPException(status_code=400, detail="Product has no price")
     if not account_id:
-        raise HTTPException(status_code=400, detail="connected_account_id required")
+        raise HTTPException(status_code=400, detail="Product has no seller account")
+    app_fee_percent = _seller_fee_percent(account_id)
 
     result = kassa_payments.create_checkout_session(
         product_name=product_name,
@@ -411,8 +486,8 @@ async def create_connect_checkout(payload: dict, request: Request) -> dict:
         connected_account_id=account_id,
         success_url=f"{base}/connect/success?session_id={{CHECKOUT_SESSION_ID}}",
         cancel_url=f"{base}/connect?cancelled=1",
-        app_fee_percent=int(payload.get("app_fee_percent", kassa_payments.DEFAULT_APP_FEE_PERCENT)),
-        metadata=payload.get("metadata", {}),
+        app_fee_percent=app_fee_percent,
+        metadata={**(payload.get("metadata") or {}), "product_id": product_id},
     )
     if result.get("error"):
         raise HTTPException(status_code=503, detail=result["error"])
@@ -420,7 +495,9 @@ async def create_connect_checkout(payload: dict, request: Request) -> dict:
     state.audit.log("kassa", "checkout_created", {
         "session_id": result["session_id"],
         "account_id": account_id,
+        "product_id": product_id,
         "amount": price_cents,
+        "app_fee_percent": app_fee_percent,
     })
     return result
 
@@ -709,12 +786,15 @@ async def cashout(request: Request):
 
     body = await request.json()
     amount_usd = float(body.get("amount", 0))
-    connected_account_id = (body.get("connected_account_id") or "").strip()
+    connected_account_id = _bound_account(_principal)
+    requested_account = (body.get("connected_account_id") or "").strip()
 
     if amount_usd <= 0:
         return JSONResponse({"error": "Amount must be positive"}, status_code=400)
     if not connected_account_id:
-        return JSONResponse({"error": "connected_account_id required"}, status_code=400)
+        return JSONResponse({"error": "No Stripe account linked to this agent — create one via /api/connect/accounts"}, status_code=400)
+    if requested_account and requested_account != connected_account_id:
+        return JSONResponse({"error": "connected_account_id is not this agent's linked account"}, status_code=403)
 
     # Check balance
     balance = state.economy.treasury.balance(agent_id)

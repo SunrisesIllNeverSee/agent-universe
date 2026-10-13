@@ -384,6 +384,15 @@ fetch(BASE + '/api/kassa/payment/status').then(function(r) { return r.json(); })
   el.innerHTML = html;
 });
 
+// Agent JWT (set at sign-in): accounts and products are bound to the agent.
+function authHeaders() {
+  var jwt = '';
+  try { jwt = localStorage.getItem('kassa_jwt') || sessionStorage.getItem('kassa_jwt') || ''; } catch (e) { jwt = ''; }
+  var h = { 'Content-Type': 'application/json' };
+  if (jwt) h['Authorization'] = 'Bearer ' + jwt;
+  return h;
+}
+
 // ── Create Account ─────────────────────────────────────
 $('btn-create-account').addEventListener('click', function() {
   var name = $('acct-name').value.trim();
@@ -395,7 +404,7 @@ $('btn-create-account').addEventListener('click', function() {
 
   fetch(BASE + '/api/connect/accounts', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({ display_name: name, email: email })
   })
   .then(function(r) {
@@ -497,7 +506,7 @@ $('btn-create-product').addEventListener('click', function() {
 
   fetch(BASE + '/api/connect/products', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({
       name: name,
       description: desc,
@@ -550,13 +559,8 @@ function buyProduct(productId, name, priceCents, accountId) {
   fetch(BASE + '/api/connect/checkout', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      product_id: productId,
-      product_name: name,
-      price_cents: priceCents,
-      connected_account_id: accountId,
-      app_fee_percent: 5
-    })
+    // Price, seller and fee are resolved on the server from the product record.
+    body: JSON.stringify({ product_id: productId })
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
