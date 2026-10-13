@@ -190,3 +190,35 @@ def test_unbound_account_onboarding_is_operator_only(client, monkeypatch):
     a = _agent(client)
     assert client.post("/api/connect/accounts/acct_unbound/onboard", headers=a["jwt"]).status_code == 403
     assert client.post("/api/connect/accounts/acct_unbound/onboard", headers=ADMIN).status_code == 200
+
+
+# 5. The anchor drain held the outbox lock across the network call, so a slow ProofPress stalled every
+#    enqueue (called from the completing request) for up to attempts x timeout. 'Never blocks anything.'
+def test_slow_proofpress_does_not_block_enqueue(tmp_path):
+    import threading
+    import time
+
+    from app.anchor_outbox import AnchorOutbox, AnchorResult
+
+    gate, entered = threading.Event(), threading.Event()
+
+    class Slow:
+        name = "slow"
+
+        def submit(self, job):
+            entered.set()
+            gate.wait(10)
+            return AnchorResult("pending")
+
+    ob = AnchorOutbox(tmp_path / "a.db", adapter=Slow())
+    ob.enqueue("agreement.completed", "agr-1", {"agreement_id": "agr-1"})
+    t = threading.Thread(target=ob.drain)
+    t.start()
+    assert entered.wait(5)
+    started = time.monotonic()
+    done = []
+    threading.Thread(target=lambda: done.append(ob.enqueue("agreement.completed", "agr-2", {"agreement_id": "agr-2"}))).start()
+    time.sleep(0.5)
+    gate.set()
+    t.join(5)
+    assert done and time.monotonic() - started < 2

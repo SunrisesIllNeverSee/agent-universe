@@ -261,32 +261,36 @@ class AnchorOutbox:
             return None
 
     def drain(self, limit: int = 50) -> dict:
-        """Submit pending jobs through the adapter. Safe to run repeatedly and concurrently."""
+        """Submit pending jobs through the adapter. Safe to run repeatedly and concurrently.
+        The lock is held only for the reads and writes, never across the adapter call: a slow or
+        hung ProofPress must not stall enqueue() on the request that just completed an Agreement."""
         tally = {"anchored": 0, "pending": 0, "errors": 0, "skipped": 0}
         with self._lock:
             jobs = [dict(r) for r in self._conn.execute(
                 "SELECT * FROM anchor_jobs WHERE status=? ORDER BY created_at LIMIT ?",
                 (STATUS_PENDING, limit)).fetchall()]
-            for job in jobs:
-                try:
-                    res = self.adapter.submit(job)
-                except Exception as exc:  # noqa: BLE001 - unreachable ProofPress is normal, not an error
-                    attempts = job["attempts"] + 1
-                    status = STATUS_FAILED if attempts >= MAX_ATTEMPTS else STATUS_PENDING
-                    err = redact(f"{type(exc).__name__}: {exc}", getattr(self.adapter, "token", None))
+        for job in jobs:
+            try:
+                res = self.adapter.submit(job)
+            except Exception as exc:  # noqa: BLE001 - unreachable ProofPress is normal, not an error
+                attempts = job["attempts"] + 1
+                status = STATUS_FAILED if attempts >= MAX_ATTEMPTS else STATUS_PENDING
+                err = redact(f"{type(exc).__name__}: {exc}", getattr(self.adapter, "token", None))
+                with self._lock:
                     self._conn.execute(
                         "UPDATE anchor_jobs SET attempts=?, last_error=?, status=? WHERE job_id=? AND status=?",
                         (attempts, err[:200], status, job["job_id"], STATUS_PENDING))
-                    tally["errors"] += 1
-                    continue
-                if res.status == STATUS_ANCHORED and res.receipt_id:
+                tally["errors"] += 1
+                continue
+            if res.status == STATUS_ANCHORED and res.receipt_id:
+                with self._lock:
                     self._conn.execute(
                         "UPDATE anchor_jobs SET status=?, anchor_receipt_id=?, anchored_at=?, attempts=attempts+1,"
                         " last_error=NULL WHERE job_id=? AND status=?",
                         (STATUS_ANCHORED, res.receipt_id, self._now(), job["job_id"], STATUS_PENDING))
-                    tally["anchored"] += 1
-                else:
-                    tally["pending"] += 1
+                tally["anchored"] += 1
+            else:
+                tally["pending"] += 1
         return tally
 
     # ── read side (write-back target: receipts/Seeds are append-only) ──
