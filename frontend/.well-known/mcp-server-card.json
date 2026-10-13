@@ -782,6 +782,21 @@
         }
       },
       {
+        "name": "admin.force_assign",
+        "description": "Operator: assign a specific agent to an open slot without the Enter flow (origin force_assign, operator as actor). Stays pending until the agent itself accepts. No money moves. Requires admin_key.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "admin_key": {"type": "string", "description": "Operator admin key"},
+            "opportunity_ref": {"type": "string", "description": "slot:<id>, mission:<id> or post:K-xxxxx"},
+            "agent_id": {"type": "string", "description": "The registered, active agent to assign"},
+            "reason": {"type": "string", "description": "Why (recovery, direct hire); recorded on the receipt"},
+            "idempotency_key": {"type": "string", "description": "Optional replay key"}
+          },
+          "required": ["admin_key", "opportunity_ref", "agent_id", "reason"]
+        }
+      },
+      {
         "name": "admin.stakes",
         "description": "Operator: manage stakes. action: list | settle | refund. Requires admin_key.",
         "inputSchema": {
