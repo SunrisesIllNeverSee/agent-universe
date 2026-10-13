@@ -21,7 +21,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Any
 
-from app.auth import require_agent_claim
+from app.auth import admin_key_matches, require_agent_claim
 from app.deps import state
 from app.metrics_io import atomic_write
 from app.otel_setup import get_tracer as _get_tracer
@@ -311,7 +311,15 @@ async def get_mission(mission_id: str) -> dict:
 
 
 @router.post("/api/missions/{mission_id}/end")
-async def end_mission(mission_id: str, payload: EndMissionPayload | None = None) -> dict:
+async def end_mission(mission_id: str, request: Request, payload: EndMissionPayload | None = None) -> dict:
+    # HOTFIX: a payout credits treasury balances that cash out to Stripe, so
+    # only the operator (admin key) may name one. Agents may still end a
+    # mission without a payout.
+    payout_requested = payload.payout_per_slot if payload else 0
+    if payout_requested and not admin_key_matches(request, state.admin_key):
+        return JSONResponse({"error": "Only an operator may set a mission payout"}, status_code=403)
+    if payout_requested < 0 or payout_requested > 1_000_000:
+        return JSONResponse({"error": "payout_per_slot must be between 0 and 1,000,000"}, status_code=400)
     missions = _load_missions()
     mission = next((m for m in missions if m["id"] == mission_id), None)
     if not mission:
