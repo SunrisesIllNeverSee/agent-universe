@@ -176,19 +176,15 @@ async def call_meeting(payload: CallMeetingPayload, request: Request) -> dict:
     _save_meetings(meetings)
     state.audit.log("governance", "meeting_called", {"meeting_id": meeting["id"], "caller": caller, "subject": subject})
     await state.emit("meeting_called", {"meeting_id": meeting["id"], "caller": caller, "subject": subject})
-    seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="meeting_called",
-            source_id=meeting["id"],
-            creator_id=caller,
-            creator_type="AAI",
-            seed_type="planted",
-            metadata={"meeting_id": meeting["id"], "caller": caller, "subject": subject},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "meeting_called",
+        source_type="meeting_called",
+        source_id=meeting["id"],
+        creator_id=caller,
+        creator_type="AAI",
+        seed_type="planted",
+        metadata={"meeting_id": meeting["id"], "caller": caller, "subject": subject},
+    )
     meeting["seed_doi"] = seed_doi
     return meeting
 
@@ -237,19 +233,15 @@ async def join_meeting(meeting_id: str, payload: JoinMeetingPayload, request: Re
     _tag_span(action="join_meeting", meeting_id=meeting_id, agent_id=agent_id,
               attendees=len(meeting["attendees"]), has_quorum=has_quorum)
     await state.emit("meeting_joined", {"meeting_id": meeting_id, "agent_id": agent_id, "has_quorum": has_quorum})
-    seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="meeting_joined",
-            source_id=f"{meeting_id}-{agent_id}",
-            creator_id=agent_id,
-            creator_type="AAI",
-            seed_type="planted",
-            metadata={"meeting_id": meeting_id, "agent_id": agent_id, "has_quorum": has_quorum},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "meeting_joined",
+        source_type="meeting_joined",
+        source_id=f"{meeting_id}-{agent_id}",
+        creator_id=agent_id,
+        creator_type="AAI",
+        seed_type="planted",
+        metadata={"meeting_id": meeting_id, "agent_id": agent_id, "has_quorum": has_quorum},
+    )
     return {"meeting_id": meeting_id, "agent_id": agent_id, "attendees": len(meeting["attendees"]), "has_quorum": has_quorum, "seed_doi": seed_doi}
 
 
@@ -340,17 +332,15 @@ async def propose_motion(meeting_id: str, payload: ProposeMotionPayload, request
     state.audit.log("governance", "motion_proposed", {"meeting_id": meeting_id, "motion_id": motion["id"], "proposer": proposer})
     await state.emit("motion_proposed", {"meeting_id": meeting_id, "motion_id": motion["id"], "motion": motion_text})
 
-    try:
-        await create_seed(
-            source_type="motion",
-            source_id=motion["id"],
-            creator_id=proposer,
-            creator_type="AAI",
-            seed_type="planted",
-            metadata={"meeting_id": meeting_id, "motion": motion_text},
-        )
-    except Exception:
-        pass
+    await create_seed_loud(
+        state.audit, "motion",
+        source_type="motion",
+        source_id=motion["id"],
+        creator_id=proposer,
+        creator_type="AAI",
+        seed_type="planted",
+        metadata={"meeting_id": meeting_id, "motion": motion_text},
+    )
 
     return motion
 
@@ -529,17 +519,15 @@ async def adjourn_meeting(meeting_id: str, request: Request, payload: AdjournMee
               motions_total=motions_total, motions_passed=motions_passed)
     state.audit.log("governance", "meeting_adjourned", {"meeting_id": meeting_id})
     await state.emit("meeting_adjourned", {"meeting_id": meeting_id})
-    try:
-        await create_seed(
-            source_type="meeting_adjourned",
-            source_id=meeting_id,
-            creator_id="operator",
-            creator_type="BI",
-            seed_type="planted",
-            metadata={"meeting_id": meeting_id},
-        )
-    except Exception:
-        pass
+    await create_seed_loud(
+        state.audit, "meeting_adjourned",
+        source_type="meeting_adjourned",
+        source_id=meeting_id,
+        creator_id="operator",
+        creator_type="BI",
+        seed_type="planted",
+        metadata={"meeting_id": meeting_id},
+    )
     return meeting
 
 

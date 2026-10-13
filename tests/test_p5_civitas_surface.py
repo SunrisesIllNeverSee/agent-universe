@@ -134,3 +134,23 @@ def test_meetings_route_registered(client):
     """The test root has no frontend files; the real page is served in the browser test."""
     from app.deps import state
     assert any(getattr(r, "path", "") == "/meetings" for r in client.app.routes)
+
+
+def test_governance_seed_failures_are_loud_not_silent(client, admin_client, monkeypatch):
+    """A Seed failure on meeting/motion/procedure acts is audited as provenance_failed,
+    never swallowed, and never fails the user action."""
+    from app import seeds
+    from app.deps import state
+
+    async def _boom(**_):
+        raise RuntimeError("seed store down")
+    monkeypatch.setattr(seeds, "create_seed", _boom)
+
+    mid, (chair, m2, _m3) = _world(client, admin_client)
+    r = admin_client.post(f"/api/governance/meeting/{mid}/motion", json={"proposer": chair["name"], "motion": "Approve the Q4 plan"})
+    assert r.status_code == 200
+    mo = r.json()["id"]
+    po = admin_client.post(f"/api/governance/meeting/{mid}/point-of-order", json={"member": m2["name"], "motion_id": mo, "text": "x"}, headers=m2["h"])
+    assert po.status_code == 200
+    failed = {(e.detail or {}).get("action") for e in state.audit.recent(500) if e.action == "provenance_failed"}
+    assert {"meeting_called", "meeting_joined", "motion", "point_of_order_raised"} <= failed

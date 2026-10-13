@@ -454,19 +454,15 @@ class MCPBridge:
                 seed_doi = None
                 import random as _rand
                 if _rand.random() < 0.1:
-                    try:
-                        from app.seeds import create_seed
-                        seed_result = await create_seed(
-                            source_type="heartbeat",
-                            source_id=agent_id,
-                            creator_id=agent_id,
-                            creator_type="AAI",
-                            seed_type="planted",
-                            metadata={"agent_id": agent_id, "last_seen": now},
-                        )
-                        seed_doi = seed_result.get("doi") if seed_result else None
-                    except Exception:
-                        pass
+                    seed_doi = _seed(
+                        "heartbeat",
+                        source_type="heartbeat",
+                        source_id=agent_id,
+                        creator_id=agent_id,
+                        creator_type="AAI",
+                        seed_type="planted",
+                        metadata={"agent_id": agent_id, "last_seen": now},
+                    )
                 span.set_attribute("mcp.result", "ok")
                 return {"ok": True, "agent_id": agent_id, "last_seen": now, "seed_doi": seed_doi}
 

@@ -16,7 +16,7 @@ from app import civitas_procedure as proc
 from app.deps import state
 from app.metrics_io import atomic_write
 from app.sanitize import sanitize_text
-from app.seeds import create_seed
+from app.seeds import create_seed_loud
 
 
 class ProcError(Exception):
@@ -38,18 +38,16 @@ def save_meetings(ms: list[dict]) -> None:
 
 
 async def record_act(meeting: dict, act: str, actor: str, ref_id: str, detail: dict, seed_type: str = "planted") -> None:
-    """Record a procedural act: minutes entry, audit log, event, Seed (best-effort)."""
+    """Record a procedural act: minutes entry, audit log, event, Seed (loud on failure)."""
     meeting["minutes"].append({"type": act, "actor": actor, "ref_id": ref_id, **detail,
                                "timestamp": datetime.now(UTC).isoformat()})
     state.audit.log("governance", act, {"meeting_id": meeting["id"], "actor": actor, "ref_id": ref_id, **detail})
     await state.emit(act, {"meeting_id": meeting["id"], "ref_id": ref_id})
-    try:
-        await create_seed(
-            source_type=act, source_id=f"{meeting['id']}-{ref_id}-{actor}", creator_id=actor,
-            creator_type="AAI", seed_type=seed_type, metadata={"meeting_id": meeting["id"], "ref_id": ref_id, **detail},
-        )
-    except Exception:
-        pass
+    await create_seed_loud(
+        state.audit, act,
+        source_type=act, source_id=f"{meeting['id']}-{ref_id}-{actor}", creator_id=actor,
+        creator_type="AAI", seed_type=seed_type, metadata={"meeting_id": meeting["id"], "ref_id": ref_id, **detail},
+    )
 
 
 def open_meeting(meeting_id: str) -> tuple[list[dict], dict]:
