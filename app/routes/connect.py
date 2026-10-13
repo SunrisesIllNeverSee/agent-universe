@@ -470,6 +470,11 @@ async def list_connect_products() -> list:
 
 # ── Stripe Connect: Checkout ───────────────────────────────────────────────
 
+# Fee-credit packs: name -> (price USD, coverage USD). The price a buyer pays and the coverage a
+# purchase earns are set here, never by the request body.
+FEE_PACKS = {"Starter": (25, 50), "Standard": (50, 100), "Builder": (100, 225),
+             "Founding": (250, 600), "Cycle Pack": (500, 1250)}
+
 # Metadata keys the platform webhook acts on (escrow funding, fee-credit packs, bounty posts).
 # A buyer-supplied value for any of them would let a $1 product purchase mint escrow or fee credits.
 _RESERVED_METADATA = frozenset({"type", "poster_id", "mission_id", "agent_id", "pack_name",
@@ -670,11 +675,10 @@ async def stripe_webhook_v1(request: Request) -> dict:
         elif metadata.get("type") == "fee_credit_pack":
             pack_name = metadata.get("pack_name", "Unknown")
             agent_id = metadata.get("agent_id", "")
-            # Coverage amount = what the pack covers (from frontend PACKS data)
-            # We store price_cents in metadata; coverage is derived from pack config server-side
-            # For now credit coverage = 2× price (Standard pack logic) — exact amounts TBD
-            PACK_COVERAGE = {"Starter": 50, "Standard": 100, "Builder": 225, "Founding": 600, "Cycle Pack": 1250}
-            coverage = PACK_COVERAGE.get(pack_name, _stripe_amount * 2)
+            # Coverage comes from the pack table, scaled by what was actually paid (never above the
+            # pack's own coverage); a name outside the table earns the base 2x ratio on what was paid.
+            pack = FEE_PACKS.get(pack_name)
+            coverage = round(pack[1] * min(1.0, _stripe_amount / pack[0]), 4) if pack else _stripe_amount * 2
             if agent_id:
                 state.economy.fee_credits.credit(
                     agent_id=agent_id,
@@ -733,6 +737,8 @@ async def fee_credits_checkout(payload: dict, request: Request) -> dict:
     price_cents = int(payload.get("price_cents") or 0)
     if not pack_name:
         raise HTTPException(status_code=400, detail="pack_name required")
+    if pack_name in FEE_PACKS:
+        price_cents = FEE_PACKS[pack_name][0] * 100   # a named pack has one price; the body's is ignored
     if price_cents <= 0:
         raise HTTPException(status_code=400, detail="price_cents must be positive")
 

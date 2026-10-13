@@ -2,6 +2,7 @@
 
 Each test is an attack demonstrated against the code before its fix.
 """
+from app import kassa_payments
 from app.deps import state
 from tests.test_p4_entry_api import _agent
 from tests.test_p4_slot_binding import _fill, _mk_slot
@@ -100,3 +101,53 @@ def test_webhook_without_signing_secret_is_refused(client, monkeypatch):
     r = client.post("/api/kassa/webhooks/stripe", content=body, headers={"stripe-signature": f"t={t},v1={sig}"})
     assert r.status_code in (400, 503), r.text
     assert state.escrow.by_session("cs_forged") is None
+
+
+# 3. Fee-credit packs: the pack name picked the coverage, the BODY picked the price. A $0.50
+#    "Founding" checkout bought $600 of fee coverage (fees skipped on money the platform earned).
+def _fake_session(monkeypatch, seen):
+    import stripe
+    monkeypatch.setattr(kassa_payments, "stripe_ready", lambda: True)
+
+    class _S:
+        id, url = "cs_pack", "https://stripe.test/pay"
+
+    def create(**kw):
+        seen.update(kw)
+        return _S()
+    monkeypatch.setattr(stripe.checkout.Session, "create", staticmethod(create))
+
+
+def test_fee_pack_price_comes_from_the_pack_not_the_body(client, monkeypatch):
+    seen = {}
+    _fake_session(monkeypatch, seen)
+    a = _agent(client)
+    r = client.post("/api/fee-credits/checkout", headers=ADMIN,
+                    json={"pack_name": "Founding", "price_cents": 50, "agent_id": a["id"]})
+    assert r.status_code == 200, r.text
+    assert seen["line_items"][0]["price_data"]["unit_amount"] == 25000
+
+
+def test_fee_pack_coverage_is_proportional_to_what_was_paid(client, monkeypatch):
+    import stripe
+    a = _agent(client)
+    monkeypatch.setattr(kassa_payments, "stripe_ready", lambda: True)
+    ev = {"type": "checkout.session.completed", "data": {"object": {
+        "id": "cs_cheap", "amount_total": 50, "payment_status": "paid",
+        "metadata": {"type": "fee_credit_pack", "pack_name": "Founding", "agent_id": a["id"]}}}}
+    monkeypatch.setattr(stripe.Webhook, "construct_event", lambda payload, sig, secret: ev)
+    r = client.post("/api/kassa/webhooks/stripe", content=b"{}", headers={"stripe-signature": "t"})
+    assert r.status_code == 200, r.text
+    assert state.economy.fee_credits.balance(a["id"]) <= 1.2
+
+
+def test_fee_pack_paid_in_full_gets_full_coverage(client, monkeypatch):
+    import stripe
+    a = _agent(client)
+    monkeypatch.setattr(kassa_payments, "stripe_ready", lambda: True)
+    ev = {"type": "checkout.session.completed", "data": {"object": {
+        "id": "cs_full", "amount_total": 25000, "payment_status": "paid",
+        "metadata": {"type": "fee_credit_pack", "pack_name": "Founding", "agent_id": a["id"]}}}}
+    monkeypatch.setattr(stripe.Webhook, "construct_event", lambda payload, sig, secret: ev)
+    client.post("/api/kassa/webhooks/stripe", content=b"{}", headers={"stripe-signature": "t"})
+    assert state.economy.fee_credits.balance(a["id"]) == 600
