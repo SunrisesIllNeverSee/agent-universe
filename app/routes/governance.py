@@ -23,7 +23,7 @@ from app.deps import state
 from app.metrics_io import atomic_write, load_metrics
 from app.otel_setup import get_tracer as _get_tracer
 from app.sanitize import sanitize_text, sanitize_name
-from app.seeds import create_seed, _read_seeds
+from app.seeds import create_seed, create_seed_loud, _read_seeds
 from app.workentry_gate import GATE_KIND, default_motion_text, open_motion
 from app.workentry_store import WorkEntryError
 
@@ -423,17 +423,15 @@ async def cast_vote(meeting_id: str, payload: CastVotePayload, request: Request)
               voter=voter, vote=vote, votes_cast=len(motion["votes"]),
               total_voters=len(meeting["attendees"]))
 
-    try:
-        await create_seed(
-            source_type="vote",
-            source_id=f"{meeting_id}-{motion_id}-{voter}",
-            creator_id=voter,
-            creator_type="AAI",
-            seed_type="touched",
-            metadata={"meeting_id": meeting_id, "motion_id": motion_id, "vote": vote},
-        )
-    except Exception:
-        pass
+    await create_seed_loud(
+        state.audit, "vote",
+        source_type="vote",
+        source_id=f"{meeting_id}-{motion_id}-{voter}",
+        creator_id=voter,
+        creator_type="AAI",
+        seed_type="touched",
+        metadata={"meeting_id": meeting_id, "motion_id": motion_id, "vote": vote},
+    )
 
     return {"motion_id": motion_id, "voter": voter, "vote": vote, "votes_cast": len(motion["votes"]), "total_voters": len(meeting["attendees"])}
 

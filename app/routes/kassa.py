@@ -33,7 +33,7 @@ from app.auth import admin_key_matches, agent_token_alive, require_admin
 from app.deps import state
 from app.jwt_config import issue_agent_jwt
 from app.sanitize import sanitize_text, sanitize_name, detect_prompt_injection
-from app.seeds import create_seed
+from app.seeds import create_seed, create_seed_loud
 from app.public_projection import public_kassa_post
 from app.notifications import (
     send_magic_link,
@@ -199,10 +199,7 @@ async def kassa_agent_register(payload: KassaRegisterPayload) -> dict:
 
     _audit_entry = state.audit.log("kassa", "agent_registered", {"agent_id": agent_id, "name": agent_name})
     await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
-    try:
-        await create_seed(source_type="registration", source_id=agent_id, creator_id=agent_id, creator_type="AAI", seed_type="planted", metadata={"name": agent_name, "source": "kassa"})
-    except Exception:
-        pass
+    await create_seed_loud(state.audit, "registration", source_type="registration", source_id=agent_id, creator_id=agent_id, creator_type="AAI", seed_type="planted", metadata={"name": agent_name, "source": "kassa"})
 
     # Seed the agent's in-system mailbox — the welcome record teaches the
     # inbox primitive on day one.
@@ -320,18 +317,15 @@ async def stake_post(post_id: str, request: Request) -> dict:
     await state.emit("kassa_stake", entry)
 
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="stake",
-            source_id=stake_id,
-            creator_id=agent_id,
-            creator_type="AAI",
-            seed_type="planted",
-            metadata={"post_id": post_id},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "stake",
+        source_type="stake",
+        source_id=stake_id,
+        creator_id=agent_id,
+        creator_type="AAI",
+        seed_type="planted",
+        metadata={"post_id": post_id},
+    )
 
     # Auto-create thread between agent and poster
     # Poster info lives on the post record (from_name/from_email columns);
@@ -360,17 +354,14 @@ async def stake_post(post_id: str, request: Request) -> dict:
 
     # Create seed for thread creation
     thread_seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="thread",
-            source_id=thread_result["thread_id"],
-            creator_id=agent_id,
-            creator_type="AAI",
-            metadata={"post_id": post_id, "post_title": post.get("title", "")},
-        )
-        thread_seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    thread_seed_doi = await create_seed_loud(
+        state.audit, "thread",
+        source_type="thread",
+        source_id=thread_result["thread_id"],
+        creator_id=agent_id,
+        creator_type="AAI",
+        metadata={"post_id": post_id, "post_title": post.get("title", "")},
+    )
 
     # Send magic link email to poster — @signomy.xyz labels route to the
     # operator inbox; registered agents get an inbox record instead below.
@@ -454,18 +445,15 @@ async def withdraw_stake(stake_id: str, request: Request) -> dict:
 
     state.audit.log("kassa", "stake_withdrawn", {"stake_id": stake_id, "agent_id": agent["agent_id"]})
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="stake_withdrawn",
-            source_id=stake_id,
-            creator_id=agent["agent_id"],
-            creator_type="AAI",
-            seed_type="planted",
-            metadata={"stake_id": stake_id, "agent_id": agent["agent_id"]},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "stake_withdrawn",
+        source_type="stake_withdrawn",
+        source_id=stake_id,
+        creator_id=agent["agent_id"],
+        creator_type="AAI",
+        seed_type="planted",
+        metadata={"stake_id": stake_id, "agent_id": agent["agent_id"]},
+    )
     return {"withdrawn": True, "stake_id": stake_id, "seed_doi": seed_doi}
 
 
@@ -523,18 +511,15 @@ async def create_referral(request: Request, payload: dict) -> dict:
     })
     await state.emit("kassa_referral", entry)
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="kassa_referral",
-            source_id=ref_id,
-            creator_id=agent["agent_id"],
-            creator_type="AAI",
-            seed_type="planted",
-            metadata={"referral_id": ref_id, "source_post_id": source_id, "target_post_id": target_id},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "kassa_referral",
+        source_type="kassa_referral",
+        source_id=ref_id,
+        creator_id=agent["agent_id"],
+        creator_type="AAI",
+        seed_type="planted",
+        metadata={"referral_id": ref_id, "source_post_id": source_id, "target_post_id": target_id},
+    )
     return {"referred": True, "referral_id": ref_id, "source": source_id, "target": target_id, "seed_doi": seed_doi}
 
 
@@ -750,17 +735,14 @@ async def post_thread_message(thread_id: str, request: Request) -> dict:
 
     # Create seed for message
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="message",
-            source_id=msg_id,
-            creator_id=sender_name,
-            creator_type="AAI" if sender_type == "agent" else "BI",
-            metadata={"thread_id": thread_id, "post_id": thread.get("post_id", "")},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "message",
+        source_type="message",
+        source_id=msg_id,
+        creator_id=sender_name,
+        creator_type="AAI" if sender_type == "agent" else "BI",
+        metadata={"thread_id": thread_id, "post_id": thread.get("post_id", "")},
+    )
 
     # Email notification to poster when agent sends a message.
     # Note: magic_token_plain is only available at thread creation time
@@ -974,18 +956,15 @@ async def submit_kassa_post(request: Request) -> dict:
     await state.emit("kassa_post_submitted", {"id": kid, "tab": tab})
 
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="kassa_post",
-            source_id=kid,
-            creator_id=from_email or from_name,
-            creator_type="BI",
-            seed_type="planted",
-            metadata={"tab": tab, "title": title},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "kassa_post",
+        source_type="kassa_post",
+        source_id=kid,
+        creator_id=from_email or from_name,
+        creator_type="BI",
+        seed_type="planted",
+        metadata={"tab": tab, "title": title},
+    )
 
     msg = "Post published." if is_admin else "Post submitted for review. We\u2019ll publish it shortly."
     return {"ok": True, "id": kid, "message": msg, "seed_doi": seed_doi}
@@ -999,18 +978,15 @@ async def upvote_kassa_post(post_id: str, request: Request) -> dict:
         raise HTTPException(status_code=404, detail="Post not found")
     new_count = state.kassa.increment_upvotes(post_id)
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="kassa_upvote",
-            source_id=f"{post_id}-{new_count}",
-            creator_id="anonymous",
-            creator_type="BI",
-            seed_type="planted",
-            metadata={"post_id": post_id, "upvotes": new_count},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "kassa_upvote",
+        source_type="kassa_upvote",
+        source_id=f"{post_id}-{new_count}",
+        creator_id="anonymous",
+        creator_type="BI",
+        seed_type="planted",
+        metadata={"post_id": post_id, "upvotes": new_count},
+    )
     return {"ok": True, "id": post_id, "upvotes": new_count, "seed_doi": seed_doi}
 
 
@@ -1036,34 +1012,28 @@ async def update_review(review_id: str, action: str, request: Request) -> dict:
         state.kassa.update_review(review_id, {"status": "approved"})
         r["status"] = "approved"
         state.audit.log("kassa", "post_approved", {"review_id": review_id, "post_id": r["post"]["id"]})
-        try:
-            seed_result = await create_seed(
-                source_type="kassa_post_approved",
-                source_id=review_id,
-                creator_id="operator",
-                creator_type="BI",
-                seed_type="planted",
-                metadata={"review_id": review_id, "post_id": r["post"]["id"]},
-            )
-            seed_doi = seed_result.get("doi") if seed_result else None
-        except Exception:
-            pass
+        seed_doi = await create_seed_loud(
+            state.audit, "kassa_post_approved",
+            source_type="kassa_post_approved",
+            source_id=review_id,
+            creator_id="operator",
+            creator_type="BI",
+            seed_type="planted",
+            metadata={"review_id": review_id, "post_id": r["post"]["id"]},
+        )
     elif action == "reject":
         state.kassa.update_review(review_id, {"status": "rejected"})
         r["status"] = "rejected"
         state.audit.log("kassa", "post_rejected", {"review_id": review_id})
-        try:
-            seed_result = await create_seed(
-                source_type="kassa_post_rejected",
-                source_id=review_id,
-                creator_id="operator",
-                creator_type="BI",
-                seed_type="planted",
-                metadata={"review_id": review_id},
-            )
-            seed_doi = seed_result.get("doi") if seed_result else None
-        except Exception:
-            pass
+        seed_doi = await create_seed_loud(
+            state.audit, "kassa_post_rejected",
+            source_type="kassa_post_rejected",
+            source_id=review_id,
+            creator_id="operator",
+            creator_type="BI",
+            seed_type="planted",
+            metadata={"review_id": review_id},
+        )
     else:
         raise HTTPException(status_code=400, detail="action must be 'approve' or 'reject'")
 
@@ -1193,18 +1163,15 @@ async def approve_product_review(review_id: str, request: Request) -> dict:
         state.audit.log("kassa", "product_review_reward", {"review_id": review_id, "reviewer_id": review["reviewer_id"], "reward": review["reward"]})
     state.audit.log("kassa", f"product_review_{action}d", {"review_id": review_id})
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="review_approved" if action == "approve" else "review_rejected",
-            source_id=review_id,
-            creator_id="operator",
-            creator_type="BI",
-            seed_type="planted",
-            metadata={"review_id": review_id, "action": action},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "review_approved",
+        source_type="review_approved" if action == "approve" else "review_rejected",
+        source_id=review_id,
+        creator_id="operator",
+        creator_type="BI",
+        seed_type="planted",
+        metadata={"review_id": review_id, "action": action},
+    )
     return {"ok": True, "review_id": review_id, "status": action + "d", "seed_doi": seed_doi}
 
 
@@ -1366,10 +1333,7 @@ async def kassa_contact(payload: KassaContact) -> dict:
         "tab": entry["tab"], "timestamp": entry["timestamp"],
         "status": entry["status"],
     })
-    try:
-        await create_seed(source_type="kassa_contact", source_id=entry["id"], creator_id=payload.from_email, creator_type="BI", seed_type="planted", metadata={"post_id": payload.post_id, "tab": payload.tab})
-    except Exception:
-        pass
+    await create_seed_loud(state.audit, "kassa_contact", source_type="kassa_contact", source_id=entry["id"], creator_id=payload.from_email, creator_type="BI", seed_type="planted", metadata={"post_id": payload.post_id, "tab": payload.tab})
     return {"ok": True, "id": entry["id"]}
 
 

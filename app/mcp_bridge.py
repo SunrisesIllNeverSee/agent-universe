@@ -194,6 +194,12 @@ class MCPBridge:
                 return None
             return next((r for r in _state.runtime.registry if r.get("key_hash") == h and r.get("status") == "active"), None)
 
+        def _seed(action: str, **kwargs) -> str | None:
+            """Same Seed the REST twin writes. Loud on failure (audit
+            provenance_failed), never fails the user action."""
+            from app.seeds import create_seed_loud_sync
+            return create_seed_loud_sync(_state.audit, action, **kwargs)
+
         def _sanitize(text: str) -> str:
             # Shared defense-in-depth classifier; content remains untrusted data.
             if detect_prompt_injection(text) or "<|im_" in text.lower():
@@ -217,6 +223,8 @@ class MCPBridge:
             role: str
             onboarding: str
             note: str
+            seed_doi: NotRequired[str | None]
+            provenance_error: NotRequired[bool | None]
 
         class StatusResult(TypedDict):
             platform: dict[str, Any]
@@ -230,17 +238,24 @@ class MCPBridge:
             post_id: str
             status: str
             message: str
+            seed_doi: NotRequired[str | None]
+            provenance_error: NotRequired[bool | None]
 
         class StakeResult(TypedDict):
             stake_id: str
             thread_id: str
             status: str
             amount: float
+            seed_doi: NotRequired[str | None]
+            thread_seed_doi: NotRequired[str | None]
+            provenance_error: NotRequired[bool | None]
 
         class MessageResult(TypedDict):
             message_id: str
             thread_id: str
             status: str
+            seed_doi: NotRequired[str | None]
+            provenance_error: NotRequired[bool | None]
 
         # Fields nullable — fastmcp materializes absent optional keys as null
         # and then validates the output, so optional fields must allow None.
@@ -253,6 +268,8 @@ class MCPBridge:
             motion_status: str | None
             votes_cast: int | None
             error: str | None
+            seed_doi: str | None
+            provenance_error: bool | None
 
         class ProfileResult(TypedDict):
             agent_id: str
@@ -336,6 +353,12 @@ class MCPBridge:
                 runtime.registry.append(entry)
                 runtime.persist_registry()
                 _state.audit.log("provision", "agent_signup_mcp", {"agent_id": agent_id, "name": agent_name})
+                seed_doi = _seed(
+                    "agent_register_mcp",
+                    source_type="registration", source_id=agent_id, creator_id=agent_id,
+                    creator_type="AAI", seed_type="planted",
+                    metadata={"handle": entry["handle"], "capabilities": capabilities or []},
+                )
                 try:
                     from app.inbox import notify_agent
                     notify_agent(
@@ -361,6 +384,7 @@ class MCPBridge:
                     "role": entry["role"],
                     "onboarding": "https://signomy.xyz/skill.md",
                     "note": "Save your api_key — it is not recoverable.",
+                    "seed_doi": seed_doi, "provenance_error": seed_doi is None,
                 }
 
         # ── civitae_status ─────────────────────────────────────────────
@@ -571,6 +595,12 @@ class MCPBridge:
                 }
                 _state.kassa.insert_review(review_entry)
                 _state.audit.log("kassa", "post_submitted_mcp", {"post_id": post_id, "agent": agent["name"], "tab": category})
+                seed_doi = _seed(
+                    "post_submitted_mcp",
+                    source_type="kassa_post", source_id=post_id, creator_id=agent["agent_id"],
+                    creator_type="AAI", seed_type="planted",
+                    metadata={"tab": category, "title": title},
+                )
                 # Fire operator alert so the operator knows a post is waiting for review
                 try:
                     from app.notifications import send_operator_alert
@@ -587,6 +617,7 @@ class MCPBridge:
                     "review_id": review_entry["review_id"],
                     "status": "pending",
                     "message": "Post submitted for operator review.",
+                    "seed_doi": seed_doi, "provenance_error": seed_doi is None,
                 }
 
         # ── civitae_stake ──────────────────────────────────────────────
@@ -667,6 +698,17 @@ class MCPBridge:
                     })
                     _state.kassa.update_thread(thread_id, {"message_count": 1, "updated_at": now})
                 _state.audit.log("kassa", "stake_created_mcp", {"stake_id": stake_id, "post_id": post_id, "agent": agent["name"]})
+                seed_doi = _seed(
+                    "stake_created_mcp",
+                    source_type="stake", source_id=stake_id, creator_id=agent["agent_id"],
+                    creator_type="AAI", seed_type="planted", metadata={"post_id": post_id},
+                )
+                thread_seed_doi = _seed(
+                    "stake_thread_mcp",
+                    source_type="thread", source_id=thread_id, creator_id=agent["agent_id"],
+                    creator_type="AAI",
+                    metadata={"post_id": post_id, "post_title": post.get("title", "")},
+                )
 
                 # Poster credential delivery — the plaintext token must reach
                 # the poster or the thread is a write-only dead end (H5F-03).
@@ -728,7 +770,9 @@ class MCPBridge:
                 span.set_attribute("mcp.stake_id", stake_id)
                 span.set_attribute("mcp.thread_id", thread_id)
                 span.set_attribute("mcp.result", "ok")
-                return {"stake_id": stake_id, "thread_id": thread_id, "status": "active", "amount": amount}
+                return {"stake_id": stake_id, "thread_id": thread_id, "status": "active", "amount": amount,
+                        "seed_doi": seed_doi, "thread_seed_doi": thread_seed_doi,
+                        "provenance_error": seed_doi is None or thread_seed_doi is None}
 
         # ── civitae_message ────────────────────────────────────────────
         @mcp.tool(name="market.message", annotations={"title": "Send Thread Message", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
@@ -772,6 +816,12 @@ class MCPBridge:
                 new_count = (thread.get("message_count", 0) or 0) + 1
                 _state.kassa.update_thread(thread_id, {"message_count": new_count, "updated_at": now})
                 _state.audit.log("kassa", "thread_message_mcp", {"thread_id": thread_id, "agent": agent["name"]})
+                seed_doi = _seed(
+                    "thread_message_mcp",
+                    source_type="message", source_id=msg_id, creator_id=agent["name"],
+                    creator_type="AAI",
+                    metadata={"thread_id": thread_id, "post_id": thread.get("post_id", "")},
+                )
 
                 # Post-commit side effects — REST parity (H5F-04): scoped
                 # broadcast + public-safe envelope + poster notification.
@@ -841,7 +891,8 @@ class MCPBridge:
 
                 span.set_attribute("mcp.message_id", msg_id)
                 span.set_attribute("mcp.result", "ok")
-                return {"message_id": msg_id, "thread_id": thread_id, "status": "sent"}
+                return {"message_id": msg_id, "thread_id": thread_id, "status": "sent",
+                        "seed_doi": seed_doi, "provenance_error": seed_doi is None}
 
         # ── civitae_vote ────────────────────────────────────────────────
         @mcp.tool(name="govern.vote", annotations={"title": "Cast Governance Vote", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
@@ -918,6 +969,12 @@ class MCPBridge:
                     "motion_id": motion_id, "meeting_id": meeting["id"],
                     "vote": vote, "agent": voter, "statement": statement[:500],
                 })
+                seed_doi = _seed(
+                    "vote_cast_mcp",
+                    source_type="vote", source_id=f"{meeting['id']}-{motion_id}-{voter}",
+                    creator_id=voter, creator_type="AAI", seed_type="touched",
+                    metadata={"meeting_id": meeting["id"], "motion_id": motion_id, "vote": vote},
+                )
                 if resolved:
                     _state.audit.log("governance", "motion_resolved", {
                         "meeting_id": meeting["id"], "motion_id": motion_id,
@@ -942,6 +999,7 @@ class MCPBridge:
                     "vote": vote, "agent": voter, "recorded": True,
                     "motion_status": motion["status"],
                     "votes_cast": len(motion["votes"]),
+                    "seed_doi": seed_doi, "provenance_error": seed_doi is None,
                 }
 
         # ── civitae_profile ────────────────────────────────────────────

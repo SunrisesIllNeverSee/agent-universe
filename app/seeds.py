@@ -224,6 +224,58 @@ async def create_seed(
     }
 
 
+# ── Loud wrappers — provenance failure is audited, never silent ──────────────
+
+async def create_seed_loud(audit, action: str, **kwargs) -> Optional[str]:
+    """create_seed that never raises and never fails silently.
+
+    Returns the DOI, or None after writing an audit `provenance_failed` event.
+    Callers surface `provenance_error: doi is None`; the user action (which
+    may already have moved money) is never failed by a Seed failure.
+    """
+    try:
+        result = await create_seed(**kwargs)
+        doi = (result or {}).get("doi")
+        if not doi:
+            raise RuntimeError("create_seed returned no doi")
+        return doi
+    except Exception as exc:  # noqa: BLE001 - loud, not fatal
+        try:
+            audit.log("economy", "provenance_failed", {
+                "action": action, "source_type": kwargs.get("source_type"),
+                "source_id": kwargs.get("source_id"), "error": str(exc)[:200]})
+        except Exception:  # noqa: BLE001 - audit must not break the caller
+            pass
+        return None
+
+
+def create_seed_loud_sync(audit, action: str, **kwargs) -> Optional[str]:
+    """Sync twin of create_seed_loud for non-async callers (MCP tools).
+
+    create_seed is declared async but never awaits, so it is driven directly;
+    if that ever changes this is a loud provenance failure, not a hang.
+    """
+    coro = create_seed(**kwargs)
+    try:
+        try:
+            coro.send(None)
+            coro.close()
+            raise RuntimeError("create_seed awaited; cannot run synchronously")
+        except StopIteration as done:
+            doi = (done.value or {}).get("doi")
+            if not doi:
+                raise RuntimeError("create_seed returned no doi")
+            return doi
+    except Exception as exc:  # noqa: BLE001 - loud, not fatal
+        try:
+            audit.log("economy", "provenance_failed", {
+                "action": action, "source_type": kwargs.get("source_type"),
+                "source_id": kwargs.get("source_id"), "error": str(exc)[:200]})
+        except Exception:  # noqa: BLE001
+            pass
+        return None
+
+
 # ── Touch Helper — Lightweight, No Auth ───────────────────────────────────────
 
 async def record_touch(

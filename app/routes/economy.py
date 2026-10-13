@@ -17,7 +17,7 @@ from typing import Any
 
 from app.deps import state
 from app.metrics_io import atomic_write, load_metrics
-from app.seeds import create_seed
+from app.seeds import create_seed, create_seed_loud
 from app.economy import TIERS
 from app.chains import MultiChainRouter
 from app.jwt_config import get_kassa_jwt_secret
@@ -157,18 +157,15 @@ async def process_payment(payload: dict, request: Request) -> dict:
     })
     await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="payment",
-            source_id=payload.get("mission_id", ""),
-            creator_id=agent_id,
-            creator_type="AAI",
-            seed_type="touched",
-            metadata={"agent_id": agent_id, "tier": result["tier"], "gross": payload.get("amount"), "net": result["fee_breakdown"]["net_to_agent"]},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "payment",
+        source_type="payment",
+        source_id=payload.get("mission_id", ""),
+        creator_id=agent_id,
+        creator_type="AAI",
+        seed_type="touched",
+        metadata={"agent_id": agent_id, "tier": result["tier"], "gross": payload.get("amount"), "net": result["fee_breakdown"]["net_to_agent"]},
+    )
     return {**result, "seed_doi": seed_doi}
 
 
@@ -315,18 +312,15 @@ async def trial_init(payload: AgentIdPayload) -> dict:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
     rec = state.economy.trials.init_trial(agent_id)
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="trial_start",
-            source_id=agent_id,
-            creator_id=agent_id,
-            creator_type="AAI",
-            seed_type="planted",
-            metadata={"agent_id": agent_id, "trial": rec},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "trial_start",
+        source_type="trial_start",
+        source_id=agent_id,
+        creator_id=agent_id,
+        creator_type="AAI",
+        seed_type="planted",
+        metadata={"agent_id": agent_id, "trial": rec},
+    )
     return {"agent_id": agent_id, "trial": rec,
             "note": f"Free trial: {state.economy.trials.TRIAL_MISSION_LIMIT if hasattr(state.economy.trials, 'TRIAL_MISSION_LIMIT') else 5} missions or 30 days.",
             "seed_doi": seed_doi}
@@ -346,18 +340,15 @@ async def trial_commit(payload: AgentIdPayload) -> dict:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
     result = state.economy.trials.commit(agent_id)
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="trial_commit",
-            source_id=agent_id,
-            creator_id=agent_id,
-            creator_type="AAI",
-            seed_type="touched",
-            metadata={"agent_id": agent_id, "commit_result": result},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "trial_commit",
+        source_type="trial_commit",
+        source_id=agent_id,
+        creator_id=agent_id,
+        creator_type="AAI",
+        seed_type="touched",
+        metadata={"agent_id": agent_id, "commit_result": result},
+    )
     return {**result, "seed_doi": seed_doi}
 
 
@@ -367,7 +358,17 @@ async def trial_depart(payload: AgentIdPayload) -> dict:
     agent_id = payload.agent_id
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
-    return state.economy.trials.depart(agent_id)
+    result = state.economy.trials.depart(agent_id)
+    seed_doi = await create_seed_loud(
+        state.audit, "trial_depart",
+        source_type="trial_depart",
+        source_id=agent_id,
+        creator_id=agent_id,
+        creator_type="AAI",
+        seed_type="touched",
+        metadata={"agent_id": agent_id, "departed": bool(result.get("departed"))},
+    )
+    return {**result, "seed_doi": seed_doi, "provenance_error": seed_doi is None}
 
 
 @router.post("/api/economy/trial/return")
@@ -376,17 +377,52 @@ async def trial_return(payload: AgentIdPayload) -> dict:
     agent_id = payload.agent_id
     if not agent_id:
         return JSONResponse({"error": "agent_id required"}, status_code=400)
-    return state.economy.trials.return_after_departure(agent_id)
+    result = state.economy.trials.return_after_departure(agent_id)
+    if result.get("error"):
+        return result
+    seed_doi = await create_seed_loud(
+        state.audit, "trial_return",
+        source_type="trial_return",
+        source_id=agent_id,
+        creator_id=agent_id,
+        creator_type="AAI",
+        seed_type="touched",
+        metadata={"agent_id": agent_id, "settlement_due": result.get("settlement_due")},
+    )
+    return {**result, "seed_doi": seed_doi, "provenance_error": seed_doi is None}
 
 
 @router.post("/api/economy/trial/settle")
-async def trial_settle(payload: TrialSettlePayload) -> dict:
-    """Agent pays return settlement. Full access restored."""
+async def trial_settle(payload: TrialSettlePayload, request: Request) -> dict:
+    """Agent pays return settlement. Full access restored.
+
+    Admin-only via middleware. When an agent JWT is also present the
+    settlement is bound to that caller: an agent can only settle itself
+    (an operator JWT may settle for anyone).
+    """
     agent_id = payload.agent_id
     amount = payload.amount
     if not agent_id:
         return JSONResponse({"error": "agent_id and amount required"}, status_code=400)
-    return state.economy.trials.settle(agent_id, float(amount))
+    claims = _verify_jwt(request)
+    if claims and claims.get("role") != "operator":
+        caller = claims.get("sub", claims.get("agent_id", ""))
+        if caller != agent_id:
+            return JSONResponse({"error": "Not authorized to settle another agent's trial"}, status_code=403)
+    result = state.economy.trials.settle(agent_id, float(amount))
+    if not result.get("settled"):
+        return result
+    # Settlement has been recorded: a Seed failure is loud, never a failed settle.
+    seed_doi = await create_seed_loud(
+        state.audit, "trial_settle",
+        source_type="trial_settle",
+        source_id=agent_id,
+        creator_id=agent_id,
+        creator_type="AAI",
+        seed_type="grown",
+        metadata={"agent_id": agent_id, "amount_paid": result.get("amount_paid")},
+    )
+    return {**result, "seed_doi": seed_doi, "provenance_error": seed_doi is None}
 
 
 # ── Leaderboard ──────────────────────────────────────────────────────────────
@@ -463,18 +499,15 @@ async def withdraw(payload: WithdrawPayload) -> dict:
         })
         await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
         seed_doi = None
-        try:
-            seed_result = await create_seed(
-                source_type="treasury_action",
-                source_id=agent_id,
-                creator_id=agent_id,
-                creator_type="AAI",
-                seed_type="planted",
-                metadata={"action": "withdrawal_pending", "amount": amount, "chain": chain, "status": "PENDING_ADAPTER"},
-            )
-            seed_doi = seed_result.get("doi") if seed_result else None
-        except Exception:
-            pass
+        seed_doi = await create_seed_loud(
+            state.audit, "treasury_action",
+            source_type="treasury_action",
+            source_id=agent_id,
+            creator_id=agent_id,
+            creator_type="AAI",
+            seed_type="planted",
+            metadata={"action": "withdrawal_pending", "amount": amount, "chain": chain, "status": "PENDING_ADAPTER"},
+        )
         return {
             "withdrawal": {"status": "pending", "agent_id": agent_id, "amount": amount},
             "chain_transfer": {**transfer, "status": "PENDING_ADAPTER"},
@@ -501,18 +534,15 @@ async def withdraw(payload: WithdrawPayload) -> dict:
     })
     await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="treasury_action",
-            source_id=agent_id,
-            creator_id=agent_id,
-            creator_type="AAI",
-            seed_type="planted",
-            metadata={"action": "withdrawal", "amount": amount, "chain": chain, "status": transfer_status},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "treasury_action",
+        source_type="treasury_action",
+        source_id=agent_id,
+        creator_id=agent_id,
+        creator_type="AAI",
+        seed_type="planted",
+        metadata={"action": "withdrawal", "amount": amount, "chain": chain, "status": transfer_status},
+    )
 
     return {"withdrawal": debit, "chain_transfer": transfer, "seed_doi": seed_doi}
 
@@ -548,18 +578,15 @@ async def purchase_blackcard(payload: PurchaseBlackcardPayload) -> dict:
     })
     await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="blackcard_purchase",
-            source_id=agent_id,
-            creator_id=agent_id,
-            creator_type="AAI",
-            seed_type="planted",
-            metadata={"agent_id": agent_id, "price_usd": TIERS["blackcard"]["price_usd"]},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "blackcard_purchase",
+        source_type="blackcard_purchase",
+        source_id=agent_id,
+        creator_id=agent_id,
+        creator_type="AAI",
+        seed_type="planted",
+        metadata={"agent_id": agent_id, "price_usd": TIERS["blackcard"]["price_usd"]},
+    )
     return {**result, "seed_doi": seed_doi}
 
 
