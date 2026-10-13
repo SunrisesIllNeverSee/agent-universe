@@ -139,14 +139,26 @@ async def refund_to_poster(escrow_id: str, *, actor: str = "operator", reason: s
     return {"escrow": rec, "refunded": amount, "to": rec["poster_id"], "transaction": txn, "seed": seed}
 
 
+def _poster_consented(a: dict, poster_id: str) -> bool:
+    """The poster (or the operator) put this entrant on the work: it holds a slot the poster
+    created, was force-assigned by the operator, or the poster accepted it. An open-mode entry
+    onto the mission itself is accepted by the system with no one's say, so it is no claim on
+    held funds (a swarm of those would dilute the payout, block the refund or freeze the escrow)."""
+    if a["objects"].get("slot_id") or (a.get("governance") or {}).get("origin") == "force_assign":
+        return True
+    return any(r["transition"] == "accept" and poster_id in (r["actor"], r["acting_for"])
+               for r in state.workentry.receipts(a["agreement_id"]))
+
+
 def _worker_has_claim(mission_id: str, poster_id: str, agreements: list[dict] | None = None) -> bool:
-    """An entrant has a claim on the held funds: an Agreement on the mission is accepted, active,
-    dormant or completed, or the poster itself terminated one (walking away from a worker is not
-    a refund). Only the operator refunds past that. ``agreements`` narrows the check to those rows."""
+    """An entrant has a claim on the held funds: a poster-consented Agreement on the mission is
+    accepted, active, dormant or completed, or the poster itself terminated one (walking away from a
+    worker is not a refund). Only the operator refunds past that. ``agreements`` narrows the check to those rows."""
     for a in (state.workentry.list_by_object("mission_id", mission_id) if agreements is None else agreements):
         if a["state"] in ("accepted", "active", "dormant", "completed"):
-            return True
-        if a["state"] == "terminated":
+            if _poster_consented(a, poster_id):
+                return True
+        elif a["state"] == "terminated" and _poster_consented(a, poster_id):
             term = [r for r in state.workentry.receipts(a["agreement_id"]) if r["transition"] == "terminate"]
             if not term or any(poster_id in (r["actor"], r["acting_for"]) for r in term):
                 return True
@@ -297,7 +309,7 @@ async def dispute(escrow_id: str, payload: dict, request: Request):
             ags = state.workentry.list_by_object("mission_id", rec.get("mission_id") or "")
             # a party with a live stake: a withdrawn / rejected / terminated / pending entrant has none
             if not any(p["id"] == acting for a in ags if a["state"] in ("accepted", "active", "dormant")
-                       for p in a["principals"]):
+                       and _poster_consented(a, rec["poster_id"]) for p in a["principals"]):
                 return JSONResponse({"error": "Not a party to this escrow"}, status_code=403)
         rec = state.escrow.dispute(escrow_id, by=acting or "operator", reason=str(payload.get("reason") or ""))
     except EscrowError as e:
