@@ -222,3 +222,17 @@ def test_slow_proofpress_does_not_block_enqueue(tmp_path):
     gate.set()
     t.join(5)
     assert done and time.monotonic() - started < 2
+
+
+# 6. Two checkouts opened before either was paid both fund the same mission. Only one escrow is
+#    settled at mission end; the other stayed held forever and, with the Agreement completed, the
+#    poster could no longer refund it (only the operator could).
+def test_second_escrow_on_the_same_mission_is_refunded_at_end(client):
+    poster, worker, slot, mid, esc = _funded_mission(client, 100.0)
+    assert _fill(client, worker, slot["id"]).status_code == 200
+    second = state.escrow.fund(poster_id=poster["id"], amount=40.0, source="operator", mission_id=mid)
+    state.escrow.hold(second["escrow_id"], mission_id=mid)
+    client.post(f"/api/missions/{mid}/end", headers=poster["h"], json={})
+    assert state.escrow.get(esc["escrow_id"])["remaining"] == 0
+    assert state.escrow.get(second["escrow_id"])["state"] == "refunded"
+    assert state.economy.treasury.balance(poster["id"]) == 40.0

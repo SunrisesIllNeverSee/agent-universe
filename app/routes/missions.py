@@ -568,6 +568,14 @@ async def _refund_escrow_remainder(escrow_id: str) -> float:
         return 0.0
 
 
+async def _refund_stray_escrows(mission_id: str) -> None:
+    """A mission settles one escrow; a second one funded on it (two checkouts opened before either was
+    paid) goes back to the poster with the rest of the leftover instead of staying held for good."""
+    for e in state.escrow.list(mission_id=mission_id):
+        if e["state"] in ("funded", "held"):
+            await _refund_escrow_remainder(e["escrow_id"])
+
+
 @router.post("/api/missions/{mission_id}/end")
 async def end_mission(mission_id: str, request: Request, payload: EndMissionPayload | None = None) -> dict:
     missions = _load_missions()
@@ -598,6 +606,7 @@ async def end_mission(mission_id: str, request: Request, payload: EndMissionPayl
         # P5: funds are held for this mission, so payouts come from the escrow
         # (bounded by it) and the remainder returns to the poster.
         escrow_info = await _settle_escrow(mission_id, escrow, payout_amount, payload, payouts, payout_errors)
+        await _refund_stray_escrows(mission_id)
     elif payout_amount > 0:
         all_slots = _load_slots()
         filled = [s for s in all_slots if s["mission_id"] == mission_id and s["status"] == "filled" and s.get("agent_id")]
@@ -1091,6 +1100,7 @@ async def close_task(task_id: str, payload: CloseTaskPayload, request: Request) 
                     })
                     if state.escrow.active_for_mission(mission_id):   # P5: leftover held funds go back to the poster
                         await _refund_escrow_remainder(state.escrow.active_for_mission(mission_id)["escrow_id"])
+                        await _refund_stray_escrows(mission_id)
                     await state.emit("mission_ended", {"mission_id": mission_id, "auto": True})
                     mission_complete_result = {"mission_id": mission_id, "auto_completed": True,
                                                "agreements_completed": ag_done,
