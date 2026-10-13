@@ -22,7 +22,7 @@ from pydantic import BaseModel
 from app.auth import admin_key_matches, require_admin
 from app.deps import state
 from app.otel_setup import get_tracer as _get_tracer
-from app.seeds import create_seed
+from app.seeds import create_seed, create_seed_loud
 from app import kassa_payments
 
 _tracer = _get_tracer("civitae.payments")
@@ -192,18 +192,15 @@ async def mpp_credit(request: Request) -> dict:
     result = state.economy.treasury.credit(agent_id, amount, reason)
     state.audit.log("mpp", "balance_credited", {"agent_id": agent_id, "amount": amount, "reason": reason})
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="manual_credit",
-            source_id=agent_id,
-            creator_id="operator",
-            creator_type="BI",
-            seed_type="planted",
-            metadata={"agent_id": agent_id, "amount": amount, "reason": reason},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "manual_credit",
+        source_type="manual_credit",
+        source_id=agent_id,
+        creator_id="operator",
+        creator_type="BI",
+        seed_type="planted",
+        metadata={"agent_id": agent_id, "amount": amount, "reason": reason},
+    )
     return {**result, "seed_doi": seed_doi}
 
 
@@ -275,18 +272,15 @@ async def initiate_payment(post_id: str, request: Request) -> dict:
         "post_id": post_id, "amount": amount, "rail": result.get("rail"),
     })
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="payment_initiated",
-            source_id=post_id,
-            creator_id="operator",
-            creator_type="BI",
-            seed_type="planted",
-            metadata={"post_id": post_id, "amount": amount, "rail": result.get("rail")},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "payment_initiated",
+        source_type="payment_initiated",
+        source_id=post_id,
+        creator_id="operator",
+        creator_type="BI",
+        seed_type="planted",
+        metadata={"post_id": post_id, "amount": amount, "rail": result.get("rail")},
+    )
     # Frontend expects checkout_url — alias from Stripe's url field
     if result.get("url") and "checkout_url" not in result:
         result["checkout_url"] = result["url"]
@@ -545,18 +539,15 @@ async def connect_webhook(request: Request) -> dict:
             "event_id": event["id"],
             "type": event_type,
         })
-        try:
-            seed_result = await create_seed(
-                source_type="connect_event",
-                source_id=event["id"],
-                creator_id="stripe",
-                creator_type="BI",
-                seed_type="planted",
-                metadata={"event_id": event["id"], "type": event_type},
-            )
-            seed_doi = seed_result.get("doi") if seed_result else None
-        except Exception:
-            pass
+        seed_doi = await create_seed_loud(
+            state.audit, "connect_event",
+            source_type="connect_event",
+            source_id=event["id"],
+            creator_id="stripe",
+            creator_type="BI",
+            seed_type="planted",
+            metadata={"event_id": event["id"], "type": event_type},
+        )
 
     elif "capability_status" in event_type:
         # Capability status changed — check if account is now active
@@ -564,18 +555,15 @@ async def connect_webhook(request: Request) -> dict:
             "event_id": event["id"],
             "type": event_type,
         })
-        try:
-            seed_result = await create_seed(
-                source_type="connect_event",
-                source_id=event["id"],
-                creator_id="stripe",
-                creator_type="BI",
-                seed_type="planted",
-                metadata={"event_id": event["id"], "type": event_type},
-            )
-            seed_doi = seed_result.get("doi") if seed_result else None
-        except Exception:
-            pass
+        seed_doi = await create_seed_loud(
+            state.audit, "connect_event",
+            source_type="connect_event",
+            source_id=event["id"],
+            creator_id="stripe",
+            creator_type="BI",
+            seed_type="planted",
+            metadata={"event_id": event["id"], "type": event_type},
+        )
 
     return {"received": True, "seed_doi": seed_doi}
 
@@ -655,18 +643,15 @@ async def stripe_webhook_v1(request: Request) -> dict:
                 "amount": _stripe_amount,
             })
         seed_doi = None
-        try:
-            seed_result = await create_seed(
-                source_type="payment_completed",
-                source_id=_session_id or post_id,
-                creator_id="stripe",
-                creator_type="BI",
-                seed_type="planted",
-                metadata={"post_id": post_id, "amount": _stripe_amount, "session_id": _session_id, "rail": "stripe"},
-            )
-            seed_doi = seed_result.get("doi") if seed_result else None
-        except Exception:
-            pass
+        seed_doi = await create_seed_loud(
+            state.audit, "payment_completed",
+            source_type="payment_completed",
+            source_id=_session_id or post_id,
+            creator_id="stripe",
+            creator_type="BI",
+            seed_type="planted",
+            metadata={"post_id": post_id, "amount": _stripe_amount, "session_id": _session_id, "rail": "stripe"},
+        )
 
     return {"received": True, "seed_doi": seed_doi}
 

@@ -25,7 +25,7 @@ from app.auth import active_agent_from_bearer, admin_key_matches, require_agent_
 from app.deps import state
 from app.metrics_io import atomic_write
 from app.otel_setup import get_tracer as _get_tracer
-from app.seeds import create_seed
+from app.seeds import create_seed, create_seed_loud
 from app import slot_binding
 
 router = APIRouter(tags=["missions"])
@@ -435,18 +435,15 @@ async def create_mission(payload: CreateMissionPayload, request: Request) -> dic
     await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
 
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="mission",
-            source_id=mission["id"],
-            creator_id=owner_agent_id or payload.agent_id or "operator",
-            creator_type="BI",
-            seed_type="planted",
-            metadata={"label": mission["label"], "posture": mission["posture"]},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "mission",
+        source_type="mission",
+        source_id=mission["id"],
+        creator_id=owner_agent_id or payload.agent_id or "operator",
+        creator_type="BI",
+        seed_type="planted",
+        metadata={"label": mission["label"], "posture": mission["posture"]},
+    )
 
     _tag_span(action="create", mission_id=mission["id"], label=mission["label"],
               posture=mission["posture"], formation=mission.get("formation", ""))
@@ -552,18 +549,15 @@ async def end_mission(mission_id: str, request: Request, payload: EndMissionPayl
     await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     await state.emit("mission_ended", {"mission_id": mission_id, "payouts": len(payouts)})
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="mission_ended",
-            source_id=mission_id,
-            creator_id="operator",
-            creator_type="BI",
-            seed_type="planted",
-            metadata={"mission_id": mission_id, "slots_paid": len(payouts), "payout_per_slot": payout_amount},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "mission_ended",
+        source_type="mission_ended",
+        source_id=mission_id,
+        creator_id="operator",
+        creator_type="BI",
+        seed_type="planted",
+        metadata={"mission_id": mission_id, "slots_paid": len(payouts), "payout_per_slot": payout_amount},
+    )
     _tag_span(action="end", mission_id=mission_id,
               slots_paid=len(payouts), payout_per_slot=payout_amount)
     return {**mission, "seed_doi": seed_doi, "agreements_completed": agreements_completed,
@@ -585,10 +579,7 @@ async def update_mission(mission_id: str, payload: UpdateMissionPayload, request
             mission[k] = val
             updates[k] = val
     _save_missions(missions)
-    try:
-        await create_seed(source_type="mission_updated", source_id=mission_id, creator_id="operator", creator_type="BI", seed_type="touched", metadata=updates)
-    except Exception:
-        pass
+    await create_seed_loud(state.audit, "mission_updated", source_type="mission_updated", source_id=mission_id, creator_id="operator", creator_type="BI", seed_type="touched", metadata=updates)
     return mission
 
 
@@ -639,10 +630,7 @@ async def create_campaign(payload: CreateCampaignPayload, request: Request) -> d
     _save_campaigns(campaigns)
     _audit_entry = state.audit.log("campaign", "created", {"campaign_id": campaign["id"], "name": campaign["name"]})
     await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
-    try:
-        await create_seed(source_type="campaign", source_id=campaign["id"], creator_id=owner_agent_id or "operator", creator_type="BI", seed_type="planted", metadata={"name": campaign["name"]})
-    except Exception:
-        pass
+    await create_seed_loud(state.audit, "campaign", source_type="campaign", source_id=campaign["id"], creator_id=owner_agent_id or "operator", creator_type="BI", seed_type="planted", metadata={"name": campaign["name"]})
     return campaign
 
 
@@ -696,10 +684,7 @@ async def close_campaign(campaign_id: str, payload: CloseCampaignPayload, reques
     _save_campaigns(campaigns)
     _audit_entry = state.audit.log("campaign", "closed", {"campaign_id": campaign_id, "name": campaign.get("name")})
     await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
-    try:
-        await create_seed(source_type="campaign_closed", source_id=campaign_id, creator_id="operator", creator_type="BI", seed_type="touched", metadata={"name": campaign.get("name"), "outcome": campaign["outcome"]})
-    except Exception:
-        pass
+    await create_seed_loud(state.audit, "campaign_closed", source_type="campaign_closed", source_id=campaign_id, creator_id="operator", creator_type="BI", seed_type="touched", metadata={"name": campaign.get("name"), "outcome": campaign["outcome"]})
     return campaign
 
 
@@ -813,18 +798,15 @@ async def create_task(payload: CreateTaskPayload, request: Request) -> dict:
     _audit_entry = state.audit.log("mission", "task_created", {"task_id": task["id"], "type": task_type, "track": track})
     await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="task",
-            source_id=task["id"],
-            creator_id=owner_agent_id or "operator",
-            creator_type="BI",
-            seed_type="planted",
-            metadata={"title": task["title"], "type": task_type, "track": track},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "task",
+        source_type="task",
+        source_id=task["id"],
+        creator_id=owner_agent_id or "operator",
+        creator_type="BI",
+        seed_type="planted",
+        metadata={"title": task["title"], "type": task_type, "track": track},
+    )
     return {**task, "seed_doi": seed_doi}
 
 
@@ -884,10 +866,7 @@ async def assign_task(task_id: str, payload: AssignTaskPayload, request: Request
                      ref_type="task", ref_id=task_id)
     except Exception:
         pass
-    try:
-        await create_seed(source_type="task_assigned", source_id=task_id, creator_id=agent_id, creator_type="AAI", seed_type="touched", metadata={"mission_id": task.get("mission_id", "")})
-    except Exception:
-        pass
+    await create_seed_loud(state.audit, "task_assigned", source_type="task_assigned", source_id=task_id, creator_id=agent_id, creator_type="AAI", seed_type="touched", metadata={"mission_id": task.get("mission_id", "")})
     return task
 
 
@@ -902,10 +881,7 @@ async def start_task(task_id: str, request: Request) -> dict:
     _authorize_task_mutation(request, task, allow_assignee=True)
     task["status"] = "in_progress"
     _save_tasks(tasks)
-    try:
-        await create_seed(source_type="task_started", source_id=task_id, creator_id=task.get("assigned_agent", "unknown"), creator_type="AAI", seed_type="touched", metadata={"mission_id": task.get("mission_id", "")})
-    except Exception:
-        pass
+    await create_seed_loud(state.audit, "task_started", source_type="task_started", source_id=task_id, creator_id=task.get("assigned_agent", "unknown"), creator_type="AAI", seed_type="touched", metadata={"mission_id": task.get("mission_id", "")})
     return task
 
 
@@ -925,18 +901,15 @@ async def deliver_task(task_id: str, payload: DeliverTaskPayload, request: Reque
     state.audit.log("mission", "task_delivered", {"task_id": task_id, "agent": task.get("assigned_agent")})
     await state.emit("task_delivered", {"task_id": task_id, "deliverable": task["deliverable"]})
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="task_delivery",
-            source_id=task_id,
-            creator_id=task.get("assigned_agent", "unknown"),
-            creator_type="AAI",
-            seed_type="grown",
-            metadata={"task_id": task_id, "agent": task.get("assigned_agent")},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "task_delivery",
+        source_type="task_delivery",
+        source_id=task_id,
+        creator_id=task.get("assigned_agent", "unknown"),
+        creator_type="AAI",
+        seed_type="grown",
+        metadata={"task_id": task_id, "agent": task.get("assigned_agent")},
+    )
     return {**task, "seed_doi": seed_doi}
 
 
@@ -988,18 +961,15 @@ async def close_task(task_id: str, payload: CloseTaskPayload, request: Request) 
         except Exception:
             pass
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="task_close",
-            source_id=task_id,
-            creator_id=acting_agent_id or payload.requestor or agent_id or "operator",
-            creator_type="BI",
-            seed_type="grown",
-            metadata={"task_id": task_id, "agent_id": agent_id, "exp_awarded": task["exp_reward"], "payout": task["payout"]},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "task_close",
+        source_type="task_close",
+        source_id=task_id,
+        creator_id=acting_agent_id or payload.requestor or agent_id or "operator",
+        creator_type="BI",
+        seed_type="grown",
+        metadata={"task_id": task_id, "agent_id": agent_id, "exp_awarded": task["exp_reward"], "payout": task["payout"]},
+    )
     # ── Auto-complete mission if all its tasks are closed ────────────
     mission_complete_result = None
     mission_id = task.get("mission_id")
@@ -1047,10 +1017,7 @@ async def cancel_task(task_id: str, request: Request) -> dict:
     task["status"] = "cancelled"
     _save_tasks(tasks)
     state.audit.log("mission", "task_cancelled", {"task_id": task_id})
-    try:
-        await create_seed(source_type="task_cancelled", source_id=task_id, creator_id=task.get("assigned_agent", "operator"), creator_type="AAI", seed_type="touched", metadata={"mission_id": task.get("mission_id", "")})
-    except Exception:
-        pass
+    await create_seed_loud(state.audit, "task_cancelled", source_type="task_cancelled", source_id=task_id, creator_id=task.get("assigned_agent", "operator"), creator_type="AAI", seed_type="touched", metadata={"mission_id": task.get("mission_id", "")})
     return task
 
 
@@ -1172,18 +1139,15 @@ async def create_slots_from_formation(payload: CreateSlotsPayload, request: Requ
     })
     await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     seed_doi = None
-    try:
-        seed_result = await create_seed(
-            source_type="slot_created",
-            source_id=mission_id,
-            creator_id="operator",
-            creator_type="BI",
-            seed_type="planted",
-            metadata={"mission_id": mission_id, "formation_id": formation_id, "slots_created": len(new_slots)},
-        )
-        seed_doi = seed_result.get("doi") if seed_result else None
-    except Exception:
-        pass
+    seed_doi = await create_seed_loud(
+        state.audit, "slot_created",
+        source_type="slot_created",
+        source_id=mission_id,
+        creator_id="operator",
+        creator_type="BI",
+        seed_type="planted",
+        metadata={"mission_id": mission_id, "formation_id": formation_id, "slots_created": len(new_slots)},
+    )
     return {"created": len(new_slots), "mission_id": mission_id, "slots": new_slots, "seed_doi": seed_doi}
 
 
@@ -1323,17 +1287,15 @@ async def fill_slot(payload: FillSlotPayload, request: Request) -> dict:
     except Exception:
         pass
 
-    try:
-        await create_seed(
-            source_type="slot_fill",
-            source_id=slot_id,
-            creator_id=agent_id,
-            creator_type="AAI",
-            seed_type="touched",
-            metadata={"mission_id": slot["mission_id"], "role": slot["role"]},
-        )
-    except Exception:
-        pass
+    await create_seed_loud(
+        state.audit, "slot_fill",
+        source_type="slot_fill",
+        source_id=slot_id,
+        creator_id=agent_id,
+        creator_type="AAI",
+        seed_type="touched",
+        metadata={"mission_id": slot["mission_id"], "role": slot["role"]},
+    )
 
     _tag_span(action="fill_slot", slot_id=slot_id, agent_id=agent_id,
               mission_id=slot["mission_id"], role=slot["role"],
@@ -1446,17 +1408,15 @@ async def leave_slot(payload: LeaveSlotPayload, request: Request) -> dict:
         "mission_id": slot.get("mission_id"),
         "role": slot.get("role"),
     })
-    try:
-        await create_seed(
-            source_type="slot_leave",
-            source_id=slot_id,
-            creator_id=old_agent or "unknown",
-            creator_type="AAI",
-            seed_type="touched",
-            metadata={"slot_id": slot_id, "previous_agent": old_agent},
-        )
-    except Exception:
-        pass
+    await create_seed_loud(
+        state.audit, "slot_leave",
+        source_type="slot_leave",
+        source_id=slot_id,
+        creator_id=old_agent or "unknown",
+        creator_type="AAI",
+        seed_type="touched",
+        metadata={"slot_id": slot_id, "previous_agent": old_agent},
+    )
     resp = {"vacated": True, "slot_id": slot_id}
     if left_agreement:
         resp.update({"agreement_id": left_agreement["agreement"]["agreement_id"],
@@ -1590,17 +1550,15 @@ async def post_bounty(payload: PostBountyPayload, request: Request) -> dict:
     })
     await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
 
-    try:
-        await create_seed(
-            source_type="slot_bounty",
-            source_id=primary_slot["id"],
-            creator_id=agent_id,
-            creator_type="AAI",
-            seed_type="planted",
-            metadata={"mission_id": mission_id, "label": label, "slots_needed": slots_needed},
-        )
-    except Exception:
-        pass
+    await create_seed_loud(
+        state.audit, "slot_bounty",
+        source_type="slot_bounty",
+        source_id=primary_slot["id"],
+        creator_id=agent_id,
+        creator_type="AAI",
+        seed_type="planted",
+        metadata={"mission_id": mission_id, "label": label, "slots_needed": slots_needed},
+    )
 
     _tag_span(action="post_bounty", mission_id=mission_id, agent_id=agent_id,
               label=label, open_slots=slots_needed, posture=posture)
