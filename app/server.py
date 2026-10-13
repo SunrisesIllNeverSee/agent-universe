@@ -27,6 +27,7 @@ from .runtime import RuntimeState
 from .store import MessageStore
 from .kassa_store import KassaStore
 from .workentry_store import WorkEntryStore
+from .escrow import EscrowStore
 from .inbox_store import InboxStore
 from .forums_store import ForumsStore
 from .jwt_config import get_kassa_jwt_secret
@@ -147,6 +148,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     state.store = store
     state.kassa = kassa
     state.workentry = workentry
+    state.escrow = EscrowStore(data_dir / "escrow.json")
     state.inbox = inbox
     state.forums = forums
     state.audit = audit
@@ -357,6 +359,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/mission-dash/",
         "/api/agent/inbox",
         "/api/availability/",
+        "/api/escrow/",      # route-level auth: fund/release/resolve are operator-only
     )
 
     # Exact-path agent allowances (POST create only). Deliberately NOT the
@@ -501,6 +504,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     from app.routes.indexnow import router as indexnow_router
     from app.routes.principal import router as principal_router
     from app.routes.workentry import router as workentry_router
+    from app.routes.escrow import router as escrow_router
 
     app.include_router(pages_router)
     app.include_router(core_router)
@@ -523,6 +527,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     app.include_router(indexnow_router)
     app.include_router(principal_router)
     app.include_router(workentry_router)
+    app.include_router(escrow_router)
 
     from app.routes.advisory import router as advisory_router
     app.include_router(advisory_router)
