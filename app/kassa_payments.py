@@ -45,9 +45,11 @@ _mpp_challenges: dict[str, dict] = {}
 _MPP_CHALLENGE_TTL = 3600  # seconds
 _MPP_CREDENTIAL_TTL = 300  # 5-minute access window per credential
 
-# The governance-tier application fee percentage.
-# Ungoverned: 15%, Governed: 5%, Constitutional: 2%, Black Card: custom
-DEFAULT_APP_FEE_PERCENT = 5
+# Default application fee percentage = the configured UNGOVERNED tier rate
+# (config/economic_rates.json is the single source of truth for fees).
+from app.economy import TIERS as _TIERS
+
+DEFAULT_APP_FEE_PERCENT = int(round(_TIERS["ungoverned"]["fee_rate"] * 100))
 
 # ── Stripe Client (V2 API) ────────────────────────────────────────────────
 

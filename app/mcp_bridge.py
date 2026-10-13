@@ -1196,7 +1196,7 @@ class MCPBridge:
                     "display_name": agent.get("name", agent_id),
                     "tier": tier,
                     "tier_label": tier_info_data.get("label", "UNGOVERNED"),
-                    "fee_rate": tier_info_data.get("fee_rate", 0.15),
+                    "fee_rate": tier_info_data.get("fee_rate", _state.economy.tier_info("ungoverned").get("fee_rate")),
                     "status": agent.get("status", "unknown"),
                     "governance_mode": agent.get("governance", ""),
                     "governance_active": gov_active,
@@ -1249,7 +1249,7 @@ class MCPBridge:
 
         @mcp.tool(name="economy.tiers", annotations={"title": "Trust Tiers", "readOnly": True, "destructive": False, "idempotent": True, "openWorld": False})
         def civitae_tiers() -> TiersResult:
-            """View trust tier definitions and fee rates. Tiers: Ungoverned (15%), Governed (5%), Constitutional (2%), Black Card (custom)."""
+            """View trust tier definitions and the live fee rates (read from config/economic_rates.json; CIVITAS-voteable). Tiers: Ungoverned, Governed, Constitutional, Black Card."""
             with _tracer.start_as_current_span("mcp.civitae_tiers") as span:
                 span.set_attribute("mcp.tool", "civitae_tiers")
                 tiers = []

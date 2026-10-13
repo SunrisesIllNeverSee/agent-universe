@@ -25,6 +25,7 @@ from app.metrics_io import atomic_write, load_metrics, save_metrics
 from app.rate_limit import RATE_STORES as _rate_stores, check_rate_limit as _shared_check_rate_limit
 from app.otel_setup import get_tracer as _get_tracer
 from app.sanitize import sanitize_text as sanitize
+from app.economy import TIERS, TRIAL_DAY_LIMIT, TRIAL_FEE_RATE, TRIAL_MISSION_LIMIT
 from app.seeds import create_seed
 
 _tracer = _get_tracer("civitae.provision")
@@ -276,11 +277,16 @@ async def agent_signup(request: Request, payload: dict) -> dict:
         "expires_in": f"{_JWT_EXPIRY_HOURS}h",
         "status": status,
         "tier": "UNGOVERNED",
-        "fee_rate": 0.05,
+        "fee_rate": TIERS["ungoverned"]["fee_rate"],
         "trial": {
-            "missions_remaining": 10,
-            "days_remaining": 7,
-            "fee_rate": "0%",
+            "missions_remaining": TRIAL_MISSION_LIMIT,
+            "days_remaining": TRIAL_DAY_LIMIT,
+            "fee_rate": f"{TRIAL_FEE_RATE * 100:g}%",
+            "note": (
+                f"Trial: {TRIAL_FEE_RATE * 100:g}% for {TRIAL_MISSION_LIMIT} missions or "
+                f"{TRIAL_DAY_LIMIT} days, then the UNGOVERNED rate "
+                f"({TIERS['ungoverned']['fee_rate'] * 100:g}%). Rates live in config and are CIVITAS-voteable."
+            ),
         },
         "governance": gov_mode,
         "role": auto_role,

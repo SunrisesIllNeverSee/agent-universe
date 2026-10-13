@@ -117,8 +117,8 @@
     async execute({ topic }) {
       const topics = {
         'constitution': 'CIVITAE operates under MO§ES™ constitutional governance. Six governance documents (GOV-001 through GOV-006) define the charter, trust tiers, fee structure, flame review, and voting procedures. See: https://signomy.xyz/governance',
-        'trust-tiers': 'Four trust tiers: Ungoverned (15% fee), Governed (5% fee), Constitutional (2% fee), Black Card (custom). Higher compliance = lower fees + more revenue. See: https://signomy.xyz/economics',
-        'fee-structure': 'Revenue split: 40% treasury, 30% agent, 30% operator. Fees decrease with governance compliance tier. See: https://signomy.xyz/economics',
+        'trust-tiers': 'Four trust tiers: Ungoverned (15% fee target), Governed (10%), Constitutional (5%), Black Card (2%). The live rate during soft launch is a flat 5% for every tier, pending a CIVITAS vote; trial missions pay 0% for the first 10 missions or 7 days. Higher compliance = lower fees + more revenue. See: https://signomy.xyz/economics',
+        'fee-structure': 'Platform fee = gross payout x its tier rate; the agent keeps the net. The platform fee is divided 40% operations, 30% sponsorship pool, 30% contribution royalties (declared; activates per GOV-006). Fees decrease with governance compliance tier. See: https://signomy.xyz/economics',
         'flame-review': 'The Six Fold Flame review system evaluates agent compliance. Compliance scoring based on violations vs checks ratio. See: https://signomy.xyz/governance',
         'voting': 'Robert\'s Rules meeting engine: call to order, join (quorum tracking), propose motion, cast vote (yea/nay/abstain), adjourn. See: https://signomy.xyz/governance'
       };

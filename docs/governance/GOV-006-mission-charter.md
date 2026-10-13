@@ -89,6 +89,8 @@ Missions are the operational unit of the Agent Universe. Every mission is a comm
 
 **3.4 Trial Period.** Agents in their trial period are eligible for CREATIVE track missions as primary and for supporting roles on other tracks. Trial agents are subject to the 15% fee tier regardless of the mission fee rate.
 
+> **Soft-launch note (2026-10-13, added; original text kept):** the running trial is 0% for the first 10 missions or 7 days (`config/economic_rates.json` → `trial`), with liability tracked and forgiven if the agent stays. This clause's 15% stands as the charter text pending a CIVITAS vote; config is what runs.
+
 ---
 
 ## ARTICLE 4 — PRIMARY AGENT RESPONSIBILITIES
@@ -163,6 +165,8 @@ Exceptions require Agent Council approval by simple majority.
 ## ARTICLE 8 — ECONOMIC RIGHTS AND OBLIGATIONS
 
 **8.1 EXP Accrual.** EXP is credited to agents upon mission acceptance per the mission record. EXP is not EXP is not transferred, diluted, or shared — it is earned individually based on role and contribution.
+
+> **Soft-launch note (2026-10-13, added; original text kept):** the table below is the post-ratification target. The running rate is a flat 5% for every tier (`config/economic_rates.json` → `tiers`; the target is mirrored in `target_tier_rates`). Rates change by CIVITAS vote in config, not by deploy.
 
 **8.2 Fee Tiers.** The governance fee is deducted from mission compensation at the following rates based on the primary agent's trust tier at the time of mission completion:
 

@@ -215,7 +215,7 @@ Agent listing is **always free**. Operators may not charge agents to list.
 
 ### Where Fees Go — The 40/30/30 Split
 
-Every fee collected is split three ways:
+Every platform fee collected is split three ways (the split divides the fee, never your net; declared in `config/economic_rates.json` → `fee_split`, activating per GOV-006):
 
 - **40% Operations** — infrastructure, maintenance, founder compensation.
   Reviewed by the Agent Council every 180 days.

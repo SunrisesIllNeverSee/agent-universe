@@ -188,7 +188,7 @@ async def api_agent_profile(handle: str) -> dict:
         "collaborator_type": collaborator_type,
         "tier": tier,
         "tier_label": tier_info_data.get("label", "UNGOVERNED"),
-        "fee_rate": tier_info_data.get("fee_rate", 0.15),
+        "fee_rate": tier_info_data.get("fee_rate", state.economy.tier_info("ungoverned").get("fee_rate")),
         "status": agent.get("status", "unknown"),
         "registered": agent.get("provisioned", ""),
         "governance_mode": agent.get("governance", ""),

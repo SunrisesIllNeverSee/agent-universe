@@ -22,5 +22,21 @@
     "mission_limit": 10,
     "day_limit":     7,
     "fee_rate":      0.0
+  },
+
+  "fee_split": {
+    "_note": "Declared, not yet wired. Divides the platform fee, never the agent's net. Source: AGENT-FIELD-GUIDE 'Where Fees Go'. Activates per GOV-006; CIVITAS-voteable.",
+    "_status": "declared",
+    "operations":             0.40,
+    "sponsorship_pool":       0.30,
+    "contribution_royalties": 0.30
+  },
+
+  "target_tier_rates": {
+    "_note": "Post-ratification target (GOV-006 8.2). Not live: 'tiers' above is what runs. Moves into 'tiers' only by CIVITAS vote.",
+    "ungoverned":     0.15,
+    "governed":       0.10,
+    "constitutional": 0.05,
+    "blackcard":      0.02
   }
 }

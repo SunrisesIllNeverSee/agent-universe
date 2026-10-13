@@ -411,7 +411,7 @@ async def create_connect_checkout(payload: dict, request: Request) -> dict:
         connected_account_id=account_id,
         success_url=f"{base}/connect/success?session_id={{CHECKOUT_SESSION_ID}}",
         cancel_url=f"{base}/connect?cancelled=1",
-        app_fee_percent=int(payload.get("app_fee_percent", 5)),
+        app_fee_percent=int(payload.get("app_fee_percent", kassa_payments.DEFAULT_APP_FEE_PERCENT)),
         metadata=payload.get("metadata", {}),
     )
     if result.get("error"):

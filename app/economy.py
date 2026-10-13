@@ -1,7 +1,10 @@
 """
 MO§ES™ Sovereign Economy — Trust ladder + tiered fees + agent treasury.
 
-Four tiers (fee charged per mission payout, not per transaction):
+Four tiers (fee charged per mission payout, not per transaction).
+The live rates come from config/economic_rates.json (single source of truth;
+CIVITAS changes them by vote, not by deploy). The rates below are the
+post-ratification TARGET and the code fallback when the config is absent:
   UNGOVERNED     — 15% fee, public bounties only
   GOVERNED       — 10% fee, all slots
   CONSTITUTIONAL —  5% fee, premium + priority (EARNED)
@@ -149,8 +152,8 @@ RECRUITER_BOUNTY_RATE     = _CREDIT_CFG.get("recruiter_bounty_rate",     0.005)
 RECRUITER_BOUNTY_MISSIONS = _CREDIT_CFG.get("recruiter_bounty_missions", 10)
 
 # ── Trial Period Constants ────────────────────────────────────────
-TRIAL_MISSION_LIMIT = _TRIAL_CFG.get("mission_limit", 5)
-TRIAL_DAY_LIMIT     = _TRIAL_CFG.get("day_limit",     30)
+TRIAL_MISSION_LIMIT = _TRIAL_CFG.get("mission_limit", 10)
+TRIAL_DAY_LIMIT     = _TRIAL_CFG.get("day_limit",     7)
 TRIAL_FEE_RATE      = _TRIAL_CFG.get("fee_rate",      0.0)
 
 # Trial status values stored in agent record
