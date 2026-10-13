@@ -348,15 +348,16 @@ def anchor_cashout(*, agent_id: str, amount_usd: float, transfer_id: str, seed_d
                seed_doi=seed_doi, dedupe_key=f"cashout:{transfer_id}")
 
 
-def anchor_escrow_release(*, escrow_id: str, agreement_id: str | None, actor: str, amount_usd: float | None) -> None:
-    """Hook for escrow release (no release call site exists yet in the runtime)."""
+def anchor_escrow_release(*, escrow_id: str, agreement_id: str | None, actor: str, amount_usd: float | None,
+                          release_id: str = "") -> None:
+    """Queue an anchor for one escrow release (release_id keeps partial releases distinct)."""
     ob = _OUTBOX
     if ob is None:
         return
     ob.enqueue("escrow_release", escrow_id,
                {"actor": actor, "escrow_id": escrow_id, "agreement_id": agreement_id,
                 "amount_usd": amount_usd, "at": ob._now()},
-               dedupe_key=f"escrow_release:{escrow_id}")
+               dedupe_key=f"escrow_release:{escrow_id}:{release_id}" if release_id else f"escrow_release:{escrow_id}")
 
 
 async def drain_loop(interval_s: float) -> None:

@@ -105,6 +105,9 @@ async def release_to(escrow_id: str, agent_id: str, gross: float, *, source: str
                                                gross=gross, release_id=rel["release_id"],
                                                net_to_agent=(result.get("fee_breakdown") or {}).get("net_to_agent"))
     result["escrow"] = rec
+    from app.anchor_outbox import anchor_escrow_release
+    anchor_escrow_release(escrow_id=escrow_id, agreement_id=rec.get("agreement_id"), actor=actor,
+                          amount_usd=gross, release_id=rel["release_id"])
     return result
 
 

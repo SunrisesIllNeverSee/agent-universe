@@ -242,3 +242,20 @@ def test_rehearsal_script_refuses_live_key_and_remote_host():
     import stripe
     body = b'{"id":"evt_1","object":"event","type":"x","data":{"object":{}}}'
     stripe.Webhook.construct_event(body, mod.sign_webhook(body, "whsec_t"), "whsec_t")
+
+
+def test_escrow_release_queues_one_anchor_per_release(client, tmp_path):
+    """Integration: each escrow release enqueues its own anchor job (partial releases stay distinct)."""
+    from app import anchor_outbox as ao
+    ob = ao.AnchorOutbox(tmp_path / "anchor.db")
+    ao.configure(ob)
+    try:
+        poster, entrant, slot, esc = _funded(client, 100)
+        eid = esc["escrow_id"]
+        for amt in (30, 20):
+            r = client.post(f"/api/escrow/{eid}/release", headers=ADMIN, json={"agent_id": entrant["id"], "amount": amt})
+            assert r.status_code == 200, r.text
+        kinds = [j["kind"] for j in ob.jobs()]
+        assert kinds.count("escrow_release") == 2
+    finally:
+        ao.configure(None)
