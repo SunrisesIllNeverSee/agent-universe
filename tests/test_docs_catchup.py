@@ -17,7 +17,7 @@ GUIDE = (ROOT / "docs" / "agent-onboarding" / "AGENT-FIELD-GUIDE.md").read_text(
 RATES = json.loads((ROOT / "config" / "economic_rates.json").read_text(encoding="utf-8"))
 
 TOOL_RE = re.compile(r"^(chat|agent|market|govern|mission|forum|economy|platform|admin|entry)\.[a-z_]+(\.[a-z_]+)?$")
-PENDING_MARKER = "<!-- p5c: escrow rules / force-assign pending -->"
+PENDING_MARKER = "<!-- p5c: escrow rules / force-assign pending -->"  # must be gone: the rules are now documented
 
 
 def _registered_tools(app) -> dict:
@@ -117,7 +117,9 @@ def test_skill_md_covers_p5_surfaces():
                    "/api/connect/checkout", "/api/economy/trial/{agent_id}", "provenance_error", "provenance_errors",
                    "govern.point_of_order", "govern.rule", "govern.appeal", "govern.second", "govern.appeal_vote"):
         assert needle in SKILL, f"skill.md missing {needle}"
-    assert PENDING_MARKER in SKILL
+    assert PENDING_MARKER not in SKILL
+    for needle in ("chargeback_hold_days", "/api/work-entry/force-assign", "admin.force_assign", "held_until", "evenly"):
+        assert needle in SKILL, f"skill.md missing {needle}"
 
 
 def test_skill_md_money_rules_stated():
@@ -155,4 +157,6 @@ def test_trial_init_note_uses_config_numbers(admin_client):
 def test_field_guide_covers_p5_money_and_procedure():
     for needle in ("/api/escrow/checkout", "bound to your agent", "provenance_error", "govern.appeal_vote", "/meetings"):
         assert needle in GUIDE, f"field guide missing {needle}"
-    assert PENDING_MARKER in GUIDE
+    assert PENDING_MARKER not in GUIDE
+    for needle in ("chargeback_hold_days", "force-assign", "evenly"):
+        assert needle in GUIDE, f"field guide missing {needle}"
