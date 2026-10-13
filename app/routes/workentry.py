@@ -23,7 +23,6 @@ authority. Wiring is keyed to object ids; nothing here binds a slot (slice 4).
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -39,13 +38,11 @@ from app.workentry_store import (
     DuplicateEntryError,
     ProvenanceError,
     WorkEntryError,
+    pending_timers,
 )
 
 logger = logging.getLogger("civitae.workentry")
 router = APIRouter(tags=["work-entry"])
-
-ASK_POSTER_AFTER = timedelta(hours=48)
-DORMANT_AFTER = timedelta(days=14)
 
 _MODE_RANK = {"open": 0, "standard": 1, "constitutional": 2}
 # 1C delivery evidence classes (evidence scope, not merit).
@@ -262,10 +259,12 @@ def sweep_entries() -> dict:
     """Idempotent. pending >=14 d quiet -> dormant; pending >=48 h quiet -> ask the
     poster once per quiet spell. Safe to call from a scheduler, a read, or by hand."""
     store = _store()
+    ask_after, dormant_after = pending_timers()
+    ask_h, dormant_d = f"{ask_after.total_seconds() / 3600:g}", f"{dormant_after.total_seconds() / 86400:g}"
     dormant: list[str] = []
     asked: list[str] = []
     try:
-        dormant = store.sweep_dormant(after=DORMANT_AFTER)
+        dormant = store.sweep_dormant(after=dormant_after)
     except WorkEntryError as e:
         logger.error("work-entry dormant sweep failed: %s", e.message)
     for aid in dormant:
@@ -273,7 +272,7 @@ def sweep_entries() -> dict:
             _notify(store.get(aid), "go_dormant", None)
         except Exception:  # noqa: BLE001
             pass
-    for a in store.pending_stale(older_than=ASK_POSTER_AFTER):
+    for a in store.pending_stale(older_than=ask_after):
         if store.claim_flag(a["agreement_id"], "ask_poster", a["last_activity_at"]):
             asked.append(a["agreement_id"])
             try:
@@ -282,17 +281,17 @@ def sweep_entries() -> dict:
                 if owner and not owner.startswith(("poster:", "platform")):
                     notify_agent(
                         owner, "work_entry_ask_poster",
-                        f"Entry waiting 48 h: {a['opportunity_ref']}",
-                        f"Agreement {a['agreement_id']} has had no answer for 48 hours. Keep it live, "
-                        "decline it (reject with a reason), or retire it. Nothing expires; after 14 days "
-                        "it goes dormant and revives on any activity.",
+                        f"Entry waiting {ask_h} h: {a['opportunity_ref']}",
+                        f"Agreement {a['agreement_id']} has had no answer for {ask_h} hours. Keep it live, "
+                        "decline it (reject with a reason), or retire it. Nothing expires; after "
+                        f"{dormant_d} days it goes dormant and revives on any activity.",
                         ref_type="agreement", ref_id=a["agreement_id"])
                 to = _poster_email(a)
                 if to:
                     from app.notifications import _send_email
                     _send_email(to, "[CIVITAE] An entry is waiting for your answer",
                                 f"Agreement {a['agreement_id']} for {a['opportunity_ref']} has had no answer "
-                                "for 48 hours. Keep it live, decline it, or retire it. Nothing expires.\n")
+                                f"for {ask_h} hours. Keep it live, decline it, or retire it. Nothing expires.\n")
             except Exception as exc:  # noqa: BLE001
                 logger.warning("ask-poster notify failed: %s", exc)
     return {"dormant": dormant, "asked_poster": asked}
@@ -417,8 +416,17 @@ async def svc_file_entry(p: Principal, payload: FileEntryPayload, key: str | Non
             except slot_binding.BindError as e:
                 return _bind_failed(e)
         _notify(a, "file" if mode != "open" else "resolve_open", entrant, opp["title"])
-    return JSONResponse({**out, **_bind_hint(a), "next": _next_hint(a)},
+    return JSONResponse({**out, **_bind_hint(a), **_wait_view(a), "next": _next_hint(a)},
                         status_code=200 if out["replayed"] else 201)
+
+
+def _wait_view(a: dict) -> dict:
+    """Entrant-facing facts on an Agreement: who it is waiting on, and the poster's typical
+    response time (median hours, entry -> poster accept). Display only; it gates nothing."""
+    pr = _store().poster_response(_owner(a))
+    h = pr["median_hours"]
+    pr["label"] = "no history yet" if h is None else f"usually responds in ~{h:g} h"
+    return {"waiting_on": "poster" if a["state"] == "pending" else None, "poster_response": pr}
 
 
 def _next_hint(a: dict) -> str:
@@ -840,7 +848,7 @@ def preview_opportunity(ref: str, request: Request):
                 if a["state"] in _LIVE_FOR_PREVIEW]
         if live:
             mine = {"agreement_id": live[-1]["agreement_id"], "state": live[-1]["state"],
-                    "entry_mode": live[-1]["entry_mode"]}
+                    "entry_mode": live[-1]["entry_mode"], **_wait_view(live[-1])}
     return {"ref": opp["ref"], "kind": opp["kind"], "title": opp["title"], "entry_mode": mode,
             "acceptance": _acceptance_view(mode),
             "delivery_evidence_classes": [{"id": i, "label": lbl} for i, lbl in _EVIDENCE_LABELS],
@@ -902,7 +910,7 @@ def svc_get_entry(p: Principal, agreement_id: str) -> dict:
     a = _get_or_404(agreement_id)
     if not _is_party_view(p, a):
         raise HTTPException(403, "Only the parties to an entry (or an operator) may read it")
-    return {"agreement": a, "receipts": _store().receipts(agreement_id),
+    return {"agreement": a, **_wait_view(a), "receipts": _store().receipts(agreement_id),
             "gates": _store().gates(agreement_id),
             "evidence_gaps": _store().evidence_gaps(agreement_id)}
 

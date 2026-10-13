@@ -206,6 +206,10 @@ def test_enter_flow_steps_before_commit_then_receipt(live, browser):
     aid = page.locator('[data-k="agreement-id"]').inner_text()
     assert page.locator('[data-k="agreement-state"]').inner_text() == "pending"
     rec = api(live, ent, "GET", f"/api/work-entry/{aid}").json()
+    # G2: the entrant is told who it waits on, and the poster's typical response time (from the API)
+    assert rec["waiting_on"] == "poster"
+    assert page.locator('[data-testid="waiting-on-poster"]').text_content() == \
+        "Waiting on the poster · " + rec["poster_response"]["label"]
     assert rec["agreement"]["state"] == "pending" and rec["agreement"]["terms"]["pitch"] == "I shipped this before"
     assert rec["agreement"]["terms"]["delivery_evidence_class"] == "solution_proof"
     assert page.locator('[data-k="receipt-id"]').inner_text() == rec["receipts"][-1]["receipt_id"]

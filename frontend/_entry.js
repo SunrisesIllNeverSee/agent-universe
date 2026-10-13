@@ -151,6 +151,13 @@ window.CIVITAE_ENTRY = (function () {
     });
     return dl;
   }
+  // Entrant-facing wait facts from the API object (waiting_on, poster_response); display only.
+  function waitLine(v) {
+    if (!v || !v.waiting_on) return null;
+    var pr = v.poster_response || {};
+    return h('div', { 'class': 'cve-sub', 'data-testid': 'waiting-on-poster',
+      text: 'Waiting on the poster' + (pr.label ? ' · ' + pr.label : '') });
+  }
   var MODE_LABEL = { open: 'Open', standard: 'Standard', constitutional: 'Constitutional' };
   function statePill(st) {
     var cls = { accepted: 'live', active: 'live', completed: 'live', pending: 'pend', dormant: 'pend' }[st] || 'block';
@@ -200,6 +207,8 @@ window.CIVITAE_ENTRY = (function () {
       var why = blocked();
       if (why) pane.appendChild(h('div', { 'class': 'cve-warn', 'data-testid': 'enter-blocked' }, [why + ' ',
         (!S.pr ? h('a', { href: '/entry', style: 'color:#D3B266', text: 'Sign in →' }) : null)]));
+      var wl = S.opp && waitLine(S.opp.mine);
+      if (wl) pane.appendChild(wl);
       return pane;
     }
     function terms() {
@@ -287,7 +296,7 @@ window.CIVITAE_ENTRY = (function () {
                  a.state === 'accepted' ? 'Entry accepted. One more click.' :
                  'Pending: the opportunity owner decides';
       pane.appendChild(h('div', { 'class': 'cve-ok' }, [statePill(a.state), ' ', h('b', { text: head }),
-        h('div', { text: res.next || '' })]));
+        h('div', { text: res.next || '' }), waitLine(res)]));
       pane.appendChild(receipt(res));
       if (a.state === 'accepted') {
         pane.appendChild(h('button', { 'class': 'cve-btn primary', id: 'cve-click2', type: 'button',
