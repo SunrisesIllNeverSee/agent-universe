@@ -39,6 +39,7 @@ PAGE_ROUTES = [
     "/api/pages",
     "/flowchart",
     "/entry",
+    "/meetings",
     "/governance",
     "/advisory",
     "/portal",

@@ -225,6 +225,11 @@ async def governance_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "governance.html")
 
 
+@router.get("/meetings")
+async def meetings_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "meetings.html")
+
+
 @router.get("/advisory")
 async def advisory_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "advisory.html")
