@@ -854,6 +854,17 @@ async def cashout(request: Request):
     if not acct_status.get("charges_enabled"):
         return JSONResponse({"error": "Connected account onboarding incomplete — complete Stripe setup first"}, status_code=400)
 
+    # Card-funded money is held for the chargeback window (config settlement.chargeback_hold_days):
+    # only the matured part of the balance can leave. No await between this check and the debit.
+    treasury = state.economy.treasury
+    matured = treasury.matured_balance(agent_id)
+    if amount_usd > matured:
+        return JSONResponse({
+            "error": "Insufficient matured balance: card-funded money is held until its chargeback window closes",
+            "balance": treasury.balance(agent_id), "matured": matured, "held": treasury.held_balance(agent_id),
+            "held_until": treasury.held_until(agent_id), "requested": amount_usd,
+        }, status_code=400)
+
     # Reserve first (P5 s2): debit before the transfer so two concurrent
     # cashouts cannot both pass the balance check; refund if Stripe fails.
     reserved = state.economy.treasury.debit(agent_id, amount_usd, reason="cashout_reserved")
@@ -907,4 +918,6 @@ async def cashout(request: Request):
         "transfer_id": result["transfer_id"],
         "amount_usd": amount_usd,
         "remaining_balance": state.economy.treasury.balance(agent_id),
+        "held": state.economy.treasury.held_balance(agent_id),
+        "held_until": state.economy.treasury.held_until(agent_id),
     })

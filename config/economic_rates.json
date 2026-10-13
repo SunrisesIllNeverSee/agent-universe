@@ -24,6 +24,11 @@
     "fee_rate":      0.0
   },
 
+  "settlement": {
+    "_note": "Card-funded escrow money, and payouts/refunds derived from it, cannot be cashed out for this many days (chargeback window). Operator-funded and existing balances are never held.",
+    "chargeback_hold_days": 7
+  },
+
   "fee_split": {
     "_note": "Declared, not yet wired. Divides the platform fee, never the agent's net. Source: AGENT-FIELD-GUIDE 'Where Fees Go'. Activates per GOV-006; CIVITAS-voteable.",
     "_status": "declared",

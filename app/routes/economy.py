@@ -518,6 +518,13 @@ async def withdraw(payload: WithdrawPayload) -> dict:
             "seed_doi": seed_doi,
         }
 
+    # Card-funded money is held for the chargeback window: only the matured balance can leave.
+    matured = state.economy.treasury.matured_balance(agent_id)
+    if amount > matured:
+        return {"error": "Insufficient matured balance", "matured": matured,
+                "held": state.economy.treasury.held_balance(agent_id),
+                "held_until": state.economy.treasury.held_until(agent_id), "requested": amount}
+
     # Real adapter — debit treasury and execute
     debit = state.economy.treasury.debit(agent_id, amount, reason="withdrawal", chain=chain)
     if "error" in debit:

@@ -98,6 +98,15 @@ async def release_to(escrow_id: str, agent_id: str, gross: float, *, source: str
     except Exception:
         state.escrow.revert_release(escrow_id, rel["release_id"])
         raise
+    if escrow["source"] == "stripe_checkout":
+        # Card money: what the agent was just credited is not cashable until the chargeback window closes.
+        credited = (result.get("agent_transaction") or {}).get("amount", 0.0)
+        try:
+            result["hold"] = state.economy.treasury.hold(agent_id, credited, reason="card_funded_payout", ref=escrow_id)
+        except Exception:
+            state.economy.treasury.debit(agent_id, credited, reason="hold_failed_reversal")
+            state.escrow.revert_release(escrow_id, rel["release_id"])
+            raise
     result["escrow_id"] = escrow_id
     result["seed"] = await _payout_seed(result, source=source)
     rec = state.escrow.get(escrow_id)
@@ -115,21 +124,26 @@ async def refund_to_poster(escrow_id: str, *, actor: str = "operator", reason: s
     """Return everything still held to the poster's treasury balance."""
     res = state.escrow.reserve_refund(escrow_id)
     rec, amount = res["escrow"], res["amount"]
+    hold = None
     try:
+        if rec["source"] == "stripe_checkout":      # card money coming back is held like any card-derived balance
+            hold = state.economy.treasury.hold(rec["poster_id"], amount, reason="card_funded_refund", ref=escrow_id)
         txn = state.economy.treasury.credit(rec["poster_id"], amount, reason="escrow_refund",
                                             mission_id=rec.get("mission_id") or escrow_id)
     except Exception:
+        if hold:
+            state.economy.treasury.release_hold(hold["hold_id"])
         state.escrow.revert_refund(escrow_id, amount)
         raise
     seed = await escrow_event(rec, "refunded", actor=actor, to=rec["poster_id"], refunded=amount, reason=reason)
     return {"escrow": rec, "refunded": amount, "to": rec["poster_id"], "transaction": txn, "seed": seed}
 
 
-def _worker_has_claim(mission_id: str, poster_id: str) -> bool:
+def _worker_has_claim(mission_id: str, poster_id: str, agreements: list[dict] | None = None) -> bool:
     """An entrant has a claim on the held funds: an Agreement on the mission is accepted, active,
     dormant or completed, or the poster itself terminated one (walking away from a worker is not
-    a refund). Only the operator refunds past that."""
-    for a in state.workentry.list_by_object("mission_id", mission_id):
+    a refund). Only the operator refunds past that. ``agreements`` narrows the check to those rows."""
+    for a in (state.workentry.list_by_object("mission_id", mission_id) if agreements is None else agreements):
         if a["state"] in ("accepted", "active", "dormant", "completed"):
             return True
         if a["state"] == "terminated":

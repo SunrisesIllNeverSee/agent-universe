@@ -508,36 +508,51 @@ def _complete_mission_agreements(request: Request | None, mission_id: str,
     return done, errors
 
 
+def _escrow_payees(mission_id: str, poster_id: str) -> list[str]:
+    """Entrants with a claim on the held funds: one per Agreement on the mission that is
+    accepted/active/dormant/completed, or that the poster itself terminated (walking away from a
+    worker is not a refund). An entrant who left, was rejected or withdrew is not paid.
+    A mission with no Agreements at all (legacy slot fills) falls back to its filled slots."""
+    ags = state.workentry.list_by_object("mission_id", mission_id)
+    if not ags:
+        return [s["agent_id"] for s in _load_slots()
+                if s["mission_id"] == mission_id and s["status"] == "filled" and s.get("agent_id")]
+    from app.routes.escrow import _worker_has_claim
+    return [next(p["id"] for p in a["principals"] if p["role"] == "entrant")
+            for a in ags if _worker_has_claim(mission_id, poster_id, [a])]
+
+
 async def _settle_escrow(mission_id: str, escrow: dict, per_slot: float, payload, payouts: list,
                          errors: list) -> dict:
-    """Mission end with a live escrow: pay each filled slot from it, refund the rest.
+    """Mission end with a live escrow: pay each entrant from it, refund the rest.
 
     ``per_slot`` is the operator's claim when given; otherwise the held funds are
-    split evenly across filled slots (the poster ending its own mission accepts
-    the work and names no amount). A frozen (disputed) escrow pays and refunds nothing.
+    split evenly across the mission's entrants (the poster ending its own mission
+    accepts the work and names no amount). Rounding dust stays in escrow and is
+    refunded to the poster with any other leftover. A frozen (disputed) escrow pays
+    and refunds nothing.
     """
     eid = escrow["escrow_id"]
     if escrow["state"] == "disputed":
         errors.append({"escrow_id": eid, "error": "escrow is disputed: funds frozen", "code": "disputed"})
         return {"escrow_id": eid, "state": "disputed", "refunded": 0.0}
-    filled = [s for s in _load_slots() if s["mission_id"] == mission_id and s["status"] == "filled" and s.get("agent_id")]
-    if filled:
-        for i, slot in enumerate(filled):
-            # even split of what is still held (floored to 4dp so it never exceeds it)
-            share = per_slot if per_slot > 0 else math.floor(
-                state.escrow.get(eid)["remaining"] / (len(filled) - i) * 1e4) / 1e4
-            if share <= 0:
-                break
-            try:
-                result = await release_to(eid, slot["agent_id"], share, source="mission_end",
-                                          originator_id=payload.originator_id if payload else "")
-                payouts.append(result)
-            except EscrowError as exc:
-                errors.append({"agent_id": slot["agent_id"], "escrow_id": eid, "error": exc.message, "code": exc.code})
-            except Exception as exc:  # noqa: BLE001 - loud, never aborts the mission end
-                errors.append({"agent_id": slot["agent_id"], "escrow_id": eid, "error": str(exc)[:200]})
-                state.audit.log("economy", "payout_failed", {
-                    "mission_id": mission_id, "agent_id": slot["agent_id"], "escrow_id": eid, "error": str(exc)[:200]})
+    payees = _escrow_payees(mission_id, escrow["poster_id"])
+    # one even share, floored to 4dp so the total never exceeds what is held; the dust stays behind
+    even = math.floor(escrow["remaining"] / len(payees) * 1e4) / 1e4 if payees else 0.0
+    for agent_id in payees:
+        share = per_slot if per_slot > 0 else even
+        if share <= 0:
+            break
+        try:
+            result = await release_to(eid, agent_id, share, source="mission_end",
+                                      originator_id=payload.originator_id if payload else "")
+            payouts.append(result)
+        except EscrowError as exc:
+            errors.append({"agent_id": agent_id, "escrow_id": eid, "error": exc.message, "code": exc.code})
+        except Exception as exc:  # noqa: BLE001 - loud, never aborts the mission end
+            errors.append({"agent_id": agent_id, "escrow_id": eid, "error": str(exc)[:200]})
+            state.audit.log("economy", "payout_failed", {
+                "mission_id": mission_id, "agent_id": agent_id, "escrow_id": eid, "error": str(exc)[:200]})
     refunded = await _refund_escrow_remainder(eid)
     return {"escrow_id": eid, "state": state.escrow.get(eid)["state"], "refunded": refunded}
 
