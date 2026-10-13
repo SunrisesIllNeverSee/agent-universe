@@ -72,7 +72,7 @@ def test_enqueue_after_commit_and_pending_receipt(tmp_path):
     s, ob = _store(tmp_path)
     r = _file(s, auto_activate=True)
     assert ob.jobs() == []                                          # Q5: accepted/active are NOT anchored
-    r, done = _completed(s)
+    done = s.complete(r["agreement"]["agreement_id"], actor="agent-a")
     assert [j["kind"] for j in ob.jobs()] == ["agreement.completed"]
     last = s.get_receipt(done["receipt"]["receipt_id"])
     assert last["anchor"]["anchor"] == "pending"
