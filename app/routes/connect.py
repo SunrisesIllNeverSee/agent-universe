@@ -85,6 +85,19 @@ def _bound_account(agent: dict | None) -> str:
     return (agent or {}).get("stripe_account_id", "") if agent else ""
 
 
+def _require_account_manager(request: Request, account_id: str) -> None:
+    """Onboarding sessions and links let their holder edit an account's details, including where
+    payouts go. Account ids are public (the storefront lists them), so only the agent the account
+    is bound to, or the operator, may open one."""
+    if _is_operator(request):
+        return
+    agent = _connect_principal(request)
+    if agent is None:
+        raise HTTPException(status_code=401, detail="Agent JWT required")
+    if not account_id or _bound_account(agent) != account_id:
+        raise HTTPException(status_code=403, detail="Not your linked account")
+
+
 def _seller_fee_percent(account_id: str) -> int:
     """Platform fee for a sale = the seller's tier rate from config.
 
@@ -382,12 +395,13 @@ async def create_recipient_account(payload: ConnectRecipientPayload, request: Re
 
 
 @router.post("/api/connect/accounts/{account_id}/session")
-async def create_connect_session(account_id: str) -> dict:
+async def create_connect_session(account_id: str, request: Request) -> dict:
     """Create a Stripe Account Session for embedded Connect onboarding.
 
     Returns a client_secret for use with Stripe.js loadConnectAndInitialize().
     Enables embedded (non-redirect) onboarding for both V1 and V2 accounts.
     """
+    _require_account_manager(request, account_id)
     result = kassa_payments.create_account_session(account_id)
     if result.get("error"):
         raise HTTPException(status_code=503, detail=result["error"])
@@ -397,6 +411,7 @@ async def create_connect_session(account_id: str) -> dict:
 @router.post("/api/connect/accounts/{account_id}/onboard")
 async def onboard_connect_account(account_id: str, request: Request) -> dict:
     """Generate an onboarding link for a connected account (V1 hosted redirect)."""
+    _require_account_manager(request, account_id)
     proto = request.headers.get("x-forwarded-proto", "http")
     host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost")
     base = f"{proto}://{host}"

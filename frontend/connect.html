@@ -435,7 +435,7 @@ function startOnboarding(accountId) {
   banner.className = 'status-banner info';
   banner.textContent = 'Generating onboarding link...';
 
-  fetch(BASE + '/api/connect/accounts/' + accountId + '/onboard', { method: 'POST' })
+  fetch(BASE + '/api/connect/accounts/' + accountId + '/onboard', { method: 'POST', headers: authHeaders() })
   .then(function(r) {
     return r.json().then(function(data) { return { ok: r.ok, status: r.status, data: data }; });
   })

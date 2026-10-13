@@ -151,3 +151,42 @@ def test_fee_pack_paid_in_full_gets_full_coverage(client, monkeypatch):
     monkeypatch.setattr(stripe.Webhook, "construct_event", lambda payload, sig, secret: ev)
     client.post("/api/kassa/webhooks/stripe", content=b"{}", headers={"stripe-signature": "t"})
     assert state.economy.fee_credits.balance(a["id"]) == 600
+
+
+# 4. Onboarding session / link for ANY connected account, anonymously. Account ids are public (the
+#    storefront lists them), and an onboarding session lets its holder edit the account's details,
+#    including where payouts go. Only the bound agent (or the operator) may open one.
+def _linked(client, monkeypatch):
+    import uuid
+    acct = f"acct_{uuid.uuid4().hex[:8]}"
+    monkeypatch.setattr(kassa_payments, "create_connected_account", lambda **kw: {"account_id": acct})
+    owner = _agent(client)
+    r = client.post("/api/connect/accounts", headers=owner["jwt"], json={"display_name": "x", "email": "x@x.test"})
+    assert r.status_code == 200, r.text
+    return owner, acct
+
+
+def test_onboarding_link_and_session_need_the_bound_agent(client, monkeypatch):
+    owner, acct = _linked(client, monkeypatch)
+    calls = []
+    monkeypatch.setattr(kassa_payments, "create_account_link",
+                        lambda **kw: calls.append(kw) or {"url": "https://stripe.test/onboard"})
+    monkeypatch.setattr(kassa_payments, "create_account_session",
+                        lambda account_id: calls.append(account_id) or {"client_secret": "cs_secret"})
+    stranger = _agent(client)
+    for path in ("onboard", "session"):
+        url = f"/api/connect/accounts/{acct}/{path}"
+        assert client.post(url).status_code in (401, 403)
+        assert client.post(url, headers=stranger["jwt"]).status_code == 403
+    assert calls == []
+    assert client.post(f"/api/connect/accounts/{acct}/onboard", headers=owner["jwt"]).status_code == 200
+    assert client.post(f"/api/connect/accounts/{acct}/session", headers=owner["jwt"]).status_code == 200
+    assert client.post(f"/api/connect/accounts/{acct}/onboard", headers=ADMIN).status_code == 200
+    assert len(calls) == 3
+
+
+def test_unbound_account_onboarding_is_operator_only(client, monkeypatch):
+    monkeypatch.setattr(kassa_payments, "create_account_link", lambda **kw: {"url": "https://stripe.test/o"})
+    a = _agent(client)
+    assert client.post("/api/connect/accounts/acct_unbound/onboard", headers=a["jwt"]).status_code == 403
+    assert client.post("/api/connect/accounts/acct_unbound/onboard", headers=ADMIN).status_code == 200
