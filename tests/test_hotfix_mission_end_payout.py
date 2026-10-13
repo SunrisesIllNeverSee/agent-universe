@@ -19,3 +19,15 @@ def test_operator_can_still_set_payout(admin_client):
     m = admin_client.post("/api/missions", json={"label": "hf-op"}).json()
     r = admin_client.post(f"/api/missions/{m['id']}/end", json={"payout_per_slot": 10})
     assert r.status_code == 200
+
+
+def test_checkout_strips_webhook_instruction_metadata(client, monkeypatch):
+    from app import kassa_payments
+    seen = {}
+    monkeypatch.setattr(kassa_payments, "create_checkout_session",
+                        lambda **kw: seen.update(kw) or {"session_id": "cs_t", "url": "u"})
+    r = client.post("/api/connect/checkout", json={
+        "product_name": "x", "price_cents": 100, "connected_account_id": "acct_x",
+        "metadata": {"type": "fee_credit_pack", "pack_name": "Cycle Pack", "agent_id": "a", "note": "ok"}})
+    assert r.status_code == 200, r.text
+    assert seen["metadata"] == {"note": "ok"}

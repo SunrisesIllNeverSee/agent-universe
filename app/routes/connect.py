@@ -412,7 +412,10 @@ async def create_connect_checkout(payload: dict, request: Request) -> dict:
         success_url=f"{base}/connect/success?session_id={{CHECKOUT_SESSION_ID}}",
         cancel_url=f"{base}/connect?cancelled=1",
         app_fee_percent=int(payload.get("app_fee_percent", 5)),
-        metadata=payload.get("metadata", {}),
+        # HOTFIX: buyer metadata never carries webhook instructions; the
+        # signed webhook trusts these keys (fee_credit_pack credits fee credits).
+        metadata={k: v for k, v in (payload.get("metadata") or {}).items()
+                  if k not in ("type", "agent_id", "pack_name", "mission_id", "poster_id")},
     )
     if result.get("error"):
         raise HTTPException(status_code=503, detail=result["error"])
