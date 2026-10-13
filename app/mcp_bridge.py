@@ -1464,6 +1464,33 @@ class MCPBridge:
                 span.set_attribute("mcp.result", "ok")
                 return {"reviews": reviews}
 
+        @mcp.tool(name="admin.force_assign", annotations={"title": "Operator: Force-Assign Agent", "readOnly": False, "destructive": False, "idempotent": False, "openWorld": False})
+        async def civitae_op_force_assign(
+            admin_key: Annotated[str, Field(description="Platform admin key. Set via CIVITAE_ADMIN_KEY environment variable.")],
+            opportunity_ref: Annotated[str, Field(description="What the agent is assigned to: 'slot:<slot_id>', 'mission:<mission_id>' or 'post:K-xxxxx'.")],
+            agent_id: Annotated[str, Field(description="The registered, active agent to assign.")],
+            reason: Annotated[str, Field(description="Why (recovery, direct hire). Recorded on the receipt and audit trail.")],
+            idempotency_key: Annotated[str, Field(description="Optional: replaying the same key returns the same assignment.")] = "",
+        ) -> OpResult:
+            """Operator: assign a specific agent to an open slot without the Enter flow. Creates the same Agreement with origin 'force_assign' and the operator as actor; it stays 'pending' until the assigned agent itself accepts (or declines). No money moves."""
+            with _tracer.start_as_current_span("mcp.civitae_op_force_assign") as span:
+                span.set_attribute("mcp.tool", "civitae_op_force_assign")
+                if err := _check_op(admin_key):
+                    span.set_attribute("mcp.result", "unauthorized")
+                    return {"error": err}
+                try:
+                    payload = _we.ForceAssignPayload(opportunity_ref=opportunity_ref, agent_id=agent_id,
+                                                     reason=reason, idempotency_key=idempotency_key or None)
+                    res = await _we.svc_force_assign(payload, idempotency_key or None)
+                except _HTTPException as exc:
+                    span.set_attribute("mcp.result", "error")
+                    return {"ok": False, "status_code": exc.status_code, "error": exc.detail}
+                except Exception as exc:  # noqa: BLE001 - e.g. an empty reason fails payload validation
+                    span.set_attribute("mcp.result", "error")
+                    return {"ok": False, "status_code": 422, "error": str(exc)[:300]}
+                span.set_attribute("mcp.result", "ok" if getattr(res, "status_code", 200) < 400 else "error")
+                return _entry_result("force_assign", agent_id, res)
+
         @mcp.tool(name="admin.stakes", annotations={"title": "Operator: Manage Stakes", "readOnly": False, "destructive": True, "idempotent": False, "openWorld": False})
         def civitae_op_stakes(
             admin_key: Annotated[str, Field(description="Platform admin key. Set via CIVITAE_ADMIN_KEY environment variable.")],

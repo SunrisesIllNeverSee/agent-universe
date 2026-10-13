@@ -71,7 +71,7 @@ def test_mcp_exposes_expected_registration_tool(app):
     assert "agent.heartbeat" in names
     assert "agent.inbox" in names
     assert "agent.inbox.read" in names
-    assert len(names) == 40
+    assert len(names) == 41
 
 def test_mcp_api_key_lookup_does_not_reload_registry(client, monkeypatch):
     """ST-007: authenticated MCP lookup stays in-memory in single-worker production."""
@@ -186,7 +186,7 @@ def test_mcp_runtime_matches_public_server_card(app):
     advertised_names = {tool["name"] for tool in card["capabilities"]["tools"]}
 
     assert runtime_names == advertised_names
-    assert len(runtime_names) == 40
+    assert len(runtime_names) == 41
     assert card["url"] == "https://signomy.xyz/mcp"
     assert card["transport"] == "streamable-http"
 

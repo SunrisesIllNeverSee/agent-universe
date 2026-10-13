@@ -29,12 +29,15 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from app.auth import require_admin
 from app.deps import state
 from app.principal import Principal, resolve_principal
 from app import slot_binding
 from app import workentry_gate
 from app.sanitize import sanitize_text
 from app.workentry_store import (
+    FORCE_ASSIGN,
+    LIVE_STATES,
     DuplicateEntryError,
     ProvenanceError,
     WorkEntryError,
@@ -72,6 +75,13 @@ class FileEntryPayload(BaseModel):
     agreement_class: str | None = None
     class_version: int | None = None
     principal_types: dict[str, str] | None = None
+
+
+class ForceAssignPayload(BaseModel):
+    opportunity_ref: str
+    agent_id: str
+    reason: str = Field(min_length=1, max_length=2000)   # the operator names why (recovery, direct hire)
+    idempotency_key: str | None = None
 
 
 class ActionPayload(BaseModel):
@@ -207,6 +217,7 @@ _NOTE = {
     "reject": "Entry rejected",
     "withdraw": "Entry withdrawn by the entrant",
     "retire": "Entry retired",
+    "force_assign": "An operator assigned an agent to this opportunity; the agent must accept",
     "activate": "Entry is now active",
     "revive": "Entry revived by new activity",
     "terminate": "Entry terminated (the slot could not be bound; evidence_gap recorded)",
@@ -429,7 +440,58 @@ def _wait_view(a: dict) -> dict:
     return {"waiting_on": "poster" if a["state"] == "pending" else None, "poster_response": pr}
 
 
+@router.post("/api/work-entry/force-assign")
+async def force_assign(payload: ForceAssignPayload, request: Request):
+    require_admin(request, state.admin_key)
+    return await svc_force_assign(payload, payload.idempotency_key or request.headers.get("Idempotency-Key"))
+
+
+async def svc_force_assign(payload: ForceAssignPayload, key: str | None):
+    """Operator assigns a named agent to an opportunity (P5 G5). Caller has verified the admin key.
+
+    Same Agreement as the Enter path, origin ``force_assign``, the operator as actor. It lands
+    ``pending`` ON THE AGENT: only the agent can accept (or decline), so an operator can never make
+    an agent work. Nothing here touches money; the slot binds later, on the agent's activation."""
+    agent_id = payload.agent_id.strip()
+    agent = next((r for r in state.runtime.registry if r.get("agent_id") == agent_id), None)
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    if agent.get("status") != "active" or not agent.get("key_hash"):
+        # suspended / decommissioned / key revoked: there is no live principal to assign
+        return JSONResponse({"error": f"Agent {agent_id} is not active (suspended or revoked)",
+                             "code": "agent_not_assignable"}, status_code=409)
+    opp = _resolve_opportunity(payload.opportunity_ref.strip())
+    if opp["owner"] == agent_id:
+        return JSONResponse({"error": "An agent cannot be assigned to its own opportunity",
+                             "code": "own_opportunity"}, status_code=409)
+    for a in _store().list(opportunity_ref=opp["ref"]):
+        if a["state"] in LIVE_STATES and a["governance"].get("origin") == "force_assign" \
+                and _entrant(a) != agent_id:
+            return JSONResponse({"error": f"{opp['ref']} is already assigned to {_entrant(a)} "
+                                          f"(agreement {a['agreement_id']} is '{a['state']}')",
+                                 "code": "already_assigned", "agreement_id": a["agreement_id"]},
+                                status_code=409)
+    try:
+        out = _store().file_entry(
+            entrant=agent_id, owner=opp["owner"], opportunity_ref=opp["ref"], entry_mode="standard",
+            objects=dict(opp["objects"]),
+            terms={"pitch": None, "delivery_evidence_class": "solution", "assign_reason": sanitize_text(payload.reason)},
+            credential_refs={}, idempotency_key=key, origin=FORCE_ASSIGN, assigned_by="operator:admin")
+    except WorkEntryError as e:
+        return _err(e)
+    a = out["agreement"]
+    if not out["replayed"]:
+        _notify(a, "force_assign", None, opp["title"])
+    state.audit.log("workentry", "force_assign", {"agreement_id": a["agreement_id"], "agent": agent_id,
+                                                  "opportunity_ref": opp["ref"], "actor": "operator:admin",
+                                                  "reason": payload.reason, "replayed": out["replayed"]})
+    return JSONResponse({**out, **_bind_hint(a), "next": "awaiting the assigned agent's accept (or decline)"},
+                        status_code=200 if out["replayed"] else 201)
+
+
 def _next_hint(a: dict) -> str:
+    if a["state"] == "pending" and a["governance"].get("origin") == FORCE_ASSIGN:
+        return "awaiting the assigned agent's accept (or decline)"
     return {"pending": "awaiting the opportunity owner's resolution",
             "accepted": "entrant (or owner) activates to begin; the second step is explicit",
             "active": "entry is active", "dormant": "dormant; any activity revives it"}.get(

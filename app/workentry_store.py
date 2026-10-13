@@ -39,6 +39,7 @@ AGREEMENT_CLASS = "WorkEntryAgreement"
 CLASS_VERSION = 1
 SEED_SOURCE_TYPE = "work_entry_agreement"
 
+FORCE_ASSIGN = "force_assign"   # Agreement origin: an operator assigned the agent (P2 Q9 / P5 G5)
 ENTRY_MODES = ("open", "standard", "constitutional")
 TERMINAL_STATES = frozenset({"rejected", "withdrawn", "retired", "terminated", "completed"})
 LIVE_STATES = ("intent", "pending", "dormant", "accepted", "active")  # F12 "non-terminal"
@@ -623,6 +624,13 @@ class WorkEntryStore:
             raise AuthorityError(f"delegate '{actor}' must name the principal it acts for (acting_for)")
         if not actor.startswith(_DELEGATE_PREFIXES) and acting_for and acting_for != actor:
             raise AuthorityError("acting_for is only valid for operator / poster-link actors")
+        if name in ("accept", "reject") and json.loads(row["governance_json"]).get("origin") == FORCE_ASSIGN:
+            # the operator assigned it, so only the assigned agent itself may take it or turn it down:
+            # no delegate, no owner, no operator acting for either side
+            if actor != entrant:
+                raise AuthorityError(f"'{name}' on a force-assigned entry requires the assigned agent "
+                                     f"itself; '{actor}' may not act for it")
+            return
         allowed = {"entrant": {entrant}, "owner": {owner}, "party": {entrant, owner},
                    "entrant_or_system": {entrant}}[by]
         if who not in allowed:
@@ -657,6 +665,7 @@ class WorkEntryStore:
                      "reason": reason or "", "agreement_class": cur_class,
                      # the genesis Seed is the Agreement's own origin, NOT a Node Root Seed (1D s5.4)
                      "kind": "work_entry_genesis" if creating else "work_entry_transition",
+                     **({"origin": new_agreement["origin"]} if creating and new_agreement.get("origin") else {}),
                      **{k: cur_objects[k] for k in SEED_HOOKS if cur_objects.get(k)}}
 
         seed_doi: str | None = None
@@ -665,7 +674,8 @@ class WorkEntryStore:
         failure: _ProvenanceFailure | None = None
         try:
             seed = self._seed_fn(
-                source_type=SEED_SOURCE_TYPE, source_id=aid, creator_id=actor, creator_type="AAI",
+                source_type=SEED_SOURCE_TYPE, source_id=aid, creator_id=actor,
+                creator_type="BI" if actor.startswith("operator:") else "AAI",
                 seed_type="planted" if creating else "grown", parent_doi=last_seed,
                 metadata=seed_meta)
             seed_doi = (seed or {}).get("doi")
@@ -751,6 +761,7 @@ class WorkEntryStore:
         auto_activate: bool = False,
         principal_types: dict | None = None, participation_ref: str | None = None,
         agreement_class: str | None = None, class_version: int | None = None,
+        origin: str | None = None, assigned_by: str | None = None,
     ) -> dict:
         """Create an Agreement (intent) and file it (-> pending).
 
@@ -774,6 +785,11 @@ class WorkEntryStore:
         creds = credential_refs or {}
         key_supplied = bool(idempotency_key)
         key = idempotency_key or f"auto-{uuid.uuid4().hex}"
+        forced = origin == FORCE_ASSIGN
+        if forced and not (assigned_by and assigned_by.startswith("operator:")):
+            raise WorkEntryError("a force-assign must name the operator who assigned (assigned_by)")
+        if forced:
+            terms["assigned_by"] = assigned_by
 
         def run() -> dict:
             if key_supplied:
@@ -830,13 +846,19 @@ class WorkEntryStore:
                           **{k: v for k, v in terms.items() if k not in (
                               "pitch", "acceptance_payload", "delivery_evidence_class",
                               "obligations_ref", "stake_ref")}},
-                "governance": {"mode": entry_mode, "posture": posture, "resolution_mode": resolution},
+                "governance": {"mode": entry_mode, "posture": posture, "resolution_mode": resolution,
+                               **({"origin": origin} if forced else {})},
+                "origin": origin if forced else None,
                 "entry_mode": entry_mode, "supersedes": supersedes, "key_supplied": key_supplied,
             }
-            receipts = [self._step(None, "create", actor=entrant, key=key, new_agreement=envelope, seq=1,
-                                   credential=creds.get("entrant"))]
-            receipts.append(self._step(aid, "file", actor=entrant, key=key, seq=2,
-                                       credential=creds.get("entrant")))
+            # a force-assign is the operator's act, not the entrant's: the operator is the actor on
+            # the genesis and file steps (the agent has not yet done anything; it must still accept)
+            who = assigned_by if forced else entrant
+            why = f"force_assign by {assigned_by}" if forced else None
+            receipts = [self._step(None, "create", actor=who, key=key, new_agreement=envelope, seq=1,
+                                   credential=creds.get("entrant"), reason=why)]
+            receipts.append(self._step(aid, "file", actor=who, key=key, seq=2,
+                                       credential=creds.get("entrant"), reason=why))
             if entry_mode == "open":
                 receipts.append(self._step(aid, "resolve_open", actor="system", key=key, seq=3))
                 if auto_activate:
