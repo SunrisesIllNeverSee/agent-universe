@@ -18,6 +18,12 @@
     "recruiter_bounty_missions": 10
   },
 
+  "workentry_pending": {
+    "_note": "Pending-Agreement timers. Nothing expires: the poster is asked once after ask_poster_after_hours, and a quiet pending entry goes dormant (hidden, kept, revives on any activity) after dormant_after_days. CIVITAS-voteable.",
+    "ask_poster_after_hours": 48,
+    "dormant_after_days": 14
+  },
+
   "trial": {
     "mission_limit": 10,
     "day_limit":     7,

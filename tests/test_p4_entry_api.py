@@ -381,3 +381,27 @@ def test_any_activity_revives_dormant(client, clock):
     client.get("/api/work-entry", headers=ent3["h"])
     rt = client.post(f"/api/work-entry/{a3}/retire", headers=ent3["h"])
     assert rt.status_code == 200 and rt.json()["agreement"]["state"] == "retired"
+
+
+# ── P5c G2 polish: entrant-facing wait + poster response time ────────────
+
+def test_entrant_sees_waiting_on_poster_and_response_time(client, clock):
+    owner, ent, ent2 = _agent(client), _agent(client), _agent(client)
+    first = _file(client, ent, f"post:{_post(owner['id'])}").json()
+    assert first["agreement"]["state"] == "pending"
+    assert first["waiting_on"] == "poster"
+    assert first["poster_response"]["label"] == "no history yet"
+    aid = first["agreement"]["agreement_id"]
+    g = client.get(f"/api/work-entry/{aid}", headers=ent["h"]).json()
+    assert g["waiting_on"] == "poster" and g["poster_response"]["median_hours"] is None
+    clock["offset"] = timedelta(hours=4)
+    assert client.post(f"/api/work-entry/{aid}/accept", headers=owner["h"]).status_code == 200
+    g = client.get(f"/api/work-entry/{aid}", headers=ent["h"]).json()
+    assert g["waiting_on"] is None                              # no longer pending on the poster
+    assert g["poster_response"]["label"] == "usually responds in ~4 h"
+    second = _file(client, ent2, f"post:{_post(owner['id'])}").json()
+    assert second["waiting_on"] == "poster"
+    assert second["poster_response"] == {"samples": 1, "median_hours": 4.0, "label": "usually responds in ~4 h"}
+    mine = client.get(f"/api/work-entry/opportunity/post:{second['agreement']['objects']['post_id']}",
+                      headers=ent2["h"]).json()["mine"]
+    assert mine["waiting_on"] == "poster" and mine["poster_response"]["label"] == "usually responds in ~4 h"

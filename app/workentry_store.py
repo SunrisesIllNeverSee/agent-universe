@@ -42,8 +42,30 @@ SEED_SOURCE_TYPE = "work_entry_agreement"
 ENTRY_MODES = ("open", "standard", "constitutional")
 TERMINAL_STATES = frozenset({"rejected", "withdrawn", "retired", "terminated", "completed"})
 LIVE_STATES = ("intent", "pending", "dormant", "accepted", "active")  # F12 "non-terminal"
-DORMANT_AFTER = timedelta(days=14)
+DORMANT_AFTER = timedelta(days=14)          # fallback; the live value is config/economic_rates.json "workentry_pending"
+ASK_POSTER_AFTER = timedelta(hours=48)      # fallback, same source
 ANCHOR_STATES = frozenset({"accepted", "active", "completed"})   # P5: states anchored through ProofPress
+
+
+
+def pending_timers() -> tuple[timedelta, timedelta]:
+    """(ask-the-poster, dormant) windows for a quiet pending entry, read from config at call time
+    so a CIVITAS vote changes them without a deploy. Missing or invalid values fall back."""
+    from . import economy
+    try:
+        cfg = (economy._load_rates() or {}).get("workentry_pending") or {}
+    except Exception:  # noqa: BLE001
+        cfg = {}
+
+    def num(key: str, default: timedelta, unit: str) -> timedelta:
+        v = cfg.get(key)
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or v <= 0:
+            return default
+        return timedelta(**{unit: v})
+
+    return (num("ask_poster_after_hours", ASK_POSTER_AFTER, "hours"),
+            num("dormant_after_days", DORMANT_AFTER, "days"))
+
 
 # Constitutional gate (slice 5). GOV-001 s9.3: committee recommendations are advisory unless the
 # Council delegates binding authority by a two-thirds vote; the setting flips without code change.
@@ -1244,8 +1266,11 @@ class WorkEntryStore:
                                (self._now(), agreement_id))
             return {"agreement": self._agreement(self._row(agreement_id)), "receipt": None, "replayed": False}
 
-    def sweep_dormant(self, *, after: timedelta = DORMANT_AFTER) -> list[str]:
-        """pending with no activity for >= 14 days -> dormant (non-terminal, kept)."""
+    def sweep_dormant(self, *, after: timedelta | None = None) -> list[str]:
+        """pending with no activity for >= the configured window (14 days) -> dormant (non-terminal, kept)."""
+        if after is None:
+            after = pending_timers()[1]
+        days = after.total_seconds() / 86400
         cutoff = self._clock() - after
         with self._lock:
             rows = self._conn.execute(
@@ -1255,7 +1280,7 @@ class WorkEntryStore:
             if datetime.fromisoformat(r["last_activity_at"]) <= cutoff:
                 try:
                     self._transition(r["agreement_id"], "go_dormant", actor="system",
-                                     reason="no activity for 14 days")
+                                     reason=f"no activity for {days:g} days")
                     changed.append(r["agreement_id"])
                 except InvalidTransition:
                     continue  # raced with a real transition
@@ -1268,6 +1293,23 @@ class WorkEntryStore:
             rows = self._conn.execute("SELECT * FROM agreements WHERE state='pending'").fetchall()
             return [self._agreement(r) for r in rows
                     if datetime.fromisoformat(r["last_activity_at"]) <= cutoff]
+
+    def poster_response(self, owner_id: str) -> dict:
+        """Median hours from entry to this owner's own ``accept`` on their opportunities, from
+        stored timestamps. A displayed fact, never a rule: system-resolved (open mode) entries and
+        unanswered ones are not samples."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT a.created_at AS c, MIN(h.at) AS t FROM agreements a"
+                " JOIN agreement_history h ON h.agreement_id=a.agreement_id AND h.transition='accept'"
+                " WHERE a.owner_id=? GROUP BY a.agreement_id", (owner_id,)).fetchall()
+        hours = sorted((datetime.fromisoformat(r["t"]) - datetime.fromisoformat(r["c"])).total_seconds() / 3600
+                       for r in rows)
+        if not hours:
+            return {"samples": 0, "median_hours": None}
+        n, mid = len(hours), len(hours) // 2
+        med = hours[mid] if n % 2 else (hours[mid - 1] + hours[mid]) / 2
+        return {"samples": n, "median_hours": round(max(med, 0.0), 1)}
 
     def claim_flag(self, agreement_id: str, flag: str, mark: str) -> bool:
         """Record a non-authoritative one-shot mark. True only the first time for this
