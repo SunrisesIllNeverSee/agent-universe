@@ -78,7 +78,9 @@ def live_url(tmp_path_factory):
 def browser():
     with sync_api.sync_playwright() as p:
         try:
-            b = p.chromium.launch()
+            # Local server only: external fonts/analytics fail fast instead of
+            # stalling the page 'load' event (the exit-chain flake, run 37).
+            b = p.chromium.launch(args=["--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1"])
         except Exception as e:  # browser binary missing
             pytest.skip(f"chromium unavailable: {e}")
         yield b
