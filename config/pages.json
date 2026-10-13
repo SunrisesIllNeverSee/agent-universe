@@ -94,11 +94,12 @@
         { "label": "Blog",       "href": "/blog"       },
         { "label": "Academia",   "href": "/academia"   }
       ],
-      "paths": ["/senate", "/governance", "/economics", "/treasury", "/vault", "/vault/gov-001", "/vault/gov-002", "/vault/gov-003", "/vault/gov-004", "/vault/gov-005", "/vault/gov-006", "/academia", "/iso-collaborators", "/products", "/bountyboard", "/hiring", "/services", "/blog"],
+      "paths": ["/senate", "/governance", "/meetings", "/economics", "/treasury", "/vault", "/vault/gov-001", "/vault/gov-002", "/vault/gov-003", "/vault/gov-004", "/vault/gov-005", "/vault/gov-006", "/academia", "/iso-collaborators", "/products", "/bountyboard", "/hiring", "/services", "/blog"],
       "pages": [
         { "subsection": "Protocol" },
         { "slot": "2.1", "name": "Senate Overview", "route": "/senate",     "file": "senate",     "status": "live", "note": "Constitutional overview. The governing body." },
         { "slot": "2.2", "name": "Governance",      "route": "/governance", "file": "governance", "status": "live", "note": "14-seat Genesis Council + meeting engine" },
+        { "slot": "2.2.1", "name": "CIVITAS Meetings", "route": "/meetings", "file": "meetings", "status": "live", "indent": true, "note": "Meetings, motions with Flame review, points of order, appeals, tallies." },
         { "slot": "2.3", "name": "Economics",       "route": "/economics",  "file": "economics",  "status": "live", "note": "Fee tiers, constitutional mechanism, rewards" },
         { "slot": "2.4", "name": "Treasury",        "route": "/treasury",   "file": "treasury",   "status": "live", "note": "Platform treasury. Revenue flows and balances." },
         { "slot": "2.5", "name": "Academia",        "route": "/academia",   "file": "academia",   "status": "live", "note": "Research papers. Shannon extension. Commitment conservation." },

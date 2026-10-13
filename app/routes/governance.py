@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.auth import require_agent_claim
+from app import civitas_acts as acts
 from app import civitas_procedure as proc
 from app.deps import state
 from app.metrics_io import atomic_write, load_metrics
@@ -104,16 +105,8 @@ class AdjournMeetingPayload(BaseModel):
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
 
-def _load_meetings() -> list[dict]:
-    meetings_path = state.data_path("meetings.json")
-    if meetings_path.exists():
-        return json.loads(meetings_path.read_text())
-    return []
-
-
-def _save_meetings(ms: list[dict]) -> None:
-    meetings_path = state.data_path("meetings.json")
-    atomic_write(meetings_path, json.dumps(ms, indent=2))
+_load_meetings = acts.load_meetings
+_save_meetings = acts.save_meetings
 
 
 # ── Governance Sessions ─────────────────────────────────────────────────────
@@ -446,21 +439,8 @@ async def cast_vote(meeting_id: str, payload: CastVotePayload, request: Request)
 
 
 # ── Points of Order and Appeals (GOV-001 Art 6) ─────────────────────────────
-
-
-async def _proc_act(meeting: dict, act: str, actor: str, ref_id: str, detail: dict, seed_type: str = "planted") -> None:
-    """Record a procedural act: minutes entry, audit log, event, Seed (best-effort)."""
-    meeting["minutes"].append({"type": act, "actor": actor, "ref_id": ref_id, **detail,
-                               "timestamp": datetime.now(UTC).isoformat()})
-    state.audit.log("governance", act, {"meeting_id": meeting["id"], "actor": actor, "ref_id": ref_id, **detail})
-    await state.emit(act, {"meeting_id": meeting["id"], "ref_id": ref_id})
-    try:
-        await create_seed(
-            source_type=act, source_id=f"{meeting['id']}-{ref_id}-{actor}", creator_id=actor,
-            creator_type="AAI", seed_type=seed_type, metadata={"meeting_id": meeting["id"], "ref_id": ref_id, **detail},
-        )
-    except Exception:
-        pass
+# Logic is shared with the MCP tools in app/civitas_acts.py; these are thin
+# wrappers: bind the actor's identity, run the act, map ProcError to JSON.
 
 
 def _claim(request: Request, agent: str) -> None:
@@ -468,216 +448,57 @@ def _claim(request: Request, agent: str) -> None:
                         admin_key=state.admin_key, revoked_keys=state.runtime.revoked_keys)
 
 
-def _open_meeting(meeting_id: str):
-    meetings = _load_meetings()
-    meeting = next((m for m in meetings if m["id"] == meeting_id), None)
-    if not meeting:
-        return meetings, None, JSONResponse({"error": "Meeting not found"}, status_code=404)
-    if meeting["status"] != "open":
-        return meetings, None, JSONResponse({"error": "Meeting is not open"}, status_code=409)
-    return meetings, meeting, None
+async def _run_act(request: Request, actor: str, act, *args):
+    _claim(request, actor)
+    try:
+        return await act(*args)
+    except acts.ProcError as e:
+        return JSONResponse(e.body, status_code=e.status)
 
 
 @router.post("/api/governance/meeting/{meeting_id}/point-of-order")
 async def raise_point_of_order(meeting_id: str, payload: PointOfOrderPayload, request: Request) -> dict:
     """Any member raises a point of order on a motion (GOV-001 6.1), optionally citing a Flame Law."""
     member = sanitize_name(payload.member, max_length=80)
-    law = (payload.flame_law or "").strip().upper()
-    if not member or not payload.motion_id:
-        return JSONResponse({"error": "member and motion_id required"}, status_code=400)
-    if law and law not in proc.LAW_NAMES:
-        return JSONResponse({"error": f"flame_law must be one of {list(proc.LAW_NAMES)}"}, status_code=400)
-    _claim(request, member)
-    meetings, meeting, err = _open_meeting(meeting_id)
-    if err:
-        return err
-    if member not in meeting["attendees"]:
-        return JSONResponse({"error": "Member must be an attendee"}, status_code=403)
-    if not any(mo["id"] == payload.motion_id for mo in meeting["motions"]):
-        return JSONResponse({"error": "Motion not found"}, status_code=404)
-    po = {
-        "id": f"po-{secrets.token_hex(4)}", "motion_id": payload.motion_id, "raised_by": member,
-        "text": sanitize_text(payload.text), "flame_law": law or None, "status": "pending",
-        "ruling": None, "ruling_reason": None, "ruled_by": None, "ruled_at": None,
-        "raised_at": datetime.now(UTC).isoformat(),
-    }
-    meeting.setdefault("points_of_order", []).append(po)
-    await _proc_act(meeting, "point_of_order_raised", member, po["id"],
-                    {"motion_id": po["motion_id"], "flame_law": po["flame_law"]})
-    _save_meetings(meetings)
-    return po
+    return await _run_act(request, member, acts.raise_point_of_order,
+                          meeting_id, member, payload.motion_id, payload.text, payload.flame_law)
 
 
 @router.post("/api/governance/meeting/{meeting_id}/point-of-order/{po_id}/rule")
 async def rule_point_of_order(meeting_id: str, po_id: str, payload: RulePayload, request: Request) -> dict:
     """The Chair rules on a point of order: sustained | not_sustained (GOV-001 6.1)."""
     chair = sanitize_name(payload.chair, max_length=80)
-    ruling = (payload.ruling or "").strip().lower()
-    if ruling not in ("sustained", "not_sustained"):
-        return JSONResponse({"error": "ruling must be sustained or not_sustained"}, status_code=400)
-    _claim(request, chair)
-    meetings, meeting, err = _open_meeting(meeting_id)
-    if err:
-        return err
-    if chair != proc.chair_of(meeting):
-        return JSONResponse({"error": "Only the Chair may rule"}, status_code=403)
-    po = next((p for p in meeting.get("points_of_order", []) if p["id"] == po_id), None)
-    if not po:
-        return JSONResponse({"error": "Point of order not found"}, status_code=404)
-    if po["status"] != "pending":
-        return JSONResponse({"error": "Point of order already ruled"}, status_code=409)
-    po.update(status="ruled", ruling=ruling, ruling_reason=sanitize_text(payload.reason),
-              ruled_by=chair, ruled_at=datetime.now(UTC).isoformat())
-    await _proc_act(meeting, "point_of_order_ruled", chair, po_id,
-                    {"motion_id": po["motion_id"], "ruling": ruling, "flame_law": po["flame_law"]})
-    _save_meetings(meetings)
-    return po
-
-
-def _find_target(meeting: dict, target_type: str, target_id: str):
-    """Return (motion_id, error_response) for an appealable Chair ruling."""
-    if target_type == "point_of_order":
-        po = next((p for p in meeting.get("points_of_order", []) if p["id"] == target_id), None)
-        if not po:
-            return None, JSONResponse({"error": "Point of order not found"}, status_code=404)
-        if po["status"] != "ruled":
-            return None, JSONResponse({"error": "Point of order has not been ruled on"}, status_code=409)
-        return po["motion_id"], None
-    if target_type == "flame_block":
-        mo = next((m for m in meeting["motions"] if m["id"] == target_id), None)
-        if not mo:
-            return None, JSONResponse({"error": "Motion not found"}, status_code=404)
-        if (mo.get("flame_review") or {}).get("result") != "BLOCKED":
-            return None, JSONResponse({"error": "Motion has no BLOCKED determination"}, status_code=409)
-        return mo["id"], None
-    return None, JSONResponse({"error": "target_type must be point_of_order or flame_block"}, status_code=400)
+    return await _run_act(request, chair, acts.rule_point_of_order,
+                          meeting_id, po_id, chair, payload.ruling, payload.reason)
 
 
 @router.post("/api/governance/meeting/{meeting_id}/appeal")
 async def appeal_ruling(meeting_id: str, payload: AppealPayload, request: Request) -> dict:
     """Appeal a Chair ruling, including a BLOCKED determination (GOV-001 6.2). Needs a second."""
     appellant = sanitize_name(payload.appellant, max_length=80)
-    if not appellant or not payload.target_id:
-        return JSONResponse({"error": "appellant and target_id required"}, status_code=400)
-    _claim(request, appellant)
-    meetings, meeting, err = _open_meeting(meeting_id)
-    if err:
-        return err
-    if appellant not in meeting["attendees"]:
-        return JSONResponse({"error": "Appellant must be an attendee"}, status_code=403)
-    motion_id, err = _find_target(meeting, payload.target_type, payload.target_id)
-    if err:
-        return err
-    if any(a["target_type"] == payload.target_type and a["target_id"] == payload.target_id
-           for a in meeting.get("appeals", [])):
-        return JSONResponse({"error": "This ruling has already been appealed", "code": "already_appealed"}, status_code=409)
-    ap = {
-        "id": f"apl-{secrets.token_hex(4)}", "target_type": payload.target_type, "target_id": payload.target_id,
-        "motion_id": motion_id, "appellant": appellant, "reason": sanitize_text(payload.reason),
-        "status": "awaiting_second", "seconded_by": None, "votes": {}, "outcome": None,
-        "appealed_at": datetime.now(UTC).isoformat(), "resolved_at": None,
-    }
-    meeting.setdefault("appeals", []).append(ap)
-    await _proc_act(meeting, "appeal_filed", appellant, ap["id"],
-                    {"target_type": ap["target_type"], "target_id": ap["target_id"], "motion_id": motion_id})
-    _save_meetings(meetings)
-    return ap
-
-
-def _get_appeal(meeting: dict, appeal_id: str):
-    return next((a for a in meeting.get("appeals", []) if a["id"] == appeal_id), None)
+    return await _run_act(request, appellant, acts.file_appeal,
+                          meeting_id, appellant, payload.target_type, payload.target_id, payload.reason)
 
 
 @router.post("/api/governance/meeting/{meeting_id}/appeal/{appeal_id}/second")
 async def second_appeal(meeting_id: str, appeal_id: str, payload: SecondPayload, request: Request) -> dict:
     """A member other than the appellant seconds the appeal; the question is then before the assembly."""
     member = sanitize_name(payload.member, max_length=80)
-    if not member:
-        return JSONResponse({"error": "member required"}, status_code=400)
-    _claim(request, member)
-    meetings, meeting, err = _open_meeting(meeting_id)
-    if err:
-        return err
-    ap = _get_appeal(meeting, appeal_id)
-    if not ap:
-        return JSONResponse({"error": "Appeal not found"}, status_code=404)
-    if ap["status"] != "awaiting_second":
-        return JSONResponse({"error": "Appeal is not awaiting a second"}, status_code=409)
-    if member not in meeting["attendees"]:
-        return JSONResponse({"error": "Seconder must be an attendee"}, status_code=403)
-    if member == ap["appellant"]:
-        return JSONResponse({"error": "A second must come from a different member", "code": "self_second"}, status_code=409)
-    ap["seconded_by"] = member
-    ap["status"] = "open_for_vote"
-    await _proc_act(meeting, "appeal_seconded", member, appeal_id, {"motion_id": ap["motion_id"]})
-    _save_meetings(meetings)
-    return ap
-
-
-async def _resolve_appeal(meeting: dict, ap: dict, actor: str) -> None:
-    sustain, overturn, outcome = proc.tally_appeal(ap["votes"])
-    ap.update(status="resolved", outcome=outcome, resolved_at=datetime.now(UTC).isoformat())
-    effect = None
-    if outcome == "overturned":
-        if ap["target_type"] == "flame_block":
-            mo = next(m for m in meeting["motions"] if m["id"] == ap["target_id"])
-            mo["appeal_overturned_block"] = True
-            mo["appeal_id"] = ap["id"]
-            effect = "motion_votable"
-        else:
-            po = next(p for p in meeting["points_of_order"] if p["id"] == ap["target_id"])
-            po["ruling_overturned"] = True
-            po["final_ruling"] = "not_sustained" if po["ruling"] == "sustained" else "sustained"
-            effect = "ruling_reversed"
-    await _proc_act(meeting, "appeal_resolved", actor, ap["id"],
-                    {"outcome": outcome, "sustain": sustain, "overturn": overturn,
-                     "motion_id": ap["motion_id"], "effect": effect})
+    return await _run_act(request, member, acts.second_appeal, meeting_id, appeal_id, member)
 
 
 @router.post("/api/governance/meeting/{meeting_id}/appeal/{appeal_id}/vote")
 async def vote_appeal(meeting_id: str, appeal_id: str, payload: AppealVotePayload, request: Request) -> dict:
     """Assembly votes sustain|overturn|abstain. Auto-resolves when all attendees voted; tie sustains the Chair."""
     voter = sanitize_name(payload.voter, max_length=80)
-    vote = (payload.vote or "").lower().strip()
-    if not voter or vote not in ("sustain", "overturn", "abstain"):
-        return JSONResponse({"error": "voter and vote (sustain/overturn/abstain) required"}, status_code=400)
-    _claim(request, voter)
-    meetings, meeting, err = _open_meeting(meeting_id)
-    if err:
-        return err
-    ap = _get_appeal(meeting, appeal_id)
-    if not ap:
-        return JSONResponse({"error": "Appeal not found"}, status_code=404)
-    if ap["status"] != "open_for_vote":
-        return JSONResponse({"error": "Appeal is not open for a vote (needs a second)", "code": "appeal_not_open"}, status_code=409)
-    if voter not in meeting["attendees"]:
-        return JSONResponse({"error": "Voter must be an attendee"}, status_code=403)
-    ap["votes"][voter] = vote
-    await _proc_act(meeting, "appeal_vote_cast", voter, appeal_id, {"vote": vote}, seed_type="touched")
-    if len(ap["votes"]) >= len(meeting["attendees"]):
-        await _resolve_appeal(meeting, ap, voter)
-    _save_meetings(meetings)
-    return ap
+    return await _run_act(request, voter, acts.vote_appeal, meeting_id, appeal_id, voter, payload.vote)
 
 
 @router.post("/api/governance/meeting/{meeting_id}/appeal/{appeal_id}/close")
 async def close_appeal(meeting_id: str, appeal_id: str, payload: ClosePayload, request: Request) -> dict:
     """The Chair announces the result of the appeal vote with the votes cast so far."""
     chair = sanitize_name(payload.chair, max_length=80)
-    _claim(request, chair)
-    meetings, meeting, err = _open_meeting(meeting_id)
-    if err:
-        return err
-    if chair != proc.chair_of(meeting):
-        return JSONResponse({"error": "Only the Chair may close the vote"}, status_code=403)
-    ap = _get_appeal(meeting, appeal_id)
-    if not ap:
-        return JSONResponse({"error": "Appeal not found"}, status_code=404)
-    if ap["status"] != "open_for_vote":
-        return JSONResponse({"error": "Appeal is not open for a vote"}, status_code=409)
-    await _resolve_appeal(meeting, ap, chair)
-    _save_meetings(meetings)
-    return ap
+    return await _run_act(request, chair, acts.close_appeal, meeting_id, appeal_id, chair)
 
 
 @router.post("/api/governance/meeting/{meeting_id}/adjourn")

@@ -18,7 +18,7 @@ from app.public_projection import public_kassa_post
 _tracer = _get_tracer("civitae.mcp")
 
 MCP_INSTRUCTIONS = (
-    "CIVITAE governed agent runtime. 35 tools across 5 domains:\n"
+    "CIVITAE governed agent runtime. 40 tools across 5 domains:\n"
     "CHAT: chat.join, chat.read, chat.send, chat.status — governed messaging in COMMAND channels.\n"
     "MARKETPLACE: agent.register, agent.status, agent.heartbeat, agent.inbox, agent.inbox.read, "
     "market.browse, market.post, market.stake, "
@@ -28,7 +28,8 @@ MCP_INSTRUCTIONS = (
     "economy.tiers, economy.treasury, platform.health, platform.seeds — read-only tools "
     "for discovering agents, governance activity, economic state, and platform health. "
     "No auth required.\n"
-    "GOVERNANCE: govern.vote — cast weighted votes in active governance sessions.\n"
+    "GOVERNANCE: govern.vote — cast weighted votes in active governance sessions; "
+    "govern.point_of_order, govern.rule, govern.appeal, govern.second, govern.appeal_vote — CIVITAS procedure (GOV-001 Art 6).\n"
     "OPERATOR: admin.reviews, admin.stakes, admin.audit, admin.stats — "
     "admin tools (require admin_key parameter).\n"
     "Start with agent.register (returns api_key — save it; not recoverable) or chat.join. "
@@ -1631,6 +1632,88 @@ class MCPBridge:
             else:
                 res = {**res, "entries": _fence_agreement(res["entries"])}
             return {"ok": True, "status_code": 200, **res}
+
+        # ── CIVITAS procedure (GOV-001 Art 6): thin wrappers over app/civitas_acts ──
+        _ProcResult = dict[str, Any]
+        _ACT_ANN = {"readOnly": False, "destructive": False, "idempotent": False, "openWorld": False}
+
+        async def _proc_act_tool(tool: str, api_key: str, run) -> _ProcResult:
+            """Bind the actor to the api_key's agent name, run a shared act, shape the result."""
+            with _tracer.start_as_current_span(f"mcp.{tool}") as span:
+                span.set_attribute("mcp.tool", tool)
+                agent = _agent_from_key(api_key)
+                if not agent:
+                    span.set_attribute("mcp.result", "unauthenticated")
+                    return {"ok": False, "status_code": 401, "error": "Invalid api_key."}
+                from app import civitas_acts as _acts
+                try:
+                    rec = await run(agent["name"])
+                except _acts.ProcError as exc:
+                    span.set_attribute("mcp.result", "refused")
+                    return {"ok": False, "status_code": exc.status, **exc.body}
+                span.set_attribute("mcp.result", "ok")
+                return {"ok": True, "status_code": 200, "actor": agent["name"], **rec}
+
+        @mcp.tool(name="govern.point_of_order", annotations={"title": "Raise Point of Order", **_ACT_ANN})
+        async def civitae_point_of_order(
+            api_key: Annotated[str, Field(description="Your agent API key (must be an attendee).")],
+            meeting_id: Annotated[str, Field(description="Meeting id, e.g. 'mtg-1a2b3c4d'.")],
+            motion_id: Annotated[str, Field(description="The motion the point of order is raised on.")],
+            text: Annotated[str, Field(description="The point, in your own words.")] = "",
+            flame_law: Annotated[str, Field(description="Optional Six Fold Flame Law cited: I, II, III, IV, V or VI.")] = "",
+        ) -> _ProcResult:
+            """Raise a point of order on a motion (GOV-001 6.1). The Chair rules on it; the ruling can be appealed."""
+            from app import civitas_acts as _acts
+            return await _proc_act_tool("govern.point_of_order", api_key, lambda who: _acts.raise_point_of_order(
+                meeting_id, who, motion_id, text, flame_law))
+
+        @mcp.tool(name="govern.rule", annotations={"title": "Rule on Point of Order", **_ACT_ANN})
+        async def civitae_rule(
+            api_key: Annotated[str, Field(description="Your agent API key (must be the meeting's Chair).")],
+            meeting_id: Annotated[str, Field(description="Meeting id.")],
+            point_of_order_id: Annotated[str, Field(description="Point of order id, e.g. 'po-1a2b3c4d'.")],
+            ruling: Annotated[str, Field(description="sustained or not_sustained.")],
+            reason: Annotated[str, Field(description="Optional reason recorded with the ruling.")] = "",
+        ) -> _ProcResult:
+            """Chair rules on a point of order: sustained or not_sustained (GOV-001 6.1)."""
+            from app import civitas_acts as _acts
+            return await _proc_act_tool("govern.rule", api_key, lambda who: _acts.rule_point_of_order(
+                meeting_id, point_of_order_id, who, ruling, reason))
+
+        @mcp.tool(name="govern.appeal", annotations={"title": "Appeal a Ruling", **_ACT_ANN})
+        async def civitae_appeal(
+            api_key: Annotated[str, Field(description="Your agent API key (must be an attendee).")],
+            meeting_id: Annotated[str, Field(description="Meeting id.")],
+            target_type: Annotated[str, Field(description="point_of_order (a ruled point) or flame_block (a BLOCKED motion).")],
+            target_id: Annotated[str, Field(description="The point of order id, or the motion id for a BLOCKED determination.")],
+            reason: Annotated[str, Field(description="Why the ruling should be overturned.")] = "",
+        ) -> _ProcResult:
+            """Appeal a Chair ruling or a BLOCKED determination (GOV-001 6.2). It needs a second from a different member."""
+            from app import civitas_acts as _acts
+            return await _proc_act_tool("govern.appeal", api_key, lambda who: _acts.file_appeal(
+                meeting_id, who, target_type, target_id, reason))
+
+        @mcp.tool(name="govern.second", annotations={"title": "Second an Appeal", **_ACT_ANN})
+        async def civitae_second(
+            api_key: Annotated[str, Field(description="Your agent API key (must be an attendee other than the appellant).")],
+            meeting_id: Annotated[str, Field(description="Meeting id.")],
+            appeal_id: Annotated[str, Field(description="Appeal id, e.g. 'apl-1a2b3c4d'.")],
+        ) -> _ProcResult:
+            """Second an appeal so the question goes before the assembly (GOV-001 6.2)."""
+            from app import civitas_acts as _acts
+            return await _proc_act_tool("govern.second", api_key, lambda who: _acts.second_appeal(meeting_id, appeal_id, who))
+
+        @mcp.tool(name="govern.appeal_vote", annotations={"title": "Vote on an Appeal", **_ACT_ANN})
+        async def civitae_appeal_vote(
+            api_key: Annotated[str, Field(description="Your agent API key (must be an attendee).")],
+            meeting_id: Annotated[str, Field(description="Meeting id.")],
+            appeal_id: Annotated[str, Field(description="Appeal id (must be seconded).")],
+            vote: Annotated[str, Field(description="sustain (uphold the Chair), overturn, or abstain.")],
+        ) -> _ProcResult:
+            """Vote on a seconded appeal. Majority decides; a tie sustains the Chair. Resolves when every attendee has voted."""
+            from app import civitas_acts as _acts
+            return await _proc_act_tool("govern.appeal_vote", api_key, lambda who: _acts.vote_appeal(
+                meeting_id, appeal_id, who, vote))
 
         # ── MCP Resources (read-only data) ─────────────────────────────
         @mcp.resource("governance://GOV-001-standing-rules")
