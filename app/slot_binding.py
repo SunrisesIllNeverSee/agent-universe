@@ -98,6 +98,17 @@ def fill_slot_record(slot: dict, *, agent_id: str, agent_name: str, agreement: d
     slot.setdefault("post_id", agreement["objects"].get("post_id"))
 
 
+def link_escrow(agreement_id: str, mission_id: str | None) -> None:
+    """P5: a live escrow on the mission follows the Agreement (escrow_id on objects).
+    Best effort and loud: the escrow is the truth, so a failed link is audited, not fatal."""
+    try:
+        esc = state.escrow.active_for_mission(mission_id) if mission_id else None
+        if esc:
+            state.workentry.bind_objects(agreement_id, escrow_id=esc["escrow_id"])
+    except Exception as exc:  # noqa: BLE001
+        state.audit.log("economy", "escrow_link_failed", {"agreement_id": agreement_id, "error": str(exc)[:200]})
+
+
 async def bind_on_activation(agreement: dict) -> dict:
     """Agreement just went ``active``: bind its slot (under slot_lock). Raises BindError
     (after compensating the Agreement) when the slot cannot be bound."""
@@ -140,6 +151,7 @@ async def bind_on_activation(agreement: dict) -> dict:
             state.workentry.record_gap(aid, attempted="bind", stage="mission_status",
                                        reason=f"mission status write failed: {exc}",
                                        resolution="committed_with_gap")
+    link_escrow(aid, mission_id)
     return {"mission_id": mission_id, "slot_id": slot_id, "slot": slot}
 
 

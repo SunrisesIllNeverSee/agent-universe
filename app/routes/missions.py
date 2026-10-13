@@ -11,6 +11,7 @@ Covers:
 from __future__ import annotations
 
 import json
+import math
 import os
 import secrets as _secrets_mod
 from datetime import UTC, datetime
@@ -27,6 +28,8 @@ from app.metrics_io import atomic_write
 from app.otel_setup import get_tracer as _get_tracer
 from app.seeds import create_seed
 from app import slot_binding
+from app.escrow import EscrowError
+from app.routes.escrow import refund_to_poster, release_to
 
 router = APIRouter(tags=["missions"])
 _tracer = _get_tracer("civitae.missions")
@@ -502,6 +505,51 @@ def _complete_mission_agreements(request: Request | None, mission_id: str,
     return done, errors
 
 
+async def _settle_escrow(mission_id: str, escrow: dict, per_slot: float, payload, payouts: list,
+                         errors: list) -> dict:
+    """Mission end with a live escrow: pay each filled slot from it, refund the rest.
+
+    ``per_slot`` is the operator's claim when given; otherwise the held funds are
+    split evenly across filled slots (the poster ending its own mission accepts
+    the work and names no amount). A frozen (disputed) escrow pays and refunds nothing.
+    """
+    eid = escrow["escrow_id"]
+    if escrow["state"] == "disputed":
+        errors.append({"escrow_id": eid, "error": "escrow is disputed: funds frozen", "code": "disputed"})
+        return {"escrow_id": eid, "state": "disputed", "refunded": 0.0}
+    filled = [s for s in _load_slots() if s["mission_id"] == mission_id and s["status"] == "filled" and s.get("agent_id")]
+    if filled:
+        for i, slot in enumerate(filled):
+            # even split of what is still held (floored to 4dp so it never exceeds it)
+            share = per_slot if per_slot > 0 else math.floor(
+                state.escrow.get(eid)["remaining"] / (len(filled) - i) * 1e4) / 1e4
+            if share <= 0:
+                break
+            try:
+                result = await release_to(eid, slot["agent_id"], share, source="mission_end",
+                                          originator_id=payload.originator_id if payload else "")
+                payouts.append(result)
+            except EscrowError as exc:
+                errors.append({"agent_id": slot["agent_id"], "escrow_id": eid, "error": exc.message, "code": exc.code})
+            except Exception as exc:  # noqa: BLE001 - loud, never aborts the mission end
+                errors.append({"agent_id": slot["agent_id"], "escrow_id": eid, "error": str(exc)[:200]})
+                state.audit.log("economy", "payout_failed", {
+                    "mission_id": mission_id, "agent_id": slot["agent_id"], "escrow_id": eid, "error": str(exc)[:200]})
+    refunded = await _refund_escrow_remainder(eid)
+    return {"escrow_id": eid, "state": state.escrow.get(eid)["state"], "refunded": refunded}
+
+
+async def _refund_escrow_remainder(escrow_id: str) -> float:
+    """Return what is still held to the poster; 0.0 if nothing/frozen. Failures are audited."""
+    try:
+        return (await refund_to_poster(escrow_id, reason="mission_ended"))["refunded"]
+    except EscrowError:
+        return 0.0
+    except Exception as exc:  # noqa: BLE001
+        state.audit.log("economy", "escrow_refund_failed", {"escrow_id": escrow_id, "error": str(exc)[:200]})
+        return 0.0
+
+
 @router.post("/api/missions/{mission_id}/end")
 async def end_mission(mission_id: str, request: Request, payload: EndMissionPayload | None = None) -> dict:
     missions = _load_missions()
@@ -522,7 +570,13 @@ async def end_mission(mission_id: str, request: Request, payload: EndMissionPayl
     mission["ended_at"] = datetime.now(UTC).isoformat()
     payouts = []
     payout_errors = []
-    if payout_amount > 0:
+    escrow_info = None
+    escrow = state.escrow.active_for_mission(mission_id)
+    if escrow is not None:
+        # P5: funds are held for this mission, so payouts come from the escrow
+        # (bounded by it) and the remainder returns to the poster.
+        escrow_info = await _settle_escrow(mission_id, escrow, payout_amount, payload, payouts, payout_errors)
+    elif payout_amount > 0:
         all_slots = _load_slots()
         filled = [s for s in all_slots if s["mission_id"] == mission_id and s["status"] == "filled" and s.get("agent_id")]
         for slot in filled:
@@ -567,7 +621,7 @@ async def end_mission(mission_id: str, request: Request, payload: EndMissionPayl
     _tag_span(action="end", mission_id=mission_id,
               slots_paid=len(payouts), payout_per_slot=payout_amount)
     return {**mission, "seed_doi": seed_doi, "agreements_completed": agreements_completed,
-            "agreement_errors": agreement_errors, "payout_errors": payout_errors,
+            "agreement_errors": agreement_errors, "payout_errors": payout_errors, "escrow": escrow_info,
             "provenance_errors": [p["agent_id"] for p in payouts if not (p.get("seed") or {}).get("doi")]}
 
 
@@ -960,7 +1014,17 @@ async def close_task(task_id: str, payload: CloseTaskPayload, request: Request) 
     agent_id = task.get("assigned_agent")
     if agent_id:
         exp_result = _award_exp(agent_id, task["exp_reward"], task.get("track", "tool"))
-        if task["payout"] > 0:
+        task_escrow = state.escrow.active_for_mission(task["mission_id"]) if task.get("mission_id") else None
+        if task["payout"] > 0 and task_escrow is not None:
+            # P5: the mission has funds held, so this payout comes out of them.
+            try:
+                payout_result = await release_to(task_escrow["escrow_id"], agent_id, task["payout"],
+                                                 source="task_close")
+            except EscrowError as exc:
+                payout_result = {"error": exc.message, "code": exc.code, "escrow_id": task_escrow["escrow_id"]}
+                state.audit.log("economy", "payout_failed", {"task_id": task_id, "agent_id": agent_id,
+                                                             "escrow_id": task_escrow["escrow_id"], "error": exc.message})
+        elif task["payout"] > 0:
             payout_result = state.economy.process_mission_payout(
                 agent_id=agent_id,
                 agent_metrics={},
@@ -1028,6 +1092,8 @@ async def close_task(task_id: str, payload: CloseTaskPayload, request: Request) 
                         "agreements_completed": ag_done,
                         "agreement_errors": ag_errors,
                     })
+                    if state.escrow.active_for_mission(mission_id):   # P5: leftover held funds go back to the poster
+                        await _refund_escrow_remainder(state.escrow.active_for_mission(mission_id)["escrow_id"])
                     await state.emit("mission_ended", {"mission_id": mission_id, "auto": True})
                     mission_complete_result = {"mission_id": mission_id, "auto_completed": True,
                                                "agreements_completed": ag_done,
@@ -1286,6 +1352,7 @@ async def fill_slot(payload: FillSlotPayload, request: Request) -> dict:
             return JSONResponse(body, status_code=e.status)
         # ... then the slot write; on failure: evidence_gap + compensating terminated.
         try:
+            slot_binding.link_escrow(agreement["agreement_id"], slot.get("mission_id"))
             slot_binding.fill_slot_record(slot, agent_id=agent_id, agent_name=agent_name, agreement=agreement)
             _save_slots(slots)
         except Exception as exc:  # noqa: BLE001

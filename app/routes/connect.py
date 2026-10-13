@@ -62,8 +62,21 @@ def _is_operator(request: Request) -> bool:
     return admin_key_matches(request, state.admin_key)
 
 
+def _seller_tier_inputs(agent: dict) -> dict:
+    """The inputs economy.determine_tier reads, snapshotted from the agent's
+    metrics + governance state. Stored on the binding; rates still come from config."""
+    from app.metrics_io import load_metrics
+    try:
+        m = (load_metrics().get("agents", {}) or {}).get(agent.get("agent_id"), {}) or {}
+    except Exception:  # noqa: BLE001 - metrics missing must not block linking an account
+        m = {}
+    gov = agent.get("governance")
+    return {**m, "governance_active": bool(gov and gov != "none_(unrestricted)")}
+
+
 def _bind_stripe_account(agent: dict, account_id: str) -> None:
     agent["stripe_account_id"] = account_id
+    agent["stripe_tier_inputs"] = _seller_tier_inputs(agent)
     state.runtime.persist_registry()
 
 
@@ -74,10 +87,17 @@ def _bound_account(agent: dict | None) -> str:
 def _seller_fee_percent(account_id: str) -> int:
     """Platform fee for a sale = the seller's tier rate from config.
 
-    Seller tier metrics are not stored on the account binding yet, so the
-    configured UNGOVERNED rate applies (the soft-launch rate is flat anyway).
+    The tier comes from the inputs stored on the account binding when it was
+    linked; an account with no bound agent (operator-created) gets the
+    configured UNGOVERNED rate. Rates are read from config/economic_rates.json.
     """
-    return kassa_payments.DEFAULT_APP_FEE_PERCENT
+    owner = next((r for r in state.runtime.registry
+                  if account_id and r.get("stripe_account_id") == account_id), None)
+    if owner is None or "stripe_tier_inputs" not in owner:
+        return kassa_payments.DEFAULT_APP_FEE_PERCENT
+    from app.economy import TIERS
+    tier = state.economy.determine_tier(owner["stripe_tier_inputs"])
+    return int(round(TIERS.get(tier, TIERS["ungoverned"])["fee_rate"] * 100))
 
 
 class ConnectAccountPayload(BaseModel):
@@ -620,8 +640,27 @@ async def stripe_webhook_v1(request: Request) -> dict:
                           amount_usd=_stripe_amount, session_id=_session_id or "",
                           payment_type=metadata.get("type", "bounty"))
 
+        # Escrow funding (P5): the signature-verified webhook is what puts money in escrow.
+        escrow_funded = None
+        if metadata.get("type") == "escrow_funding":
+            _paid = (getattr(data, "payment_status", None) if not isinstance(data, dict)
+                     else data.get("payment_status"))
+            if _paid not in (None, "paid"):
+                state.audit.log("economy", "escrow_funding_unpaid", {"session_id": _session_id, "status": _paid})
+            else:
+                from app.routes.escrow import fund_escrow
+                from app.escrow import EscrowError
+                try:
+                    escrow_funded = await fund_escrow(
+                        poster_id=metadata.get("poster_id", ""), amount=_stripe_amount, source="stripe_checkout",
+                        mission_id=metadata.get("mission_id") or None, stripe_session_id=_session_id, actor="stripe")
+                except EscrowError as exc:
+                    state.audit.log("economy", "escrow_funding_failed", {"session_id": _session_id, "error": exc.message})
+
         # Fee credit pack purchase — credit the agent's fee credit balance
-        if metadata.get("type") == "fee_credit_pack":
+        if metadata.get("type") == "escrow_funding":
+            pass
+        elif metadata.get("type") == "fee_credit_pack":
             pack_name = metadata.get("pack_name", "Unknown")
             agent_id = metadata.get("agent_id", "")
             # Coverage amount = what the pack covers (from frontend PACKS data)
@@ -668,7 +707,10 @@ async def stripe_webhook_v1(request: Request) -> dict:
         except Exception:
             pass
 
-    return {"received": True, "seed_doi": seed_doi}
+    out = {"received": True, "seed_doi": seed_doi}
+    if event_type == "checkout.session.completed" and escrow_funded:
+        out["escrow_id"] = escrow_funded["escrow"]["escrow_id"]
+    return out
 
 
 # ── Fee Credit Pack Checkout ───────────────────────────────────────────────

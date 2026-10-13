@@ -67,3 +67,44 @@ def test_first_transaction_end_to_end(client, monkeypatch):
     assert r.status_code == 200, r.text
     assert transfers[-1]["connected_account_id"] == acct
     assert round(state.economy.treasury.balance(entrant["id"]) - before, 4) == 0
+
+
+def test_first_transaction_with_escrow(client, monkeypatch):
+    """Escrow variant: poster funds (operator-funded, local) -> enter -> mission end pays
+    from the escrow (bound to the Agreement) -> bound cashout. No operator payout claim."""
+    transfers = []
+    monkeypatch.setattr(kassa_payments, "create_connected_account",
+                        lambda **kw: {"account_id": f"acct_{uuid.uuid4().hex[:8]}"})
+    monkeypatch.setattr(kassa_payments, "get_account_status", lambda acct: {"charges_enabled": True})
+    monkeypatch.setattr(kassa_payments, "create_transfer",
+                        lambda **kw: transfers.append(kw) or {"transfer_id": "tr_escrow"})
+    poster, entrant = _agent(client), _agent(client)
+    slot = _mk_slot(client, poster)
+    r = client.post("/api/escrow/fund", headers=ADMIN, json={"mission_id": slot["mission_id"], "amount": 100.0})
+    assert r.status_code == 200, r.text
+    eid = r.json()["escrow"]["escrow_id"]
+    assert r.json()["escrow"]["state"] == "held" and r.json()["provenance_errors"] == []
+
+    aid = _fill(client, entrant, slot["id"]).json()["agreement_id"]
+    assert _store().get(aid)["objects"]["escrow_id"] == eid
+
+    before = state.economy.treasury.balance(entrant["id"])
+    poster_before = state.economy.treasury.balance(poster["id"])
+    # The poster ends its own mission (accepts): no amount named, paid from the escrow.
+    r = client.post(f"/api/missions/{slot['mission_id']}/end", headers=poster["h"], json={})
+    assert r.status_code == 200, r.text
+    out = r.json()
+    (payout,) = out["payouts"]
+    assert out["payout_errors"] == [] and out["provenance_errors"] == []
+    assert payout["escrow_id"] == eid and payout["seed"]["doi"] and payout["escrow_seed"]["doi"]
+    net = payout["fee_breakdown"]["net_to_agent"]
+    assert round(state.economy.treasury.balance(entrant["id"]) - before, 4) == round(net, 4)
+    assert out["escrow"]["state"] == "released" and out["escrow"]["refunded"] == 0.0
+    assert state.economy.treasury.balance(poster["id"]) == poster_before
+    assert _store().get(aid)["state"] == "completed"
+    assert _store().receipts(aid)[-1]["escrow_id"] == eid
+
+    client.post("/api/connect/accounts", headers=entrant["jwt"], json={"display_name": "E", "email": "e@x.test"})
+    r = client.post("/api/connect/cashout", headers=entrant["jwt"], json={"amount": net})
+    assert r.status_code == 200, r.text
+    assert transfers[-1]["amount_cents"] == int(round(net * 100))
