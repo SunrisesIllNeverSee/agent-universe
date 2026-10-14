@@ -42,7 +42,7 @@ def test_second_create_returns_409_with_existing_id(client, fake_stripe):
     acct = first.json()["account_id"]
     second = client.post("/api/connect/accounts", json=BODY, headers=jwt)
     assert second.status_code == 409
-    assert second.json()["detail"]["account_id"] == acct
+    assert second.json()["account_id"] == acct
     assert fake_stripe["n"] == 1  # nothing created at Stripe the second time
     assert rec["stripe_account_id"] == acct
 
@@ -51,7 +51,7 @@ def test_v2_route_also_blocked_and_cannot_rebind(client, fake_stripe):
     rec, jwt = _agent(client)
     acct = client.post("/api/connect/accounts", json=BODY, headers=jwt).json()["account_id"]
     r = client.post("/api/connect/v2/accounts", json=BODY, headers=jwt)
-    assert r.status_code == 409 and r.json()["detail"]["account_id"] == acct
+    assert r.status_code == 409 and r.json()["account_id"] == acct
     assert fake_stripe["n"] == 1
     assert rec["stripe_account_id"] == acct
 
@@ -60,7 +60,7 @@ def test_v2_first_create_binds_then_v1_blocked(client, fake_stripe):
     rec, jwt = _agent(client)
     acct = client.post("/api/connect/v2/accounts", json=BODY, headers=jwt).json()["account_id"]
     r = client.post("/api/connect/accounts", json=BODY, headers=jwt)
-    assert r.status_code == 409 and r.json()["detail"]["account_id"] == acct
+    assert r.status_code == 409 and r.json()["account_id"] == acct
 
 
 def test_other_agents_unaffected(client, fake_stripe):
