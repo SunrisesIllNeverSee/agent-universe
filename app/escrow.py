@@ -64,6 +64,7 @@ class EscrowStore:
         self._lock = threading.RLock()
         self._json = self._path.suffix == ".json"
         self._depth = 0
+        self._seen: dict[str, str] = {}   # escrow_id -> doc as read in the open txn (compare-and-swap guard)
         self._rows: dict[str, dict] = {}
         if self._json:
             self._conn = None
@@ -133,6 +134,7 @@ class EscrowStore:
                 raise
             finally:
                 self._depth = 0
+                self._seen.clear()
 
     def _put(self, e: dict) -> None:
         if self._json:
@@ -142,14 +144,30 @@ class EscrowStore:
             os.replace(tmp, self._path)
             return
         sid = e.get("stripe_session_id")
+        doc = json.dumps(e)
+        seen = self._seen.get(e["escrow_id"])
+        if seen is not None:
+            # Database-level guard, independent of the process lock: the row is written only if it
+            # is still exactly what this transaction read. A second process that slipped past the
+            # in-process lock updates 0 rows and fails loudly instead of paying out twice.
+            cur = self._conn.execute(
+                "UPDATE escrows SET state=?, mission_id=?, poster_id=?, stripe_session_id=?, doc=?"
+                " WHERE escrow_id=? AND doc=?",
+                (e["state"], e.get("mission_id"), e.get("poster_id"), sid, doc, e["escrow_id"], seen))
+            if cur.rowcount != 1:
+                raise EscrowError(f"escrow {e['escrow_id']} changed concurrently; retry", "conflict")
+            self._seen[e["escrow_id"]] = doc
+            return
         cur = self._conn.execute(
             "UPDATE escrows SET state=?, mission_id=?, poster_id=?, stripe_session_id=?, doc=? WHERE escrow_id=?",
-            (e["state"], e.get("mission_id"), e.get("poster_id"), sid, json.dumps(e), e["escrow_id"]))
+            (e["state"], e.get("mission_id"), e.get("poster_id"), sid, doc, e["escrow_id"]))
         if cur.rowcount == 0:
             self._conn.execute(
                 "INSERT INTO escrows (escrow_id, state, mission_id, poster_id, stripe_session_id, doc, seq)"
                 " VALUES (?,?,?,?,?,?, (SELECT COALESCE(MAX(seq),0)+1 FROM escrows))",
-                (e["escrow_id"], e["state"], e.get("mission_id"), e.get("poster_id"), sid, json.dumps(e)))
+                (e["escrow_id"], e["state"], e.get("mission_id"), e.get("poster_id"), sid, doc))
+        if self._depth:
+            self._seen[e["escrow_id"]] = doc
 
     def _all(self) -> list[dict]:
         if self._json:
@@ -170,6 +188,8 @@ class EscrowStore:
         else:
             r = self._conn.execute("SELECT doc FROM escrows WHERE escrow_id=?", (escrow_id,)).fetchone()
             e = json.loads(r[0]) if r else None
+            if r and self._depth:
+                self._seen[escrow_id] = r[0]
         if e is None:
             raise EscrowError(f"escrow {escrow_id} not found", "not_found")
         return e
