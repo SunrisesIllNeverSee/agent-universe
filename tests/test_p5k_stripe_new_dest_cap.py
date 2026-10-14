@@ -149,8 +149,9 @@ def test_mcp_cashout_under_cap_queues_over_cap_pends(client, stripe):
     rec["stripe_account_id"] = "acct_mcp"
     state.economy.treasury.credit(aid, 100, reason="test_seed_balance")
     assert _call("agent.cashout", api_key=d["api_key"], amount=20.0)["status"] == "queued"
-    out = _call("agent.cashout", api_key=d["api_key"], amount=10.0)
+    # P5m owner decision: queued requests do not count against the cap, so the over-cap probe is $26.
+    out = _call("agent.cashout", api_key=d["api_key"], amount=26.0)
     assert out["status"] == "pending_approval" and out["account"] == "acct_mcp"
-    assert _bal(aid) == 90
+    assert _bal(aid) == 74
     a = state.wallets.get_approval(out["approval_id"])
     assert a["kind"] == "stripe" and a["address"] == "acct_mcp"
