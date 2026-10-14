@@ -19,7 +19,7 @@ from app.public_projection import public_kassa_post
 _tracer = _get_tracer("civitae.mcp")
 
 MCP_INSTRUCTIONS = (
-    "CIVITAE governed agent runtime. 40 tools across 5 domains:\n"
+    "CIVITAE governed agent runtime. 41 tools across 5 domains:\n"
     "CHAT: chat.join, chat.read, chat.send, chat.status — governed messaging in COMMAND channels.\n"
     "MARKETPLACE: agent.register, agent.status, agent.heartbeat, agent.inbox, agent.inbox.read, "
     "market.browse, market.post, market.stake, "

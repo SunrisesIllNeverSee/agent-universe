@@ -160,3 +160,42 @@ def test_field_guide_covers_p5_money_and_procedure():
     assert PENDING_MARKER not in GUIDE
     for needle in ("chargeback_hold_days", "force-assign", "evenly"):
         assert needle in GUIDE, f"field guide missing {needle}"
+
+
+PUBLIC_COUNT_FILES = ("frontend/llms.txt", "frontend/llms-full.txt", "frontend/webmcp.js", "README.md", "glama.json",
+                      "frontend/.well-known/mcp-server-card.json", "frontend/guides/how-to-use-the-mcp-bridge.html",
+                      "frontend/vs/olas.html", "frontend/vs/okx-ai.html", "frontend/vs/virtuals-protocol.html",
+                      "frontend/alternatives/agent-ai.html")
+
+
+def test_llms_txt_tool_count_matches_registered(app):
+    n = len(_registered_tools(app))
+    text = (ROOT / "frontend" / "llms.txt").read_text(encoding="utf-8")
+    counts = {int(c) for c in re.findall(r"(\d+) (?:MCP |governed )?tools", text)}
+    assert counts == {n}, f"llms.txt tool counts {counts} != registered {n}"
+
+
+def test_public_tool_count_references_match_registered(app):
+    n = len(_registered_tools(app))
+    for rel in PUBLIC_COUNT_FILES:
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        counts = {int(c) for c in re.findall(r"(?<![\d/])(\d+) (?:MCP |governed )?tools", text)}
+        assert counts <= {n}, f"{rel}: tool counts {counts} != registered {n}"
+
+
+def test_bridge_instructions_and_server_card_count_match_registered(app):
+    from app import mcp_bridge
+    n = len(_registered_tools(app))
+    assert f"{n} tools across" in mcp_bridge.MCP_INSTRUCTIONS
+    card = json.loads((ROOT / "frontend" / ".well-known" / "mcp-server-card.json").read_text(encoding="utf-8"))
+    assert f"{n} tools across" in card["description"]
+
+
+def test_changelog_and_upgrade_plan_document_force_assign_and_push3():
+    log = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    plan = (ROOT / "docs" / "plans" / "MCP-UPGRADE-PLAN.md").read_text(encoding="utf-8")
+    assert "admin.force_assign" in log and "admin.force_assign" in plan
+    for needle in ("chargeback_hold_days", "SQLite", "server-side", "bound"):
+        assert needle in log, f"CHANGELOG missing {needle}"
+    for needle in ("SQLite", "Fee-credit packs", "bound to"):
+        assert needle in SKILL, f"skill.md missing {needle}"
