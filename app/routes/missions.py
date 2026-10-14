@@ -588,7 +588,8 @@ async def end_mission(mission_id: str, request: Request, payload: EndMissionPayl
     # P5 s2: a payout credits treasury balances that cash out to Stripe, so the
     # amount is an operator claim (same rule as task payouts). An owner agent
     # may still end its mission; it may not name a payout.
-    if payout_amount and _acting_agent_id(request) is not None:
+    # Hotfix a84eb32 rule kept: only the operator (admin key) may name a payout.
+    if payout_amount and not admin_key_matches(request, state.admin_key):
         return JSONResponse({"error": "Only an operator may set a mission payout"}, status_code=403)
     if payout_amount < 0 or payout_amount > MAX_SLOT_PAYOUT:
         return JSONResponse({"error": f"payout_per_slot must be between 0 and {MAX_SLOT_PAYOUT:,.0f}"}, status_code=400)
