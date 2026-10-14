@@ -349,6 +349,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/kassa/stakes/",
         "/api/kassa/webhooks/stripe",
         "/api/connect/",
+        "/api/economy/withdraw",  # P5e: authorized in-handler (own agent JWT or admin key)
         "/api/forums/threads",
         "/api/contact",
         "/api/advisory/apply",
