@@ -94,7 +94,10 @@ import json
 import logging
 import math
 import os
+import sqlite3
+import threading
 import uuid
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -414,24 +417,218 @@ class TrialLedger:
         }
 
 
+_TREASURY_SCHEMA = """
+CREATE TABLE IF NOT EXISTS balances (agent_id TEXT PRIMARY KEY, balance REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS transactions (
+    seq      INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_id TEXT,
+    reason   TEXT,
+    doc      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_txn_agent ON transactions(agent_id);
+CREATE TABLE IF NOT EXISTS holds (
+    seq      INTEGER PRIMARY KEY AUTOINCREMENT,
+    hold_id  TEXT NOT NULL UNIQUE,
+    agent_id TEXT NOT NULL,
+    doc      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_holds_agent ON holds(agent_id);
+CREATE TABLE IF NOT EXISTS treasury_meta (k TEXT PRIMARY KEY, v TEXT NOT NULL);
+"""
+
+
 class AgentTreasury:
-    """Per-agent balance ledger inside the sovereign economy."""
+    """Per-agent balance ledger inside the sovereign economy.
+
+    Durable on SQLite (the same pattern as EscrowStore): every balance read-modify-write
+    (credit, debit, hold, release_hold) runs inside one BEGIN IMMEDIATE transaction that
+    re-reads state from the database, never from a process cache, so two processes sharing
+    the volume cannot lose an update or spend the same balance twice. An existing
+    treasury.json is imported once on first start and left on disk untouched.
+    TREASURY_STORE=json keeps the legacy single-process JSON file (local/dev fallback).
+    """
 
     def __init__(self, data_dir: str | Path = "./data"):
-        self.path = Path(data_dir) / "treasury.json"
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._ledger = self._load()
+        data_dir = Path(data_dir)
+        data_dir.mkdir(parents=True, exist_ok=True)
+        self.json_path = data_dir / "treasury.json"
+        self._lock = threading.RLock()
+        self._depth = 0
+        self._json = os.environ.get("TREASURY_STORE") == "json"
+        if self._json:
+            self.path = self.json_path
+            self._conn = None
+            self._jl = self._load_json()
+            self._dirty = False
+            return
+        self.path = data_dir / "treasury.db"
+        # isolation_level=None: transactions are managed explicitly.
+        self._conn = sqlite3.connect(str(self.path), check_same_thread=False, isolation_level=None, timeout=30)
+        self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.executescript(_TREASURY_SCHEMA)
+        self._import_json(self.json_path)
 
-    def _load(self) -> dict:
-        led = _locked_load(self.path, {"balances": {}, "transactions": []})
+    def close(self) -> None:
+        if self._conn is not None:
+            self._conn.close()
+
+    # ── storage ─────────────────────────────────────────────────────────
+    def _load_json(self) -> dict:
+        led = _locked_load(self.json_path, {"balances": {}, "transactions": []})
         led.setdefault("holds", [])
         return led
 
-    def _save(self):
-        _atomic_save(self.path, self._ledger)
+    def _import_json(self, src: Path) -> int:
+        """One-time import of a legacy treasury.json (left in place, untouched). Guarded by a
+        meta row inside the write transaction, so concurrent first starts import exactly once."""
+        if not src.exists():
+            return 0
+        try:
+            led = json.loads(src.read_text(encoding="utf-8"))
+            balances, txns, holds = dict(led.get("balances", {})), list(led.get("transactions", [])), list(led.get("holds", []))
+        except Exception:  # noqa: BLE001 - unreadable legacy file: leave it, do not block boot
+            return 0
+        with self._txn():
+            if self._conn.execute("SELECT 1 FROM treasury_meta WHERE k='json_imported'").fetchone():
+                return 0
+            for agent_id, bal in balances.items():
+                self._conn.execute("INSERT OR IGNORE INTO balances (agent_id, balance) VALUES (?,?)", (agent_id, bal))
+            for t in txns:
+                self._conn.execute("INSERT INTO transactions (agent_id, reason, doc) VALUES (?,?,?)",
+                                   (t.get("agent_id"), t.get("reason"), json.dumps(t)))
+            for h in holds:
+                self._conn.execute("INSERT OR IGNORE INTO holds (hold_id, agent_id, doc) VALUES (?,?,?)",
+                                   (h["hold_id"], h["agent_id"], json.dumps(h)))
+            self._conn.execute("INSERT INTO treasury_meta (k, v) VALUES ('json_imported', ?)",
+                               (datetime.now(UTC).isoformat(),))
+        return len(txns)
 
+    @contextmanager
+    def _txn(self):
+        """Serialize a read-modify-write. SQLite: one BEGIN IMMEDIATE (write lock held from the
+        first read), rolled back on any error. JSON: the process lock, saved on exit."""
+        with self._lock:
+            if self._depth:
+                self._depth += 1
+                try:
+                    yield
+                finally:
+                    self._depth -= 1
+                return
+            if self._json:
+                self._depth = 1
+                try:
+                    yield
+                    if self._dirty:
+                        _atomic_save(self.json_path, self._jl)
+                        self._dirty = False
+                except BaseException:
+                    self._jl = self._load_json()   # drop half-applied in-memory changes
+                    self._dirty = False
+                    raise
+                finally:
+                    self._depth = 0
+                return
+            self._conn.execute("BEGIN IMMEDIATE")
+            self._depth = 1
+            try:
+                yield
+                self._conn.execute("COMMIT")
+            except BaseException:
+                try:
+                    self._conn.execute("ROLLBACK")
+                except sqlite3.Error:
+                    pass
+                raise
+            finally:
+                self._depth = 0
+
+    @contextmanager
+    def _read(self):
+        """A consistent snapshot for multi-statement reads (deferred txn; WAL readers never block)."""
+        with self._lock:
+            if self._json or self._depth:
+                yield
+                return
+            self._conn.execute("BEGIN")
+            self._depth = 1
+            try:
+                yield
+            finally:
+                self._depth = 0
+                try:
+                    self._conn.execute("COMMIT")
+                except sqlite3.Error:
+                    pass
+
+    def _bal(self, agent_id: str) -> float:
+        if self._json:
+            return self._jl["balances"].get(agent_id, 0.0)
+        r = self._conn.execute("SELECT balance FROM balances WHERE agent_id=?", (agent_id,)).fetchone()
+        return r[0] if r else 0.0
+
+    def _set_bal(self, agent_id: str, value: float) -> None:
+        if self._json:
+            self._jl["balances"][agent_id] = value
+            self._dirty = True
+            return
+        self._conn.execute("INSERT INTO balances (agent_id, balance) VALUES (?,?)"
+                           " ON CONFLICT(agent_id) DO UPDATE SET balance=excluded.balance", (agent_id, value))
+
+    def _add_txn(self, txn: dict) -> None:
+        if self._json:
+            self._jl["transactions"].append(txn)
+            self._dirty = True
+            return
+        self._conn.execute("INSERT INTO transactions (agent_id, reason, doc) VALUES (?,?,?)",
+                           (txn.get("agent_id"), txn.get("reason"), json.dumps(txn)))
+
+    def _txns(self, agent_id: str | None = None, limit: int | None = None) -> list[dict]:
+        if self._json:
+            rows = self._jl["transactions"]
+            if agent_id:
+                rows = [t for t in rows if t["agent_id"] == agent_id]
+            return list(rows[-limit:] if limit else rows)
+        q, args = "SELECT doc FROM transactions", []
+        if agent_id:
+            q += " WHERE agent_id=?"
+            args.append(agent_id)
+        if limit:
+            rows = self._conn.execute(q + " ORDER BY seq DESC LIMIT ?", (*args, limit)).fetchall()[::-1]
+        else:
+            rows = self._conn.execute(q + " ORDER BY seq", args).fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+    def _holds_all(self, agent_id: str | None = None) -> list[dict]:
+        if self._json:
+            return [h for h in self._jl["holds"] if agent_id is None or h["agent_id"] == agent_id]
+        if agent_id is None:
+            rows = self._conn.execute("SELECT doc FROM holds ORDER BY seq").fetchall()
+        else:
+            rows = self._conn.execute("SELECT doc FROM holds WHERE agent_id=? ORDER BY seq", (agent_id,)).fetchall()
+        return [json.loads(r[0]) for r in rows]
+
+    def _add_hold(self, rec: dict) -> None:
+        if self._json:
+            self._jl["holds"].append(rec)
+            self._dirty = True
+            return
+        self._conn.execute("INSERT INTO holds (hold_id, agent_id, doc) VALUES (?,?,?)",
+                           (rec["hold_id"], rec["agent_id"], json.dumps(rec)))
+
+    @property
+    def _ledger(self) -> dict:
+        """Read-only snapshot in the legacy ledger shape (balances, transactions, holds).
+        Mutating the returned dict does not change the treasury."""
+        with self._read():
+            if self._json:
+                return json.loads(json.dumps(self._jl))
+            return {"balances": self.all_balances(), "transactions": self._txns(), "holds": self._holds_all()}
+
+    # ── balances ────────────────────────────────────────────────────────
     def balance(self, agent_id: str) -> float:
-        return self._ledger["balances"].get(agent_id, 0.0)
+        with self._read():
+            return self._bal(agent_id)
 
     @staticmethod
     def _valid_amount(amount: float) -> bool:
@@ -441,40 +638,51 @@ class AgentTreasury:
     def credit(self, agent_id: str, amount: float, reason: str, mission_id: str = "") -> dict:
         if not self._valid_amount(amount):
             raise ValueError(f"invalid credit amount: {amount!r}")
-        self._ledger["balances"][agent_id] = self.balance(agent_id) + amount
-        txn = {
-            "id": hashlib.sha256(f"{agent_id}{amount}{datetime.now(UTC).isoformat()}".encode()).hexdigest()[:16],
-            "agent_id": agent_id,
-            "type": "credit",
-            "amount": amount,
-            "reason": reason,
-            "mission_id": mission_id,
-            "timestamp": datetime.now(UTC).isoformat(),
-            "balance_after": self._ledger["balances"][agent_id],
-        }
-        self._ledger["transactions"].append(txn)
-        self._save()
+        with self._txn():
+            new = self._bal(agent_id) + amount
+            self._set_bal(agent_id, new)
+            txn = {
+                "id": hashlib.sha256(f"{agent_id}{amount}{datetime.now(UTC).isoformat()}".encode()).hexdigest()[:16],
+                "agent_id": agent_id,
+                "type": "credit",
+                "amount": amount,
+                "reason": reason,
+                "mission_id": mission_id,
+                "timestamp": datetime.now(UTC).isoformat(),
+                "balance_after": new,
+            }
+            self._add_txn(txn)
         return txn
 
-    def debit(self, agent_id: str, amount: float, reason: str, chain: str = "") -> dict:
-        current = self.balance(agent_id)
-        if not self._valid_amount(amount):
-            return {"error": "Invalid amount", "balance": current, "requested": amount}
-        if amount > current:
-            return {"error": "Insufficient balance", "balance": current, "requested": amount}
-        self._ledger["balances"][agent_id] = current - amount
-        txn = {
-            "id": hashlib.sha256(f"{agent_id}{amount}{datetime.now(UTC).isoformat()}".encode()).hexdigest()[:16],
-            "agent_id": agent_id,
-            "type": "debit",
-            "amount": amount,
-            "reason": reason,
-            "chain": chain,
-            "timestamp": datetime.now(UTC).isoformat(),
-            "balance_after": self._ledger["balances"][agent_id],
-        }
-        self._ledger["transactions"].append(txn)
-        self._save()
+    def debit(self, agent_id: str, amount: float, reason: str, chain: str = "", *,
+              matured_only: bool = False) -> dict:
+        """Debit inside one transaction that re-reads the balance. ``matured_only`` additionally
+        requires ``amount <= matured_balance`` in the same transaction (withdraw / cashout), so
+        the hold gate and the debit cannot be separated by another writer."""
+        with self._txn():
+            current = self._bal(agent_id)
+            if not self._valid_amount(amount):
+                return {"error": "Invalid amount", "balance": current, "requested": amount}
+            if matured_only:
+                matured = self._matured(agent_id, current)
+                if amount > matured:
+                    return {"error": "Insufficient matured balance", "balance": current,
+                            "matured": matured, "requested": amount}
+            if amount > current:
+                return {"error": "Insufficient balance", "balance": current, "requested": amount}
+            new = current - amount
+            self._set_bal(agent_id, new)
+            txn = {
+                "id": hashlib.sha256(f"{agent_id}{amount}{datetime.now(UTC).isoformat()}".encode()).hexdigest()[:16],
+                "agent_id": agent_id,
+                "type": "debit",
+                "amount": amount,
+                "reason": reason,
+                "chain": chain,
+                "timestamp": datetime.now(UTC).isoformat(),
+                "balance_after": new,
+            }
+            self._add_txn(txn)
         return txn
 
     # ── chargeback holds ────────────────────────────────────────────────
@@ -508,42 +716,68 @@ class AgentTreasury:
                "reason": reason, "ref": ref, "created_at": now.isoformat(),
                "charged_at": start.isoformat() if basis == "charge_time" else None, "hold_basis": basis,
                "matures_at": (start + timedelta(days=days)).isoformat()}
-        self._ledger["holds"].append(rec)
-        self._save()
+        with self._txn():
+            self._add_hold(rec)
         return rec
 
     def release_hold(self, hold_id: str) -> None:
         """Drop a hold (used only to undo one whose payout failed)."""
-        self._ledger["holds"] = [h for h in self._ledger["holds"] if h["hold_id"] != hold_id]
-        self._save()
+        with self._txn():
+            if self._json:
+                self._jl["holds"] = [h for h in self._jl["holds"] if h["hold_id"] != hold_id]
+                self._dirty = True
+            else:
+                self._conn.execute("DELETE FROM holds WHERE hold_id=?", (hold_id,))
+
+    def _force_mature(self, agent_id: str) -> None:
+        """Test support: pretend every hold of ``agent_id`` has passed its window."""
+        past = (datetime.now(UTC) - timedelta(seconds=1)).isoformat()
+        with self._txn():
+            for h in self._holds_all(agent_id):
+                new = {**h, "matures_at": past}
+                if self._json:
+                    h["matures_at"] = past
+                    self._dirty = True
+                else:
+                    self._conn.execute("UPDATE holds SET doc=? WHERE hold_id=?", (json.dumps(new), h["hold_id"]))
 
     def _open_holds(self, agent_id: str) -> list[dict]:
         now = datetime.now(UTC)
-        return [h for h in self._ledger["holds"]
-                if h["agent_id"] == agent_id and datetime.fromisoformat(h["matures_at"]) > now]
+        return [h for h in self._holds_all(agent_id) if datetime.fromisoformat(h["matures_at"]) > now]
+
+    def _held(self, agent_id: str, balance: float) -> float:
+        return round(min(balance, sum(h["amount"] for h in self._open_holds(agent_id))), 4)
+
+    def _matured(self, agent_id: str, balance: float) -> float:
+        return round(max(0.0, balance - self._held(agent_id, balance)), 4)
 
     def held_balance(self, agent_id: str) -> float:
-        return round(min(self.balance(agent_id), sum(h["amount"] for h in self._open_holds(agent_id))), 4)
+        with self._read():
+            return self._held(agent_id, self._bal(agent_id))
 
     def matured_balance(self, agent_id: str) -> float:
-        return round(max(0.0, self.balance(agent_id) - self.held_balance(agent_id)), 4)
+        with self._read():
+            return self._matured(agent_id, self._bal(agent_id))
 
     def held_until(self, agent_id: str) -> str | None:
         """When the last open hold matures (all of the balance is cashable from then), else None."""
-        holds = self._open_holds(agent_id)
-        return max(h["matures_at"] for h in holds) if holds and self.held_balance(agent_id) > 0 else None
+        with self._read():
+            holds = self._open_holds(agent_id)
+            return max(h["matures_at"] for h in holds) if holds and self._held(agent_id, self._bal(agent_id)) > 0 else None
 
     def all_balances(self) -> dict:
-        return dict(self._ledger["balances"])
+        with self._read():
+            if self._json:
+                return dict(self._jl["balances"])
+            return {a: b for a, b in self._conn.execute("SELECT agent_id, balance FROM balances ORDER BY rowid")}
 
     def history(self, agent_id: str = None, limit: int = 20) -> list:
-        txns = self._ledger["transactions"]
-        if agent_id:
-            txns = [t for t in txns if t["agent_id"] == agent_id]
-        return txns[-limit:]
+        with self._read():
+            return self._txns(agent_id, limit)
 
     def platform_revenue(self) -> float:
-        return sum(t["amount"] for t in self._ledger["transactions"] if t.get("reason") == "platform_fee")
+        with self._read():
+            return sum(t["amount"] for t in self._txns() if t.get("reason") == "platform_fee")
 
 
 class FeeCreditLedger:

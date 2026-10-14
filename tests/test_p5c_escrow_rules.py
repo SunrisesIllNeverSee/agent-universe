@@ -80,11 +80,7 @@ def _cashout(client, who, amount):
 
 def _mature(agent_id):
     """Pretend the hold window passed."""
-    led = state.economy.treasury._ledger
-    for h in led.get("holds", []):
-        if h["agent_id"] == agent_id:
-            h["matures_at"] = (datetime.now(UTC) - timedelta(seconds=1)).isoformat()
-    state.economy.treasury._save()
+    state.economy.treasury._force_mature(agent_id)
 
 
 # ── Q1: poster ends own funded mission = acceptance ────────────────────────
