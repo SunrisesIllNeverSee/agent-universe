@@ -290,6 +290,7 @@ class MCPBridge:
 
         class CashoutResult(TypedDict, total=False):
             status: str
+            approval_id: str
             amount: float
             account: str
             note: str
@@ -1161,6 +1162,32 @@ class MCPBridge:
                     span.set_attribute("mcp.result", "exceeds_matured")
                     return {"error": f"Amount exceeds your matured (cashable) balance of ${matured:.2f}; "
                                      "card-funded money is held until its chargeback window closes."}
+                # New-destination cap (P5k): same rule as POST /api/connect/cashout and on-chain withdraw.
+                from app.wallet_store import wallet_rules
+                agent_id = agent.get("agent_id", "")
+                link = _state.wallets.note_stripe_binding(agent_id, bound_account)
+                decision, _cap_pid = _state.wallets.claim_cap(agent_id, link, amount, wallet_rules(), kind="stripe")
+                if decision == "over":
+                    reserve = economy.treasury.debit(agent_id, amount, reason="cashout_reserved", matured_only=True)
+                    if reserve.get("error"):
+                        span.set_attribute("mcp.result", "exceeds_matured")
+                        return {"error": "Insufficient matured balance."}
+                    try:
+                        approval = _state.wallets.create_approval(agent_id, link, amount, reserve_txn=reserve.get("id", ""), kind="stripe")
+                    except Exception:
+                        economy.treasury.credit(agent_id, amount, reason="cashout_refund")
+                        raise
+                    _state.audit.log("economy", "cashout_pending_approval", {
+                        "agent_id": agent_id, "amount_usd": amount, "connected_account_id": bound_account,
+                        "approval_id": approval["approval_id"], "via": "mcp"})
+                    span.set_attribute("mcp.result", "pending_approval")
+                    return {
+                        "status": "pending_approval",
+                        "approval_id": approval["approval_id"],
+                        "amount": amount,
+                        "account": connected_account_id,
+                        "note": "New-destination cap exceeded. The amount is reserved and awaits operator approval.",
+                    }
                 tier = economy.determine_tier(agent.get("stripe_tier_inputs") or {})
                 _state.audit.log("economy", "cashout_request_mcp", {
                     "agent": agent["name"], "amount": amount,

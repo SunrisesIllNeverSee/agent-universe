@@ -739,6 +739,8 @@ async def approve_payout(approval_id: str, request: Request):
         return JSONResponse({"error": "Approval not found"}, status_code=404)
     if not state.wallets.claim_approval(approval_id, "approving", "operator"):
         return JSONResponse({"noop": True, "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=409)
+    if a.get("kind") == "stripe":
+        return await _approve_stripe_payout(approval_id, a)
     try:
         transfer = _get_chain_router().transfer(a["chain"], a["address"], a["amount"], agent_id=a["agent_id"], confirm=True)
     except Exception as exc:
@@ -758,6 +760,31 @@ async def approve_payout(approval_id: str, request: Request):
     return {"approval": _approval_view(state.wallets.get_approval(approval_id)), "chain_transfer": transfer}
 
 
+async def _approve_stripe_payout(approval_id: str, a: dict):
+    """P5k: pay a reserved Stripe cashout to the account snapshotted at request time (never re-read
+    from the agent record, so a rebind in between cannot redirect it). The claim is already held, so
+    the transfer happens at most once; a failed transfer returns the approval to pending, still reserved."""
+    from app import kassa_payments
+    try:
+        result = kassa_payments.create_transfer(
+            amount_cents=int(round(a["amount"] * 100)), connected_account_id=a["address"],
+            description=f"SIGNOMY payout — {a['agent_id']}",
+            metadata={"agent_id": a["agent_id"], "source": "treasury_cashout", "approval_id": approval_id})
+    except Exception as exc:  # noqa: BLE001
+        result = {"error": str(exc)[:200]}
+    if result.get("error") or not result.get("transfer_id"):
+        state.wallets.settle_approval(approval_id, "pending")
+        return JSONResponse({"error": f"transfer failed: {result.get('error', 'no transfer id')}",
+                             "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=502)
+    import json as _json
+    state.wallets.settle_approval(approval_id, "approved", _json.dumps(result, default=str))
+    entry = state.audit.log("economy", "payout_approved", {
+        "approval_id": approval_id, "agent_id": a["agent_id"], "amount": a["amount"], "chain": "stripe",
+        "to": a["address"], "transfer_id": result["transfer_id"]})
+    await state.emit("audit_event", entry.model_dump(mode="json"))
+    return {"approval": _approval_view(state.wallets.get_approval(approval_id)), "stripe_transfer": result}
+
+
 @router.post("/api/operator/payout-approvals/{approval_id}/reject")
 async def reject_payout(approval_id: str, request: Request):
     """Refund the reservation. Only one reject (or approve) can claim a pending approval."""
@@ -769,7 +796,8 @@ async def reject_payout(approval_id: str, request: Request):
     if not state.wallets.claim_approval(approval_id, "rejecting", "operator"):
         return JSONResponse({"noop": True, "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=409)
     try:
-        state.economy.treasury.credit(a["agent_id"], a["amount"], reason="withdrawal_reserve_refund",
+        state.economy.treasury.credit(a["agent_id"], a["amount"],
+                                      reason="cashout_refund" if a.get("kind") == "stripe" else "withdrawal_reserve_refund",
                                       mission_id=f"rev-{a['reserve_txn']}")
     except Exception:
         # The refund did not happen: do not strand the approval in 'rejecting' with the money lost.

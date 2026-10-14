@@ -77,6 +77,7 @@ def _seller_tier_inputs(agent: dict) -> dict:
 
 def _bind_stripe_account(agent: dict, account_id: str) -> None:
     agent["stripe_account_id"] = account_id
+    state.wallets.note_stripe_binding(agent.get("agent_id", ""), account_id)   # P5k: starts this account's new-destination window
     agent["stripe_tier_inputs"] = _seller_tier_inputs(agent)
     state.runtime.persist_registry()
 
@@ -917,10 +918,35 @@ async def cashout(request: Request):
             "held_until": treasury.held_until(agent_id), "requested": amount_usd,
         }, status_code=400)
 
+    # New-destination cap (P5k): same rule and config as on-chain withdraw. Cumulative cashouts to an
+    # account are capped for the first N hours after it is bound; over the cap the amount is reserved
+    # (matured-only debit) and waits in the shared operator approval queue, destination snapshotted.
+    from app.wallet_store import wallet_rules
+    link = state.wallets.note_stripe_binding(agent_id, connected_account_id)
+    decision, cap_pid = state.wallets.claim_cap(agent_id, link, amount_usd, wallet_rules(), kind="stripe")
+    if decision == "over":
+        reserve = state.economy.treasury.debit(agent_id, amount_usd, reason="cashout_reserved", matured_only=True)
+        if reserve.get("error"):
+            return JSONResponse({"error": "Insufficient balance", "balance": reserve.get("balance"),
+                                 "requested": amount_usd}, status_code=400)
+        try:
+            approval = state.wallets.create_approval(agent_id, link, amount_usd, reserve_txn=reserve.get("id", ""), kind="stripe")
+        except Exception:
+            state.economy.treasury.credit(agent_id, amount_usd, reason="cashout_refund")
+            raise
+        state.audit.log("economy", "cashout_pending_approval", {
+            "agent_id": agent_id, "amount_usd": amount_usd, "connected_account_id": connected_account_id,
+            "approval_id": approval["approval_id"]})
+        return JSONResponse({"status": "pending_approval", "approval_id": approval["approval_id"],
+                             "amount_usd": amount_usd, "connected_account_id": connected_account_id,
+                             "note": "New-destination cap exceeded. The amount is reserved and awaits operator approval."},
+                            status_code=202)
+
     # Reserve first (P5 s2): debit before the transfer so two concurrent
     # cashouts cannot both pass the balance check; refund if Stripe fails.
     reserved = state.economy.treasury.debit(agent_id, amount_usd, reason="cashout_reserved", matured_only=True)
     if reserved.get("error"):
+        state.wallets.void_payout(cap_pid)
         return JSONResponse({"error": "Insufficient balance", "balance": reserved.get("balance"),
                              "requested": amount_usd}, status_code=400)
     amount_cents = int(round(amount_usd * 100))
@@ -934,6 +960,7 @@ async def cashout(request: Request):
     except Exception as exc:
         result = {"error": str(exc)[:200]}
     if result.get("error"):
+        state.wallets.void_payout(cap_pid)
         state.economy.treasury.credit(agent_id, amount_usd, reason="cashout_refund")
         return JSONResponse({"error": "Transfer failed", "detail": result["error"]}, status_code=502)
 

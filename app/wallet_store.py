@@ -102,7 +102,14 @@ CREATE TABLE IF NOT EXISTS payout_approvals (
     created_at  TEXT NOT NULL,
     decided_at  TEXT,
     decided_by  TEXT NOT NULL DEFAULT '',
-    transfer    TEXT NOT NULL DEFAULT ''
+    transfer    TEXT NOT NULL DEFAULT '',
+    kind        TEXT NOT NULL DEFAULT 'chain'
+);
+CREATE TABLE IF NOT EXISTS stripe_bindings (
+    agent_id        TEXT NOT NULL,
+    account_id      TEXT NOT NULL,
+    first_bound_at  TEXT NOT NULL,
+    PRIMARY KEY (agent_id, account_id)
 );
 CREATE INDEX IF NOT EXISTS idx_payout_approvals_status ON payout_approvals(status, created_at);
 """
@@ -149,6 +156,9 @@ class WalletStore:
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.executescript(_SCHEMA)
+        cols = {r[1] for r in self._conn.execute("PRAGMA table_info(payout_approvals)")}
+        if "kind" not in cols:   # databases created before P5k (Stripe approvals)
+            self._conn.execute("ALTER TABLE payout_approvals ADD COLUMN kind TEXT NOT NULL DEFAULT 'chain'")
 
     def close(self) -> None:
         self._conn.close()
@@ -272,6 +282,19 @@ class WalletStore:
         return dict(row)
 
 
+    # ── Stripe destination (P5k): same cap window, keyed by the bound account ───
+    def note_stripe_binding(self, agent_id: str, account_id: str) -> dict:
+        """Record the first time this agent was bound to this Stripe account (idempotent) and return
+        it as a cap "link". Re-binding the same account never restarts the window; a new account
+        starts its own. An account first seen here (bound before P5k) starts its window now."""
+        now = datetime.now(UTC).isoformat()
+        with self._lock:
+            self._conn.execute("INSERT OR IGNORE INTO stripe_bindings (agent_id, account_id, first_bound_at) "
+                               "VALUES (?,?,?)", (agent_id, account_id, now))
+            at = self._conn.execute("SELECT first_bound_at FROM stripe_bindings WHERE agent_id=? AND account_id=?",
+                                    (agent_id, account_id)).fetchone()[0]
+        return {"wallet_id": "", "chain": "stripe", "address": account_id, "created_at": at}
+
     # ── new-wallet payout cap (cumulative per agent + destination address) ──────
     def claim_cap(self, agent_id: str, link: dict, amount: float, rules: dict, kind: str = "direct"):
         """Decide a withdrawal against the new-wallet cap. Returns ("direct", payout_id|None) when it
@@ -315,7 +338,8 @@ class WalletStore:
             self._conn.execute("UPDATE wallet_payouts SET status='void' WHERE payout_id=?", (payout_id,))
 
     # ── payout approvals ───────────────────────────────────────────────────────
-    def create_approval(self, agent_id: str, link: dict, amount: float, reserve_txn: str = "") -> dict:
+    def create_approval(self, agent_id: str, link: dict, amount: float, reserve_txn: str = "",
+                        kind: str = "chain") -> dict:
         """Persist a pending approval with the destination snapshotted now; it also counts against the cap."""
         chain, key = link["chain"], _key(link["chain"], link["address"])
         now = datetime.now(UTC).isoformat()
@@ -328,8 +352,8 @@ class WalletStore:
                     "VALUES (?,?,?,?,?,?,?,?)", (pid, agent_id, chain, key, link["wallet_id"], amount, "approval", now))
                 self._conn.execute(
                     "INSERT INTO payout_approvals (approval_id, agent_id, wallet_id, chain, address, amount, status, "
-                    "payout_id, reserve_txn, created_at) VALUES (?,?,?,?,?,?,'pending',?,?,?)",
-                    (aid, agent_id, link["wallet_id"], chain, link["address"], amount, pid, reserve_txn, now))
+                    "payout_id, reserve_txn, created_at, kind) VALUES (?,?,?,?,?,?,'pending',?,?,?,?)",
+                    (aid, agent_id, link["wallet_id"], chain, link["address"], amount, pid, reserve_txn, now, kind))
                 self._conn.execute("COMMIT")
             except Exception:
                 if self._conn.in_transaction:
