@@ -205,8 +205,9 @@ class EscrowStore:
 
     # ── transitions ─────────────────────────────────────────────────────
     def fund(self, *, poster_id: str, amount: float, source: str, mission_id: str | None = None,
-             agreement_id: str | None = None, stripe_session_id: str | None = None) -> dict:
-        """Money received. Idempotent on stripe_session_id (webhook replays)."""
+             agreement_id: str | None = None, stripe_session_id: str | None = None,
+             charged_at: str | None = None) -> dict:
+        """Money received. ``charged_at`` = when the card charge succeeded (starts the chargeback hold). Idempotent on stripe_session_id (webhook replays)."""
         if source not in SOURCES:
             raise EscrowError(f"source must be one of {SOURCES}", "bad_source")
         if not amount or amount <= 0:
@@ -219,7 +220,7 @@ class EscrowStore:
             e = {"escrow_id": f"esc-{uuid.uuid4().hex[:12]}", "state": "funded",
                  "poster_id": poster_id, "amount": round(float(amount), 4), "currency": "usd",
                  "released_total": 0.0, "refunded_total": 0.0, "source": source,
-                 "stripe_session_id": stripe_session_id, "mission_id": mission_id,
+                 "stripe_session_id": stripe_session_id, "charged_at": charged_at, "mission_id": mission_id,
                  "agreement_id": agreement_id, "created_at": _now(), "updated_at": _now(),
                  "releases": [], "history": []}
             self._log(e, "funded", amount=e["amount"], source=source)
