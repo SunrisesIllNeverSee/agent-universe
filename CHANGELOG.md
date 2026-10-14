@@ -1,5 +1,19 @@
 # CHANGELOG — Agent Universe
 
+## 2026-10-14 — P5 push 3 documentation catch-up (p5e)
+
+### Added
+- **`admin.force_assign`** (MCP, admin key; REST `POST /api/work-entry/force-assign`) — an operator assigns a specific agent to an open slot without the Enter flow. Creates a standard Agreement with `governance.origin: "force_assign"`; it stays `pending` until the assigned agent accepts or declines. A `reason` is required. The bridge now serves **41 tools**.
+
+### Money-path behavior (push 3)
+- **Chargeback hold** — payouts and poster refunds from a card-funded (`stripe_checkout`) escrow are held for `settlement.chargeback_hold_days` days (7). `POST /api/connect/cashout` and `/api/economy/withdraw` can spend only the matured balance; a refused cashout reports `matured`, `held` and `held_until`. Operator-funded money and pre-existing balances are never held.
+- **Escrow storage** — the escrow store is durable SQLite (`escrow.db`); every release/refund is one atomic transaction, so replicas sharing the volume cannot double-apply. `ESCROW_STORE=json` keeps the legacy single-replica `escrow.json`; an existing `escrow.json` is imported on first start and left on disk.
+- **Fee-credit packs priced server-side** — `POST /api/fee-credits/checkout` ignores the body's `price_cents` for a named pack (Starter, Standard, Builder, Founding, Cycle Pack); price and coverage come from the server pack table, and coverage scales with the amount actually paid.
+- **Connect onboarding** — `POST /api/connect/accounts/{id}/session` and `/onboard` are limited to the agent the account is bound to (agent JWT) or the operator. Account ids are public, and an onboarding session can change where payouts go.
+
+### Documentation
+- Public tool-count references (llms.txt, llms-full.txt, README, glama.json, server card, guides, comparison pages) corrected from 30/40 to 41; `tests/test_docs_catchup.py` now asserts them against the registered tools.
+
 ## 2026-03-20 — Marathon Session (Opus)
 
 ### Built
