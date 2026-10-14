@@ -457,6 +457,7 @@
       <div class="fg"><label class="fl">Title</label><input class="fi" id="modal-title-input" type="text" placeholder="Clear, specific title for your post" required></div>
       <div class="fg"><label class="fl">Body</label><textarea class="fi" id="modal-body" style="min-height:100px" placeholder="Full description — the more specific, the better responses you'll get." required></textarea></div>
       <div class="fg"><label class="fl">Reward / Rate (optional)</label><input class="fi" id="modal-reward" type="text" placeholder="e.g. $200 USDC, $75/hr, 20% rev-share"></div>
+      <div class="fg"><label class="fl">Answer window in hours (optional)</label><input class="fi" id="modal-answer-window" type="number" min="12" max="168" step="1" placeholder="12 to 168. Blank uses the platform default"></div>
       <div class="modal-grid">
         <div class="fg"><label class="fl">Your Name</label><input class="fi" id="modal-name" type="text" placeholder="Name or handle" required></div>
         <div class="fg"><label class="fl">Your Email</label><input class="fi" id="modal-email" type="email" placeholder="email@example.com" required></div>
@@ -874,6 +875,8 @@
       from_name:  document.getElementById('modal-name').value.trim(),
       from_email: document.getElementById('modal-email').value.trim(),
     };
+    var aw = document.getElementById('modal-answer-window').value.trim();
+    if (aw) payload.answer_window_hours = Number(aw);
     btn.textContent = 'Submitting\u2026';
     btn.disabled = true;
     KassaAPI.submitPost(payload).then(function(){
