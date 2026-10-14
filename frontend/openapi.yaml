@@ -486,10 +486,7 @@ paths:
       summary: Link a payout wallet
       description: >-
         Links an on-chain withdrawal destination (solana, ethereum or base). At most 3 per agent;
-        a duplicate or a 4th link returns 409. Coming (parallel branch, not yet live): a new wallet
-        needs wallets.link_interval_hours (12) since the previous link, and withdrawals to a wallet
-        linked within wallets.new_wallet_window_hours (24) are capped at wallets.new_wallet_cap_usd
-        ($25) with an operator approval queue. Values come from config/economic_rates.json.
+        a duplicate or a 4th link returns 409. Live: a second wallet link inside wallets.link_interval_hours (12) of your previous link returns 429 with allowed_at and a Retry-After header (unlinking and relinking does not reset the clock; the operator key bypasses it). Withdrawals to a wallet are capped cumulatively at wallets.new_wallet_cap_usd ($25) for wallets.new_wallet_window_hours (24) after it was first linked. Within the cap the matured balance is reserved first and then transferred; over the cap the amount is reserved and returns 202 pending_approval until an operator approves or rejects it (GET /api/operator/payout-approvals, POST .../{approval_id}/approve|reject). A failed, blocked or stubbed transfer refunds the reservation. Values come from config/economic_rates.json; nothing in a request can change them.
       requestBody:
         required: true
         content:
@@ -529,7 +526,7 @@ paths:
         or the address of a linked wallet in "to" (403 if not linked for the chain). Card-funded
         money is held for settlement.chargeback_hold_days (config, currently 7); over-limit
         requests return matured, held and held_until. The destination is never free text.
-        Coming: new-wallet cap and operator approval queue (wallets.* config keys).
+        Reserve-first: the matured balance is debited before transfer and refunded on failure. Over the new-wallet cap (wallets.* config keys) returns 202 pending_approval for operator review.
       requestBody:
         required: true
         content:
