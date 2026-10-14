@@ -23,7 +23,7 @@ import pytest
 sync_api = pytest.importorskip("playwright.sync_api")
 
 REPO = Path(__file__).resolve().parents[1]
-GATE_WINDOW_HOURS = 0.004   # 14.4 s
+GATE_WINDOW_HOURS = 1.0   # the window is judged on an injected clock (see SERVE), never waited out
 
 SERVE = """
 import sys
@@ -31,13 +31,31 @@ from pathlib import Path
 sys.path.insert(0, sys.argv[1])
 from app.server import create_app
 import uvicorn
-uvicorn.run(create_app(Path(sys.argv[2])), host="127.0.0.1", port=int(sys.argv[3]), log_level="warning")
+from datetime import UTC, datetime, timedelta
+from app.deps import state
+root = Path(sys.argv[2])
+app = create_app(root)
+# deterministic gate window: the work-entry store's clock is wall time plus an offset the test writes to a
+# file, so the test advances past closes_at instead of sleeping through it
+def _clock():
+    try:
+        off = float((root / "clock_offset").read_text())
+    except (OSError, ValueError):
+        off = 0.0
+    return datetime.now(UTC) + timedelta(seconds=off)
+state.workentry._clock = _clock
+uvicorn.run(app, host="127.0.0.1", port=int(sys.argv[3]), log_level="warning")
 """
 
 
 class Live:
     def __init__(self, url, admin):
         self.url, self.admin = url, admin
+        self.root = None
+
+    def advance_clock(self, seconds):
+        """Move the server's work-entry clock forward (the gate window closes without waiting)."""
+        (self.root / "clock_offset").write_text(str(seconds))
 
 
 @pytest.fixture(scope="module")
@@ -68,10 +86,10 @@ def live(tmp_path_factory):
         proc.terminate()
         pytest.fail("server did not start")
     lv = Live(url, admin)
-    # the async window is owner-configurable; seconds let the real motion close without waiting a day
-    # (slice 10: votes at/after closes_at are refused, so 0 admits no vote). Slice 11 (G2): the window starts
-    # when the motion is created and every vote must land inside it, so it needs real headroom over the
-    # meeting/join/vote HTTP round trips on a loaded machine (~14 s; was 5.4 s, which left under 5 s of slack).
+    lv.root = root
+    # the async window is owner-configurable. Slice 11 (G2): the window starts when the motion is created and
+    # every vote must land inside it (votes at/after closes_at are refused). Time is injected, not slept: the
+    # window is 1 h (votes can never miss it) and the test advances the server clock past it to resolve.
     r = httpx.post(url + "/api/work-entry/gate/settings", headers={"X-Admin-Key": admin},
                    json={"gate_window_hours": GATE_WINDOW_HOURS}, timeout=10)
     assert r.status_code == 200, r.text
@@ -278,16 +296,13 @@ def gate_through_governance(live, owner, ent, aid):
         v = api(live, who, "POST", f"/api/governance/meeting/{meet}/vote",
                 json={"voter": who["id"], "motion_id": mo.json()["id"], "vote": "yea"})
         assert v.status_code == 200, v.text
+    # while the window is open the motion must not resolve, even though everyone voted
+    g = api(live, owner, "POST", f"/api/work-entry/{aid}/gate/sync").json()
+    assert not g["gates"] and len(g["open_motions"]) == 1, g
     from datetime import datetime, UTC
     wait = (datetime.fromisoformat(mo.json()["closes_at"]) - datetime.now(UTC)).total_seconds()
-    time.sleep(max(0.0, wait) + 0.3)   # the window must elapse before the motion resolves
-    # poll rather than trust one sync: a pending result right after the window is a clock edge, not a verdict
-    deadline = time.time() + 15
-    while True:
-        g = api(live, owner, "POST", f"/api/work-entry/{aid}/gate/sync").json()
-        if g["gates"] and g["gates"][0]["result"] != "pending" or time.time() > deadline:
-            break
-        time.sleep(0.5)
+    live.advance_clock(wait + 1)   # the window elapses on the injected clock, no wall-clock wait
+    g = api(live, owner, "POST", f"/api/work-entry/{aid}/gate/sync").json()
     assert g["gates"][0]["result"] == "passed", g
     # a passed motion alone does not bind while the body is advisory
     r = api(live, owner, "POST", f"/api/work-entry/{aid}/accept")
