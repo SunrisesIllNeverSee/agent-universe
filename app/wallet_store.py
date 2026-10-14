@@ -130,6 +130,16 @@ def _key(chain: str, address: str) -> str:
     return address.lower() if chain in ("ethereum", "base") else address
 
 
+def _family(chain: str) -> tuple[str, ...]:
+    """Chains that share one address space. The same 0x address on ethereum and base is the same
+    destination, so cap windows, cap usage and shared-address flags must not be split per chain."""
+    return ("ethereum", "base") if chain in ("ethereum", "base") else (chain,)
+
+
+def _in(chains: tuple[str, ...]) -> str:
+    return "(" + ",".join("?" * len(chains)) + ")"
+
+
 class WalletStore:
     def __init__(self, db_path: Path):
         self._db_path = Path(db_path)
@@ -183,6 +193,11 @@ class WalletStore:
                     self._conn.execute("ROLLBACK")
                     raise WalletError(409, f"Wallet limit reached ({MAX_LINKED_WALLETS} linked wallets per agent). "
                                            "Unlink one first.")
+                # A duplicate is a 409 whatever the clock says (the 12h rule is for new links).
+                if self._conn.execute("SELECT 1 FROM linked_wallets WHERE agent_id=? AND chain=? AND addr_key=?",
+                                      (agent_id, chain, _key(chain, address))).fetchone():
+                    self._conn.execute("ROLLBACK")
+                    raise WalletError(409, "This wallet is already linked")
                 # One new link per interval. Counted from the append-only event log, so an
                 # unlink + relink cannot reset the clock.
                 interval = timedelta(hours=wallet_rules()["link_interval_hours"])
@@ -210,12 +225,13 @@ class WalletStore:
                     "VALUES (?,?,?,?,?,?,?)", (agent_id, wallet_id, chain, address, "link", actor, now))
                 # Same address under another agent: allowed, but flagged for the operator.
                 key = _key(chain, address)
+                fam = _family(chain)
                 others = {r[0] for r in self._conn.execute(
-                    "SELECT agent_id FROM linked_wallets WHERE chain=? AND addr_key=? AND agent_id<>?",
-                    (chain, key, agent_id))}
+                    f"SELECT agent_id FROM linked_wallets WHERE chain IN {_in(fam)} AND addr_key=? AND agent_id<>?",
+                    (*fam, key, agent_id))}
                 for r in self._conn.execute(
-                        "SELECT agent_id, address FROM wallet_link_events WHERE chain=? AND action='link' AND agent_id<>?",
-                        (chain, agent_id)):
+                        f"SELECT agent_id, address FROM wallet_link_events WHERE chain IN {_in(fam)} AND action='link' AND agent_id<>?",
+                        (*fam, agent_id)):
                     if _key(chain, r[1]) == key:
                         others.add(r[0])
                 for other in sorted(others):
@@ -262,21 +278,22 @@ class WalletStore:
         fits (or the window has passed) and the amount is recorded against the cap, else ("over", None).
         Window start is the first time this agent linked this address, so unlink/relink cannot restart it."""
         chain, key = link["chain"], _key(link["chain"], link["address"])
+        fam = _family(chain)
         now = datetime.now(UTC)
         with self._lock:
             self._conn.execute("BEGIN IMMEDIATE")
             try:
                 first = self._conn.execute(
-                    "SELECT at, address FROM wallet_link_events WHERE agent_id=? AND chain=? AND action='link' ORDER BY event_id",
-                    (agent_id, chain)).fetchall()
+                    f"SELECT at, address FROM wallet_link_events WHERE agent_id=? AND chain IN {_in(fam)} AND action='link' ORDER BY event_id",
+                    (agent_id, *fam)).fetchall()
                 starts = [r[0] for r in first if _key(chain, r[1]) == key] or [link["created_at"]]
                 start = datetime.fromisoformat(min(starts))
                 if now >= start + timedelta(hours=rules["new_wallet_window_hours"]):
                     self._conn.execute("ROLLBACK")
                     return "direct", None
                 used = self._conn.execute(
-                    "SELECT COALESCE(SUM(amount),0) FROM wallet_payouts WHERE agent_id=? AND chain=? AND addr_key=? "
-                    "AND status='counted'", (agent_id, chain, key)).fetchone()[0]
+                    f"SELECT COALESCE(SUM(amount),0) FROM wallet_payouts WHERE agent_id=? AND chain IN {_in(fam)} AND addr_key=? "
+                    "AND status='counted'", (agent_id, *fam, key)).fetchone()[0]
                 if round(used + amount, 4) > round(float(rules["new_wallet_cap_usd"]), 4):
                     self._conn.execute("ROLLBACK")
                     return "over", None

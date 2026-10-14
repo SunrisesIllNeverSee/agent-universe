@@ -768,8 +768,13 @@ async def reject_payout(approval_id: str, request: Request):
         return JSONResponse({"error": "Approval not found"}, status_code=404)
     if not state.wallets.claim_approval(approval_id, "rejecting", "operator"):
         return JSONResponse({"noop": True, "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=409)
-    state.economy.treasury.credit(a["agent_id"], a["amount"], reason="withdrawal_reserve_refund",
-                                  mission_id=f"rev-{a['reserve_txn']}")
+    try:
+        state.economy.treasury.credit(a["agent_id"], a["amount"], reason="withdrawal_reserve_refund",
+                                      mission_id=f"rev-{a['reserve_txn']}")
+    except Exception:
+        # The refund did not happen: do not strand the approval in 'rejecting' with the money lost.
+        state.wallets.settle_approval(approval_id, "pending")
+        raise
     state.wallets.settle_approval(approval_id, "rejected")
     entry = state.audit.log("economy", "payout_rejected", {
         "approval_id": approval_id, "agent_id": a["agent_id"], "amount": a["amount"]})
