@@ -546,7 +546,7 @@ async def withdraw(payload: WithdrawPayload, request: Request) -> dict:
         }
 
     # Real adapter — debit treasury and execute
-    debit = state.economy.treasury.debit(agent_id, amount, reason="withdrawal", chain=chain)
+    debit = state.economy.treasury.debit(agent_id, amount, reason="withdrawal", chain=chain, matured_only=True)
     if "error" in debit:
         return debit
 

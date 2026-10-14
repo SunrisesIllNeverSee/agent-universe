@@ -899,7 +899,7 @@ async def cashout(request: Request):
 
     # Reserve first (P5 s2): debit before the transfer so two concurrent
     # cashouts cannot both pass the balance check; refund if Stripe fails.
-    reserved = state.economy.treasury.debit(agent_id, amount_usd, reason="cashout_reserved")
+    reserved = state.economy.treasury.debit(agent_id, amount_usd, reason="cashout_reserved", matured_only=True)
     if reserved.get("error"):
         return JSONResponse({"error": "Insufficient balance", "balance": reserved.get("balance"),
                              "requested": amount_usd}, status_code=400)
