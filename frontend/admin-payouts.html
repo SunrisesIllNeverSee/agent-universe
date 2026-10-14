@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="canonical" href="https://signomy.xyz/admin/payouts" />
+<title>Payout Approvals — CIVITAE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght;700&family=DM+Sans:wght;400;500;600&family=DM+Mono:wght;400;500&display=swap">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<style>
+:root {
+  --bg:      #070809;
+  --surface: #0D1014;
+  --surface2:#111418;
+  --border:  #1A1D22;
+  --border2: #232830;
+  --text:    #D8DBE3;
+  --muted:   #5A6070;
+  --gold:    #C4923A;
+  --cmd:     #2A6FBF;
+  --green:   #3DAA6A;
+  --red:     #D84040;
+  --warn:    #C45B3F;
+  --amber:   #D48C2E;
+  --mono:    'DM Mono', monospace;
+  --sans:    'DM Sans', sans-serif;
+  --display: 'Playfair Display', serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; }
+body {
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+}
+
+/* ── Topbar ───────────────────────────────────────────────────────── */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 48px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+}
+.topbar-title {
+  font-family: var(--display); font-size: 16px; font-weight: 700;
+  color: var(--gold); letter-spacing: 0.02em;
+}
+.topbar-title span { color: var(--muted); font-family: var(--sans); font-weight: 400; font-size: 12px; margin-left: 8px; }
+.topbar-back a {
+  font-size: 12px; color: var(--muted); text-decoration: none;
+  padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.topbar-back a:hover { color: var(--text); border-color: var(--border2); }
+
+/* ── Admin key bar ────────────────────────────────────────────────── */
+.admin-key-bar {
+  position: fixed; top: 48px; left: 0; right: 0; z-index: 99;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 20px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+.admin-key-bar span:first-child {
+  font-family: var(--mono); font-size: 0.62rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.admin-key-input {
+  flex: 1; max-width: 320px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+  padding: 6px 10px; color: var(--text);
+  font-family: var(--mono); font-size: 0.75rem;
+}
+.admin-key-input:focus { outline: none; border-color: var(--gold); }
+.admin-key-btn {
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 4px;
+  padding: 6px 14px; color: var(--text); cursor: pointer;
+  font-family: var(--sans); font-size: 0.75rem;
+}
+.admin-key-btn:hover { border-color: var(--gold); }
+.admin-key-status {
+  font-family: var(--mono); font-size: 0.62rem; padding: 3px 8px; border-radius: 3px;
+}
+.admin-key-status.set { color: var(--green); background: rgba(61,170,106,0.1); }
+.admin-key-status.unset { color: var(--muted); }
+
+/* ── Content ──────────────────────────────────────────────────────── */
+.content {
+  margin-top: 100px;
+  padding: 20px;
+  max-width: 800px;
+  margin-left: auto; margin-right: auto;
+}
+
+/* ── Login gate ───────────────────────────────────────────────────── */
+.login-gate {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 60dvh; text-align: center;
+}
+.login-gate h2 {
+  font-family: var(--display); font-size: 24px; color: var(--gold);
+  margin-bottom: 12px;
+}
+.login-gate p {
+  font-size: 14px; color: var(--muted); margin-bottom: 24px; max-width: 400px;
+}
+.login-gate .admin-key-bar {
+  position: static; border: 1px solid var(--border); border-radius: 6px;
+  padding: 16px 20px; background: var(--surface);
+}
+
+/* ── Section headers ──────────────────────────────────────────────── */
+.section-header {
+  font-family: var(--mono); font-size: 0.7rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  margin: 24px 0 10px 0; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.section-header:first-child { margin-top: 0; }
+.section-count {
+  color: var(--gold); font-weight: 500;
+}
+
+/* ── Review cards ─────────────────────────────────────────────────── */
+.review-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  transition: border-color 0.15s;
+}
+.review-card:hover { border-color: var(--border2); }
+.card-id {
+  font-family: var(--mono); font-size: 0.6rem; color: var(--muted);
+  margin-bottom: 4px;
+}
+.card-title {
+  font-size: 0.85rem; font-weight: 600; color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+.review-badge {
+  font-family: var(--mono); font-size: 0.55rem; color: var(--gold);
+  background: rgba(196,146,58,0.1); border: 1px solid rgba(196,146,58,0.2);
+  padding: 2px 6px; border-radius: 3px; text-transform: uppercase;
+}
+.review-from {
+  font-family: var(--mono); font-size: 0.62rem; color: var(--muted);
+  margin-top: 3px;
+}
+.review-body {
+  font-size: 0.75rem; color: var(--text); margin-top: 6px; line-height: 1.5;
+}
+.review-actions {
+  display: flex; gap: 8px; margin-top: 10px;
+}
+.review-btn {
+  background: transparent; border: 1px solid var(--border2); border-radius: 4px;
+  padding: 5px 14px; cursor: pointer;
+  font-family: var(--sans); font-size: 0.72rem; font-weight: 500;
+  transition: all 0.15s;
+}
+.review-btn:hover { color: var(--text); border-color: var(--border2); }
+.review-btn.approve { color: var(--green); border-color: rgba(61,170,106,0.3); }
+.review-btn.approve:hover { background: rgba(61,170,106,0.1); }
+.review-btn.reject { color: var(--warn); border-color: rgba(196,91,63,0.3); }
+.review-btn.reject:hover { background: rgba(196,91,63,0.1); }
+.card-meta {
+  font-family: var(--mono); font-size: 0.6rem; color: var(--muted);
+  margin-top: 6px;
+}
+
+/* ── Empty state ──────────────────────────────────────────────────── */
+.empty-state {
+  text-align: center; color: var(--muted);
+  font-size: 0.8rem; padding: 40px 20px;
+}
+
+.card-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:6px 14px; margin-top:8px; }
+.card-fields div { font-family:var(--mono); font-size:0.62rem; color:var(--muted); word-break:break-all; }
+.card-fields b { display:block; color:var(--text); font-weight:500; font-size:0.72rem; }
+.confirm-bar { margin-top:10px; padding:8px 10px; border:1px solid var(--amber); border-radius:4px; font-size:0.72rem; color:var(--amber); }
+.confirm-bar .review-actions { margin-top:8px; }
+.result-note { font-family:var(--mono); font-size:0.62rem; margin-top:6px; }
+.state-badge.pending { color:var(--amber); }
+</style>
+  <!-- Google Analytics 4 (gtag.js) — measurement ID G-FD4VLSCHY8 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FD4VLSCHY8"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-FD4VLSCHY8');
+  </script>
+<script>!function(t,e){var o,n,p,r;e.__SV||(window.posthog&&window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}p||((p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",p.onerror=function(){p=null},(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r));var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagResult isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);posthog.init("phc_DosVqZCDFVNghfXCfLQBHG5ZpntSRmzrJZRzhKLMqTkh",{api_host:"https://us.i.posthog.com",capture_pageview:true,capture_pageleave:true});</script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">CIVITAE<span>Payout Approvals</span></div>
+  <div class="topbar-back"><a href="/admin">&larr; Back to Admin</a></div>
+</div>
+
+<div class="login-gate" id="login-gate">
+  <h2>Operator Access</h2>
+  <p>Enter your CIVITAE admin key to review payout approvals and wallet flags. The key is held in page memory only.</p>
+  <div class="admin-key-bar" style="position:static;border:1px solid var(--border);border-radius:6px;padding:16px 20px;background:var(--surface);">
+    <span>ADMIN KEY</span>
+    <input type="password" class="admin-key-input" id="admin-key-input-gate" data-testid="admin-key" placeholder="Enter admin key..." autocomplete="off">
+    <button class="admin-key-btn" data-testid="admin-enter" onclick="setAdminKeyGate()">Enter</button>
+  </div>
+</div>
+
+<div class="content" id="content" style="display:none;">
+  <div class="section-header">Payout Approvals <span class="section-count" id="approvals-count"></span></div>
+  <div id="approvals-list" data-testid="approvals-list"></div>
+
+  <div class="section-header">Wallet Flags <span class="section-count" id="flags-count"></span></div>
+  <div id="flags-list" data-testid="flags-list"></div>
+</div>
+
+<script>
+var API = window.location.origin;
+var adminKey = '';
+
+function hdrs(extra) {
+  var h = { 'X-Admin-Key': adminKey };
+  if (extra) for (var k in extra) h[k] = extra[k];
+  return h;
+}
+
+function setAdminKeyGate() {
+  var input = document.getElementById('admin-key-input-gate');
+  adminKey = (input.value || '').trim();
+  input.value = '';
+  if (!adminKey) return;
+  fetch(API + '/api/operator/wallet-flags', { headers: hdrs() }).then(function (r) {
+    if (r.status === 403) { alert('Invalid admin key'); adminKey = ''; return; }
+    document.getElementById('login-gate').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    loadAll();
+  }).catch(function () { alert('Backend unreachable'); });
+}
+
+function loadAll() { loadApprovals(); loadFlags(); }
+
+function el(tag, cls, text) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function age(iso) {
+  var t = Date.parse(iso);
+  if (isNaN(t)) return '—';
+  var s = Math.max(0, Math.floor((Date.now() - t) / 1000));
+  if (s < 60) return s + 's';
+  if (s < 3600) return Math.floor(s / 60) + 'm';
+  if (s < 86400) return Math.floor(s / 3600) + 'h';
+  return Math.floor(s / 86400) + 'd';
+}
+
+function field(label, value, testid) {
+  var d = el('div');
+  d.appendChild(document.createTextNode(label));
+  var b = el('b', '', value);
+  if (testid) b.setAttribute('data-testid', testid);
+  d.appendChild(b);
+  return d;
+}
+
+function loadApprovals() {
+  var list = document.getElementById('approvals-list');
+  var countEl = document.getElementById('approvals-count');
+  fetch(API + '/api/operator/payout-approvals?status=pending', { headers: hdrs() })
+    .then(function (r) {
+      if (r.status === 403) { list.innerHTML = '<div class="empty-state">Invalid admin key</div>'; return null; }
+      return r.json();
+    })
+    .then(function (d) {
+      if (d === null) return;
+      var items = d.approvals || [];
+      list.innerHTML = '';
+      countEl.textContent = items.length ? '(' + items.length + ')' : '';
+      if (!items.length) { list.innerHTML = '<div class="empty-state" data-testid="approvals-empty">No pending payout approvals</div>'; return; }
+      items.forEach(function (a) { list.appendChild(approvalCard(a)); });
+    })
+    .catch(function () { list.innerHTML = '<div class="empty-state">Backend offline</div>'; });
+}
+
+function approvalCard(a) {
+  var card = el('div', 'review-card');
+  card.setAttribute('data-testid', 'approval');
+  card.setAttribute('data-id', a.approval_id);
+  card.appendChild(el('div', 'card-id', a.approval_id));
+  var title = el('div', 'card-title', String(a.amount) + ' ');
+  title.appendChild(el('span', 'review-badge', a.chain || '—'));
+  var st = el('span', 'review-badge state-badge ' + (a.status || ''), a.status || '—');
+  st.setAttribute('data-testid', 'approval-state');
+  title.appendChild(st);
+  card.appendChild(title);
+  var f = el('div', 'card-fields');
+  f.appendChild(field('Amount', String(a.amount), 'approval-amount'));
+  f.appendChild(field('Agent', a.agent_id || '—', 'approval-agent'));
+  f.appendChild(field('Destination', (a.chain || '') + ':' + (a.address || '—'), 'approval-destination'));
+  f.appendChild(field('Kind', 'withdrawal', 'approval-kind'));
+  f.appendChild(field('Age', age(a.created_at), 'approval-age'));
+  card.appendChild(f);
+  var shared = a.shared_address_agents || [];
+  if (shared.length) {
+    var w = el('div', 'review-body', 'Shared address with: ' + shared.join(', '));
+    w.style.color = 'var(--warn)';
+    card.appendChild(w);
+  }
+  var actions = el('div', 'review-actions');
+  var ap = el('button', 'review-btn approve', 'Approve');
+  ap.setAttribute('data-testid', 'approve');
+  ap.onclick = function () { askConfirm(card, a, 'approve'); };
+  var rj = el('button', 'review-btn reject', 'Reject');
+  rj.setAttribute('data-testid', 'reject');
+  rj.onclick = function () { askConfirm(card, a, 'reject'); };
+  actions.appendChild(ap); actions.appendChild(rj);
+  card.appendChild(actions);
+  return card;
+}
+
+function askConfirm(card, a, action) {
+  var old = card.querySelector('.confirm-bar');
+  if (old) old.remove();
+  var bar = el('div', 'confirm-bar');
+  bar.setAttribute('data-testid', 'confirm-bar');
+  bar.appendChild(el('div', '', action === 'approve'
+    ? 'Pay ' + a.amount + ' to ' + a.chain + ':' + a.address + ' for ' + a.agent_id + '? This moves money.'
+    : 'Reject and refund ' + a.amount + ' to ' + a.agent_id + '?'));
+  var acts = el('div', 'review-actions');
+  var yes = el('button', 'review-btn ' + action, 'Confirm ' + action);
+  yes.setAttribute('data-testid', 'confirm-' + action);
+  yes.onclick = function () { yes.disabled = true; decide(card, a.approval_id, action); };
+  var no = el('button', 'review-btn', 'Cancel');
+  no.setAttribute('data-testid', 'confirm-cancel');
+  no.onclick = function () { bar.remove(); };
+  acts.appendChild(yes); acts.appendChild(no);
+  bar.appendChild(acts);
+  card.appendChild(bar);
+}
+
+function decide(card, id, action) {
+  fetch(API + '/api/operator/payout-approvals/' + encodeURIComponent(id) + '/' + action, { method: 'POST', headers: hdrs() })
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); })
+    .then(function (x) {
+      var bar = card.querySelector('.confirm-bar');
+      if (bar) bar.remove();
+      var note = el('div', 'result-note');
+      note.setAttribute('data-testid', 'result-note');
+      if (x.ok) {
+        note.style.color = action === 'approve' ? 'var(--green)' : 'var(--warn)';
+        note.textContent = action === 'approve' ? 'Approved: payout sent' : 'Rejected: reservation refunded';
+        card.style.opacity = '0.5';
+        card.querySelector('.review-actions').remove();
+      } else {
+        note.style.color = 'var(--red)';
+        note.textContent = (x.d && x.d.error) ? x.d.error : (x.d && x.d.noop ? 'Already decided (' + ((x.d.approval || {}).status || '?') + ')' : 'Failed (' + x.status + ')');
+      }
+      card.appendChild(note);
+    })
+    .catch(function () {
+      var note = el('div', 'result-note', 'Backend unreachable');
+      note.style.color = 'var(--red)';
+      card.appendChild(note);
+    });
+}
+
+function loadFlags() {
+  var list = document.getElementById('flags-list');
+  var countEl = document.getElementById('flags-count');
+  fetch(API + '/api/operator/wallet-flags', { headers: hdrs() })
+    .then(function (r) {
+      if (r.status === 403) { list.innerHTML = '<div class="empty-state">Invalid admin key</div>'; return null; }
+      return r.json();
+    })
+    .then(function (d) {
+      if (d === null) return;
+      var items = d.wallet_flags || [];
+      list.innerHTML = '';
+      countEl.textContent = items.length ? '(' + items.length + ')' : '';
+      if (!items.length) { list.innerHTML = '<div class="empty-state" data-testid="flags-empty">No wallet flags</div>'; return; }
+      items.forEach(function (fl) {
+        var card = el('div', 'review-card');
+        card.setAttribute('data-testid', 'flag');
+        card.appendChild(el('div', 'card-id', '#' + fl.flag_id));
+        var t = el('div', 'card-title', (fl.chain || '') + ':' + (fl.address || '—') + ' ');
+        t.appendChild(el('span', 'review-badge', fl.flag || '—'));
+        card.appendChild(t);
+        var f = el('div', 'card-fields');
+        f.appendChild(field('Agent', fl.agent_id || '—'));
+        f.appendChild(field('Other agent', fl.other_agent_id || '—'));
+        f.appendChild(field('Age', age(fl.at)));
+        card.appendChild(f);
+        list.appendChild(card);
+      });
+    })
+    .catch(function () { list.innerHTML = '<div class="empty-state">Backend offline</div>'; });
+}
+
+document.getElementById('admin-key-input-gate').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') setAdminKeyGate();
+});
+</script>
+<script src="/assets/ai-beacon.js"></script>
+</body>
+</html>

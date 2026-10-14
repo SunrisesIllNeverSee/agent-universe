@@ -437,6 +437,11 @@ async def admin_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "admin.html")
 
 
+@router.get("/admin/payouts")
+async def admin_payouts_page() -> FileResponse:
+    return FileResponse(state.frontend_dir / "admin-payouts.html")
+
+
 @router.get("/leaderboard")
 async def leaderboard_page() -> FileResponse:
     return FileResponse(state.frontend_dir / "leaderboard.html")
