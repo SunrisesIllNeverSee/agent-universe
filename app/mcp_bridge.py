@@ -1166,7 +1166,9 @@ class MCPBridge:
                 from app.wallet_store import wallet_rules
                 agent_id = agent.get("agent_id", "")
                 link = _state.wallets.note_stripe_binding(agent_id, bound_account)
-                decision, _cap_pid = _state.wallets.claim_cap(agent_id, link, amount, wallet_rules(), kind="stripe")
+                # P5m owner decision: a merely-queued request moves no money, so it is decided but NOT
+                # recorded against the cap (record=False). Any processor that later moves money must claim_cap.
+                decision, _cap_pid = _state.wallets.claim_cap(agent_id, link, amount, wallet_rules(), kind="stripe", record=False)
                 if decision == "over":
                     reserve = economy.treasury.debit(agent_id, amount, reason="cashout_reserved", matured_only=True)
                     if reserve.get("error"):

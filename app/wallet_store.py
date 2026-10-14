@@ -306,10 +306,12 @@ class WalletStore:
         return {"wallet_id": "", "chain": "stripe", "address": account_id, "created_at": at}
 
     # ── new-wallet payout cap (cumulative per agent + destination address) ──────
-    def claim_cap(self, agent_id: str, link: dict, amount: float, rules: dict, kind: str = "direct"):
+    def claim_cap(self, agent_id: str, link: dict, amount: float, rules: dict, kind: str = "direct", record: bool = True):
         """Decide a withdrawal against the new-wallet cap. Returns ("direct", payout_id|None) when it
         fits (or the window has passed) and the amount is recorded against the cap, else ("over", None).
-        Window start is the first time this agent linked this address, so unlink/relink cannot restart it."""
+        Window start is the first time this agent linked this address, so unlink/relink cannot restart it.
+        ``record=False`` (P5m) only decides: nothing is written, so a request that moves no money (an MCP
+        cashout that is merely queued) never consumes cap. Whatever later moves money must claim with record=True."""
         chain, key = link["chain"], _key(link["chain"], link["address"])
         fam = _family(chain)
         now = datetime.now(UTC)
@@ -330,6 +332,9 @@ class WalletStore:
                 if round(used + amount, 4) > round(float(rules["new_wallet_cap_usd"]), 4):
                     self._conn.execute("ROLLBACK")
                     return "over", None
+                if not record:
+                    self._conn.execute("ROLLBACK")
+                    return "direct", None
                 pid = "wpo_" + uuid.uuid4().hex[:16]
                 self._conn.execute(
                     "INSERT INTO wallet_payouts (payout_id, agent_id, chain, addr_key, wallet_id, amount, kind, at) "

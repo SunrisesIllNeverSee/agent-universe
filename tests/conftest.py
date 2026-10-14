@@ -134,7 +134,7 @@ def _webhook_signing_secret(monkeypatch):
 def _relaxed_wallet_rules(request, monkeypatch):
     """P5i wallet limits (12h link interval, 24h/$25 new-wallet cap) are exercised only by
     test_p5i_wallet_safety.py; every other test links several wallets and withdraws freely."""
-    if request.module.__name__.endswith(("test_p5i_wallet_safety", "test_p5j_review", "test_p5k_stripe_new_dest_cap", "test_p5k_approval_recovery", "test_p5k_stripe_recovery", "test_p5l_review")):
+    if request.module.__name__.endswith(("test_p5i_wallet_safety", "test_p5j_review", "test_p5k_stripe_new_dest_cap", "test_p5k_approval_recovery", "test_p5k_stripe_recovery", "test_p5l_review", "test_p5m_mcp_queued_not_counted")):
         return
     import app.wallet_store as ws
     monkeypatch.setattr(ws, "wallet_rules", lambda: {
