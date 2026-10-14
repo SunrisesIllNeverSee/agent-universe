@@ -38,6 +38,8 @@ def _open_gate(monkeypatch):
 
 def _seed(agent_id, amount=50):
     state.economy.treasury.credit(agent_id, amount, reason="test_seed_balance")
+    if not state.wallets.find(agent_id, "base", BODY["to"]):      # P5g: destination must be a linked wallet
+        state.wallets.link(agent_id, "base", BODY["to"])
 
 
 def test_anonymous_withdraw_denied(client):

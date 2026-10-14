@@ -44,8 +44,16 @@ class WithdrawPayload(BaseModel):
     agent_id: str = ""
     amount: float = 0
     chain: str = "solana"
-    to: str = ""
+    to: str = ""            # P5g: must equal one of the agent's linked wallets; never a free destination
+    wallet_id: str = ""     # P5g: selects which linked wallet receives the funds
     confirm: bool = False
+
+
+class LinkWalletPayload(BaseModel):
+    agent_id: str = ""      # operator admin key only; ignored for an agent JWT
+    chain: str = ""
+    address: str = ""
+    label: str = ""
 
 
 class PurchaseBlackcardPayload(BaseModel):
@@ -510,10 +518,27 @@ async def withdraw(payload: WithdrawPayload, request: Request) -> dict:
                 "held": state.economy.treasury.held_balance(agent_id),
                 "held_until": state.economy.treasury.held_until(agent_id), "requested": amount}
 
+    # Destination (P5g): resolved from the agent's stored wallet link, once, here. The body only
+    # selects which linked wallet; ``dest`` is the single snapshot used below, so unlinking (or
+    # relinking) while this request is in flight cannot redirect it.
+    link = None
+    if payload.wallet_id:
+        link = state.wallets.get(agent_id, payload.wallet_id)
+        if link is not None and payload.to and state.wallets.find(agent_id, link["chain"], payload.to) is None:
+            link = None
+    elif payload.to:
+        link = state.wallets.find(agent_id, chain, payload.to)
+    else:
+        return JSONResponse({"error": "wallet_id (or the address of a linked wallet in 'to') required"}, status_code=400)
+    if link is None or link["chain"] != chain.strip().lower():
+        return JSONResponse({"error": "Destination is not one of this agent's linked wallets for this chain. "
+                                      "Link it first via POST /api/economy/wallets."}, status_code=403)
+    dest = link["address"]
+
     chain_router = _get_chain_router()
 
     # Pre-flight: check governance gate before touching the ledger
-    transfer = chain_router.transfer(chain, payload.to, amount, agent_id=agent_id, confirm=payload.confirm)
+    transfer = chain_router.transfer(chain, dest, amount, agent_id=agent_id, confirm=payload.confirm)
 
     # Governance blocked (or the adapter refused) the transfer — don't touch treasury
     if str(transfer.get("status", "")).upper() in ("BLOCKED", "AWAITING_CONFIRMATION", "ERROR", "FAILED"):
@@ -524,7 +549,7 @@ async def withdraw(payload: WithdrawPayload, request: Request) -> dict:
     if is_stub:
         # Don't debit real treasury for stub transfers — record as pending
         _audit_entry = state.audit.log("economy", "withdrawal_pending_stub", {
-            "agent_id": agent_id, "amount": amount, "chain": chain,
+            "agent_id": agent_id, "amount": amount, "chain": chain, "to": dest, "wallet_id": link["wallet_id"],
             "note": "Chain adapter is stubbed. Funds held. Will execute when adapter is live.",
         })
         await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
@@ -561,6 +586,7 @@ async def withdraw(payload: WithdrawPayload, request: Request) -> dict:
 
     _audit_entry = state.audit.log("economy", "withdrawal", {
         "agent_id": agent_id, "amount": amount, "chain": chain, "status": transfer_status,
+        "to": dest, "wallet_id": link["wallet_id"],
     })
     await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
     seed_doi = None
@@ -575,6 +601,65 @@ async def withdraw(payload: WithdrawPayload, request: Request) -> dict:
     )
 
     return {"withdrawal": debit, "chain_transfer": transfer, "seed_doi": seed_doi}
+
+
+# ── Linked wallets (P5g) ─────────────────────────────────────────────────────
+
+def _wallet_principal(request: Request, body_agent_id: str = ""):
+    """(agent_id, actor, None) for the authenticated agent, or the operator naming an agent;
+    (None, None, JSONResponse) when refused. The agent JWT always acts on its own wallets."""
+    from app.auth import admin_key_matches
+    if admin_key_matches(request, state.admin_key):
+        agent_id = body_agent_id or request.query_params.get("agent_id", "")
+        if not agent_id:
+            return None, None, JSONResponse({"error": "agent_id required"}, status_code=400)
+        if not any(r.get("agent_id") == agent_id for r in state.runtime.registry):
+            return None, None, JSONResponse({"error": "Unknown agent"}, status_code=404)
+        return agent_id, "operator", None
+    if not _verify_jwt(request):
+        return None, None, JSONResponse({"error": "Valid Bearer token or admin key required"}, status_code=401)
+    principal = _jwt_live_agent(request)
+    if principal is None:
+        return None, None, JSONResponse({"error": "Credential revoked or principal inactive"}, status_code=401)
+    agent_id = principal.get("agent_id", "")
+    return agent_id, agent_id, None
+
+
+@router.get("/api/economy/wallets")
+async def list_wallets(request: Request):
+    from app.wallet_store import MAX_LINKED_WALLETS
+    agent_id, _, err = _wallet_principal(request)
+    if err:
+        return err
+    return {"agent_id": agent_id, "wallets": state.wallets.list(agent_id), "max": MAX_LINKED_WALLETS}
+
+
+@router.post("/api/economy/wallets")
+async def link_wallet(payload: LinkWalletPayload, request: Request):
+    from app.wallet_store import WalletError
+    agent_id, actor, err = _wallet_principal(request, payload.agent_id)
+    if err:
+        return err
+    try:
+        wallet = state.wallets.link(agent_id, payload.chain, payload.address, payload.label, actor=actor)
+    except WalletError as e:
+        return JSONResponse({"error": e.message}, status_code=e.status)
+    state.audit.log("economy", "wallet_linked", {"agent_id": agent_id, "wallet_id": wallet["wallet_id"],
+                                                 "chain": wallet["chain"], "address": wallet["address"], "actor": actor})
+    return JSONResponse({"wallet": wallet}, status_code=201)
+
+
+@router.delete("/api/economy/wallets/{wallet_id}")
+async def unlink_wallet(wallet_id: str, request: Request):
+    agent_id, actor, err = _wallet_principal(request)
+    if err:
+        return err
+    gone = state.wallets.unlink(agent_id, wallet_id, actor=actor)
+    if gone is None:
+        return JSONResponse({"error": "Linked wallet not found"}, status_code=404)
+    state.audit.log("economy", "wallet_unlinked", {"agent_id": agent_id, "wallet_id": wallet_id,
+                                                   "chain": gone["chain"], "address": gone["address"], "actor": actor})
+    return {"unlinked": wallet_id}
 
 
 # ── History ──────────────────────────────────────────────────────────────────
