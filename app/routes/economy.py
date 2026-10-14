@@ -535,6 +535,29 @@ async def withdraw(payload: WithdrawPayload, request: Request) -> dict:
                                       "Link it first via POST /api/economy/wallets."}, status_code=403)
     dest = link["address"]
 
+    # New-wallet cap (P5i): cumulative per destination for the first N hours after it is linked.
+    # Limits come from config only. Over the cap is not refused: the amount is reserved (matured-only
+    # debit, so it cannot be spent twice) and waits for an operator decision.
+    from app.wallet_store import wallet_rules
+    decision, cap_pid = state.wallets.claim_cap(agent_id, link, amount, wallet_rules())
+    if decision == "over":
+        reserve = state.economy.treasury.debit(agent_id, amount, reason="withdrawal_reserved", chain=chain, matured_only=True)
+        if "error" in reserve:
+            return reserve
+        try:
+            approval = state.wallets.create_approval(agent_id, link, amount, reserve_txn=reserve.get("id", ""))
+        except Exception:
+            state.economy.treasury.credit(agent_id, amount, reason="withdrawal_reserve_refund", mission_id=f"rev-{reserve.get('id','')}")
+            raise
+        _audit_entry = state.audit.log("economy", "withdrawal_pending_approval", {
+            "agent_id": agent_id, "amount": amount, "chain": chain, "to": dest, "wallet_id": link["wallet_id"],
+            "approval_id": approval["approval_id"]})
+        await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
+        return JSONResponse({"status": "pending_approval", "approval_id": approval["approval_id"], "amount": amount,
+                             "chain": chain, "wallet_id": link["wallet_id"],
+                             "note": "New-wallet cap exceeded. The amount is reserved and awaits operator approval."},
+                            status_code=202)
+
     chain_router = _get_chain_router()
 
     # Pre-flight: check governance gate before touching the ledger
@@ -542,11 +565,13 @@ async def withdraw(payload: WithdrawPayload, request: Request) -> dict:
 
     # Governance blocked (or the adapter refused) the transfer — don't touch treasury
     if str(transfer.get("status", "")).upper() in ("BLOCKED", "AWAITING_CONFIRMATION", "ERROR", "FAILED"):
+        state.wallets.void_payout(cap_pid)
         return {"withdrawal": None, "chain_transfer": transfer}
 
     # Detect stub adapter — transfer "succeeded" but no real chain submission
     is_stub = "stub" in (transfer.get("note") or "").lower()
     if is_stub:
+        state.wallets.void_payout(cap_pid)   # nothing is paid: the cap is not consumed
         # Don't debit real treasury for stub transfers — record as pending
         _audit_entry = state.audit.log("economy", "withdrawal_pending_stub", {
             "agent_id": agent_id, "amount": amount, "chain": chain, "to": dest, "wallet_id": link["wallet_id"],
@@ -573,12 +598,14 @@ async def withdraw(payload: WithdrawPayload, request: Request) -> dict:
     # Real adapter — debit treasury and execute
     debit = state.economy.treasury.debit(agent_id, amount, reason="withdrawal", chain=chain, matured_only=True)
     if "error" in debit:
+        state.wallets.void_payout(cap_pid)
         return debit
 
     transfer_status = transfer.get("status", "pending")
 
     # If chain transfer failed, reverse the debit
     if transfer_status in ("failed", "error"):
+        state.wallets.void_payout(cap_pid)
         state.economy.treasury.credit(agent_id, amount, reason="withdrawal_reversal", mission_id=f"rev-{debit.get('id','')}")
         state.audit.log("economy", "withdrawal_reversed", {
             "agent_id": agent_id, "amount": amount, "chain": chain, "reason": transfer_status,
@@ -601,6 +628,14 @@ async def withdraw(payload: WithdrawPayload, request: Request) -> dict:
     )
 
     return {"withdrawal": debit, "chain_transfer": transfer, "seed_doi": seed_doi}
+
+
+def _retry_after(allowed_at: str | None) -> int:
+    from datetime import UTC, datetime
+    try:
+        return max(1, int((datetime.fromisoformat(allowed_at) - datetime.now(UTC)).total_seconds()))
+    except (TypeError, ValueError):
+        return 1
 
 
 # ── Linked wallets (P5g) ─────────────────────────────────────────────────────
@@ -641,9 +676,13 @@ async def link_wallet(payload: LinkWalletPayload, request: Request):
     if err:
         return err
     try:
-        wallet = state.wallets.link(agent_id, payload.chain, payload.address, payload.label, actor=actor)
+        wallet = state.wallets.link(agent_id, payload.chain, payload.address, payload.label, actor=actor,
+                                    bypass_interval=(actor == "operator"))
     except WalletError as e:
-        return JSONResponse({"error": e.message}, status_code=e.status)
+        body = {"error": e.message}
+        if e.allowed_at:
+            body["allowed_at"] = e.allowed_at
+        return JSONResponse(body, status_code=e.status, headers={"Retry-After": str(_retry_after(e.allowed_at))} if e.allowed_at else None)
     state.audit.log("economy", "wallet_linked", {"agent_id": agent_id, "wallet_id": wallet["wallet_id"],
                                                  "chain": wallet["chain"], "address": wallet["address"], "actor": actor})
     return JSONResponse({"wallet": wallet}, status_code=201)
@@ -660,6 +699,77 @@ async def unlink_wallet(wallet_id: str, request: Request):
     state.audit.log("economy", "wallet_unlinked", {"agent_id": agent_id, "wallet_id": wallet_id,
                                                    "chain": gone["chain"], "address": gone["address"], "actor": actor})
     return {"unlinked": wallet_id}
+
+
+# ── Payout approvals + wallet flags (P5i, operator only) ─────────────────────
+
+def _approval_view(a: dict) -> dict:
+    return {k: v for k, v in a.items() if k not in ("payout_id",)}
+
+
+@router.get("/api/operator/payout-approvals")
+async def list_payout_approvals(request: Request, status: str = "pending"):
+    from app.auth import require_admin
+    require_admin(request, state.admin_key)
+    return {"approvals": [_approval_view(a) for a in state.wallets.list_approvals("" if status == "all" else status)],
+            "wallet_flags": state.wallets.list_flags()}
+
+
+@router.get("/api/operator/wallet-flags")
+async def list_wallet_flags(request: Request):
+    from app.auth import require_admin
+    require_admin(request, state.admin_key)
+    return {"wallet_flags": state.wallets.list_flags()}
+
+
+@router.post("/api/operator/payout-approvals/{approval_id}/approve")
+async def approve_payout(approval_id: str, request: Request):
+    """Pay a reserved withdrawal to the destination snapshotted at request time. Exactly one approve
+    wins the claim; a second is a no-op that reports the current state. If the chain does not accept
+    the transfer the approval returns to pending, still reserved."""
+    from app.auth import require_admin
+    require_admin(request, state.admin_key)
+    a = state.wallets.get_approval(approval_id)
+    if a is None:
+        return JSONResponse({"error": "Approval not found"}, status_code=404)
+    if not state.wallets.claim_approval(approval_id, "approving", "operator"):
+        return JSONResponse({"noop": True, "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=409)
+    try:
+        transfer = _get_chain_router().transfer(a["chain"], a["address"], a["amount"], agent_id=a["agent_id"], confirm=True)
+    except Exception as exc:
+        state.wallets.settle_approval(approval_id, "pending")
+        return JSONResponse({"error": f"transfer failed: {exc}", "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=502)
+    st = str(transfer.get("status", "")).upper()
+    if st in ("BLOCKED", "AWAITING_CONFIRMATION", "ERROR", "FAILED") or "stub" in (transfer.get("note") or "").lower():
+        state.wallets.settle_approval(approval_id, "pending")
+        return JSONResponse({"error": "Chain did not accept the transfer; approval stays pending and reserved",
+                             "chain_transfer": transfer,
+                             "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=409)
+    import json as _json
+    state.wallets.settle_approval(approval_id, "approved", _json.dumps(transfer, default=str))
+    entry = state.audit.log("economy", "payout_approved", {
+        "approval_id": approval_id, "agent_id": a["agent_id"], "amount": a["amount"], "chain": a["chain"], "to": a["address"]})
+    await state.emit("audit_event", entry.model_dump(mode="json"))
+    return {"approval": _approval_view(state.wallets.get_approval(approval_id)), "chain_transfer": transfer}
+
+
+@router.post("/api/operator/payout-approvals/{approval_id}/reject")
+async def reject_payout(approval_id: str, request: Request):
+    """Refund the reservation. Only one reject (or approve) can claim a pending approval."""
+    from app.auth import require_admin
+    require_admin(request, state.admin_key)
+    a = state.wallets.get_approval(approval_id)
+    if a is None:
+        return JSONResponse({"error": "Approval not found"}, status_code=404)
+    if not state.wallets.claim_approval(approval_id, "rejecting", "operator"):
+        return JSONResponse({"noop": True, "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=409)
+    state.economy.treasury.credit(a["agent_id"], a["amount"], reason="withdrawal_reserve_refund",
+                                  mission_id=f"rev-{a['reserve_txn']}")
+    state.wallets.settle_approval(approval_id, "rejected")
+    entry = state.audit.log("economy", "payout_rejected", {
+        "approval_id": approval_id, "agent_id": a["agent_id"], "amount": a["amount"]})
+    await state.emit("audit_event", entry.model_dump(mode="json"))
+    return {"approval": _approval_view(state.wallets.get_approval(approval_id))}
 
 
 # ── History ──────────────────────────────────────────────────────────────────

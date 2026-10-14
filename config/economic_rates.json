@@ -32,6 +32,13 @@
     "answer_window_max_hours": 168
   },
 
+  "wallets": {
+    "_note": "Linked-wallet safety. One new link per link_interval_hours per agent (operator bypasses). Withdrawals to a wallet are capped cumulatively at new_wallet_cap_usd for new_wallet_window_hours after it is first linked; over-cap requests are reserved and wait for operator approval. CIVITAS-voteable.",
+    "link_interval_hours": 12,
+    "new_wallet_window_hours": 24,
+    "new_wallet_cap_usd": 25
+  },
+
   "trial": {
     "mission_limit": 10,
     "day_limit":     7,
