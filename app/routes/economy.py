@@ -7,6 +7,7 @@ Extracted from server.py create_app() monolith.
 from __future__ import annotations
 
 import json
+import math
 import os
 from pathlib import Path
 
@@ -498,16 +499,24 @@ async def withdraw(payload: WithdrawPayload, request: Request) -> dict:
             return JSONResponse({"error": "Cannot withdraw another agent's balance"}, status_code=403)
     amount = payload.amount
     chain = payload.chain
-    if not amount > 0:
+    if not math.isfinite(amount) or not amount > 0:
         return JSONResponse({"error": "amount must be positive"}, status_code=400)
+
+    # Hold gate BEFORE any chain adapter is asked to move anything (P5f): card-funded money is
+    # held for the chargeback window, so only the matured balance can be submitted at all.
+    matured = state.economy.treasury.matured_balance(agent_id)
+    if amount > matured:
+        return {"error": "Insufficient matured balance", "matured": matured,
+                "held": state.economy.treasury.held_balance(agent_id),
+                "held_until": state.economy.treasury.held_until(agent_id), "requested": amount}
 
     chain_router = _get_chain_router()
 
     # Pre-flight: check governance gate before touching the ledger
     transfer = chain_router.transfer(chain, payload.to, amount, agent_id=agent_id, confirm=payload.confirm)
 
-    # Governance blocked the transfer — don't touch treasury
-    if transfer.get("status") in ("BLOCKED", "AWAITING_CONFIRMATION"):
+    # Governance blocked (or the adapter refused) the transfer — don't touch treasury
+    if str(transfer.get("status", "")).upper() in ("BLOCKED", "AWAITING_CONFIRMATION", "ERROR", "FAILED"):
         return {"withdrawal": None, "chain_transfer": transfer}
 
     # Detect stub adapter — transfer "succeeded" but no real chain submission
@@ -535,13 +544,6 @@ async def withdraw(payload: WithdrawPayload, request: Request) -> dict:
             "note": f"Chain adapter for {chain} is not yet live. Your balance is preserved. Withdrawal will execute when the adapter connects to RPC.",
             "seed_doi": seed_doi,
         }
-
-    # Card-funded money is held for the chargeback window: only the matured balance can leave.
-    matured = state.economy.treasury.matured_balance(agent_id)
-    if amount > matured:
-        return {"error": "Insufficient matured balance", "matured": matured,
-                "held": state.economy.treasury.held_balance(agent_id),
-                "held_until": state.economy.treasury.held_until(agent_id), "requested": amount}
 
     # Real adapter — debit treasury and execute
     debit = state.economy.treasury.debit(agent_id, amount, reason="withdrawal", chain=chain)

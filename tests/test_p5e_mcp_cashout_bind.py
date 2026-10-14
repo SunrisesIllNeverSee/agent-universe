@@ -50,6 +50,7 @@ def test_foreign_account_rejected(client):
 def test_destination_is_bound_account_when_omitted_or_matching(client):
     d, rec = _agent(client)
     rec["stripe_account_id"] = "acct_bound"
+    state.economy.treasury.credit(rec["agent_id"], 50, reason="test_seed_balance")
     for kw in ({}, {"connected_account_id": "acct_bound"}):
         out = _call("agent.cashout", api_key=d["api_key"], amount=5.0, **kw)
         assert out["status"] == "queued" and out["account"] == "acct_bound", out

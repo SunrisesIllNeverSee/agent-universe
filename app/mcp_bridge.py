@@ -1155,6 +1155,12 @@ class MCPBridge:
                     span.set_attribute("mcp.result", "invalid_amount")
                     return {"error": "Amount must be positive."}
                 economy = _state.economy
+                # Hold gate (P5f): a queued payout may not exceed what the chargeback hold lets leave.
+                matured = economy.treasury.matured_balance(agent.get("agent_id", ""))
+                if amount > matured:
+                    span.set_attribute("mcp.result", "exceeds_matured")
+                    return {"error": f"Amount exceeds your matured (cashable) balance of ${matured:.2f}; "
+                                     "card-funded money is held until its chargeback window closes."}
                 tier = economy.determine_tier(agent.get("stripe_tier_inputs") or {})
                 _state.audit.log("economy", "cashout_request_mcp", {
                     "agent": agent["name"], "amount": amount,
