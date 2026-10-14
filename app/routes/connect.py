@@ -85,6 +85,19 @@ def _bound_account(agent: dict | None) -> str:
     return (agent or {}).get("stripe_account_id", "") if agent else ""
 
 
+def _one_account_conflict(agent: "dict | None", request: Request):
+    """One Stripe Connect account per agent. An agent that already has a bound account gets a 409
+    naming it, and cannot re-bind itself to another; the operator (admin key) may create more."""
+    existing = _bound_account(agent)
+    if existing and not _is_operator(request):
+        return JSONResponse(status_code=409, content={
+            "error": {"code": "conflict",
+                      "message": "This agent already has a linked Stripe account (one per agent)."},
+            "account_id": existing,
+        })
+    return None
+
+
 def _require_account_manager(request: Request, account_id: str) -> None:
     """Onboarding sessions and links let their holder edit an account's details, including where
     payouts go. Account ids are public (the storefront lists them), so only the agent the account
@@ -331,11 +344,15 @@ async def create_connect_account(payload: ConnectAccountPayload, request: Reques
     """Create a Stripe connected account for an agent or operator.
 
     Body: { "display_name": "...", "email": "...", "country": "us" }
-    Requires an agent JWT (the account is bound to that agent) or the admin key.
+    Requires an agent JWT (the account is bound to that agent) or the admin key. One account per
+    agent: a second create returns 409 with the existing account id (the operator may create more).
     """
     agent = _connect_principal(request)
     if agent is None and not _is_operator(request):
         raise HTTPException(status_code=401, detail="Agent JWT required")
+    conflict = _one_account_conflict(agent, request)
+    if conflict is not None:
+        return conflict
     name = payload.display_name.strip()
     email = payload.email.strip()
     if not name or not email:
@@ -370,6 +387,9 @@ async def create_recipient_account(payload: ConnectRecipientPayload, request: Re
     agent = _connect_principal(request)
     if agent is None and not _is_operator(request):
         raise HTTPException(status_code=401, detail="Agent JWT required")
+    conflict = _one_account_conflict(agent, request)
+    if conflict is not None:
+        return conflict
     name = payload.display_name.strip()
     email = payload.email.strip()
     if not name:
