@@ -21,7 +21,15 @@
   "workentry_pending": {
     "_note": "Pending-Agreement timers. Nothing expires: the poster is asked once after ask_poster_after_hours, and a quiet pending entry goes dormant (hidden, kept, revives on any activity) after dormant_after_days. CIVITAS-voteable.",
     "ask_poster_after_hours": 48,
-    "dormant_after_days": 14
+    "dormant_after_days": 14,
+    "_options_note": "G2 options, all inert at today's values. by_mode overrides either window per entry mode (open never waits). tier_multipliers scales the ask window only, by the entrant's tier (1 = no change; tiers are flat 5% at soft launch). A poster-declared answer_window_hours on a post replaces the ask window, clamped to the min/max below. Nothing expires under any option.",
+    "by_mode": {
+      "standard":       { "ask_poster_after_hours": 48, "dormant_after_days": 14 },
+      "constitutional": { "ask_poster_after_hours": 48, "dormant_after_days": 14 }
+    },
+    "tier_multipliers": { "ungoverned": 1, "governed": 1, "constitutional": 1, "blackcard": 1 },
+    "answer_window_min_hours": 12,
+    "answer_window_max_hours": 168
   },
 
   "trial": {

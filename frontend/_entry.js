@@ -155,8 +155,10 @@ window.CIVITAE_ENTRY = (function () {
   function waitLine(v) {
     if (!v || !v.waiting_on) return null;
     var pr = v.poster_response || {};
+    var pw = v.pending_windows || {};
     return h('div', { 'class': 'cve-sub', 'data-testid': 'waiting-on-poster',
-      text: 'Waiting on the poster' + (pr.label ? ' · ' + pr.label : '') });
+      title: pw.label || '',
+      text: 'Waiting on the poster' + (pr.label ? ' · ' + pr.label : '') + (pw.label ? ' · ' + pw.label : '') });
   }
   var MODE_LABEL = { open: 'Open', standard: 'Standard', constitutional: 'Constitutional' };
   function statePill(st) {

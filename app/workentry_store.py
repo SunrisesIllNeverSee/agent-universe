@@ -49,23 +49,61 @@ ANCHOR_STATES = frozenset({"completed"})   # P5/Q5: only completed Agreements an
 
 
 
-def pending_timers() -> tuple[timedelta, timedelta]:
-    """(ask-the-poster, dormant) windows for a quiet pending entry, read from config at call time
-    so a CIVITAS vote changes them without a deploy. Missing or invalid values fall back."""
+ANSWER_WINDOW_FLOOR_HOURS = 12.0     # fallbacks for the poster-declared answer window bounds (D)
+ANSWER_WINDOW_CEILING_HOURS = 168.0
+
+
+def _pending_cfg() -> dict:
     from . import economy
     try:
-        cfg = (economy._load_rates() or {}).get("workentry_pending") or {}
+        return (economy._load_rates() or {}).get("workentry_pending") or {}
     except Exception:  # noqa: BLE001
-        cfg = {}
+        return {}
+
+
+def _pos(v) -> float | None:
+    return None if isinstance(v, bool) or not isinstance(v, (int, float)) or v <= 0 else float(v)
+
+
+def tier_multipliers_configured() -> bool:
+    """True when config carries any tier multiplier other than 1 (so the tier lookup is worth doing)."""
+    tm = _pending_cfg().get("tier_multipliers")
+    return isinstance(tm, dict) and any(_pos(v) not in (None, 1.0) for v in tm.values())
+
+
+def pending_timers(mode: str | None = None, tier: str | None = None,
+                   answer_window_hours: float | None = None) -> tuple[timedelta, timedelta]:
+    """(ask-the-poster, dormant) windows for a quiet pending entry, read from config at call time
+    so a CIVITAS vote changes them without a deploy. Missing or invalid values fall back.
+
+    Optional refinements (all display/nudge timing only; nothing expires and no money is touched):
+      * ``mode``: ``by_mode[mode]`` may override either window (open / standard / constitutional).
+      * ``tier``: ``tier_multipliers[tier]`` scales the ask window only (never dormancy).
+      * ``answer_window_hours``: the poster's declared window, clamped to the configured
+        floor/ceiling; it replaces the ask window (and wins over the tier multiplier).
+    The ask window never exceeds the dormant window."""
+    cfg = _pending_cfg()
+    by_mode = cfg.get("by_mode")
+    over = by_mode.get(mode) if isinstance(by_mode, dict) and isinstance(by_mode.get(mode), dict) else {}
 
     def num(key: str, default: timedelta, unit: str) -> timedelta:
-        v = cfg.get(key)
-        if isinstance(v, bool) or not isinstance(v, (int, float)) or v <= 0:
-            return default
-        return timedelta(**{unit: v})
+        v = _pos(over.get(key))
+        if v is None:
+            v = _pos(cfg.get(key))
+        return default if v is None else timedelta(**{unit: v})
 
-    return (num("ask_poster_after_hours", ASK_POSTER_AFTER, "hours"),
-            num("dormant_after_days", DORMANT_AFTER, "days"))
+    ask = num("ask_poster_after_hours", ASK_POSTER_AFTER, "hours")
+    dormant = num("dormant_after_days", DORMANT_AFTER, "days")
+    tm = cfg.get("tier_multipliers")
+    mult = _pos(tm.get(tier)) if isinstance(tm, dict) and tier else None
+    if mult is not None:
+        ask = ask * mult
+    declared = _pos(answer_window_hours)
+    if declared is not None:
+        lo = _pos(cfg.get("answer_window_min_hours")) or ANSWER_WINDOW_FLOOR_HOURS
+        hi = _pos(cfg.get("answer_window_max_hours")) or ANSWER_WINDOW_CEILING_HOURS
+        ask = timedelta(hours=min(max(declared, lo), max(hi, lo)))
+    return (min(ask, dormant), dormant)
 
 
 # Constitutional gate (slice 5). GOV-001 s9.3: committee recommendations are advisory unless the
@@ -1289,17 +1327,17 @@ class WorkEntryStore:
             return {"agreement": self._agreement(self._row(agreement_id)), "receipt": None, "replayed": False}
 
     def sweep_dormant(self, *, after: timedelta | None = None) -> list[str]:
-        """pending with no activity for >= the configured window (14 days) -> dormant (non-terminal, kept)."""
-        if after is None:
-            after = pending_timers()[1]
-        days = after.total_seconds() / 86400
-        cutoff = self._clock() - after
+        """pending with no activity for >= the configured window (14 days) -> dormant (non-terminal, kept).
+        With ``after`` omitted the window is the configured one for each entry's mode."""
+        now = self._clock()
         with self._lock:
             rows = self._conn.execute(
-                "SELECT agreement_id, last_activity_at FROM agreements WHERE state='pending'").fetchall()
+                "SELECT agreement_id, last_activity_at, entry_mode FROM agreements WHERE state='pending'").fetchall()
         changed = []
         for r in rows:
-            if datetime.fromisoformat(r["last_activity_at"]) <= cutoff:
+            win = after if after is not None else pending_timers(mode=r["entry_mode"])[1]
+            days = win.total_seconds() / 86400
+            if datetime.fromisoformat(r["last_activity_at"]) <= now - win:
                 try:
                     self._transition(r["agreement_id"], "go_dormant", actor="system",
                                      reason=f"no activity for {days:g} days")
