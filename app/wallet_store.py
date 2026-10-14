@@ -20,7 +20,8 @@ from threading import RLock
 MAX_LINKED_WALLETS = 3
 
 # Fail-safe defaults; the live values are config/economic_rates.json "wallets" (CIVITAS-voteable).
-_DEFAULT_RULES = {"link_interval_hours": 12, "new_wallet_window_hours": 24, "new_wallet_cap_usd": 25.0}
+_DEFAULT_RULES = {"link_interval_hours": 12, "new_wallet_window_hours": 24, "new_wallet_cap_usd": 25.0,
+                  "approval_stuck_minutes": 15}
 
 
 def wallet_rules() -> dict:
@@ -102,7 +103,8 @@ CREATE TABLE IF NOT EXISTS payout_approvals (
     created_at  TEXT NOT NULL,
     decided_at  TEXT,
     decided_by  TEXT NOT NULL DEFAULT '',
-    transfer    TEXT NOT NULL DEFAULT ''
+    transfer    TEXT NOT NULL DEFAULT '',
+    review_reason TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_payout_approvals_status ON payout_approvals(status, created_at);
 """
@@ -149,6 +151,9 @@ class WalletStore:
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.executescript(_SCHEMA)
+        cols = {r[1] for r in self._conn.execute("PRAGMA table_info(payout_approvals)")}
+        if "review_reason" not in cols:   # P5k: databases created before the recovery sweep
+            self._conn.execute("ALTER TABLE payout_approvals ADD COLUMN review_reason TEXT NOT NULL DEFAULT ''")
 
     def close(self) -> None:
         self._conn.close()
@@ -353,10 +358,12 @@ class WalletStore:
         return rows
 
     def claim_approval(self, approval_id: str, to_status: str, actor: str) -> bool:
-        """Atomically move pending -> ``to_status`` ('approving' / 'rejected'). Exactly one caller wins."""
+        """Atomically move pending (or an operator-reviewed 'needs_review') -> ``to_status``
+        ('approving' / 'rejecting'). Exactly one caller wins."""
         with self._lock:
             cur = self._conn.execute(
-                "UPDATE payout_approvals SET status=?, decided_by=?, decided_at=? WHERE approval_id=? AND status='pending'",
+                "UPDATE payout_approvals SET status=?, decided_by=?, decided_at=? WHERE approval_id=? "
+                "AND status IN ('pending','needs_review')",
                 (to_status, actor, datetime.now(UTC).isoformat(), approval_id))
             return cur.rowcount == 1
 
@@ -371,13 +378,44 @@ class WalletStore:
                     "UPDATE wallet_payouts SET status='void' WHERE payout_id=(SELECT payout_id FROM payout_approvals "
                     "WHERE approval_id=?)", (approval_id,))
 
+    def sweep_stuck_approvals(self, minutes: float, now: datetime | None = None) -> list[dict]:
+        """P5k recovery: an approval claimed ('approving'/'rejecting') longer than ``minutes`` ago means the
+        process died mid-settlement. Move it to 'needs_review' with the reservation still held and the reason
+        recorded. Never pays and never refunds: whether the transfer or refund went out is unknown."""
+        now = now or datetime.now(UTC)
+        cutoff = (now - timedelta(minutes=minutes)).isoformat()
+        moved = []
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT approval_id, status FROM payout_approvals WHERE status IN ('approving','rejecting') "
+                "AND decided_at IS NOT NULL AND decided_at < ?", (cutoff,)).fetchall()
+            for r in rows:
+                reason = (f"stuck in '{r['status']}' for over {minutes:g} min (process died mid-settlement?); "
+                          f"unknown whether the {'transfer' if r['status'] == 'approving' else 'refund'} went out. "
+                          "Reservation still held. Check the chain/ledger before approving or rejecting.")
+                cur = self._conn.execute(
+                    "UPDATE payout_approvals SET status='needs_review', review_reason=? WHERE approval_id=? AND status=?",
+                    (reason, r["approval_id"], r["status"]))
+                if cur.rowcount == 1:
+                    moved.append({"approval_id": r["approval_id"], "was": r["status"], "reason": reason})
+        return moved
+
+    def add_flag(self, flag: str, link_row: dict, ref: str) -> None:
+        """Record an operator-visible flag against a destination (``ref`` keeps repeats distinct)."""
+        with self._lock:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO wallet_flags (flag, chain, address, addr_key, agent_id, wallet_id, "
+                "other_agent_id, at) VALUES (?,?,?,?,?,?,?,?)",
+                (flag, link_row["chain"], link_row["address"], _key(link_row["chain"], link_row["address"]),
+                 link_row["agent_id"], link_row["wallet_id"], ref, datetime.now(UTC).isoformat()))
+
     # ── flags ──────────────────────────────────────────────────────────────────
     def shared_with(self, agent_id: str, chain: str, address: str) -> list[str]:
         key = _key(chain, address)
         with self._lock:
             rows = self._conn.execute(
-                "SELECT other_agent_id FROM wallet_flags WHERE chain=? AND addr_key=? AND agent_id=? "
-                "UNION SELECT agent_id FROM wallet_flags WHERE chain=? AND addr_key=? AND other_agent_id=?",
+                "SELECT other_agent_id FROM wallet_flags WHERE flag='shared_address' AND chain=? AND addr_key=? AND agent_id=? "
+                "UNION SELECT agent_id FROM wallet_flags WHERE flag='shared_address' AND chain=? AND addr_key=? AND other_agent_id=?",
                 (chain, key, agent_id, chain, key, agent_id)).fetchall()
         return sorted(r[0] for r in rows)
 

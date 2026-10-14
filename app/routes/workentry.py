@@ -372,6 +372,11 @@ async def dormancy_sweep_loop(interval_s: float) -> None:
     while True:
         await asyncio.sleep(interval_s)
         res = await run_scheduled_sweep()
+        try:   # P5k: recover payout approvals stuck mid-settlement (never pays or refunds)
+            from app.routes.economy import sweep_stuck_approvals
+            await asyncio.to_thread(sweep_stuck_approvals)
+        except Exception:  # noqa: BLE001
+            logger.exception("scheduled payout-approval sweep failed; will retry next interval")
         if res and (res["dormant"] or res["asked_poster"]):
             logger.info("scheduled work-entry sweep: %d dormant, %d asked poster",
                         len(res["dormant"]), len(res["asked_poster"]))

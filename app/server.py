@@ -201,6 +201,13 @@ def create_app(root: Path | None = None) -> FastAPI:
                 await backdate_gov_documents()
             except Exception:
                 logger.exception("Startup backdate failed; continuing")
+            try:
+                from .routes.economy import sweep_stuck_approvals
+                moved = sweep_stuck_approvals()
+                if moved:
+                    logger.warning("startup: %d payout approval(s) stuck mid-settlement moved to needs_review", len(moved))
+            except Exception:
+                logger.exception("Startup payout-approval sweep failed; continuing")
             sweep_task = None
             try:
                 from .routes.workentry import dormancy_sweep_loop, sweep_interval_seconds
