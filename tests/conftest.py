@@ -128,3 +128,14 @@ def _webhook_signing_secret(monkeypatch):
     still need one configured. Tests of the unset case override it."""
     from app import kassa_payments
     monkeypatch.setattr(kassa_payments, "STRIPE_WEBHOOK_SECRET", "whsec_test")
+
+
+@pytest.fixture(autouse=True)
+def _relaxed_wallet_rules(request, monkeypatch):
+    """P5i wallet limits (12h link interval, 24h/$25 new-wallet cap) are exercised only by
+    test_p5i_wallet_safety.py; every other test links several wallets and withdraws freely."""
+    if request.module.__name__.endswith("test_p5i_wallet_safety"):
+        return
+    import app.wallet_store as ws
+    monkeypatch.setattr(ws, "wallet_rules", lambda: {
+        "link_interval_hours": 0, "new_wallet_window_hours": 0, "new_wallet_cap_usd": 25.0})
