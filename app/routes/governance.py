@@ -294,6 +294,8 @@ async def propose_motion(meeting_id: str, payload: ProposeMotionPayload, request
     }
     if kind == GATE_KIND:
         # Typed gate motion (P4 slice 5): must name a live constitutional agreement.
+        # The window is opened and judged on one clock (the work-entry store's), never two.
+        motion["proposed_at"] = state.workentry.now_dt().isoformat()
         try:
             agr = state.workentry.get(agreement_id)
         except WorkEntryError as e:
