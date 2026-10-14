@@ -23,6 +23,7 @@ authority. Wiring is keyed to object ids; nothing here binds a slot (slice 4).
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -42,6 +43,7 @@ from app.workentry_store import (
     ProvenanceError,
     WorkEntryError,
     pending_timers,
+    tier_multipliers_configured,
 )
 
 logger = logging.getLogger("civitae.workentry")
@@ -264,18 +266,39 @@ def _notify(a: dict, transition: str, actor_agent: str | None, title: str = "") 
         logger.warning("work-entry poster email failed: %s", exc)
 
 
+def _entrant_tier(a: dict) -> str | None:
+    """The entrant's current trust tier (registry + metrics), or None when it cannot be read."""
+    try:
+        from app.metrics_io import load_metrics
+        eid = _entrant(a)
+        reg = next((r for r in state.runtime.registry if r.get("agent_id") == eid), None)
+        if not reg or reg.get("status") != "active":
+            return "ungoverned"
+        m = (load_metrics().get("agents", {}) or {}).get(eid, {}) or {}
+        gov = reg.get("governance")
+        return state.economy.determine_tier({**m, "governance_active": bool(gov and gov != "none_(unrestricted)")})
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _entry_timers(a: dict) -> tuple[timedelta, timedelta]:
+    """(ask, dormant) windows for one Agreement: its mode, the entrant tier (only when config sets
+    a multiplier), and the poster-declared answer window stamped in its terms at filing."""
+    tier = _entrant_tier(a) if tier_multipliers_configured() else None
+    return pending_timers(mode=a.get("entry_mode"), tier=tier,
+                          answer_window_hours=(a.get("terms") or {}).get("answer_window_hours"))
+
+
 # ── maintenance: 48 h ask-the-poster, 14 d dormant (lazy + idempotent sweep) ──
 
 def sweep_entries() -> dict:
     """Idempotent. pending >=14 d quiet -> dormant; pending >=48 h quiet -> ask the
     poster once per quiet spell. Safe to call from a scheduler, a read, or by hand."""
     store = _store()
-    ask_after, dormant_after = pending_timers()
-    ask_h, dormant_d = f"{ask_after.total_seconds() / 3600:g}", f"{dormant_after.total_seconds() / 86400:g}"
     dormant: list[str] = []
     asked: list[str] = []
     try:
-        dormant = store.sweep_dormant(after=dormant_after)
+        dormant = store.sweep_dormant()
     except WorkEntryError as e:
         logger.error("work-entry dormant sweep failed: %s", e.message)
     for aid in dormant:
@@ -283,7 +306,12 @@ def sweep_entries() -> dict:
             _notify(store.get(aid), "go_dormant", None)
         except Exception:  # noqa: BLE001
             pass
-    for a in store.pending_stale(older_than=ask_after):
+    now = store._clock()
+    for a in store.pending_stale(older_than=timedelta(0)):
+        ask_after, dormant_after = _entry_timers(a)
+        if datetime.fromisoformat(a["last_activity_at"]) > now - ask_after:
+            continue
+        ask_h, dormant_d = f"{ask_after.total_seconds() / 3600:g}", f"{dormant_after.total_seconds() / 86400:g}"
         if store.claim_flag(a["agreement_id"], "ask_poster", a["last_activity_at"]):
             asked.append(a["agreement_id"])
             try:
@@ -408,6 +436,12 @@ async def svc_file_entry(p: Principal, payload: FileEntryPayload, key: str | Non
              "acceptance_payload": payload.acceptance_payload,
              "delivery_evidence_class": ev or "solution",
              "stake_ref": payload.stake_ref}
+    # Poster-declared answer window (G2 option D): read from the opportunity's post only, never
+    # from the request body, so an entrant cannot set how fast the poster is nudged.
+    terms.pop("answer_window_hours", None)
+    declared = ((opp.get("post") or {}).get("answer_window_hours"))
+    if isinstance(declared, (int, float)) and not isinstance(declared, bool) and declared > 0:
+        terms["answer_window_hours"] = float(declared)
     try:
         out = _store().file_entry(
             entrant=entrant, owner=opp["owner"], opportunity_ref=opp["ref"], entry_mode=mode,
@@ -437,7 +471,16 @@ def _wait_view(a: dict) -> dict:
     pr = _store().poster_response(_owner(a))
     h = pr["median_hours"]
     pr["label"] = "no history yet" if h is None else f"usually responds in ~{h:g} h"
-    return {"waiting_on": "poster" if a["state"] == "pending" else None, "poster_response": pr}
+    waiting = a["state"] == "pending"
+    out = {"waiting_on": "poster" if waiting else None, "poster_response": pr}
+    if waiting:
+        ask, dormant = _entry_timers(a)
+        ah, dd = ask.total_seconds() / 3600, dormant.total_seconds() / 86400
+        out["pending_windows"] = {
+            "ask_poster_after_hours": round(ah, 2), "dormant_after_days": round(dd, 2),
+            "label": (f"The poster is asked after ~{ah:g} h of quiet; the entry goes dormant after "
+                      f"~{dd:g} days and revives on any activity. Nothing expires.")}
+    return out
 
 
 @router.post("/api/work-entry/force-assign")
