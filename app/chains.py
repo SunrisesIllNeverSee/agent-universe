@@ -146,7 +146,7 @@ class EthereumAdapter:
             "token": token,
             "governance": check.get("governance"),
             "audit_hash": audit["hash"],
-            "note": "Production: submit to Ethereum/Base RPC.",
+            "note": "Production: submit to Ethereum/Base RPC. This is a governed transaction stub.",
         }
 
 
@@ -175,7 +175,7 @@ class OffChainAdapter:
             "currency": currency,
             "governance": check.get("governance"),
             "audit_hash": audit["hash"],
-            "note": "Production: route to Stripe/bank API.",
+            "note": "Production: route to Stripe/bank API. This is a governed transaction stub.",
         }
 
 

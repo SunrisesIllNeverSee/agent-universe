@@ -487,6 +487,8 @@ class AgentTreasury:
             led = json.loads(src.read_text(encoding="utf-8"))
             balances, txns, holds = dict(led.get("balances", {})), list(led.get("transactions", [])), list(led.get("holds", []))
         except Exception:  # noqa: BLE001 - unreadable legacy file: leave it, do not block boot
+            _log.error("TREASURY IMPORT SKIPPED: %s exists but cannot be read; the treasury database starts "
+                       "EMPTY. Repair the file and restart (the import is retried until it succeeds).", src)
             return 0
         with self._txn():
             if self._conn.execute("SELECT 1 FROM treasury_meta WHERE k='json_imported'").fetchone():
@@ -542,6 +544,11 @@ class AgentTreasury:
                 raise
             finally:
                 self._depth = 0
+
+    def atomic(self):
+        """Public: run several treasury operations (credit + hold, ...) as ONE transaction, so no
+        other process can observe or spend the state in between. Rolled back as a whole on error."""
+        return self._txn()
 
     @contextmanager
     def _read(self):

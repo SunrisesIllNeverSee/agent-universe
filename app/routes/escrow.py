@@ -92,22 +92,22 @@ async def release_to(escrow_id: str, agent_id: str, gross: float, *, source: str
     rel = res["release"]
     try:
         escrow = state.escrow.get(escrow_id)
-        result = state.economy.process_mission_payout(
-            agent_id=agent_id, agent_metrics={}, gross_amount=gross,
-            mission_id=escrow.get("mission_id") or escrow_id, originator_id=originator_id)
+        treasury = state.economy.treasury
+        # Credit and chargeback hold are ONE treasury transaction: another process sharing the
+        # volume must never see (and cash out) card-funded money in the gap before its hold exists.
+        # Any failure rolls the whole payout back, so no reversal debit is needed.
+        with treasury.atomic():
+            result = state.economy.process_mission_payout(
+                agent_id=agent_id, agent_metrics={}, gross_amount=gross,
+                mission_id=escrow.get("mission_id") or escrow_id, originator_id=originator_id)
+            if escrow["source"] == "stripe_checkout":
+                # Card money: what the agent was just credited is not cashable until the chargeback window closes.
+                credited = (result.get("agent_transaction") or {}).get("amount", 0.0)
+                result["hold"] = treasury.hold(agent_id, credited, reason="card_funded_payout", ref=escrow_id,
+                                               charged_at=escrow.get("charged_at"))
     except Exception:
         state.escrow.revert_release(escrow_id, rel["release_id"])
         raise
-    if escrow["source"] == "stripe_checkout":
-        # Card money: what the agent was just credited is not cashable until the chargeback window closes.
-        credited = (result.get("agent_transaction") or {}).get("amount", 0.0)
-        try:
-            result["hold"] = state.economy.treasury.hold(agent_id, credited, reason="card_funded_payout", ref=escrow_id,
-                                                      charged_at=escrow.get("charged_at"))
-        except Exception:
-            state.economy.treasury.debit(agent_id, credited, reason="hold_failed_reversal")
-            state.escrow.revert_release(escrow_id, rel["release_id"])
-            raise
     result["escrow_id"] = escrow_id
     result["seed"] = await _payout_seed(result, source=source)
     rec = state.escrow.get(escrow_id)
