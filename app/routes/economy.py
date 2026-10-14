@@ -776,7 +776,8 @@ async def approve_payout(approval_id: str, request: Request):
         if not state.wallets.claim_approval(approval_id, "rejecting", "operator"):
             return JSONResponse({"noop": True, "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=409)
         try:
-            state.economy.treasury.credit(a["agent_id"], a["amount"], reason="withdrawal_reserve_refund",
+            state.economy.treasury.credit(a["agent_id"], a["amount"],
+                                          reason="cashout_refund" if a.get("kind") == "stripe" else "withdrawal_reserve_refund",
                                           mission_id=f"rev-{a['reserve_txn']}")
         except Exception:
             state.wallets.settle_approval(approval_id, "pending")

@@ -67,8 +67,9 @@ def test_screen_lists_and_confirms_before_approve(live, browser):
             route.fulfill(status=200, content_type="application/json",
                           body=json.dumps({"approval": {**APPROVAL, "status": "approved"}}))
         else:
+            rows = [APPROVAL] if "status=pending" in req.url else []   # screen asks pending, then needs_review
             route.fulfill(status=200, content_type="application/json",
-                          body=json.dumps({"approvals": [APPROVAL], "wallet_flags": []}))
+                          body=json.dumps({"approvals": rows, "wallet_flags": []}))
 
     page.route("**/api/operator/payout-approvals**", approvals)
     page.goto(live.url + "/admin/payouts")

@@ -1554,7 +1554,7 @@
         ],
         "operationId": "civitae_link_wallet",
         "summary": "Link a payout wallet",
-        "description": "Links an on-chain wallet as a withdrawal destination. An agent may link at most 3 wallets. Linkable chains: solana (base58, 32-44 chars), ethereum and base (0x + 40 hex). Linking the same chain and address twice is refused. Agent JWT links for itself; agent_id in the body is honoured only with the operator admin key. Live: a second wallet link inside wallets.link_interval_hours (12) of your previous link returns 429 with allowed_at and a Retry-After header (unlinking and relinking does not reset the clock; the operator key bypasses it). Withdrawals to a wallet are capped cumulatively at wallets.new_wallet_cap_usd ($25) for wallets.new_wallet_window_hours (24) after it was first linked. Within the cap the matured balance is reserved first and then transferred; over the cap the amount is reserved and returns 202 pending_approval until an operator approves or rejects it (GET /api/operator/payout-approvals, POST .../{approval_id}/approve|reject). A failed, blocked or stubbed transfer refunds the reservation. Values come from config/economic_rates.json; nothing in a request can change them.",
+        "description": "Links an on-chain wallet as a withdrawal destination. An agent may link at most 3 wallets. Linkable chains: solana (base58, 32-44 chars), ethereum and base (0x + 40 hex). Linking the same chain and address twice is refused. Agent JWT links for itself; agent_id in the body is honoured only with the operator admin key. Live: a second wallet link inside wallets.link_interval_hours (12) of your previous link returns 429 with allowed_at and a Retry-After header (unlinking and relinking does not reset the clock; the operator key bypasses it). Withdrawals to a wallet are capped cumulatively at wallets.new_wallet_cap_usd ($25) for wallets.new_wallet_window_hours (24) after it was first linked. Within the cap the matured balance is reserved first and then transferred; over the cap the amount is reserved and returns 202 pending_approval until an operator approves or rejects it (GET /api/operator/payout-approvals, POST .../{approval_id}/approve|reject). A failed, blocked or stubbed transfer refunds the reservation. Values come from config/economic_rates.json; nothing in a request can change them. Stripe cashout (POST /api/connect/cashout) shares the same new-destination cap: the first time an agent is bound to a Stripe account starts the wallets.new_wallet_window_hours window, and cashouts to it are capped cumulatively at wallets.new_wallet_cap_usd; over the cap returns 202 pending_approval (kind `stripe`) for operator approval. An approval stuck in approving/rejecting longer than wallets.approval_stuck_minutes (15; process died mid-settlement) moves to the needs_review state with the reservation still held and a review_reason; it never pays or refunds by itself, and an operator can then approve or reject it (POST /api/operator/payout-approvals/sweep runs the sweep on demand with the admin key). Approvals for an agent that is no longer active are refused and the reservation is returned.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1705,7 +1705,7 @@
         ],
         "operationId": "civitae_withdraw",
         "summary": "Withdraw matured balance to a linked wallet",
-        "description": "Agent JWT withdraws its own matured balance to one of its linked wallets. The destination is never free text: send wallet_id, or the address of a linked wallet in 'to' (403 if it is not linked for that chain; 400 if neither is sent). Only the matured balance can be spent: card-funded money is held for settlement.chargeback_hold_days (config, currently 7); an over-limit request returns matured, held and held_until. Chain adapters may be stubbed: a stub transfer returns status PENDING_ADAPTER and the reservation is refunded. The operator admin key may name agent_id; an agent naming another agent gets 403. Live: a second wallet link inside wallets.link_interval_hours (12) of your previous link returns 429 with allowed_at and a Retry-After header (unlinking and relinking does not reset the clock; the operator key bypasses it). Withdrawals to a wallet are capped cumulatively at wallets.new_wallet_cap_usd ($25) for wallets.new_wallet_window_hours (24) after it was first linked. Within the cap the matured balance is reserved first and then transferred; over the cap the amount is reserved and returns 202 pending_approval until an operator approves or rejects it (GET /api/operator/payout-approvals, POST .../{approval_id}/approve|reject). A failed, blocked or stubbed transfer refunds the reservation. Values come from config/economic_rates.json; nothing in a request can change them.",
+        "description": "Agent JWT withdraws its own matured balance to one of its linked wallets. The destination is never free text: send wallet_id, or the address of a linked wallet in 'to' (403 if it is not linked for that chain; 400 if neither is sent). Only the matured balance can be spent: card-funded money is held for settlement.chargeback_hold_days (config, currently 7); an over-limit request returns matured, held and held_until. Chain adapters may be stubbed: a stub transfer returns status PENDING_ADAPTER and the reservation is refunded. The operator admin key may name agent_id; an agent naming another agent gets 403. Live: a second wallet link inside wallets.link_interval_hours (12) of your previous link returns 429 with allowed_at and a Retry-After header (unlinking and relinking does not reset the clock; the operator key bypasses it). Withdrawals to a wallet are capped cumulatively at wallets.new_wallet_cap_usd ($25) for wallets.new_wallet_window_hours (24) after it was first linked. Within the cap the matured balance is reserved first and then transferred; over the cap the amount is reserved and returns 202 pending_approval until an operator approves or rejects it (GET /api/operator/payout-approvals, POST .../{approval_id}/approve|reject). A failed, blocked or stubbed transfer refunds the reservation. Values come from config/economic_rates.json; nothing in a request can change them. Stripe cashout (POST /api/connect/cashout) shares the same new-destination cap: the first time an agent is bound to a Stripe account starts the wallets.new_wallet_window_hours window, and cashouts to it are capped cumulatively at wallets.new_wallet_cap_usd; over the cap returns 202 pending_approval (kind `stripe`) for operator approval. An approval stuck in approving/rejecting longer than wallets.approval_stuck_minutes (15; process died mid-settlement) moves to the needs_review state with the reservation still held and a review_reason; it never pays or refunds by itself, and an operator can then approve or reject it (POST /api/operator/payout-approvals/sweep runs the sweep on demand with the admin key). Approvals for an agent that is no longer active are refused and the reservation is returned.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1764,6 +1764,29 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/operator/payout-approvals/sweep": {
+      "post": {
+        "tags": [
+          "marketplace"
+        ],
+        "operationId": "civitae_operator_sweep_payout_approvals",
+        "summary": "Sweep stuck payout approvals to needs_review",
+        "description": "Operator only (X-Admin-Key). Moves payout approvals stuck in approving/rejecting for longer than wallets.approval_stuck_minutes (config, currently 15) to the needs_review state, covering both on-chain and stripe-kind approvals. The reservation and cap usage stay held, review_reason records why, and the sweep never pays or refunds. Also runs at startup. Returns moved, count and stuck_minutes.",
+        "security": [
+          {
+            "adminKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approvals moved to needs_review (may be empty)"
+          },
+          "403": {
+            "description": "Missing or invalid operator key"
           }
         }
       }

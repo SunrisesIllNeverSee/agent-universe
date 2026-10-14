@@ -188,6 +188,7 @@ body {
 .confirm-bar .review-actions { margin-top:8px; }
 .result-note { font-family:var(--mono); font-size:0.62rem; margin-top:6px; }
 .state-badge.pending { color:var(--amber); }
+.state-badge.needs_review { color:var(--warn); }
 </style>
   <!-- Google Analytics 4 (gtag.js) — measurement ID G-FD4VLSCHY8 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-FD4VLSCHY8"></script>
@@ -278,10 +279,16 @@ function field(label, value, testid) {
 function loadApprovals() {
   var list = document.getElementById('approvals-list');
   var countEl = document.getElementById('approvals-count');
-  fetch(API + '/api/operator/payout-approvals?status=pending', { headers: hdrs() })
-    .then(function (r) {
-      if (r.status === 403) { list.innerHTML = '<div class="empty-state">Invalid admin key</div>'; return null; }
+  function get(st) {
+    return fetch(API + '/api/operator/payout-approvals?status=' + st, { headers: hdrs() }).then(function (r) {
+      if (r.status === 403) return null;
       return r.json();
+    });
+  }
+  Promise.all([get('pending'), get('needs_review')])
+    .then(function (res) {
+      if (res[0] === null || res[1] === null) { list.innerHTML = '<div class="empty-state">Invalid admin key</div>'; return null; }
+      return {approvals: (res[1].approvals || []).concat(res[0].approvals || [])};
     })
     .then(function (d) {
       if (d === null) return;
@@ -309,9 +316,15 @@ function approvalCard(a) {
   f.appendChild(field('Amount', String(a.amount), 'approval-amount'));
   f.appendChild(field('Agent', a.agent_id || '—', 'approval-agent'));
   f.appendChild(field('Destination', (a.chain || '') + ':' + (a.address || '—'), 'approval-destination'));
-  f.appendChild(field('Kind', 'withdrawal', 'approval-kind'));
+  f.appendChild(field('Kind', a.kind === 'stripe' ? 'stripe cashout' : 'withdrawal', 'approval-kind'));
   f.appendChild(field('Age', age(a.created_at), 'approval-age'));
   card.appendChild(f);
+  if (a.status === 'needs_review' && a.review_reason) {
+    var rr = el('div', 'review-body', 'Needs review: ' + a.review_reason);
+    rr.setAttribute('data-testid', 'approval-review-reason');
+    rr.style.color = 'var(--warn)';
+    card.appendChild(rr);
+  }
   var shared = a.shared_address_agents || [];
   if (shared.length) {
     var w = el('div', 'review-body', 'Shared address with: ' + shared.join(', '));
