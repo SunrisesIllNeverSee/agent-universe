@@ -26,6 +26,7 @@ slot binding, constitutional gate) belongs to later slices.
 from __future__ import annotations
 
 import json
+import math
 import sqlite3
 import uuid
 from datetime import datetime, timedelta, UTC
@@ -69,6 +70,26 @@ def tier_multipliers_configured() -> bool:
     """True when config carries any tier multiplier other than 1 (so the tier lookup is worth doing)."""
     tm = _pending_cfg().get("tier_multipliers")
     return isinstance(tm, dict) and any(_pos(v) not in (None, 1.0) for v in tm.values())
+
+
+def clamp_answer_window(value: Any) -> float | None:
+    """Validate a poster-declared answer window (hours) and clamp it to the configured
+    floor/ceiling (12-168 h by default). None when absent. ValueError when present but not a
+    positive finite number. Booleans are rejected."""
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    if isinstance(value, bool):
+        raise ValueError("answer_window_hours must be a number of hours")
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        raise ValueError("answer_window_hours must be a number of hours") from None
+    if not math.isfinite(v) or v <= 0:
+        raise ValueError("answer_window_hours must be a positive number of hours")
+    cfg = _pending_cfg()
+    lo = _pos(cfg.get("answer_window_min_hours")) or ANSWER_WINDOW_FLOOR_HOURS
+    hi = _pos(cfg.get("answer_window_max_hours")) or ANSWER_WINDOW_CEILING_HOURS
+    return min(max(v, lo), max(hi, lo))
 
 
 def pending_timers(mode: str | None = None, tier: str | None = None,

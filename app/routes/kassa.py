@@ -901,6 +901,12 @@ async def submit_kassa_post(request: Request) -> dict:
     from_email = (payload.get("from_email") or "").strip()
     if not tab or not title or not body or not from_name or not from_email:
         raise HTTPException(status_code=400, detail="tab, title, body, from_name, from_email required")
+    # G2 option D: optional poster-declared answer window, validated and clamped (12-168 h).
+    from app.workentry_store import clamp_answer_window
+    try:
+        answer_window_hours = clamp_answer_window(payload.get("answer_window_hours"))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     if detect_prompt_injection(title) or detect_prompt_injection(body):
         state.audit.log("security", "prompt_injection_blocked", {"tab": tab})
         raise HTTPException(status_code=400, detail="Post contains disallowed content.")
@@ -924,6 +930,7 @@ async def submit_kassa_post(request: Request) -> dict:
         "updated_at": now,
         # P4 slice 2: authenticated counterparty; None for operator/legacy posts.
         "poster_agent_id": poster_agent_id,
+        "answer_window_hours": answer_window_hours,
     }
     review_entry = {
         "_v": 1,

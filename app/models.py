@@ -168,6 +168,7 @@ class KassaContact(BaseModel):
     tab: str              # iso | products | bounties | hiring | services
     from_name: str
     from_email: str
+    answer_window_hours: float | None = None   # optional, clamped 12-168 h (G2 option D)
     message: str
 
 

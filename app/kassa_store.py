@@ -187,6 +187,10 @@ class KassaStore:
         # created with an agent credential. NULL for admin/legacy/email-only posts.
         if not has_col("posts", "poster_agent_id"):
             self._conn.execute("ALTER TABLE posts ADD COLUMN poster_agent_id TEXT")
+        # P5g (G2 option D): the poster's declared answer window in hours, already clamped
+        # at creation. NULL = no preference, the configured pending window applies.
+        if not has_col("posts", "answer_window_hours"):
+            self._conn.execute("ALTER TABLE posts ADD COLUMN answer_window_hours REAL")
 
     def close(self):
         self._conn.close()
@@ -239,14 +243,15 @@ class KassaStore:
             self._conn.execute(
                 """INSERT INTO posts (id, _v, tab, title, tag, body, status, urgency,
                    upvotes, reply_count, reward, from_name, from_email, created_at, updated_at,
-                   poster_agent_id)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   poster_agent_id, answer_window_hours)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (post["id"], post.get("_v", 1), post["tab"], post["title"],
                  post.get("tag", ""), post.get("body", ""), post.get("status", "open"),
                  post.get("urgency", "normal"), post.get("upvotes", 0),
                  post.get("reply_count", 0), json.dumps(post["reward"]) if isinstance(post.get("reward"), dict) else post.get("reward"),
                  post.get("from_name", ""), post.get("from_email", ""),
-                 post["created_at"], post["updated_at"], post.get("poster_agent_id")))
+                 post["created_at"], post["updated_at"], post.get("poster_agent_id"),
+                 post.get("answer_window_hours")))
             self._conn.commit()
 
     def update_post(self, post_id: str, updates: dict) -> None:
