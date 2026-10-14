@@ -727,6 +727,38 @@ async def list_wallet_flags(request: Request):
     return {"wallet_flags": state.wallets.list_flags()}
 
 
+def sweep_stuck_approvals() -> list[dict]:
+    """P5k: approvals stuck in 'approving'/'rejecting' past wallets.approval_stuck_minutes go to
+    'needs_review'. Never pays, never refunds. Safe to call repeatedly (startup, scheduler, operator)."""
+    from app.wallet_store import wallet_rules
+    moved = state.wallets.sweep_stuck_approvals(wallet_rules()["approval_stuck_minutes"])
+    for m in moved:
+        state.audit.log("economy", "payout_approval_needs_review", {"approval_id": m["approval_id"], "was": m["was"]})
+    return moved
+
+
+@router.post("/api/operator/payout-approvals/sweep")
+async def sweep_payout_approvals(request: Request):
+    from app.auth import require_admin
+    require_admin(request, state.admin_key)
+    moved = sweep_stuck_approvals()
+    from app.wallet_store import wallet_rules
+    return {"moved": moved, "count": len(moved), "stuck_minutes": wallet_rules()["approval_stuck_minutes"]}
+
+
+def _approver_inactive(agent_id: str) -> str:
+    """'' if the agent may still be paid out, else why not (missing / suspended / revoked / inactive)."""
+    agent = next((r for r in state.runtime.registry if r.get("agent_id") == agent_id), None)
+    if agent is None:
+        return "agent not in registry"
+    if agent.get("status") != "active":
+        return f"agent status is {agent.get('status')!r}"
+    kh = agent.get("key_hash")
+    if kh and kh in (state.runtime.revoked_keys or set()):
+        return "agent key revoked"
+    return ""
+
+
 @router.post("/api/operator/payout-approvals/{approval_id}/approve")
 async def approve_payout(approval_id: str, request: Request):
     """Pay a reserved withdrawal to the destination snapshotted at request time. Exactly one approve
@@ -737,6 +769,28 @@ async def approve_payout(approval_id: str, request: Request):
     a = state.wallets.get_approval(approval_id)
     if a is None:
         return JSONResponse({"error": "Approval not found"}, status_code=404)
+    why = _approver_inactive(a["agent_id"])
+    if why and a["status"] in ("pending", "needs_review"):
+        # Never pay an agent that is no longer live. Give the reserved money back (the codebase has no
+        # balance freeze for suspension, so it returns matured) and flag it for the operator.
+        if not state.wallets.claim_approval(approval_id, "rejecting", "operator"):
+            return JSONResponse({"noop": True, "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=409)
+        try:
+            state.economy.treasury.credit(a["agent_id"], a["amount"], reason="withdrawal_reserve_refund",
+                                          mission_id=f"rev-{a['reserve_txn']}")
+        except Exception:
+            state.wallets.settle_approval(approval_id, "pending")
+            raise
+        state.wallets.settle_approval(approval_id, "rejected")
+        state.wallets.add_flag("approval_refused_inactive_agent",
+                               {"chain": a["chain"], "address": a["address"], "agent_id": a["agent_id"],
+                                "wallet_id": a["wallet_id"]}, approval_id)
+        entry = state.audit.log("economy", "payout_approval_refused_inactive", {
+            "approval_id": approval_id, "agent_id": a["agent_id"], "amount": a["amount"], "why": why,
+            "refunded_as": "matured (no suspension freeze exists)"})
+        await state.emit("audit_event", entry.model_dump(mode="json"))
+        return JSONResponse({"error": f"Agent cannot be paid: {why}. Reservation returned to the agent (matured); flagged.",
+                             "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=409)
     if not state.wallets.claim_approval(approval_id, "approving", "operator"):
         return JSONResponse({"noop": True, "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=409)
     if a.get("kind") == "stripe":
