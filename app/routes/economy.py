@@ -559,26 +559,47 @@ async def withdraw(payload: WithdrawPayload, request: Request) -> dict:
                             status_code=202)
 
     chain_router = _get_chain_router()
+    treasury = state.economy.treasury
 
-    # Pre-flight: check governance gate before touching the ledger
-    transfer = chain_router.transfer(chain, dest, amount, agent_id=agent_id, confirm=payload.confirm)
-
-    # Governance blocked (or the adapter refused) the transfer — don't touch treasury
-    if str(transfer.get("status", "")).upper() in ("BLOCKED", "AWAITING_CONFIRMATION", "ERROR", "FAILED"):
+    # Reserve BEFORE transfer (P5i): the matured-only debit is one transaction that re-reads the
+    # balance, so concurrent withdrawals can never reserve (and so never transfer) more than the
+    # matured balance. Anything short of a real, accepted transfer refunds the reservation.
+    debit = treasury.debit(agent_id, amount, reason="withdrawal", chain=chain, matured_only=True)
+    if "error" in debit:
         state.wallets.void_payout(cap_pid)
+        return debit
+
+    def _refund(why: str) -> None:
+        # Credit back exactly what was reserved. The reserve consumed matured money only, so the
+        # open holds are untouched and the refunded money is matured again. Nothing was paid,
+        # so the new-wallet cap is not consumed either.
+        state.wallets.void_payout(cap_pid)
+        treasury.credit(agent_id, amount, reason="withdrawal_reversal", mission_id=f"rev-{debit.get('id', '')}")
+        state.audit.log("economy", "withdrawal_reversed", {
+            "agent_id": agent_id, "amount": amount, "chain": chain, "reason": why,
+        })
+
+    try:
+        transfer = chain_router.transfer(chain, dest, amount, agent_id=agent_id, confirm=payload.confirm)
+    except BaseException:
+        _refund("exception")
+        raise
+
+    transfer_status = str(transfer.get("status", "pending"))
+
+    # Governance blocked / awaiting confirmation / adapter refused: nothing moved, give it back.
+    if transfer_status.upper() in ("BLOCKED", "AWAITING_CONFIRMATION", "ERROR", "FAILED"):
+        _refund(transfer_status)
         return {"withdrawal": None, "chain_transfer": transfer}
 
-    # Detect stub adapter — transfer "succeeded" but no real chain submission
-    is_stub = "stub" in (transfer.get("note") or "").lower()
-    if is_stub:
-        state.wallets.void_payout(cap_pid)   # nothing is paid: the cap is not consumed
-        # Don't debit real treasury for stub transfers — record as pending
+    # Stub adapter: "succeeded" but nothing was submitted. Never keep the debit.
+    if "stub" in (transfer.get("note") or "").lower():
+        _refund("stub_adapter")
         _audit_entry = state.audit.log("economy", "withdrawal_pending_stub", {
             "agent_id": agent_id, "amount": amount, "chain": chain, "to": dest, "wallet_id": link["wallet_id"],
             "note": "Chain adapter is stubbed. Funds held. Will execute when adapter is live.",
         })
         await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
-        seed_doi = None
         seed_doi = await create_seed_loud(
             state.audit, "treasury_action",
             source_type="treasury_action",
@@ -594,22 +615,6 @@ async def withdraw(payload: WithdrawPayload, request: Request) -> dict:
             "note": f"Chain adapter for {chain} is not yet live. Your balance is preserved. Withdrawal will execute when the adapter connects to RPC.",
             "seed_doi": seed_doi,
         }
-
-    # Real adapter — debit treasury and execute
-    debit = state.economy.treasury.debit(agent_id, amount, reason="withdrawal", chain=chain, matured_only=True)
-    if "error" in debit:
-        state.wallets.void_payout(cap_pid)
-        return debit
-
-    transfer_status = transfer.get("status", "pending")
-
-    # If chain transfer failed, reverse the debit
-    if transfer_status in ("failed", "error"):
-        state.wallets.void_payout(cap_pid)
-        state.economy.treasury.credit(agent_id, amount, reason="withdrawal_reversal", mission_id=f"rev-{debit.get('id','')}")
-        state.audit.log("economy", "withdrawal_reversed", {
-            "agent_id": agent_id, "amount": amount, "chain": chain, "reason": transfer_status,
-        })
 
     _audit_entry = state.audit.log("economy", "withdrawal", {
         "agent_id": agent_id, "amount": amount, "chain": chain, "status": transfer_status,
@@ -852,8 +857,12 @@ async def list_chains() -> dict:
 
 
 @router.post("/api/chains/transfer")
-async def governed_transfer(payload: GovernedTransferPayload) -> dict:
-    """Governed multi-chain transfer. Goes through governance gate first."""
+async def governed_transfer(payload: GovernedTransferPayload, request: Request) -> dict:
+    """Governed multi-chain transfer. Operator admin key only (P5i): it takes an arbitrary
+    destination and touches no ledger, so it is never an agent-facing money path."""
+    from app.auth import admin_key_matches
+    if not admin_key_matches(request, state.admin_key):
+        return JSONResponse({"error": "Operator admin key required"}, status_code=403)
     chain_router = _get_chain_router()
     result = chain_router.transfer(
         chain=payload.chain,
