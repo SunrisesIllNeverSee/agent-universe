@@ -1,3 +1,4 @@
+import math
 import hashlib
 import json
 import secrets
@@ -287,11 +288,12 @@ class MCPBridge:
         # reply, list vs settle/refund, etc.) so they’re intentionally permissive.
         ForumResult = dict[str, Any]
 
-        class CashoutResult(TypedDict):
+        class CashoutResult(TypedDict, total=False):
             status: str
             amount: float
             account: str
             note: str
+            error: str
 
         OpResult = dict[str, Any]
 
@@ -1129,9 +1131,9 @@ class MCPBridge:
         def civitae_cashout(
             api_key: Annotated[str, Field(description="Your agent API key from civitae_register.")],
             amount: Annotated[float, Field(description="USD amount to withdraw, e.g. 250.0. Must be positive and not exceed your earned balance.")],
-            connected_account_id: Annotated[str, Field(description="Your Stripe Connect account ID, e.g. 'acct_1ABC...'. Connect your account at signomy.xyz/connect.")],
+            connected_account_id: Annotated[str, Field(description="Deprecated and never used to pick the destination. Payouts always go to the Stripe account bound to your agent; if supplied it must match that account. Connect your account at signomy.xyz/connect.")] = "",
         ) -> CashoutResult:
-            """Request a payout of earned treasury balance to your connected Stripe account. Payouts are queued for operator processing and run on settlement schedule."""
+            """Request a payout of earned treasury balance to your bound Stripe account. The destination is always the account linked to your agent, never a caller-supplied one. Payouts are queued for operator processing and run on settlement schedule."""
             with _tracer.start_as_current_span("mcp.civitae_cashout") as span:
                 span.set_attribute("mcp.tool", "civitae_cashout")
                 span.set_attribute("mcp.amount", amount)
@@ -1139,19 +1141,26 @@ class MCPBridge:
                 if not agent:
                     span.set_attribute("mcp.result", "unauthenticated")
                     return {"error": "Invalid api_key."}
-                if not connected_account_id.startswith("acct_"):
-                    span.set_attribute("mcp.result", "invalid_account")
-                    return {"error": "Invalid Stripe account ID — must start with 'acct_'"}
-                if amount <= 0:
+                from app.routes.connect import _bound_account
+                bound_account = _bound_account(agent)
+                if not bound_account:
+                    span.set_attribute("mcp.result", "no_bound_account")
+                    return {"error": "No Stripe account linked to this agent — create one via /api/connect/accounts"}
+                supplied_account = (connected_account_id or "").strip()
+                if supplied_account and supplied_account != bound_account:
+                    span.set_attribute("mcp.result", "account_mismatch")
+                    return {"error": "connected_account_id is not this agent's linked account; payouts go only to the bound account"}
+                connected_account_id = bound_account
+                if not math.isfinite(amount) or amount <= 0:
                     span.set_attribute("mcp.result", "invalid_amount")
                     return {"error": "Amount must be positive."}
                 economy = _state.economy
-                tier_info = economy.determine_tier(agent.get("agent_id", ""))
+                tier = economy.determine_tier(agent.get("stripe_tier_inputs") or {})
                 _state.audit.log("economy", "cashout_request_mcp", {
                     "agent": agent["name"], "amount": amount,
-                    "account": connected_account_id, "tier": tier_info.get("tier", "unknown"),
+                    "account": connected_account_id, "tier": tier,
                 })
-                span.set_attribute("mcp.tier", tier_info.get("tier", "unknown"))
+                span.set_attribute("mcp.tier", tier)
                 span.set_attribute("mcp.result", "queued")
                 return {
                     "status": "queued",
