@@ -91,6 +91,7 @@ except ImportError:
     fcntl = None  # Non-POSIX (Windows) — file locking unavailable
 import hashlib
 import json
+import logging
 import math
 import os
 import uuid
@@ -146,6 +147,7 @@ _TRIAL_CFG       = _RATES.get("trial", {})
 _SETTLE_CFG      = _RATES.get("settlement", {})
 
 # Card-funded money (and anything paid out of it) cannot be cashed out for this many days.
+_log = logging.getLogger(__name__)
 CHARGEBACK_HOLD_DAYS = _SETTLE_CFG.get("chargeback_hold_days", 7)
 
 # ── Platform-level Credit Constants ──────────────────────────────
@@ -480,13 +482,32 @@ class AgentTreasury:
     # withdrawal may only spend ``matured_balance``. Spending held money elsewhere is assumed
     # to consume the matured part first, so a hold can never be dodged by many small debits.
 
-    def hold(self, agent_id: str, amount: float, *, reason: str, ref: str = "", days: float | None = None) -> dict:
+    def hold(self, agent_id: str, amount: float, *, reason: str, ref: str = "", days: float | None = None,
+             charged_at: str | None = None) -> dict:
+        """Hold ``amount`` for the chargeback window. The window runs from ``charged_at`` (when the
+        underlying card charge succeeded), because that is when the dispute clock starts. With no
+        charge time (non-card funding, or a record that never captured one) it falls back to now,
+        and says so loudly: the hold is then longer than the card network's clock, never shorter."""
         if not self._valid_amount(amount):
             raise ValueError(f"invalid hold amount: {amount!r}")
         days = CHARGEBACK_HOLD_DAYS if days is None else days
+        now = datetime.now(UTC)
+        start, basis = now, "payout_time"
+        if charged_at:
+            try:
+                start = datetime.fromisoformat(charged_at)
+                if start.tzinfo is None:
+                    start = start.replace(tzinfo=UTC)
+                start, basis = min(start, now), "charge_time"   # a future charge time must not extend the hold
+            except (TypeError, ValueError):
+                start = now
+        if basis == "payout_time":
+            _log.warning("HOLD FALLBACK: no usable charge time for hold ref=%r agent=%s (charged_at=%r); "
+                         "counting the %s-day chargeback window from payout time", ref, agent_id, charged_at, days)
         rec = {"hold_id": f"hold-{uuid.uuid4().hex[:10]}", "agent_id": agent_id, "amount": round(float(amount), 4),
-               "reason": reason, "ref": ref, "created_at": datetime.now(UTC).isoformat(),
-               "matures_at": (datetime.now(UTC) + timedelta(days=days)).isoformat()}
+               "reason": reason, "ref": ref, "created_at": now.isoformat(),
+               "charged_at": start.isoformat() if basis == "charge_time" else None, "hold_basis": basis,
+               "matures_at": (start + timedelta(days=days)).isoformat()}
         self._ledger["holds"].append(rec)
         self._save()
         return rec

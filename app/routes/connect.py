@@ -677,10 +677,17 @@ async def stripe_webhook_v1(request: Request) -> dict:
             else:
                 from app.routes.escrow import fund_escrow
                 from app.escrow import EscrowError
+                from datetime import UTC as _UTC, datetime as _dt
+                # The charge succeeded when Stripe emitted this signed event; no body field is trusted.
+                _evt_created = event.get("created") if isinstance(event, dict) else getattr(event, "created", None)
+                try:
+                    _charged_at = _dt.fromtimestamp(float(_evt_created), _UTC).isoformat()
+                except (TypeError, ValueError, OverflowError, OSError):
+                    _charged_at = None
                 try:
                     escrow_funded = await fund_escrow(
                         poster_id=metadata.get("poster_id", ""), amount=_stripe_amount, source="stripe_checkout",
-                        mission_id=metadata.get("mission_id") or None, stripe_session_id=_session_id, actor="stripe")
+                        mission_id=metadata.get("mission_id") or None, stripe_session_id=_session_id, charged_at=_charged_at, actor="stripe")
                 except EscrowError as exc:
                     state.audit.log("economy", "escrow_funding_failed", {"session_id": _session_id, "error": exc.message})
 

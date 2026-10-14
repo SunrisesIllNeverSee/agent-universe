@@ -68,9 +68,9 @@ def link_agreements(escrow: dict) -> list[str]:
 
 async def fund_escrow(*, poster_id: str, amount: float, source: str, mission_id: str | None,
                       agreement_id: str | None = None, stripe_session_id: str | None = None,
-                      actor: str = "operator") -> dict:
+                      charged_at: str | None = None, actor: str = "operator") -> dict:
     rec = state.escrow.fund(poster_id=poster_id, amount=amount, source=source, mission_id=mission_id,
-                            agreement_id=agreement_id, stripe_session_id=stripe_session_id)
+                            agreement_id=agreement_id, stripe_session_id=stripe_session_id, charged_at=charged_at)
     if rec.get("duplicate"):
         return {"escrow": rec, "seed": {"doi": None}, "duplicate": True}
     seeds = [await escrow_event(rec, "funded", actor=actor, source=source)]
@@ -102,7 +102,8 @@ async def release_to(escrow_id: str, agent_id: str, gross: float, *, source: str
         # Card money: what the agent was just credited is not cashable until the chargeback window closes.
         credited = (result.get("agent_transaction") or {}).get("amount", 0.0)
         try:
-            result["hold"] = state.economy.treasury.hold(agent_id, credited, reason="card_funded_payout", ref=escrow_id)
+            result["hold"] = state.economy.treasury.hold(agent_id, credited, reason="card_funded_payout", ref=escrow_id,
+                                                      charged_at=escrow.get("charged_at"))
         except Exception:
             state.economy.treasury.debit(agent_id, credited, reason="hold_failed_reversal")
             state.escrow.revert_release(escrow_id, rel["release_id"])
@@ -127,7 +128,8 @@ async def refund_to_poster(escrow_id: str, *, actor: str = "operator", reason: s
     hold = None
     try:
         if rec["source"] == "stripe_checkout":      # card money coming back is held like any card-derived balance
-            hold = state.economy.treasury.hold(rec["poster_id"], amount, reason="card_funded_refund", ref=escrow_id)
+            hold = state.economy.treasury.hold(rec["poster_id"], amount, reason="card_funded_refund", ref=escrow_id,
+                                                charged_at=rec.get("charged_at"))
         txn = state.economy.treasury.credit(rec["poster_id"], amount, reason="escrow_refund",
                                             mission_id=rec.get("mission_id") or escrow_id)
     except Exception:
