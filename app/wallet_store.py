@@ -105,7 +105,9 @@ CREATE TABLE IF NOT EXISTS payout_approvals (
     decided_by  TEXT NOT NULL DEFAULT '',
     transfer    TEXT NOT NULL DEFAULT '',
     review_reason TEXT NOT NULL DEFAULT '',
-    kind        TEXT NOT NULL DEFAULT 'chain'
+    kind        TEXT NOT NULL DEFAULT 'chain',
+    review_from TEXT NOT NULL DEFAULT '',
+    transfer_attempt INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS stripe_bindings (
     agent_id        TEXT NOT NULL,
@@ -163,6 +165,10 @@ class WalletStore:
             self._conn.execute("ALTER TABLE payout_approvals ADD COLUMN kind TEXT NOT NULL DEFAULT 'chain'")
         if "review_reason" not in cols:   # P5k: databases created before the recovery sweep
             self._conn.execute("ALTER TABLE payout_approvals ADD COLUMN review_reason TEXT NOT NULL DEFAULT ''")
+        if "review_from" not in cols:   # P5l: which claim the sweep found stuck ('approving' / 'rejecting')
+            self._conn.execute("ALTER TABLE payout_approvals ADD COLUMN review_from TEXT NOT NULL DEFAULT ''")
+        if "transfer_attempt" not in cols:   # P5l: Stripe idempotency-key generation
+            self._conn.execute("ALTER TABLE payout_approvals ADD COLUMN transfer_attempt INTEGER NOT NULL DEFAULT 0")
 
     def close(self) -> None:
         self._conn.close()
@@ -401,6 +407,12 @@ class WalletStore:
                     "UPDATE wallet_payouts SET status='void' WHERE payout_id=(SELECT payout_id FROM payout_approvals "
                     "WHERE approval_id=?)", (approval_id,))
 
+    def bump_transfer_attempt(self, approval_id: str) -> None:
+        """A Stripe transfer attempt that definitely did not happen: the next try uses a fresh idempotency key."""
+        with self._lock:
+            self._conn.execute("UPDATE payout_approvals SET transfer_attempt=transfer_attempt+1 WHERE approval_id=?",
+                               (approval_id,))
+
     def sweep_stuck_approvals(self, minutes: float, now: datetime | None = None) -> list[dict]:
         """P5k recovery: an approval claimed ('approving'/'rejecting') longer than ``minutes`` ago means the
         process died mid-settlement. Move it to 'needs_review' with the reservation still held and the reason
@@ -417,8 +429,9 @@ class WalletStore:
                           f"unknown whether the {'transfer' if r['status'] == 'approving' else 'refund'} went out. "
                           "Reservation still held. Check the chain/ledger before approving or rejecting.")
                 cur = self._conn.execute(
-                    "UPDATE payout_approvals SET status='needs_review', review_reason=? WHERE approval_id=? AND status=?",
-                    (reason, r["approval_id"], r["status"]))
+                    "UPDATE payout_approvals SET status='needs_review', review_reason=?, review_from=? "
+                    "WHERE approval_id=? AND status=?",
+                    (reason, r["status"], r["approval_id"], r["status"]))
                 if cur.rowcount == 1:
                     moved.append({"approval_id": r["approval_id"], "was": r["status"], "reason": reason})
         return moved

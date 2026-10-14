@@ -892,6 +892,7 @@ def create_transfer(
     connected_account_id: str,
     description: str = "SIGNOMY payout",
     metadata: dict | None = None,
+    idempotency_key: str | None = None,
 ) -> dict:
     """Transfer funds from platform balance to a connected account.
 
@@ -916,12 +917,14 @@ def create_transfer(
 
     stripe = _stripe_module
     try:
+        extra = {"idempotency_key": idempotency_key} if idempotency_key else {}
         transfer = stripe.Transfer.create(
             amount=amount_cents,
             currency="usd",
             destination=connected_account_id,
             description=description,
             metadata=metadata or {},
+            **extra,
         )
         return {
             "transfer_id": transfer.id,

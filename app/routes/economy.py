@@ -759,6 +759,24 @@ def _approver_inactive(agent_id: str) -> str:
     return ""
 
 
+def _refund_reservation(a: dict) -> bool:
+    """Give a reserved approval's money back exactly once. The refund is keyed by the reservation
+    (mission_id rev-<reserve_txn>); if that credit is already in the ledger (a refund that landed
+    before the process died, then was swept to needs_review) nothing more is credited."""
+    reason = "cashout_refund" if a.get("kind") == "stripe" else "withdrawal_reserve_refund"
+    mid = f"rev-{a['reserve_txn']}"
+    if a.get("reserve_txn") and any(t.get("type") == "credit" and t.get("mission_id") == mid
+                                    for t in state.economy.treasury.history(a["agent_id"], limit=None)):
+        return False
+    state.economy.treasury.credit(a["agent_id"], a["amount"], reason=reason, mission_id=mid)
+    return True
+
+
+# Stripe errors that mean the transfer definitely did not happen (and whose response Stripe would
+# replay for the same idempotency key): the next attempt must use a fresh key.
+_STRIPE_DEFINITIVE = {"InvalidRequestError", "PermissionError", "AuthenticationError"}
+
+
 @router.post("/api/operator/payout-approvals/{approval_id}/approve")
 async def approve_payout(approval_id: str, request: Request):
     """Pay a reserved withdrawal to the destination snapshotted at request time. Exactly one approve
@@ -769,16 +787,22 @@ async def approve_payout(approval_id: str, request: Request):
     a = state.wallets.get_approval(approval_id)
     if a is None:
         return JSONResponse({"error": "Approval not found"}, status_code=404)
+    if a["status"] == "needs_review" and a.get("review_from") == "rejecting":
+        # Stuck mid-refund: the reservation may already have gone back. Paying now could pay twice.
+        return JSONResponse({"error": "This approval was stuck while being rejected; the refund may already have gone out. "
+                                      "Reject it (the refund is applied at most once) instead of approving.",
+                             "approval": _approval_view(a)}, status_code=409)
     why = _approver_inactive(a["agent_id"])
-    if why and a["status"] in ("pending", "needs_review"):
+    if why and a["status"] == "needs_review":
+        return JSONResponse({"error": f"Agent cannot be paid: {why}. Reject this approval to refund the reservation.",
+                             "approval": _approval_view(a)}, status_code=409)
+    if why and a["status"] == "pending":
         # Never pay an agent that is no longer live. Give the reserved money back (the codebase has no
         # balance freeze for suspension, so it returns matured) and flag it for the operator.
         if not state.wallets.claim_approval(approval_id, "rejecting", "operator"):
             return JSONResponse({"noop": True, "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=409)
         try:
-            state.economy.treasury.credit(a["agent_id"], a["amount"],
-                                          reason="cashout_refund" if a.get("kind") == "stripe" else "withdrawal_reserve_refund",
-                                          mission_id=f"rev-{a['reserve_txn']}")
+            _refund_reservation(a)
         except Exception:
             state.wallets.settle_approval(approval_id, "pending")
             raise
@@ -820,14 +844,21 @@ async def _approve_stripe_payout(approval_id: str, a: dict):
     from the agent record, so a rebind in between cannot redirect it). The claim is already held, so
     the transfer happens at most once; a failed transfer returns the approval to pending, still reserved."""
     from app import kassa_payments
+    # Idempotency key per approval: re-approving something that was stuck mid-transfer (needs_review)
+    # replays the original transfer instead of creating a second one. It only advances after a
+    # definitive Stripe refusal, so a later retry (e.g. platform balance topped up) is not replayed.
+    cur = state.wallets.get_approval(approval_id) or a
     try:
         result = kassa_payments.create_transfer(
             amount_cents=int(round(a["amount"] * 100)), connected_account_id=a["address"],
             description=f"SIGNOMY payout — {a['agent_id']}",
-            metadata={"agent_id": a["agent_id"], "source": "treasury_cashout", "approval_id": approval_id})
+            metadata={"agent_id": a["agent_id"], "source": "treasury_cashout", "approval_id": approval_id},
+            idempotency_key=f"p5l-approval-{approval_id}-{cur.get('transfer_attempt', 0)}")
     except Exception as exc:  # noqa: BLE001
         result = {"error": str(exc)[:200]}
     if result.get("error") or not result.get("transfer_id"):
+        if result.get("type") in _STRIPE_DEFINITIVE:
+            state.wallets.bump_transfer_attempt(approval_id)
         state.wallets.settle_approval(approval_id, "pending")
         return JSONResponse({"error": f"transfer failed: {result.get('error', 'no transfer id')}",
                              "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=502)
@@ -851,9 +882,7 @@ async def reject_payout(approval_id: str, request: Request):
     if not state.wallets.claim_approval(approval_id, "rejecting", "operator"):
         return JSONResponse({"noop": True, "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=409)
     try:
-        state.economy.treasury.credit(a["agent_id"], a["amount"],
-                                      reason="cashout_refund" if a.get("kind") == "stripe" else "withdrawal_reserve_refund",
-                                      mission_id=f"rev-{a['reserve_txn']}")
+        _refund_reservation(a)
     except Exception:
         # The refund did not happen: do not strand the approval in 'rejecting' with the money lost.
         state.wallets.settle_approval(approval_id, "pending")
