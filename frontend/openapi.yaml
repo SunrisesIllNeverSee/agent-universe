@@ -565,7 +565,7 @@ paths:
       operationId: civitae_operator_reject_payout_approval
       summary: Reject a payout approval (confirmation required when stuck)
       description: >-
-        Operator only (X-Admin-Key). Rejects a payout approval and refunds the reservation. For a needs_review approval with review_from='approving' (the transfer may already have happened) a confirmation is required: stripe approvals first look up a transfer by metadata approval_id and are refused with 409 if one exists; if none is found or the lookup errors, the call returns 409 with the approval id and idempotency key (p5l-approval-<id>-<attempt>) until you retry with body {"checked_stripe": true}. Chain approvals need {"checked_chain": true}. The confirmation (who, when, what) is stored on the approval.
+        Operator only (X-Admin-Key). Rejects a payout approval and refunds the reservation. For a needs_review approval with review_from='approving' (the transfer may already have happened) a confirmation is required (also for a pending approval whose last payment attempt ended ambiguously, and for a needs_review approval with no recorded origin): stripe approvals first look up a transfer by metadata approval_id and are refused with 409 if one exists; if none is found or the lookup errors, the call returns 409 with the approval id and idempotency key (p5l-approval-<id>-<attempt>) until you retry with body {"checked_stripe": true}. Chain approvals need {"checked_chain": true}. The confirmation (who, when, what) is stored on the approval.
       security:
         - adminKey: []
       parameters:

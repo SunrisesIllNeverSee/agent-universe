@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 from pathlib import Path
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
@@ -481,6 +482,20 @@ def create_app(root: Path | None = None) -> FastAPI:
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
         response = await call_next(request)
+        if re.match(r"^/(admin|operator)(/|$)|^/assets/admin[^/]*\.html$", request.url.path):
+            # P5n: pages that handle the admin key run under a strict policy: first-party only, no
+            # analytics/fonts/Stripe hosts, no framing, no referrer, never cached.
+            response.headers["X-Frame-Options"] = "DENY"
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+            response.headers["Referrer-Policy"] = "no-referrer"
+            response.headers["Cache-Control"] = "no-store"
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; "
+                "base-uri 'none'; form-action 'self'"
+            )
+            return response
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"

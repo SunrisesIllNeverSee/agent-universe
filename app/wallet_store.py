@@ -407,12 +407,19 @@ class WalletStore:
                 (to_status, actor, datetime.now(UTC).isoformat(), approval_id))
             return cur.rowcount == 1
 
-    def settle_approval(self, approval_id: str, status: str, transfer: str = "") -> None:
+    def settle_approval(self, approval_id: str, status: str, transfer: str = "", ambiguous: bool = False) -> None:
         """Final state for a claimed approval: 'approved' / 'rejected', or back to 'pending' if the transfer
-        did not happen. Rejection frees the cap usage; the reservation refund is the caller's job."""
+        did not happen. Rejection frees the cap usage; the reservation refund is the caller's job.
+        ``ambiguous`` (P5n): a failure that does not prove the transfer did not go out (timeout, exception
+        mid-transfer). The approval returns to 'pending' marked review_from='approving' so a reject still
+        needs the operator's confirmation; a definitive failure clears the mark."""
         with self._lock:
-            self._conn.execute("UPDATE payout_approvals SET status=?, transfer=? WHERE approval_id=?",
-                               (status, transfer, approval_id))
+            if status == "pending":
+                self._conn.execute("UPDATE payout_approvals SET status=?, transfer=?, review_from=? WHERE approval_id=?",
+                                   (status, transfer, "approving" if ambiguous else "", approval_id))
+            else:
+                self._conn.execute("UPDATE payout_approvals SET status=?, transfer=? WHERE approval_id=?",
+                                   (status, transfer, approval_id))
             if status == "rejected":
                 self._conn.execute(
                     "UPDATE wallet_payouts SET status='void' WHERE payout_id=(SELECT payout_id FROM payout_approvals "

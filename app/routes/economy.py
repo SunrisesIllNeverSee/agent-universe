@@ -759,6 +759,15 @@ def _approver_inactive(agent_id: str) -> str:
     return ""
 
 
+def _money_may_have_moved(a: dict) -> bool:
+    """P5n: True when a transfer for this approval may already have gone out, so refunding it (reject, or the
+    inactive-agent auto-refund) needs the operator's confirmation. Fail closed: every needs_review row except
+    one swept from 'rejecting' (the refund side), and a pending row whose last attempt ended ambiguously."""
+    if a["status"] == "needs_review":
+        return a.get("review_from") != "rejecting"
+    return a["status"] == "pending" and a.get("review_from") == "approving"
+
+
 def _refund_reservation(a: dict) -> bool:
     """Give a reserved approval's money back exactly once. The refund is keyed by the reservation
     (mission_id rev-<reserve_txn>); if that credit is already in the ledger (a refund that landed
@@ -796,6 +805,10 @@ async def approve_payout(approval_id: str, request: Request):
     if why and a["status"] == "needs_review":
         return JSONResponse({"error": f"Agent cannot be paid: {why}. Reject this approval to refund the reservation.",
                              "approval": _approval_view(a)}, status_code=409)
+    if why and a["status"] == "pending" and _money_may_have_moved(a):
+        return JSONResponse({"error": f"Agent cannot be paid: {why}. The last payment attempt ended without a clear result, so a transfer "
+                                      "may already have gone out. Reject this approval (with the Stripe/chain check confirmation) to refund the reservation.",
+                             "approval": _approval_view(a)}, status_code=409)
     if why and a["status"] == "pending":
         # Never pay an agent that is no longer live. Give the reserved money back (the codebase has no
         # balance freeze for suspension, so it returns matured) and flag it for the operator.
@@ -823,7 +836,7 @@ async def approve_payout(approval_id: str, request: Request):
     try:
         transfer = _get_chain_router().transfer(a["chain"], a["address"], a["amount"], agent_id=a["agent_id"], confirm=True)
     except Exception as exc:
-        state.wallets.settle_approval(approval_id, "pending")
+        state.wallets.settle_approval(approval_id, "pending", ambiguous=True)   # P5n: may have broadcast
         return JSONResponse({"error": f"transfer failed: {exc}", "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=502)
     st = str(transfer.get("status", "")).upper()
     if st in ("BLOCKED", "AWAITING_CONFIRMATION", "ERROR", "FAILED") or "stub" in (transfer.get("note") or "").lower():
@@ -857,9 +870,10 @@ async def _approve_stripe_payout(approval_id: str, a: dict):
     except Exception as exc:  # noqa: BLE001
         result = {"error": str(exc)[:200]}
     if result.get("error") or not result.get("transfer_id"):
-        if result.get("type") in _STRIPE_DEFINITIVE:
+        definitive = result.get("type") in _STRIPE_DEFINITIVE
+        if definitive:
             state.wallets.bump_transfer_attempt(approval_id)
-        state.wallets.settle_approval(approval_id, "pending")
+        state.wallets.settle_approval(approval_id, "pending", ambiguous=not definitive)   # P5n
         return JSONResponse({"error": f"transfer failed: {result.get('error', 'no transfer id')}",
                              "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=502)
     import json as _json
@@ -880,7 +894,7 @@ async def reject_payout(approval_id: str, request: Request):
     if a is None:
         return JSONResponse({"error": "Approval not found"}, status_code=404)
     confirmed = ""
-    if a["status"] == "needs_review" and a.get("review_from") == "approving":
+    if _money_may_have_moved(a):
         # P5m: stuck mid-transfer, so money may already have gone out. Reject (refund) only after the
         # operator confirms they checked; for Stripe, look the transfer up first and refuse outright if it exists.
         try:
