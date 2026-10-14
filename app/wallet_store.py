@@ -107,7 +107,10 @@ CREATE TABLE IF NOT EXISTS payout_approvals (
     review_reason TEXT NOT NULL DEFAULT '',
     kind        TEXT NOT NULL DEFAULT 'chain',
     review_from TEXT NOT NULL DEFAULT '',
-    transfer_attempt INTEGER NOT NULL DEFAULT 0
+    transfer_attempt INTEGER NOT NULL DEFAULT 0,
+    reject_confirmed_by TEXT NOT NULL DEFAULT '',
+    reject_confirmed_at TEXT NOT NULL DEFAULT '',
+    reject_confirmed_what TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS stripe_bindings (
     agent_id        TEXT NOT NULL,
@@ -169,6 +172,9 @@ class WalletStore:
             self._conn.execute("ALTER TABLE payout_approvals ADD COLUMN review_from TEXT NOT NULL DEFAULT ''")
         if "transfer_attempt" not in cols:   # P5l: Stripe idempotency-key generation
             self._conn.execute("ALTER TABLE payout_approvals ADD COLUMN transfer_attempt INTEGER NOT NULL DEFAULT 0")
+        for col in ("reject_confirmed_by", "reject_confirmed_at", "reject_confirmed_what"):   # P5m
+            if col not in cols:
+                self._conn.execute(f"ALTER TABLE payout_approvals ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
 
     def close(self) -> None:
         self._conn.close()
@@ -406,6 +412,14 @@ class WalletStore:
                 self._conn.execute(
                     "UPDATE wallet_payouts SET status='void' WHERE payout_id=(SELECT payout_id FROM payout_approvals "
                     "WHERE approval_id=?)", (approval_id,))
+
+    def record_reject_confirmation(self, approval_id: str, actor: str, what: str) -> None:
+        """P5m: the operator confirmed they checked Stripe / the chain before rejecting an approval
+        that was stuck in 'approving' (a transfer may already have gone out). Who, when, and what."""
+        with self._lock:
+            self._conn.execute(
+                "UPDATE payout_approvals SET reject_confirmed_by=?, reject_confirmed_at=?, reject_confirmed_what=? "
+                "WHERE approval_id=?", (actor, datetime.now(UTC).isoformat(), what, approval_id))
 
     def bump_transfer_attempt(self, approval_id: str) -> None:
         """A Stripe transfer attempt that definitely did not happen: the next try uses a fresh idempotency key."""
