@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from .economy import SovereignEconomy
     from .kassa_store import KassaStore
     from .workentry_store import WorkEntryStore
+    from .wallet_store import WalletStore
     from .escrow import EscrowStore
     from .inbox_store import InboxStore
     from .forums_store import ForumsStore
@@ -33,6 +34,7 @@ class AppState:
     store: MessageStore
     kassa: KassaStore
     workentry: WorkEntryStore
+    wallets: WalletStore
     escrow: EscrowStore
     inbox: InboxStore
     forums: ForumsStore

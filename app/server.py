@@ -27,6 +27,7 @@ from .runtime import RuntimeState
 from .store import MessageStore
 from .kassa_store import KassaStore
 from .workentry_store import WorkEntryStore
+from .wallet_store import WalletStore
 from .escrow import EscrowStore
 from .inbox_store import InboxStore
 from .forums_store import ForumsStore
@@ -152,6 +153,7 @@ def create_app(root: Path | None = None) -> FastAPI:
     state.store = store
     state.kassa = kassa
     state.workentry = workentry
+    state.wallets = WalletStore(data_dir / "wallets.db")
     # Durable SQLite (atomic release/refund); ESCROW_STORE=json keeps the legacy single-replica file.
     state.escrow = (EscrowStore(data_dir / "escrow.json") if os.environ.get("ESCROW_STORE") == "json"
                     else EscrowStore(data_dir / "escrow.db", import_json=data_dir / "escrow.json"))
@@ -350,6 +352,7 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/kassa/webhooks/stripe",
         "/api/connect/",
         "/api/economy/withdraw",  # P5e: authorized in-handler (own agent JWT or admin key)
+        "/api/economy/wallets",   # P5g: linked wallets, authorized in-handler (own agent JWT or admin key)
         "/api/forums/threads",
         "/api/contact",
         "/api/advisory/apply",

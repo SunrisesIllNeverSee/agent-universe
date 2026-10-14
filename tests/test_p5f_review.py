@@ -37,6 +37,11 @@ def router(monkeypatch):
     return r
 
 
+def _link(agent_id):
+    """P5g: withdrawals only go to a linked wallet."""
+    state.wallets.link(agent_id, "base", BODY["to"])
+
+
 def _fund(agent_id, amount):
     state.economy.treasury.credit(agent_id, amount, reason="test_seed_balance")
 
@@ -57,6 +62,7 @@ def test_partly_held_balance_limits_to_matured(client, router):
     d, _, jwt = _agent(client)
     aid = d["agent_id"]
     _fund(aid, 50)
+    _link(aid)
     state.economy.treasury.hold(aid, 30, reason="card_funded_payout", ref="esc-y")   # 20 matured
     assert "error" in client.post("/api/economy/withdraw", json={**BODY, "amount": 21}, headers=jwt).json()
     assert router.calls == []
@@ -71,7 +77,8 @@ def test_adapter_error_status_does_not_debit(client, router):
     d, _, jwt = _agent(client)
     aid = d["agent_id"]
     _fund(aid, 50)
-    r = client.post("/api/economy/withdraw", json={**BODY, "chain": "nonesuch"}, headers=jwt)
+    _link(aid)
+    r = client.post("/api/economy/withdraw", json=BODY, headers=jwt)
     assert r.status_code == 200 and r.json()["withdrawal"] is None, r.text
     assert state.economy.treasury.balance(aid) == 50
 
