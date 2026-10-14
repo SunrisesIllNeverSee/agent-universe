@@ -317,8 +317,10 @@ def test_canary_claim_guard_removal_is_detected(client, world, monkeypatch):
 
 def test_canary_middleware_removal_is_detected(client, world, monkeypatch):
     import app.server as server
-    # Mission verbs now also enforce principal ownership in the handler (D-B),
-    # so they no longer rely on the middleware alone; probe a verb that does.
-    assert not _breached(client, world, "withdraw")
+    # Mission verbs and (since P5e) withdraw enforce the principal in the handler, so they no
+    # longer rely on the middleware alone. Probe a non-public write path instead: denied by the
+    # middleware (403) while it holds, and falling through to routing (404) once it is gone.
+    probe = "/api/operator/__canary__"
+    assert client.post(probe, json={}).status_code in DENIED
     monkeypatch.setattr(server, "admin_key_matches", lambda *a, **kw: True)
-    assert _breached(client, world, "withdraw")
+    assert client.post(probe, json={}).status_code not in DENIED

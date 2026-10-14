@@ -473,17 +473,35 @@ async def get_leaderboard(trust: str = "governed") -> dict:
 # ── Withdraw ─────────────────────────────────────────────────────────────────
 
 @router.post("/api/economy/withdraw")
-async def withdraw(payload: WithdrawPayload) -> dict:
+async def withdraw(payload: WithdrawPayload, request: Request) -> dict:
     """Withdraw from treasury to external chain. Goes through governance gate.
 
     Chain adapters are currently stubbed — they return SIGNED but never submit.
     To prevent balance drain, we check for stub responses and hold funds in escrow.
     Real withdrawals will work once chain adapters are connected to RPC endpoints.
     """
-    chain_router = _get_chain_router()
-    agent_id = payload.agent_id
+    # Principal (P5e): the authenticated agent withdraws only its own matured balance;
+    # the operator admin key may name any agent. The body never picks whose money moves.
+    from app.auth import admin_key_matches
+    if admin_key_matches(request, state.admin_key):
+        agent_id = payload.agent_id
+        if not agent_id:
+            return JSONResponse({"error": "agent_id required"}, status_code=400)
+    else:
+        if not _verify_jwt(request):
+            return JSONResponse({"error": "Valid Bearer token or admin key required"}, status_code=401)
+        principal = _jwt_live_agent(request)
+        if principal is None:
+            return JSONResponse({"error": "Credential revoked or principal inactive"}, status_code=401)
+        agent_id = principal.get("agent_id", "")
+        if payload.agent_id and payload.agent_id != agent_id:
+            return JSONResponse({"error": "Cannot withdraw another agent's balance"}, status_code=403)
     amount = payload.amount
     chain = payload.chain
+    if not amount > 0:
+        return JSONResponse({"error": "amount must be positive"}, status_code=400)
+
+    chain_router = _get_chain_router()
 
     # Pre-flight: check governance gate before touching the ledger
     transfer = chain_router.transfer(chain, payload.to, amount, agent_id=agent_id, confirm=payload.confirm)
