@@ -937,3 +937,23 @@ def create_transfer(
         return {"error": str(e), "type": type(e).__name__}
     except Exception as e:
         return {"error": str(e)}
+
+
+def find_transfer_by_approval(approval_id: str, connected_account_id: str) -> dict:
+    """P5m: look up a platform transfer made for a payout approval (matched on the transfer metadata
+    ``approval_id`` that approve sets), so an operator cannot reject-and-refund an approval whose
+    transfer actually went out. Returns {"found": True, "transfer_id": ...}, {"found": False}, or
+    {"error": ...} when Stripe could not be asked (the caller then needs the operator's confirmation)."""
+    if not _stripe_ready:
+        return {"error": "Stripe not configured."}
+    stripe = _stripe_module
+    try:
+        kw = {"limit": 100}
+        if connected_account_id:
+            kw["destination"] = connected_account_id
+        for t in stripe.Transfer.list(**kw).auto_paging_iter():
+            if (getattr(t, "metadata", None) or {}).get("approval_id") == approval_id:
+                return {"found": True, "transfer_id": t.id}
+        return {"found": False}
+    except Exception as e:  # noqa: BLE001
+        return {"error": str(e)[:200]}

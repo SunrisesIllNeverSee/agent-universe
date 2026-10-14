@@ -879,8 +879,44 @@ async def reject_payout(approval_id: str, request: Request):
     a = state.wallets.get_approval(approval_id)
     if a is None:
         return JSONResponse({"error": "Approval not found"}, status_code=404)
+    confirmed = ""
+    if a["status"] == "needs_review" and a.get("review_from") == "approving":
+        # P5m: stuck mid-transfer, so money may already have gone out. Reject (refund) only after the
+        # operator confirms they checked; for Stripe, look the transfer up first and refuse outright if it exists.
+        try:
+            body = await request.json()
+        except Exception:  # noqa: BLE001
+            body = {}
+        body = body if isinstance(body, dict) else {}
+        stripe_kind = a.get("kind") == "stripe"
+        flag = "checked_stripe" if stripe_kind else "checked_chain"
+        if stripe_kind:
+            from app import kassa_payments
+            key = f"p5l-approval-{approval_id}-{a.get('transfer_attempt', 0)}"
+            found = kassa_payments.find_transfer_by_approval(approval_id, a["address"])
+            if found.get("found"):
+                return JSONResponse({"error": f"Stripe already has a transfer for this approval ({found.get('transfer_id')}). "
+                                              "Rejecting would refund money that was paid. Approve it (replays the same transfer) "
+                                              "or settle it by hand; reject is refused.",
+                                     "transfer_id": found.get("transfer_id"), "approval": _approval_view(a)}, status_code=409)
+            if body.get(flag) is not True:
+                return JSONResponse({"error": "This approval was stuck while paying; a Stripe transfer may already have gone out. "
+                                              "Check the Stripe dashboard for a transfer to "
+                                              f"{a['address']} with idempotency key {key} (approval {approval_id}, metadata approval_id), "
+                                              f"then retry with {{\"checked_stripe\": true}}.",
+                                     "requires": flag, "idempotency_key": key,
+                                     "stripe_lookup": "unavailable" if found.get("error") else "none found",
+                                     "approval": _approval_view(a)}, status_code=409)
+        elif body.get(flag) is not True:
+            return JSONResponse({"error": "This approval was stuck while paying; an on-chain transfer may already have gone out. "
+                                          f"Check the {a['chain']} chain for a transfer to {a['address']} (approval {approval_id}), "
+                                          f"then retry with {{\"checked_chain\": true}}.",
+                                 "requires": flag, "approval": _approval_view(a)}, status_code=409)
+        confirmed = flag
     if not state.wallets.claim_approval(approval_id, "rejecting", "operator"):
         return JSONResponse({"noop": True, "approval": _approval_view(state.wallets.get_approval(approval_id))}, status_code=409)
+    if confirmed:
+        state.wallets.record_reject_confirmation(approval_id, "operator", confirmed)
     try:
         _refund_reservation(a)
     except Exception:

@@ -346,7 +346,22 @@ function askConfirm(card, a, action) {
   var acts = el('div', 'review-actions');
   var yes = el('button', 'review-btn ' + action, 'Confirm ' + action);
   yes.setAttribute('data-testid', 'confirm-' + action);
-  yes.onclick = function () { yes.disabled = true; decide(card, a.approval_id, action); };
+  // P5m: rejecting an approval stuck while paying needs the operator to confirm they checked first.
+  var stuckPaying = action === 'reject' && a.status === 'needs_review' && a.review_from === 'approving';
+  var chk = null;
+  if (stuckPaying) {
+    var what = a.kind === 'stripe' ? 'Stripe' : 'the chain';
+    var lab = el('label', 'review-body');
+    chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.setAttribute('data-testid', 'confirm-checked');
+    lab.appendChild(chk);
+    lab.appendChild(document.createTextNode(' I checked ' + what + ' and no transfer went out'));
+    bar.appendChild(lab);
+    yes.disabled = true;
+    chk.onchange = function () { yes.disabled = !chk.checked; };
+  }
+  yes.onclick = function () { yes.disabled = true; decide(card, a.approval_id, action, stuckPaying ? (a.kind === 'stripe' ? {checked_stripe: true} : {checked_chain: true}) : null); };
   var no = el('button', 'review-btn', 'Cancel');
   no.setAttribute('data-testid', 'confirm-cancel');
   no.onclick = function () { bar.remove(); };
@@ -355,8 +370,10 @@ function askConfirm(card, a, action) {
   card.appendChild(bar);
 }
 
-function decide(card, id, action) {
-  fetch(API + '/api/operator/payout-approvals/' + encodeURIComponent(id) + '/' + action, { method: 'POST', headers: hdrs() })
+function decide(card, id, action, body) {
+  var opts = { method: 'POST', headers: hdrs() };
+  if (body) { opts.headers = hdrs({'Content-Type': 'application/json'}); opts.body = JSON.stringify(body); }
+  fetch(API + '/api/operator/payout-approvals/' + encodeURIComponent(id) + '/' + action, opts)
     .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); })
     .then(function (x) {
       var bar = card.querySelector('.confirm-bar');
