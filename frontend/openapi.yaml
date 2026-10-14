@@ -571,6 +571,7 @@ paths:
       parameters:
         - name: approval_id
           in: path
+          description: Payout approval id
           required: true
           schema: { type: string }
       requestBody:
