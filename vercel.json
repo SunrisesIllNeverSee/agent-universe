@@ -20,6 +20,7 @@
     { "source": "/fee-credit-packs", "destination": "/fee-credits", "statusCode": 301 }
   ],
   "rewrites": [
+    { "source": "/admin/payouts", "destination": "/admin-payouts.html" },
     {
       "source": "/",
       "has": [
@@ -144,6 +145,16 @@
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" },
         { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
+    },
+    {
+      "source": "/(admin|admin.html|admin-payouts|admin-payouts.html|admin/(.*))",
+      "headers": [
+        { "key": "Content-Security-Policy", "value": "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "Cache-Control", "value": "no-store" },
+        { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" }
       ]
     }
   ]
