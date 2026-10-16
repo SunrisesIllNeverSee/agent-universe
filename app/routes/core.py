@@ -819,7 +819,8 @@ async def thread_websocket(thread_id: str, websocket: WebSocket) -> None:
 
     await thread_hub.connect(thread_id, websocket)
     # Send current thread info on connect
-    safe_thread = {k: v for k, v in thread.items() if k not in ("magic_token", "magic_token_plain")}
+    from app.public_projection import kassa_thread_view
+    safe_thread = kassa_thread_view(thread, viewer_is_poster=not jwt_token)
     await websocket.send_json({"type": "thread_info", "payload": safe_thread})
     try:
         while True:

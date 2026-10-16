@@ -208,7 +208,8 @@ def test_agent_thread_list_response_fields(client, admin_client):
     t = next(t for t in r.json() if t["thread_id"] == tid)
     # H5F-07 (post-fix): the agent's own thread list must not return the stored
     # magic_token hash — same strip contract as GET /api/kassa/threads/{id}.
-    # poster_email stays: the agent is a thread participant (REST parity).
+    # Leak sweep 2026-10-16: poster_email is no longer shown to the staking agent
+    # (tests/test_leak_sweep_kassa_thread.py); the poster sees it via the magic link.
     assert "magic_token" not in t and "magic_token_plain" not in t, t.keys()
 
 

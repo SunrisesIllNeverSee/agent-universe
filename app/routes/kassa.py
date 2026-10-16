@@ -34,7 +34,7 @@ from app.deps import state
 from app.jwt_config import issue_agent_jwt
 from app.sanitize import sanitize_text, sanitize_name, detect_prompt_injection
 from app.seeds import create_seed, create_seed_loud
-from app.public_projection import public_kassa_post
+from app.public_projection import kassa_thread_view, public_kassa_post
 from app.notifications import (
     send_magic_link,
     send_message_notification,
@@ -575,10 +575,7 @@ async def get_agent_threads(request: Request) -> list:
     threads = state.kassa.load_threads(agent_id=agent["agent_id"])
     # Strip poster credential material — same contract as the single-thread
     # GET (H5F-07).
-    return [
-        {k: v for k, v in t.items() if k not in ("magic_token", "magic_token_plain")}
-        for t in threads if t.get("status") == "open"
-    ]
+    return [kassa_thread_view(t, viewer_is_poster=False) for t in threads if t.get("status") == "open"]
 
 
 @router.get("/api/kassa/threads/{thread_id}")
@@ -602,9 +599,8 @@ async def get_thread(thread_id: str, request: Request, magic: str = "") -> dict:
     else:
         raise HTTPException(status_code=401, detail="Auth required -- use Bearer token or magic link")
 
-    # Strip magic_token hash and plain token from response
-    safe = {k: v for k, v in thread.items() if k not in ("magic_token", "magic_token_plain")}
-    return safe
+    # Never the poster credential; the poster's address only to the poster (magic link).
+    return kassa_thread_view(thread, viewer_is_poster=not auth_header.startswith("Bearer "))
 
 
 @router.get("/api/kassa/threads/{thread_id}/messages")
