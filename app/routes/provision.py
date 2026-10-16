@@ -436,7 +436,7 @@ async def agent_provision_status(agent_id: str, request: Request) -> dict:
     tier = economy.determine_tier(agent_metrics)
     tier_info = economy.tier_info(tier)
 
-    return {
+    result = {
         "agent_id": agent_id,
         "agent_name": agent.get("name"),
         "name": agent.get("name"),
@@ -448,13 +448,16 @@ async def agent_provision_status(agent_id: str, request: Request) -> dict:
             "role": runtime.governance.role,
         },
         "assigned_role": agent.get("role"),
-        "rate_limit": agent.get("rate_limit"),
         "loaded_context": runtime.vault.loaded,
         "tier": tier,
         "fee_rate": tier_info.get("fee_rate"),
         "tier_label": tier_info.get("label"),
         "provisioned": agent.get("provisioned_at") or agent.get("created_at"),
     }
+    if provided_key:
+        # Key verified above: the agent's own provisioning settings are its own data.
+        result["rate_limit"] = agent.get("rate_limit")
+    return result
 
 
 @router.get("/api/provision/registry")
