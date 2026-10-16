@@ -23,6 +23,7 @@ from fastapi.responses import JSONResponse
 
 from app.deps import state
 from app.metrics_io import load_metrics
+from app.public_projection import public_mailbox
 from app.otel_setup import get_tracer as _get_tracer
 
 router = APIRouter(tags=["matcher"])
@@ -140,7 +141,7 @@ async def match_agents_for_post(post_id: str, limit: int = 5) -> dict:
         scored.append({
             "agent_id": agent_id,
             "handle": agent.get("name", agent_id),
-            "email": agent.get("email", f"{agent_id}@signomy.xyz"),
+            "email": public_mailbox(agent),
             "tier": tier,
             "score": round(final, 4),
             "breakdown": {

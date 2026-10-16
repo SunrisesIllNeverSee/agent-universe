@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from app.deps import state
 from app.jwt_config import get_kassa_jwt_secret
 from app.metrics_io import load_metrics
+from app.public_projection import public_mailbox
 from app.seeds import create_seed
 
 router = APIRouter(tags=["agents"])
@@ -62,7 +63,7 @@ async def api_agents_directory() -> dict:
             "agent_id": agent_id,
             "handle": handle,
             "display_name": reg.get("name", agent_id),
-            "email": reg.get("email", f"{agent_id}@signomy.xyz"),
+            "email": public_mailbox(reg),
             "agent_type": reg.get("system") or "general",
             "collaborator_type": "AAI" if reg.get("type") == "agent" else "BI",
             "tier": tier,
@@ -183,7 +184,7 @@ async def api_agent_profile(handle: str) -> dict:
         "agent_id": agent_id,
         "handle": agent.get("handle") or agent.get("name", agent_id),
         "display_name": agent.get("name", agent_id),
-        "email": agent.get("email", f"{agent_id}@signomy.xyz"),
+        "email": public_mailbox(agent),
         "agent_type": agent.get("system") or "general",
         "collaborator_type": collaborator_type,
         "tier": tier,
