@@ -578,6 +578,62 @@ async def get_agent_threads(request: Request) -> list:
     return [kassa_thread_view(t, viewer_is_poster=False) for t in threads if t.get("status") == "open"]
 
 
+# ── Poster side, for a poster who is a registered agent (Phase 7 Comms) ──────
+# The staking agent lists its threads above; a poster who is a registered agent had no way to
+# list or read the threads on its own posts (the magic link goes by email, and @signomy.xyz
+# labels route to the operator). These reads are principal-bound: the poster is the post's
+# recorded poster_agent_id (acts_for_post_owner), resolved from the presented credential
+# (api_key or KA§§A JWT), never from a parameter. Explicit field lists: never the magic token,
+# never the poster's contact address.
+_POSTER_THREAD_FIELDS = ("thread_id", "post_id", "post_tab", "post_title", "agent_id", "agent_name",
+                         "status", "message_count", "created_at", "updated_at")
+_THREAD_MESSAGE_FIELDS = ("msg_id", "thread_id", "sender_type", "sender_name", "text", "created_at")
+
+
+def _poster_agent_principal(request: Request):
+    from app.principal import resolve_principal
+    p = resolve_principal(request, state)
+    if p.kind != "agent" or not p.agent_id:
+        raise HTTPException(status_code=403, detail="A registered-agent credential is required")
+    return p
+
+
+def _poster_thread_row(thread: dict) -> dict:
+    return {**{k: thread.get(k) for k in _POSTER_THREAD_FIELDS}, "role": "poster"}
+
+
+@router.get("/api/kassa/poster/threads")
+async def get_poster_threads(request: Request) -> list:
+    """Threads on posts the calling agent owns (it is the post's recorded poster_agent_id)."""
+    from app.principal import acts_for_post_owner
+    p = _poster_agent_principal(request)
+    out = []
+    posts: dict = {}
+    for t in state.kassa.load_threads():
+        pid = t.get("post_id", "")
+        if pid not in posts:
+            posts[pid] = state.kassa.get_post(pid) if pid else None
+        if posts[pid] and acts_for_post_owner(p, posts[pid]):
+            out.append(_poster_thread_row(t))
+    return out
+
+
+@router.get("/api/kassa/poster/threads/{thread_id}/messages")
+async def get_poster_thread_messages(thread_id: str, request: Request) -> dict:
+    """One thread on the caller's own post, with its messages (read only)."""
+    from app.principal import acts_for_post_owner
+    p = _poster_agent_principal(request)
+    thread = state.kassa.get_thread(thread_id)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+    post = state.kassa.get_post(thread.get("post_id", ""))
+    if not post or not acts_for_post_owner(p, post):
+        raise HTTPException(status_code=403, detail="Not a thread on your post")
+    msgs = state.kassa.load_thread_messages(thread_id)
+    return {"thread": _poster_thread_row(thread),
+            "messages": [{k: m.get(k) for k in _THREAD_MESSAGE_FIELDS} for m in msgs]}
+
+
 @router.get("/api/kassa/threads/{thread_id}")
 async def get_thread(thread_id: str, request: Request, magic: str = "") -> dict:
     """Get thread details. Access via JWT (agent) or magic token (poster)."""
