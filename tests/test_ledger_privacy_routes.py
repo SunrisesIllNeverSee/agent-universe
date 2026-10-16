@@ -161,3 +161,15 @@ def test_public_seed_and_audit_views_drop_money_fields(client, admin_client, pai
     body = client.get("/api/audit").text
     assert "lp-buyer-xyz" not in client.get(f"/api/seeds/{doi}").text
     assert "216.05" not in body                                   # 5% commission on 4321.0
+
+
+def test_public_projection_money_keys_dropped_at_any_depth():
+    from app.public_projection import public_audit_event, public_seed
+    ev = public_audit_event({"id": "1", "timestamp": "t", "component": "economy", "action": "escrow_checkout_initiated",
+                             "detail": {"mission_id": "m1", "amount_cents": 12345, "nested": {"amount_usd": 9.99,
+                                        "balance_after": 1.0, "fee_breakdown": {"gross": 5}}}})
+    assert ev["detail"] == {"mission_id": "m1", "nested": {}}
+    seed = public_seed({"doi": "au:x", "creator_id": "agent-1", "creator_type": "AAI", "source_type": "mission_payout",
+                        "metadata": {"action": "mission_payout", "agent_id": "agent-1", "gross": 10.0,
+                                     "net_to_agent": 9.0, "platform_fee": 1.0}})
+    assert seed["metadata"] == {"action": "mission_payout", "agent_id": "agent-1"}

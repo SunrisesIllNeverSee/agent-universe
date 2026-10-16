@@ -56,7 +56,10 @@ PRIVATE_DETAIL_KEYS = frozenset({
     "fee_breakdown", "balance", "balance_after", "remaining_balance", "matured", "held",
     "purchase_amount", "commission_amount", "buyer_id", "reward", "reward_economic", "total_economic",
     "settlement_due", "settlement_paid", "trial_liability", "would_have_paid", "credited", "consumed",
-    "requested", "price_usd", "price_cents",
+    "requested", "price", "price_usd", "price_cents", "amount_usd", "amount_cents", "amount_paid",
+    "unit_amount", "paid_usd", "fee_usd", "agent_balance", "balances", "stripe_balance", "payout",
+    "payout_amount", "total_payout", "released_total", "refunded_total",
+    "trial_liability_accrued", "trial_liability_forgiven",
 })
 PLATFORM_MAIL_DOMAIN = "@signomy.xyz"
 REDACTED = "[redacted]"
