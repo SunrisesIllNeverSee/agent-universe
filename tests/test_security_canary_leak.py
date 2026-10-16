@@ -19,6 +19,9 @@ Product decisions recorded here:
 - Linked wallet addresses are PRIVATE: the product only shows them to the owning agent
   (GET /api/economy/wallets, JWT-bound) and the operator (payout approvals, admin key).
 - Stripe account / checkout-session ids are PRIVATE (owner/operator only).
+- Per-agent money is PRIVATE (ledger privacy, 2026-10-16): balances, ledger rows, fee-credit
+  balances, trial liability, commission buyer ids and amounts, recruitment rewards. Only the
+  agent itself and the operator may read them; aggregate treasury totals stay public.
 """
 from __future__ import annotations
 
@@ -54,6 +57,13 @@ SESSION_A = f"cs_CANARY{TAG}checkoutsessionA"
 SKIP_ROUTES = {
     # FastAPI's /api/* JSON 404 fallback; it never reads stores.
     "/api/{unmatched_path:path}": "catch-all 404 handler, no data access",
+}
+
+# Canary labels a route may still show while an owner decision is pending (route -> labels).
+# Each entry is a STOP recorded in the ledger-privacy report; remove it when the owner rules.
+OWNER_STOP_ALLOW = {
+    # tests/test_routes_economy.py::test_balance_zero_for_new_agent asserts an anonymous 200.
+    "/api/economy/balance/{agent_id}": {"treasury.balance"},
 }
 
 # Path-parameter names whose values we cannot derive get this probe value.
@@ -262,6 +272,30 @@ def _plant(capp, state, admin_key: str) -> dict:
     esc = state.escrow.fund(poster_id=a["agent_id"], amount=5.0, source="stripe_checkout",
                             stripe_session_id=secret("A", "escrow.stripe_session_id", SESSION_A))
 
+    # ── per-agent money (ledger privacy 2026-10-16): unmistakable amounts and ledger text ──
+    aid = a["agent_id"]
+    state.economy.treasury.credit(aid, 73113.37, reason=secret("A", "ledger.reason", S("ledger_reason")),
+                                  mission_id=secret("A", "ledger.mission_id", S("ledger_mission")))
+    secret("A", "ledger.credit_amount", "73113.37")
+    state.economy.fee_credits.credit(aid, 6464.6464, pack_name=secret("A", "fee_credit.pack", S("fee_pack")))
+    secret("A", "fee_credit.balance", "6464.6464")
+    state.economy.trials.init_trial(aid)
+    state.economy.trials.record_trial_mission(aid, 5151.5151)
+    secret("A", "trial.liability", "5151.5151")
+    r = admin.post("/api/kassa/commissions", json={
+        "referrer_id": aid, "buyer_id": secret("A", "commission.buyer_id", S("commission_buyer")),
+        "product_post_id": live_post, "purchase_amount": 8282.82, "commission_rate": 0.1})
+    assert r.status_code == 200, r.text
+    secret("A", "commission.purchase_amount", "8282.82")
+    secret("A", "commission.amount", "828.282")
+    r = admin.post("/api/kassa/recruitments", json={
+        "recruiter_id": aid, "recruited_id": b["agent_id"], "base_economic": 3737.37})
+    assert r.status_code == 200, r.text
+    secret("A", "recruitment.reward_economic", "3737.37")
+    balance = json.dumps(state.economy.treasury.balance(aid))
+    assert len(balance) >= 8, balance          # unmistakable, never a small common number
+    secret("A", "treasury.balance", balance)
+
     # ── platform secrets ──
     secret("platform", "admin_key", admin_key)
     if state.jwt_secret:
@@ -284,9 +318,9 @@ def _plant(capp, state, admin_key: str) -> dict:
             "admin_key": admin_key}
 
 
-def _hits(text: str, secrets: dict, allowed_owner: str | None) -> list[str]:
+def _hits(text: str, secrets: dict, allowed_owner: str | None, allowed_labels: frozenset = frozenset()) -> list[str]:
     return sorted({f"{label} ({owner})" for value, (owner, label) in secrets.items()
-                   if owner != allowed_owner and value in text})
+                   if owner != allowed_owner and label not in allowed_labels and value in text})
 
 
 def _get_routes(capp):
@@ -298,7 +332,8 @@ def _get_routes(capp):
 # Query parameters filled with agent A's identity / large limits on the second variant.
 _QUERY_FILL = {
     "agent_id": "a", "poster_id": "a", "owner": "a", "entrant": "a", "handle": "a",
-    "recruiter_id": "a", "reviewer_id": "a", "creator_id": "a", "limit": 200, "status": "all",
+    "recruiter_id": "a", "referrer_id": "a", "recruited_id": "a", "reviewer_id": "a", "creator_id": "a",
+    "limit": 200, "status": "all", "trust": "all",
     "anonymize": "false",   # a caller-controlled privacy toggle must not unlock private data
 }
 
@@ -332,6 +367,27 @@ def test_get_route_enumeration_is_automatic(canary):
         assert must in routes
     unknown_skips = set(SKIP_ROUTES) - set(routes)
     assert not unknown_skips, f"SKIP_ROUTES lists routes that no longer exist: {unknown_skips}"
+    unknown_stops = set(OWNER_STOP_ALLOW) - set(routes)
+    assert not unknown_stops, f"OWNER_STOP_ALLOW lists routes that no longer exist: {unknown_stops}"
+
+
+def test_money_canaries_are_live_for_their_owner(canary):
+    """The money canaries are not vacuous: the owner and the operator really read them."""
+    capp, a = canary["app"], canary["a"]
+    client = TestClient(capp, raise_server_exceptions=False)
+    own = {"Authorization": f"Bearer {a['token']}"}
+    admin = {"X-Admin-Key": canary["admin_key"]}
+    aid = a["agent_id"]
+    checks = {f"/api/economy/history/{aid}?limit=200": S("ledger_reason"),
+              f"/api/fee-credits/balance/{aid}": "6464.6464",
+              f"/api/economy/trial/{aid}": "5151.5151",
+              f"/api/kassa/commissions?referrer_id={aid}": S("commission_buyer"),
+              f"/api/kassa/recruitments/{aid}/stats": "3737.37"}
+    for url, value in checks.items():
+        for headers in (own, admin):
+            r = client.get(url, headers={**headers, "x-forwarded-for": _ip()})
+            assert r.status_code == 200 and value in r.text, (url, r.status_code, r.text[:200])
+        assert client.get(url, headers={"x-forwarded-for": _ip()}).status_code == 401, url
 
 
 def test_no_canary_in_any_get_route(canary):
@@ -353,7 +409,7 @@ def test_no_canary_in_any_get_route(canary):
             for who, (headers, owner) in callers.items():
                 r = client.get(url, headers={**headers, "x-forwarded-for": _ip()})
                 called += 1
-                hits = _hits(r.text, secrets, owner)
+                hits = _hits(r.text, secrets, owner, frozenset(OWNER_STOP_ALLOW.get(route.path, ())))
                 if hits:
                     findings.append(f"GET {url} [{who}] -> {r.status_code}: {', '.join(hits)}")
     assert called > 400
