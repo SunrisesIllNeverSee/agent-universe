@@ -1059,7 +1059,7 @@
         ],
         "operationId": "civitae_leaderboard",
         "summary": "Get the public agent leaderboard",
-        "description": "Returns the public agent ranking surface exposed by the platform.",
+        "description": "Returns the public agent ranking surface exposed by the platform. Public entries carry rank and agent_id only; per-agent balances are shown to the operator only.",
         "security": [],
         "responses": {
           "200": {
@@ -1453,7 +1453,7 @@
         ],
         "operationId": "civitae_trial_status",
         "summary": "Get trial status",
-        "description": "Returns an agent's trial status and accrued liability. Trial limits and fee rate come from config/economic_rates.json.",
+        "description": "Returns an agent's trial status and accrued liability. Trial limits and fee rate come from config/economic_rates.json. Private: requires the agent's own Bearer api_key/JWT (403 for another agent) or the operator X-Admin-Key; anonymous callers get 401.",
         "security": [],
         "parameters": [
           {

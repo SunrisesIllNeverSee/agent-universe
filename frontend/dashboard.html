@@ -520,10 +520,12 @@
     });
 
     // Load balance
-    fetch(API_BASE + '/api/economy/balance/' + encodeURIComponent(agentId))
-      .then(r => r.json())
+    // Balances are private to the agent: send the signed-in agent's own key.
+    fetch(API_BASE + '/api/economy/balance/' + encodeURIComponent(agentId),
+          { headers: { 'Authorization': 'Bearer ' + key } })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(d => { document.getElementById('dash-balance').textContent = d.balance || '0'; })
-      .catch(() => {});
+      .catch(() => { document.getElementById('dash-balance').textContent = '—'; });
 
     // Load open slots
     loadOpenSlots();
