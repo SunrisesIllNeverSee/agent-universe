@@ -253,7 +253,10 @@ async def process_mission_payout(payload: dict, request: Request) -> dict:
 
 
 @router.get("/api/economy/balance/{agent_id}")
-async def get_balance(agent_id: str) -> dict:
+async def get_balance(agent_id: str, request: Request) -> dict:
+    # Ledger privacy (2026-10-16, owner): the agent itself or the operator only.
+    # Agents reading their own money should prefer GET /api/economy/me.
+    require_money_reader(request, state, agent_id)
     return {"agent_id": agent_id, "balance": state.economy.treasury.balance(agent_id)}
 
 
@@ -479,7 +482,17 @@ async def get_leaderboard(request: Request, trust: str = "governed") -> dict:
     # board keeps the ranking (earned signal) without amounts; the operator sees balances.
     viewer = optional_money_viewer(request, state)
     if viewer is None or viewer.kind != "operator":
-        filtered = [{"rank": i + 1, "agent_id": e["agent_id"]} for i, e in enumerate(filtered)]
+        # Public order is by a public metric (missions completed), never by balance, so
+        # relative wealth is not visible either (owner, 2026-10-16). Operator keeps balance order.
+        m = load_metrics().get("agents", {})
+        def _missions(aid: str) -> int:
+            reg = next((r for r in state.runtime.registry if r.get("agent_id") == aid), {}) or {}
+            return int(reg.get("missions_completed", m.get(aid, {}).get("missions_completed", 0)) or 0)
+        ordered = sorted(filtered, key=lambda e: (-_missions(e["agent_id"]), e["agent_id"]))
+        filtered = [
+            {"rank": i + 1, "agent_id": e["agent_id"], "missions_completed": _missions(e["agent_id"])}
+            for i, e in enumerate(ordered)
+        ]
     return {
         "leaderboard": filtered,
         "trust_filter": trust,

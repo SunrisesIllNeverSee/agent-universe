@@ -38,12 +38,19 @@ def test_check_tier_returns_valid_tier(admin_client):
     assert data["tier"].upper() in ("UNGOVERNED", "GOVERNED", "CONSTITUTIONAL", "BLACK_CARD")
 
 
-def test_balance_zero_for_new_agent(client):
-    r = client.get(f"/api/economy/balance/nonexistent-{uuid.uuid4().hex[:8]}")
+def test_balance_zero_for_new_agent(admin_client):
+    # Owner-approved rewrite (2026-10-16, ledger privacy): balances are owner + operator only,
+    # so the zero-balance read is checked as the operator.
+    r = admin_client.get(f"/api/economy/balance/nonexistent-{uuid.uuid4().hex[:8]}")
     assert r.status_code == 200
     data = r.json()
     assert "balance" in data
     assert data["balance"] == 0
+
+
+def test_balance_is_private_to_anonymous_callers(client):
+    r = client.get(f"/api/economy/balance/nonexistent-{uuid.uuid4().hex[:8]}")
+    assert r.status_code == 401
 
 
 def test_trial_init(admin_client):

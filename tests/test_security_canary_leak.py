@@ -61,9 +61,8 @@ SKIP_ROUTES = {
 
 # Canary labels a route may still show while an owner decision is pending (route -> labels).
 # Each entry is a STOP recorded in the ledger-privacy report; remove it when the owner rules.
-OWNER_STOP_ALLOW = {
-    # tests/test_routes_economy.py::test_balance_zero_for_new_agent asserts an anonymous 200.
-    "/api/economy/balance/{agent_id}": {"treasury.balance"},
+OWNER_STOP_ALLOW: dict = {
+    # Empty: the balance route was closed with the owner's approval (2026-10-16).
 }
 
 # Path-parameter names whose values we cannot derive get this probe value.

@@ -173,3 +173,13 @@ def test_public_projection_money_keys_dropped_at_any_depth():
                         "metadata": {"action": "mission_payout", "agent_id": "agent-1", "gross": 10.0,
                                      "net_to_agent": 9.0, "platform_fee": 1.0}})
     assert seed["metadata"] == {"action": "mission_payout", "agent_id": "agent-1"}
+
+
+def test_public_leaderboard_is_not_ordered_by_balance(client):
+    r = client.get("/api/economy/leaderboard?trust=all")
+    assert r.status_code == 200
+    rows = r.json()["leaderboard"]
+    for row in rows:
+        assert "balance" not in row
+    keys = [(-row["missions_completed"], row["agent_id"]) for row in rows]
+    assert keys == sorted(keys), "public leaderboard must order by missions completed, then id"
