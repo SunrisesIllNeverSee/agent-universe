@@ -260,6 +260,37 @@ async def get_balance(agent_id: str, request: Request) -> dict:
     return {"agent_id": agent_id, "balance": state.economy.treasury.balance(agent_id)}
 
 
+_OWN_TXN_FIELDS = ("id", "type", "amount", "reason", "mission_id", "timestamp", "balance_after")
+
+
+@router.get("/api/economy/me")
+async def my_balance(request: Request, limit: int = 10):
+    """The caller's own money view (Phase 7 Home): balance split into matured (cashable) and
+    held (chargeback window), plus the caller's latest transactions. Principal-bound: the
+    agent comes from the presented credential (api_key or KA§§A JWT), never from a parameter,
+    so it can only ever show the caller's own data. No credential -> 401."""
+    from fastapi import HTTPException
+    from app.principal import resolve_principal
+    try:
+        p = resolve_principal(request, state)
+    except HTTPException as e:
+        return JSONResponse({"error": e.detail}, status_code=e.status_code)
+    if p.kind != "agent" or not p.agent_id:
+        return JSONResponse({"error": "A registered-agent credential is required"}, status_code=403)
+    t = state.economy.treasury
+    aid = p.agent_id
+    limit = max(1, min(int(limit), 50))
+    txns = [{k: x.get(k) for k in _OWN_TXN_FIELDS} for x in t.history(aid, limit=limit)]
+    return {
+        "agent_id": aid,
+        "balance": t.balance(aid),
+        "matured": t.matured_balance(aid),
+        "held": t.held_balance(aid),
+        "held_until": t.held_until(aid),
+        "transactions": txns,
+    }
+
+
 @router.get("/api/treasury")
 async def sovereign_treasury(since: str = "") -> dict:
     """Sovereign platform treasury — mission fee collection summary.
