@@ -166,3 +166,31 @@ def acts_for_post_owner(principal: Principal, post: dict) -> bool:
     if principal.kind == "poster_link":
         return principal.post_id == post.get("id")
     return False
+
+
+def require_money_reader(request: Request, state: Any, agent_id: str) -> Principal:
+    """Per-agent money (balances, ledger history, trial liability, fee credits, earnings) is
+    private: the agent itself (api_key or JWT) or the operator (X-Admin-Key) only.
+
+    401 = no/invalid credential; 403 = a genuine agent credential for a different agent.
+    Ledgers are keyed by ``agent_id``, so the binding is exact (no name/handle aliases).
+    """
+    p = resolve_principal(request, state, allow_admin=True)
+    if p.kind == "operator":
+        return p
+    if p.kind != "agent" or not p.agent_id or p.agent_id != agent_id:
+        raise HTTPException(403, "You can only read your own balance and history")
+    return p
+
+
+def optional_money_viewer(request: Request, state: Any) -> Principal | None:
+    """The caller of a public listing that hides per-agent money unless the caller is a party
+    or the operator. No credential -> None (public view). A presented but invalid Bearer
+    credential still fails closed (401), as everywhere else."""
+    p = resolve_agent_credential(request, registry=state.runtime.registry,
+                                 revoked_keys=state.runtime.revoked_keys)
+    if p is not None:
+        return p
+    if admin_key_matches(request, state.admin_key):
+        return Principal("operator", CRED_ADMIN)
+    return None

@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from typing import Any
 
 from app.deps import state
+from app.principal import optional_money_viewer, require_money_reader
 from app.metrics_io import atomic_write, load_metrics
 from app.seeds import create_seed, create_seed_loud
 from app.anchor_outbox import anchor_payout
@@ -310,7 +311,9 @@ async def sovereign_treasury(since: str = "") -> dict:
                 for k, v in rate_config.get("tiers", {}).items()
             },
         },
-        "recent_activity": fee_txns[-5:],
+        # Explicit public fields: platform fee events only, never an agent id or running balance.
+        "recent_activity": [{k: t.get(k) for k in ("timestamp", "amount", "reason", "mission_id")}
+                            for t in fee_txns[-5:]],
     }
 
 
@@ -339,8 +342,9 @@ async def trial_init(payload: AgentIdPayload) -> dict:
 
 
 @router.get("/api/economy/trial/{agent_id}")
-async def trial_status(agent_id: str) -> dict:
-    """Get an agent's trial status and accrued liability."""
+async def trial_status(agent_id: str, request: Request) -> dict:
+    """Get an agent's trial status and accrued liability (the agent itself or the operator)."""
+    require_money_reader(request, state, agent_id)
     return {"agent_id": agent_id, **state.economy.trials.trial_status_summary(agent_id)}
 
 
@@ -440,7 +444,7 @@ async def trial_settle(payload: TrialSettlePayload, request: Request) -> dict:
 # ── Leaderboard ──────────────────────────────────────────────────────────────
 
 @router.get("/api/economy/leaderboard")
-async def get_leaderboard(trust: str = "governed") -> dict:
+async def get_leaderboard(request: Request, trust: str = "governed") -> dict:
     """
     Agent leaderboard.
     ?trust=governed   → governed + constitutional + blackcard (default)
@@ -471,6 +475,11 @@ async def get_leaderboard(trust: str = "governed") -> dict:
 
         filtered = [e for e in raw if _agent_trust_tier(e["agent_id"]) in tier_threshold]
 
+    # Ledger privacy (2026-10-16): per-agent balances are owner + operator only. The public
+    # board keeps the ranking (earned signal) without amounts; the operator sees balances.
+    viewer = optional_money_viewer(request, state)
+    if viewer is None or viewer.kind != "operator":
+        filtered = [{"rank": i + 1, "agent_id": e["agent_id"]} for i, e in enumerate(filtered)]
     return {
         "leaderboard": filtered,
         "trust_filter": trust,
@@ -947,7 +956,9 @@ async def reject_payout(approval_id: str, request: Request):
 # ── History ──────────────────────────────────────────────────────────────────
 
 @router.get("/api/economy/history/{agent_id}")
-async def get_history(agent_id: str) -> dict:
+async def get_history(agent_id: str, request: Request) -> dict:
+    # Ledger privacy (2026-10-16): the agent itself or the operator only.
+    require_money_reader(request, state, agent_id)
     return {"agent_id": agent_id, "transactions": state.economy.treasury.history(agent_id)}
 
 

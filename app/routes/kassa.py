@@ -1097,8 +1097,18 @@ async def update_review(review_id: str, action: str, request: Request) -> dict:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/api/kassa/product-reviews")
-async def get_product_reviews(product_post_id: str = "", reviewer_id: str = "", status: str = "") -> list:
-    return state.kassa.load_product_reviews(product_post_id=product_post_id, reviewer_id=reviewer_id, status=status)
+async def get_product_reviews(request: Request, product_post_id: str = "", reviewer_id: str = "",
+                              status: str = "") -> list:
+    """Reviews are public content; the reviewer's ``reward`` (earnings) is shown only to the
+    reviewer and the operator (ledger privacy, 2026-10-16)."""
+    from app.principal import optional_money_viewer
+    viewer = optional_money_viewer(request, state)
+    rows = state.kassa.load_product_reviews(product_post_id=product_post_id, reviewer_id=reviewer_id, status=status)
+    if viewer is not None and viewer.kind == "operator":
+        return rows
+    me = viewer.agent_id if viewer is not None else None
+    return [r if (me and r.get("reviewer_id") == me) else {k: v for k, v in r.items() if k != "reward"}
+            for r in rows]
 
 
 @router.post("/api/kassa/product-reviews")
@@ -1183,8 +1193,19 @@ async def approve_product_review(review_id: str, request: Request) -> dict:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/api/kassa/commissions")
-async def get_commissions(referrer_id: str = "", product_post_id: str = "") -> list:
-    return state.kassa.load_commissions(referrer_id=referrer_id, product_post_id=product_post_id)
+async def get_commissions(request: Request, referrer_id: str = "", product_post_id: str = "") -> list:
+    """Commission rows (buyer ids, purchase and commission amounts) are private to the parties
+    (referrer or buyer) and the operator (ledger privacy, 2026-10-16)."""
+    from app.principal import resolve_principal
+    p = resolve_principal(request, state, allow_admin=True)
+    rows = state.kassa.load_commissions(referrer_id=referrer_id, product_post_id=product_post_id)
+    if p.kind == "operator":
+        return rows
+    me = p.require_agent()
+    # The referrer sees its whole row; the buyer sees its own purchase, not the referrer's earnings.
+    return [r if r.get("referrer_id") == me
+            else {k: v for k, v in r.items() if k not in ("commission_amount", "commission_rate")}
+            for r in rows if me in (r.get("referrer_id"), r.get("buyer_id"))]
 
 
 @router.post("/api/kassa/commissions")
@@ -1239,12 +1260,26 @@ async def record_commission(request: Request) -> dict:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/api/kassa/recruitments")
-async def get_recruitments(recruiter_id: str = "", recruited_id: str = "") -> list:
-    return state.kassa.load_recruitments(recruiter_id=recruiter_id, recruited_id=recruited_id)
+async def get_recruitments(request: Request, recruiter_id: str = "", recruited_id: str = "") -> list:
+    """Recruitment rows carry reward amounts: private to the recruiter / recruited agent and
+    the operator (ledger privacy, 2026-10-16)."""
+    from app.principal import resolve_principal
+    p = resolve_principal(request, state, allow_admin=True)
+    rows = state.kassa.load_recruitments(recruiter_id=recruiter_id, recruited_id=recruited_id)
+    if p.kind == "operator":
+        return rows
+    me = p.require_agent()
+    # The recruiter sees its reward; the recruited agent sees the row, not the recruiter's earnings.
+    return [r if r.get("recruiter_id") == me
+            else {k: v for k, v in r.items() if k not in ("reward_exp", "reward_economic", "multiplier")}
+            for r in rows if me in (r.get("recruiter_id"), r.get("recruited_id"))]
 
 
 @router.get("/api/kassa/recruitments/{recruiter_id}/stats")
-async def get_recruiter_stats(recruiter_id: str) -> dict:
+async def get_recruiter_stats(recruiter_id: str, request: Request) -> dict:
+    """Recruiter totals include earned rewards: the recruiter itself or the operator."""
+    from app.principal import require_money_reader
+    require_money_reader(request, state, recruiter_id)
     return state.kassa.recruiter_stats(recruiter_id)
 
 

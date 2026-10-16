@@ -48,6 +48,15 @@ PRIVATE_DETAIL_KEYS = frozenset({
     "account_id", "stripe_account_id", "stripe_session_id", "client_secret",
     "key_hash", "key_prefix", "new_key_prefix", "api_key", "token", "magic_token", "magic_token_plain",
     "secret", "webhook_secret",
+}) | frozenset({
+    # Per-agent money (ledger privacy, 2026-10-16): balances, transaction amounts, earnings,
+    # commissions, trial liability. Owner + operator read these through principal-bound routes;
+    # the public audit feed and the public Seed graph keep the event, never the amount.
+    "amount", "gross", "gross_amount", "net", "net_to_agent", "platform_fee", "fee", "fee_amount",
+    "fee_breakdown", "balance", "balance_after", "remaining_balance", "matured", "held",
+    "purchase_amount", "commission_amount", "buyer_id", "reward", "reward_economic", "total_economic",
+    "settlement_due", "settlement_paid", "trial_liability", "would_have_paid", "credited", "consumed",
+    "requested", "price_usd", "price_cents",
 })
 PLATFORM_MAIL_DOMAIN = "@signomy.xyz"
 REDACTED = "[redacted]"

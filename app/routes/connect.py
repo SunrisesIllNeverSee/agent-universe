@@ -209,8 +209,10 @@ async def mpp_pay(request: Request, payload: dict) -> dict:
 
 
 @router.get("/api/mpp/balance/{agent_id}")
-async def mpp_balance(agent_id: str) -> dict:
-    """Return an agent's spendable treasury balance."""
+async def mpp_balance(agent_id: str, request: Request) -> dict:
+    """Return an agent's spendable treasury balance (the agent itself or the operator)."""
+    from app.principal import require_money_reader
+    require_money_reader(request, state, agent_id)
     balance = state.economy.treasury.balance(agent_id)
     history = state.economy.treasury.history(agent_id, limit=5)
     return {"agent_id": agent_id, "balance": balance, "currency": "usd", "recent": history}
@@ -828,8 +830,10 @@ async def fee_credits_checkout(payload: dict, request: Request) -> dict:
 
 
 @router.get("/api/fee-credits/balance/{agent_id}")
-async def fee_credits_balance(agent_id: str) -> dict:
-    """Return an agent's current fee credit balance and recent transactions."""
+async def fee_credits_balance(agent_id: str, request: Request) -> dict:
+    """Return an agent's fee credit balance and recent transactions (the agent itself or the operator)."""
+    from app.principal import require_money_reader
+    require_money_reader(request, state, agent_id)
     balance = state.economy.fee_credits.balance(agent_id)
     history = state.economy.fee_credits.history(agent_id, limit=10)
     return {"agent_id": agent_id, "balance": balance, "currency": "usd_coverage", "recent": history}
