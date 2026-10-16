@@ -25,8 +25,8 @@ os.environ.setdefault("WORKENTRY_SWEEP_INTERVAL_HOURS", "0")  # scheduler off in
 os.environ.pop("RAILWAY_ENVIRONMENT", None)  # ensure dev mode kicks in
 
 
-# scratch debug file kept on disk (never delete); not collected as a test module
-collect_ignore = ["zz_dbg_test.py", "zz_dbg2_test.py"]
+# scratch debug files kept on disk (never delete); not collected as test modules
+collect_ignore = ["zz_dbg_test.py", "zz_dbg2_test.py", "zz_tmp_dbg_frames_test.py"]
 
 
 @pytest.fixture(scope="session")
