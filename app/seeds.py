@@ -421,11 +421,12 @@ async def list_seeds(
     total = len(seeds)
     seeds = seeds[offset:offset + limit]
 
+    from app.public_projection import public_seed
     return {
         "total": total,
         "offset": offset,
         "limit": limit,
-        "seeds": seeds,
+        "seeds": [public_seed(s) for s in seeds],
     }
 
 
@@ -462,9 +463,10 @@ async def seed_stats():
 async def get_seed(doi: str):
     """Lookup a seed by DOI."""
     seeds = _read_seeds()
+    from app.public_projection import public_seed
     for s in seeds:
         if s.get("doi") == doi:
-            return s
+            return public_seed(s)
     raise HTTPException(status_code=404, detail=f"Seed not found: {doi}")
 
 
@@ -474,10 +476,11 @@ async def get_lineage(doi: str):
     chain = trace_lineage(doi)
     if not chain:
         raise HTTPException(status_code=404, detail=f"Seed not found: {doi}")
+    from app.public_projection import public_seed
     return {
         "doi": doi,
         "chain_length": len(chain),
-        "lineage": chain,
+        "lineage": [public_seed(s) for s in chain],
     }
 
 

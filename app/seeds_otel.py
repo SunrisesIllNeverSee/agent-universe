@@ -26,6 +26,7 @@ from fastapi import APIRouter, Query
 
 from app.data_paths import project_root, resolve_data_dir
 from app.seeds import _read_seeds
+from app.public_projection import public_seed
 
 _PROJECT_ROOT = project_root()
 
@@ -136,7 +137,8 @@ def export_otel_traces(
     """
     Export all seeds as OTel-compatible trace data (OTLP JSON format).
     """
-    seeds = _read_seeds()
+    # Public exports: every seed in its public projection (no submitter emails/names).
+    seeds = [public_seed(s) for s in _read_seeds()]
 
     if since:
         seeds = [s for s in seeds if s.get("created_at", "") >= since]
@@ -197,7 +199,8 @@ def export_hf_dataset(
     if output_path is None:
         output_path = str(resolve_data_dir(_PROJECT_ROOT) / "civitae-agent-traces.jsonl")
 
-    seeds = _read_seeds()
+    # Public exports: every seed in its public projection (no submitter emails/names).
+    seeds = [public_seed(s) for s in _read_seeds()]
 
     if since:
         seeds = [s for s in seeds if s.get("created_at", "") >= since]
@@ -407,9 +410,11 @@ async def get_sigrank(agent_id: str):
 async def get_all_sigrank():
     """Compute SIGRANK for all agents with trace data."""
     seeds = _read_seeds()
+    from app.public_projection import is_external_email
     agent_ids = set(
         s.get("creator_id") for s in seeds
         if s.get("creator_type") == "AAI" and s.get("creator_id")
+        and not is_external_email(s.get("creator_id"))   # a form submitter's email is not an agent id
     )
     results = {}
     for aid in agent_ids:
