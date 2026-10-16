@@ -229,6 +229,21 @@ class RuntimeState:
             self._atomic_write_json(self.state_path, payload)
             self._atomic_write_json(self.cursors_path, cursor_payload)
 
+    # Public projection of the registry: /api/state and the public state_snapshot
+    # websocket frame are unauthenticated, so only these fields leave the server.
+    # Never email, key hash/prefix, signup IP, operator contact, login or rate data.
+    PUBLIC_REGISTRY_FIELDS = (
+        "agent_id", "name", "handle", "type", "role", "status", "system",
+        "assigned_system", "capabilities", "governance", "provisioned",
+    )
+
+    def public_registry(self) -> list[dict[str, Any]]:
+        return [
+            {k: entry[k] for k in self.PUBLIC_REGISTRY_FIELDS if k in entry}
+            for entry in self.registry
+            if isinstance(entry, dict)
+        ]
+
     def snapshot(self) -> RuntimeSnapshot:
         return RuntimeSnapshot(
             governance=self.governance,
@@ -236,7 +251,7 @@ class RuntimeState:
             loaded_context=self.vault.loaded,
             deploy=self.deploy,
             provision=self.provision,
-            registry=self.registry,
+            registry=self.public_registry(),
             agents=self.agent_configs,
             config_systems=self.system_configs,
             vault=self.vault.manifest,
