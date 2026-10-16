@@ -22,7 +22,9 @@ import time
 from datetime import datetime, timezone
 from typing import Optional
 from collections import defaultdict
-from fastapi import APIRouter, Query
+import threading
+
+from fastapi import APIRouter, Query, Request
 
 from app.data_paths import project_root, resolve_data_dir
 from app.seeds import _read_seeds
@@ -147,7 +149,7 @@ def export_otel_traces(
 
     if anonymize:
         for seed in seeds:
-            cid = seed.get("creator_id", "")
+            cid = str(seed.get("creator_id") or "")
             seed["creator_id"] = hashlib.sha256(cid.encode()).hexdigest()[:12]
             meta = seed.get("metadata", {})
             for key in ["contact", "contact_email", "email"]:
@@ -207,7 +209,7 @@ def export_hf_dataset(
 
     if anonymize:
         for seed in seeds:
-            cid = seed.get("creator_id", "")
+            cid = str(seed.get("creator_id") or "")
             seed["creator_id"] = hashlib.sha256(cid.encode()).hexdigest()[:12]
             meta = seed.get("metadata", {})
             for key in ["contact", "contact_email", "email"]:
@@ -272,7 +274,7 @@ def export_hf_dataset(
 
 # ── SIGRANK Metrics from Traces ───────────────────────────────────────────────
 
-def compute_sigrank(agent_id: str) -> dict:
+def compute_sigrank(agent_id: str, agent_seeds: list | None = None) -> dict:
     """
     Compute SIGRANK behavioral composite for an agent from their seed traces.
 
@@ -283,8 +285,8 @@ def compute_sigrank(agent_id: str) -> dict:
     4. Session Depth — avg seeds per trace
     5. Token Throughput — total planted seeds
     """
-    seeds = _read_seeds()
-    agent_seeds = [s for s in seeds if s.get("creator_id") == agent_id]
+    if agent_seeds is None:
+        agent_seeds = [s for s in _read_seeds() if s.get("creator_id") == agent_id]
 
     if not agent_seeds:
         return {
@@ -392,39 +394,75 @@ async def get_otel_traces(
 
 @otel_router.get("/dataset")
 async def get_hf_dataset(
+    request: Request,
     since: Optional[str] = Query(None),
     anonymize: bool = Query(True),
 ):
-    """Export seeds as Hugging Face-ready JSONL dataset."""
+    """Export seeds as a Hugging Face-ready JSONL dataset (operator only).
+
+    The export writes a file into the server data dir, so it is an operator action
+    (leak sweep 2026-10-16): anonymous callers could otherwise trigger disk writes, and the
+    response named the absolute server path. The response now names only the file.
+    """
+    from app.auth import require_admin
+    from app.deps import state
+    require_admin(request, state.admin_key)
     result = export_hf_dataset(anonymize=anonymize, since=since)
+    result["output"] = os.path.basename(result["output"])
     return result
 
 
+# SIGRANK cost bound (leak sweep 2026-10-16): the all-agents board was recomputed over every
+# seed for every agent on each anonymous call (~80 s with 6.3k seeds). It is now computed in
+# one pass, cached briefly, and rate limited per client.
+SIGRANK_CACHE_TTL_S = 60
+SIGRANK_RATE = (30, 60)          # hits per window (seconds) per client
+_sigrank_cache: dict = {}
+_sigrank_lock = threading.Lock()
+
+
+def _seeds_stamp(path: str) -> tuple:
+    try:
+        st = os.stat(path)
+        return (st.st_mtime_ns, st.st_size)
+    except OSError:
+        return (0, 0)
+
+
+def sigrank_board() -> dict:
+    """All-agents SIGRANK board, one pass over the seeds, cached per seeds file."""
+    from app import seeds as seeds_mod
+    from app.public_projection import is_external_email
+    path = str(seeds_mod.SEEDS_FILE)
+    with _sigrank_lock:
+        now = time.monotonic()
+        hit = _sigrank_cache.get(path)
+        stamp = _seeds_stamp(path)
+        if hit and (hit["stamp"] == stamp or now - hit["at"] < SIGRANK_CACHE_TTL_S):
+            return hit["board"]
+        by_agent: dict[str, list] = defaultdict(list)
+        for s in _read_seeds():
+            cid = s.get("creator_id")
+            if s.get("creator_type") == "AAI" and cid and not is_external_email(cid):
+                by_agent[cid].append(s)   # a form submitter's email is not an agent id
+        ranked = sorted((compute_sigrank(aid, rows) for aid, rows in by_agent.items()),
+                        key=lambda r: r.get("composite") or 0, reverse=True)
+        board = {"total_agents": len(ranked), "leaderboard": ranked}
+        _sigrank_cache[path] = {"stamp": stamp, "at": now, "board": board}
+        return board
+
+
 @otel_router.get("/sigrank/{agent_id}")
-async def get_sigrank(agent_id: str):
+async def get_sigrank(agent_id: str, request: Request):
     """Compute SIGRANK behavioral composite for an agent."""
+    from app.rate_limit import check_rate_limit
+    check_rate_limit(request, "traces_sigrank_agent", SIGRANK_RATE[0], SIGRANK_RATE[1])
     return compute_sigrank(agent_id)
 
 
 @otel_router.get("/sigrank")
-async def get_all_sigrank():
-    """Compute SIGRANK for all agents with trace data."""
-    seeds = _read_seeds()
-    from app.public_projection import is_external_email
-    agent_ids = set(
-        s.get("creator_id") for s in seeds
-        if s.get("creator_type") == "AAI" and s.get("creator_id")
-        and not is_external_email(s.get("creator_id"))   # a form submitter's email is not an agent id
-    )
-    results = {}
-    for aid in agent_ids:
-        results[aid] = compute_sigrank(aid)
-    ranked = sorted(
-        results.values(),
-        key=lambda r: r.get("composite") or 0,
-        reverse=True
-    )
-    return {
-        "total_agents": len(ranked),
-        "leaderboard": ranked
-    }
+async def get_all_sigrank(request: Request):
+    """SIGRANK for all agents with trace data (cached, rate limited)."""
+    from app.rate_limit import check_rate_limit
+    check_rate_limit(request, "traces_sigrank", SIGRANK_RATE[0], SIGRANK_RATE[1])
+    return sigrank_board()
