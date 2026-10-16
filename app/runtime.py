@@ -10,6 +10,7 @@ from typing import Any
 from .audit import AuditSpine
 from .models import (
     AgentConfig,
+    AuditEvent,
     DeployState,
     GovernanceState,
     MessageCreate,
@@ -244,6 +245,13 @@ class RuntimeState:
             if isinstance(entry, dict)
         ]
 
+    def public_audit_events(self, limit: int = 200) -> list[AuditEvent]:
+        """Recent audit rows as the public may see them (no wallet addresses, IPs, emails,
+        Stripe ids or credential material). The operator reads raw rows at /api/operator/audit."""
+        from .public_projection import public_audit_event
+        return [AuditEvent.model_validate(public_audit_event(e.model_dump(mode="json")))
+                for e in self.audit.recent(limit)]
+
     def snapshot(self) -> RuntimeSnapshot:
         return RuntimeSnapshot(
             governance=self.governance,
@@ -256,7 +264,7 @@ class RuntimeState:
             config_systems=self.system_configs,
             vault=self.vault.manifest,
             recent_messages=self.store.recent(),
-            audit_events=self.audit.recent(),
+            audit_events=self.public_audit_events(),
         )
 
     def create_message(self, payload: MessageCreate) -> MessageRecord:

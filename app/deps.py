@@ -61,6 +61,11 @@ class AppState:
 
     async def emit(self, event_type: str, payload: dict) -> None:
         """Broadcast an event to all connected WebSocket clients (authed + public)."""
+        if event_type == "audit_event" and isinstance(payload, dict):
+            # Both hubs are unauthenticated (/ws is open by design, /ws/public is read-only):
+            # audit rows ride them only in their public projection.
+            from .public_projection import public_audit_event
+            payload = public_audit_event(payload)
         event = {"type": event_type, "payload": payload}
         await self.hub.broadcast(event)
         if hasattr(self, "public_hub") and self.public_hub is not None:

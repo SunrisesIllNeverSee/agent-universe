@@ -128,7 +128,7 @@ async def get_state() -> dict:
 
 @router.get("/api/audit")
 async def get_audit() -> list[dict]:
-    return [event.model_dump(mode="json") for event in state.audit.recent()]
+    return [event.model_dump(mode="json") for event in state.runtime.public_audit_events()]
 
 
 @router.get("/api/hash")
