@@ -21,7 +21,9 @@ def _setup(client, admin_client):
     return email, jwt, r.json()["thread_id"]
 
 
-def test_staking_agent_does_not_see_poster_email(client, admin_client):
+def test_staking_agent_does_not_see_poster_email(client, admin_client, monkeypatch):
+    from app.routes import core
+    monkeypatch.setattr(core, "_ws_connect_times", {})   # don't spend the shared per-IP WS budget
     email, jwt, tid = _setup(client, admin_client)
     lst = client.get("/api/kassa/threads", headers=jwt)
     one = client.get(f"/api/kassa/threads/{tid}", headers=jwt)
