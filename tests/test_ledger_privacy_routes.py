@@ -176,10 +176,21 @@ def test_public_projection_money_keys_dropped_at_any_depth():
 
 
 def test_public_leaderboard_is_not_ordered_by_balance(client):
-    r = client.get("/api/economy/leaderboard?trust=all")
-    assert r.status_code == 200
-    rows = r.json()["leaderboard"]
-    for row in rows:
-        assert "balance" not in row
-    keys = [(-row["missions_completed"], row["agent_id"]) for row in rows]
-    assert keys == sorted(keys), "public leaderboard must order by missions completed, then id"
+    """Owner 2026-10-16: public order is by missions completed, so relative wealth is hidden."""
+    from app.deps import state
+    rich, busy = "lb-rich-" + uuid.uuid4().hex[:6], "lb-busy-" + uuid.uuid4().hex[:6]
+    entries = [
+        {"agent_id": rich, "type": "agent", "status": "active", "missions_completed": 0},
+        {"agent_id": busy, "type": "agent", "status": "active", "missions_completed": 7},
+    ]
+    state.runtime.registry.extend(entries)
+    state.economy.treasury.credit(rich, 900.0, reason="lb_probe")
+    state.economy.treasury.credit(busy, 1.0, reason="lb_probe")
+    try:
+        rows = client.get("/api/economy/leaderboard?trust=all").json()["leaderboard"]
+        order = [r["agent_id"] for r in rows if r["agent_id"] in (rich, busy)]
+        assert order == [busy, rich]
+        assert all("balance" not in r for r in rows)
+    finally:
+        for e in entries:
+            state.runtime.registry.remove(e)

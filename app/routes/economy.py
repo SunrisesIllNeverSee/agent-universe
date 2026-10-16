@@ -520,10 +520,7 @@ async def get_leaderboard(request: Request, trust: str = "governed") -> dict:
             reg = next((r for r in state.runtime.registry if r.get("agent_id") == aid), {}) or {}
             return int(reg.get("missions_completed", m.get(aid, {}).get("missions_completed", 0)) or 0)
         ordered = sorted(filtered, key=lambda e: (-_missions(e["agent_id"]), e["agent_id"]))
-        filtered = [
-            {"rank": i + 1, "agent_id": e["agent_id"], "missions_completed": _missions(e["agent_id"])}
-            for i, e in enumerate(ordered)
-        ]
+        filtered = [{"rank": i + 1, "agent_id": e["agent_id"]} for i, e in enumerate(ordered)]
     return {
         "leaderboard": filtered,
         "trust_filter": trust,
