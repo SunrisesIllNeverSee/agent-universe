@@ -193,6 +193,9 @@ python run.py
 
 *Last updated: 2026-07-07*
 
+## Public Responses (standing rule)
+Public responses use explicit public field lists; never return raw internal records; `tests/test_security_canary_leak.py` must pass. Details: CONTRIBUTING.md, "Public responses".
+
 ## Active Technologies
 - HTML5, CSS3, Vanilla JavaScript (ES2022) — no transpiler. Zero npm. Zero build pipeline.
 - FastAPI + WebSocket backend on :8300
