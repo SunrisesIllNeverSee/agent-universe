@@ -263,9 +263,15 @@ class RuntimeState:
             agents=self.agent_configs,
             config_systems=self.system_configs,
             vault=self.vault.manifest,
-            recent_messages=self.store.recent(),
+            recent_messages=self.public_recent_messages(),
             audit_events=self.public_audit_events(),
         )
+
+    def public_recent_messages(self, limit: int = 50) -> list[MessageRecord]:
+        """Recent messages for the public snapshot: mission channels are participant-only
+        (GET /api/missions/{id}/channel), so their messages never ride the snapshot."""
+        from .mission_channels import is_private_channel
+        return [m for m in self.store.all() if not is_private_channel(m.channel)][-limit:]
 
     def create_message(self, payload: MessageCreate) -> MessageRecord:
         message = MessageRecord(

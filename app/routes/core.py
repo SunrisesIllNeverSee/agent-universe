@@ -611,11 +611,13 @@ async def mcp_join(payload: McpJoinPayload) -> dict:
 
 @router.post("/api/mcp/read")
 async def mcp_read(payload: MCPReadRequest) -> dict:
+    # POST /api/mcp/* is operator-only at the edge (admin key), so the operator may read any channel.
     return state.mcp_bridge.chat_read(
         payload.name,
         channel=payload.channel,
         since_id=payload.since_id or None,
         limit=payload.limit,
+        allow_private=True,
     )
 
 

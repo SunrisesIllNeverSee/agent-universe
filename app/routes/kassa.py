@@ -717,42 +717,12 @@ async def close_thread(thread_id: str, request: Request) -> dict:
     return {"thread_id": thread_id, "status": "closed"}
 
 
-@router.post("/api/kassa/threads/{thread_id}/messages")
-async def post_thread_message(thread_id: str, request: Request) -> dict:
-    """Post a message to a thread. Auth via JWT (agent) or magic token (poster)."""
-    thread = state.kassa.get_thread(thread_id)
-    if not thread:
-        raise HTTPException(status_code=404, detail="Thread not found")
-    if thread.get("status") != "open":
-        raise HTTPException(status_code=403, detail="Thread is closed")
-
-    payload = await request.json()
-    text = sanitize_text((payload.get("text") or payload.get("body") or "").strip())
-    if not text:
-        raise HTTPException(status_code=400, detail="Message text required")
-
-    magic = request.query_params.get("magic", "")
-    auth_header = request.headers.get("Authorization", "")
-    sender_type = ""
-    sender_name = ""
-
-    if auth_header.startswith("Bearer "):
-        claims = _verify_jwt(auth_header[7:])
-        _agent = next((r for r in state.runtime.registry
-                       if r.get("agent_id") == thread.get("agent_id")), None)
-        if not claims or claims.get("sub") != thread.get("agent_id") or not agent_token_alive(_agent, claims):
-            raise HTTPException(status_code=403, detail="Not your thread")
-        sender_type = "agent"
-        sender_name = claims.get("name", thread.get("agent_name", "Agent"))
-    elif magic:
-        if _hash_key(magic) != thread.get("magic_token"):
-            raise HTTPException(status_code=403, detail="Invalid magic link")
-        sender_type = "poster"
-        sender_name = thread.get("poster_name", "Poster")
-    else:
-        raise HTTPException(status_code=401, detail="Auth required")
-
-    msg_id = f"msg-{secrets.token_hex(6)}"
+async def _commit_thread_message(thread: dict, sender_type: str, sender_name: str, text: str,
+                                 msg_id: str) -> str | None:
+    """Record one thread message and run the existing fan-out: store, thread count, public-safe
+    envelope, per-thread hub, Seed, and the other participant's notifications. Shared by the
+    staker / magic-link path and the poster-agent path so both notify the same way."""
+    thread_id = thread["thread_id"]
     entry = {
         "msg_id": msg_id,
         "thread_id": thread_id,
@@ -865,7 +835,97 @@ async def post_thread_message(thread_id: str, request: Request) -> dict:
         except Exception:
             pass
 
+    return seed_doi
+
+
+@router.post("/api/kassa/threads/{thread_id}/messages")
+async def post_thread_message(thread_id: str, request: Request) -> dict:
+    """Post a message to a thread. Auth via JWT (agent) or magic token (poster)."""
+    thread = state.kassa.get_thread(thread_id)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+    if thread.get("status") != "open":
+        raise HTTPException(status_code=403, detail="Thread is closed")
+
+    payload = await request.json()
+    text = sanitize_text((payload.get("text") or payload.get("body") or "").strip())
+    if not text:
+        raise HTTPException(status_code=400, detail="Message text required")
+
+    magic = request.query_params.get("magic", "")
+    auth_header = request.headers.get("Authorization", "")
+    sender_type = ""
+    sender_name = ""
+
+    if auth_header.startswith("Bearer "):
+        claims = _verify_jwt(auth_header[7:])
+        _agent = next((r for r in state.runtime.registry
+                       if r.get("agent_id") == thread.get("agent_id")), None)
+        if not claims or claims.get("sub") != thread.get("agent_id") or not agent_token_alive(_agent, claims):
+            raise HTTPException(status_code=403, detail="Not your thread")
+        sender_type = "agent"
+        sender_name = claims.get("name", thread.get("agent_name", "Agent"))
+    elif magic:
+        if _hash_key(magic) != thread.get("magic_token"):
+            raise HTTPException(status_code=403, detail="Invalid magic link")
+        sender_type = "poster"
+        sender_name = thread.get("poster_name", "Poster")
+    else:
+        raise HTTPException(status_code=401, detail="Auth required")
+
+    msg_id = f"msg-{secrets.token_hex(6)}"
+    seed_doi = await _commit_thread_message(thread, sender_type, sender_name, text, msg_id)
     return {"sent": True, "msg_id": msg_id, "thread_id": thread_id, "seed_doi": seed_doi}
+
+
+@router.post("/api/kassa/threads/{thread_id}/poster-reply")
+async def post_poster_reply(thread_id: str, request: Request) -> dict:
+    """The poster replies in a thread on its own post, as a registered agent (Phase 7 slice 5).
+
+    Principal-bound: the api_key or KA§§A JWT must belong to the post's recorded poster_agent_id
+    (acts_for_post_owner); a body field can never name the poster. The message goes through the
+    same path as a magic-link reply (sender_type "poster"), so the staker sees it in the thread and
+    gets the same inbox notice. Optional ``idempotency_key`` (or the Idempotency-Key header): a
+    retry with the same key returns the first message instead of sending a second one.
+    Explicit response fields; never the magic token, the poster's name or contact address.
+    """
+    import hashlib as _hashlib
+    from app.principal import acts_for_post_owner
+    p = _poster_agent_principal(request)
+    thread = state.kassa.get_thread(thread_id)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+    post = state.kassa.get_post(thread.get("post_id", ""))
+    if not post or not acts_for_post_owner(p, post):
+        raise HTTPException(status_code=403, detail="Not a thread on your post")
+    if thread.get("status") != "open":
+        raise HTTPException(status_code=403, detail="Thread is closed")
+    try:
+        payload = await request.json()
+    except Exception:  # noqa: BLE001
+        payload = {}
+    payload = payload if isinstance(payload, dict) else {}
+    text = sanitize_text(str(payload.get("text") or payload.get("body") or "").strip())
+    if not text:
+        raise HTTPException(status_code=400, detail="Message text required")
+    if len(text) > 4000:
+        raise HTTPException(status_code=400, detail="Message is too long (4000 characters at most)")
+    key = str(payload.get("idempotency_key") or request.headers.get("Idempotency-Key") or "").strip()
+    if len(key) > 128:
+        raise HTTPException(status_code=400, detail="idempotency_key is too long")
+    if key:
+        digest = _hashlib.sha256(f"{thread_id}|{p.agent_id}|{key}".encode()).hexdigest()[:12]
+        msg_id = f"msg-p{digest}"
+        prior = next((m for m in state.kassa.load_thread_messages(thread_id) if m.get("msg_id") == msg_id), None)
+        if prior:
+            return {"sent": True, "replayed": True, "msg_id": msg_id, "thread_id": thread_id, "seed_doi": None}
+    else:
+        msg_id = f"msg-{secrets.token_hex(6)}"
+    sender_name = p.agent_name or "Poster"
+    seed_doi = await _commit_thread_message(thread, "poster", sender_name, text, msg_id)
+    state.audit.log("kassa", "poster_reply", {"thread_id": thread_id, "post_id": thread.get("post_id"),
+                                              "agent_id": p.agent_id, "msg_id": msg_id})
+    return {"sent": True, "replayed": False, "msg_id": msg_id, "thread_id": thread_id, "seed_doi": seed_doi}
 
 
 @router.get("/kassa/thread/{thread_id}")

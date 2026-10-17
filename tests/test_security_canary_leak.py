@@ -219,6 +219,16 @@ def _plant(capp, state, admin_key: str) -> dict:
     thread = next(t for t in state.kassa.load_threads(agent_id=a["agent_id"]))
     secret("poster", "thread.magic_token(hash)", thread["magic_token"])
 
+    # ── mission channel (participant-only, slice 5): A owns a mission and talks on its channel ──
+    r = anon.post("/api/missions", headers={**ha, "x-forwarded-for": _ip()},
+                  json={"label": f"canary mission {TAG}", "objective": "canary objective"})
+    assert r.status_code == 200, r.text
+    mission_id, mission_chan = r.json()["id"], r.json()["channel"]
+    r = anon.post("/api/messages", headers={**ha, "x-forwarded-for": _ip()},
+                  json={"sender": a["name"], "channel": mission_chan,
+                        "text": secret("A", "mission_channel.message", S("mission_channel_message"))})
+    assert r.status_code == 200, r.text
+
     # ── operator contact form, Open Roles applications, advisory seat applications ──
     r = anon.post("/api/contact", headers={"x-forwarded-for": _ip()}, json={
         "name": secret("contact", "contact.name", S("contact_name")),
@@ -311,10 +321,10 @@ def _plant(capp, state, admin_key: str) -> dict:
         "post_id": [live_post, review_post], "thread_id": [thread["thread_id"]],
         "app_id": [inbox_app, advisory_app], "escrow_id": [esc["escrow_id"]],
         "doi": seed_dois, "session_id": [SESSION_A], "account_id": [ACCT_A], "seat_id": ["seat-07"],
-        "ref": [f"kassa:{live_post}", live_post], "page": ["index"],
+        "ref": [f"kassa:{live_post}", live_post], "page": ["index"], "mission_id": [mission_id],
     }
     return {"app": capp, "state": state, "secrets": secrets, "a": a, "b": b, "params": params,
-            "admin_key": admin_key}
+            "admin_key": admin_key, "mission_channel": mission_chan}
 
 
 def _hits(text: str, secrets: dict, allowed_owner: str | None, allowed_labels: frozenset = frozenset()) -> list[str]:
@@ -437,7 +447,7 @@ def test_no_canary_in_readonly_mcp_tools(canary):
     findings, called = [], 0
     for tool, handle in [(t, h) for t in tools for h in (a["name"], f"canary-legacy-{TAG}")]:
         fill = {"handle": handle, "agent_id": a["agent_id"], "name": f"canary-reader-{TAG}",
-                "mission_id": FALLBACK_PARAM, "limit": 200}
+                "mission_id": FALLBACK_PARAM, "limit": 200, "channel": canary["mission_channel"]}
         ann = tool.annotations
         if not (getattr(ann, "readOnly", None) or getattr(ann, "readOnlyHint", None)):
             continue   # never call mutating tools from a leak sweep
@@ -460,3 +470,28 @@ def test_no_canary_in_readonly_mcp_tools(canary):
                 findings.append(f"MCP {tool.name} [{who}]: {', '.join(hits)}")
     assert called >= 10
     assert not findings, "canary secrets leaked via MCP:\n" + "\n".join(findings)
+
+
+def test_mission_channel_canary_is_live_for_the_team_only(canary, monkeypatch):
+    """Slice 5: the mission-channel canary is not vacuous: the owner and the operator read it through
+    the participant-only route; B, an anonymous caller and the open /ws mcp_read never do."""
+    from app.routes import core
+    capp, a, b = canary["app"], canary["a"], canary["b"]
+    client = TestClient(capp, raise_server_exceptions=False)
+    value = S("mission_channel_message")
+    mid = canary["params"]["mission_id"][0]
+    url = f"/api/missions/{mid}/channel"
+    for headers in ({"Authorization": f"Bearer {a['token']}"}, {"Authorization": f"Bearer {a['api_key']}"},
+                    {"X-Admin-Key": canary["admin_key"]}):
+        r = client.get(url, headers={**headers, "x-forwarded-for": _ip()})
+        assert r.status_code == 200 and value in r.text, (r.status_code, r.text[:200])
+    assert client.get(url, headers={"x-forwarded-for": _ip()}).status_code == 401
+    for headers in ({"Authorization": f"Bearer {b['token']}"}, {"Authorization": f"Bearer {b['api_key']}"}):
+        r = client.get(url, headers={**headers, "x-forwarded-for": _ip()})
+        assert r.status_code == 403 and value not in r.text
+    monkeypatch.setattr(core, "_ws_connect_times", {})
+    with client.websocket_connect("/ws") as ws:
+        ws.receive_json()
+        ws.send_json({"action": "mcp_read", "payload": {"name": f"canary-reader-{TAG}",
+                                                        "channel": canary["mission_channel"]}})
+        assert value not in json.dumps(ws.receive_json())

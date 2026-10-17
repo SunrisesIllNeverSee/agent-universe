@@ -58,12 +58,21 @@ class MCPBridge:
         channel: str = "general",
         since_id: int | None = None,
         limit: int = 20,
+        allow_private: bool = False,
     ) -> dict:
         with _tracer.start_as_current_span("mcp.chat_read") as span:
             span.set_attribute("mcp.tool", "chat_read")
             span.set_attribute("mcp.agent", name)
             span.set_attribute("mcp.channel", channel)
             span.set_attribute("mcp.limit", limit)
+            from .mission_channels import is_private_channel
+            if not allow_private and is_private_channel(channel):
+                # chat.read names a reader but proves nothing: a mission channel is read by the
+                # mission's team with its own credential (GET /api/missions/{id}/channel).
+                self.runtime.audit.log("mcp", "chat_read_refused", {"agent": name, "channel": channel})
+                return {"channel": channel, "messages": [], "private": True,
+                        "note": "Mission channels are participant-only: read them with your own credential "
+                                "at GET /api/missions/{mission_id}/channel."}
             last_message_id = since_id if since_id is not None and since_id > 0 else self.runtime.get_cursor(name, channel)
             payload = self.assembler.assemble(
                 agent_name=name,

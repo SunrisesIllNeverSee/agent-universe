@@ -477,6 +477,42 @@ async def get_mission(mission_id: str) -> dict:
     return {"mission": {**mission, "agreements": slot_binding.summarize(ags)}}
 
 
+@router.get("/api/missions/{mission_id}/channel")
+async def get_mission_channel(mission_id: str, request: Request, since_id: int = 0, limit: int = 100) -> dict:
+    """A mission channel's messages, for the mission's team only (Phase 7 slice 5).
+
+    Team = the recorded owner, a slot holder, an entrant with an accepted/active/dormant/completed
+    Agreement on the mission, or a formation member recorded on it; the operator (admin key) reads
+    too. The principal comes from the presented credential (api_key or KA§§A JWT), never from a
+    parameter. 401 without a credential, 403 for anyone else. Explicit fields only.
+    """
+    from app import mission_channels as mc
+    from app.principal import resolve_principal
+    p = resolve_principal(request, state, allow_admin=True)
+    mission = next((m for m in _load_missions() if m.get("id") == mission_id or m.get("mission_id") == mission_id), None)
+    if p.kind == "operator":
+        role = "operator"
+    elif p.kind == "agent" and p.agent_id:
+        role = None
+        if mission:
+            try:
+                ags = state.workentry.list_by_object("mission_id", mission.get("id") or mission_id)
+            except Exception:  # noqa: BLE001 - no Agreement projection = no entrant standing
+                ags = []
+            role = mc.participant_role(p.agent_id, mission, slots=_load_slots(), agreements=ags,
+                                       registry=state.runtime.registry)
+        if role is None:
+            raise HTTPException(403, "Mission channels are readable by the mission's team only")
+    else:
+        raise HTTPException(403, "Mission channels are readable by the mission's team only")
+    if not mission:
+        return _mission_not_found(mission_id)
+    limit = max(1, min(int(limit or 100), 200))
+    msgs = mc.channel_messages(state.store, mission, since_id=max(0, int(since_id or 0)), limit=limit)
+    return {"mission_id": mission.get("id") or mission_id, "channels": sorted(mc.channels_of(mission)),
+            "viewer_role": role, "messages": msgs, "count": len(msgs)}
+
+
 def _complete_mission_agreements(request: Request | None, mission_id: str,
                                  delegate: str = "operator:mission-end") -> tuple[list[str], list[dict]]:
     """Mission end (explicit or auto-complete) -> every ACTIVE Agreement on it becomes ``completed``

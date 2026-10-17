@@ -66,6 +66,13 @@ class AppState:
             # audit rows ride them only in their public projection.
             from .public_projection import public_audit_event
             payload = public_audit_event(payload)
+        if event_type == "message_added" and isinstance(payload, dict):
+            # Mission channels are participant-only: both hubs are unauthenticated, so a message on
+            # one rides them only as a content-free envelope (participants re-read it with their
+            # own credential through GET /api/missions/{id}/channel).
+            from .mission_channels import is_private_channel, public_message_envelope
+            if is_private_channel(payload.get("channel")):
+                payload = public_message_envelope(payload)
         event = {"type": event_type, "payload": payload}
         await self.hub.broadcast(event)
         if hasattr(self, "public_hub") and self.public_hub is not None:
