@@ -338,7 +338,8 @@ def create_app(root: Path | None = None) -> FastAPI:
     # Set CIVITAE_ADMIN_KEY env var to enable.
     # Fail-closed: when unset AND in production, all non-public writes are blocked.
     # Localhost fallback only works in local dev (RAILWAY_ENVIRONMENT absent).
-    # Agent self-service paths (signup, heartbeat, apply, metrics) are public.
+    # Agent self-service paths (signup, heartbeat, apply) are public. Metrics writes are
+    # operator-only (2026-10-20 hotfix): self-reported numbers feed the leaderboard/tier filter.
     _ON_RAILWAY = bool(os.environ.get("RAILWAY_ENVIRONMENT"))
     _DEV_MODE = not _ON_RAILWAY and os.environ.get("CIVITAE_DEV_MODE", "") == "1"
     _PUBLIC_WRITE_PREFIXES = (
@@ -350,7 +351,6 @@ def create_app(root: Path | None = None) -> FastAPI:
         "/api/slots/leave",
         "/api/work-entry",  # P4 slice 3: authorized in-handler (one principal resolver)
         "/api/inbox/apply",
-        "/api/metrics/",
         "/api/kassa/contact",
         "/api/kassa/posts",
         "/api/kassa/agent/register",

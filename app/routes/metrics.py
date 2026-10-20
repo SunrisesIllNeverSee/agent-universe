@@ -3,9 +3,14 @@ metrics.py — Metrics and Scoring endpoints.
 
 Extracted from server.py create_app() monolith.
 Covers:
-  - POST /api/metrics/agent — submit agent performance metrics
-  - GET  /api/metrics       — get all metrics (dashboard data + scoreboard)
-  - POST /api/metrics/mission — submit mission-level metrics
+  - POST /api/metrics/agent — submit agent performance metrics (OPERATOR ONLY)
+  - GET  /api/metrics       — public scoreboard (no revenue / costs / roi / financial figures)
+  - POST /api/metrics/mission — submit mission-level metrics (OPERATOR ONLY)
+
+Hotfix 2026-10-20: the two POST routes are no longer in server.py's public-write list, so the
+admin-key guard middleware applies (X-Admin-Key only; an agent Bearer key is not enough). They
+were open to anyone and fed the leaderboard order and the tier filter. Public GET no longer
+returns revenue, costs, roi, or the financial block.
 """
 from __future__ import annotations
 
@@ -128,7 +133,7 @@ async def log_agent_metric(payload: AgentMetricPayload) -> dict:
 
 @router.get("/api/metrics")
 async def get_metrics() -> dict:
-    """Full metrics dashboard data."""
+    """Public scoreboard. No revenue, cost, roi or transaction figures (operator data)."""
     m = load_metrics()
 
     # Compute scores
@@ -137,7 +142,6 @@ async def get_metrics() -> dict:
         total_missions = agent["missions_completed"] + agent["missions_failed"]
         success_rate = agent["missions_completed"] / max(total_missions, 1)
         compliance = 1 - (agent["governance_violations"] / max(agent["governance_checks"], 1))
-        roi = (agent["revenue_generated"] - agent["costs_incurred"]) / max(agent["costs_incurred"], 0.01)
 
         scoreboard.append({
             "agent_id": agent_id,
@@ -146,9 +150,6 @@ async def get_metrics() -> dict:
             "success_rate": round(success_rate, 3),
             "compliance_score": round(compliance, 3),
             "messages": agent["messages_sent"],
-            "revenue": agent["revenue_generated"],
-            "costs": agent["costs_incurred"],
-            "roi": round(roi, 2),
             "last_active": agent["last_active"],
         })
 
@@ -156,17 +157,9 @@ async def get_metrics() -> dict:
 
     return {
         "scoreboard": scoreboard,
-        "financial": {
-            "total_revenue": m["financial"]["revenue"],
-            "total_costs": m["financial"]["costs"],
-            "net": round(m["financial"]["revenue"] - m["financial"]["costs"], 2),
-            "recent_transactions": m["financial"]["transactions"][-20:],
-        },
         "totals": {
             "agents": len(m["agents"]),
             "missions": sum(a["missions_completed"] + a["missions_failed"] for a in m["agents"].values()),
-            "revenue": m["financial"]["revenue"],
-            "costs": m["financial"]["costs"],
         },
     }
 
