@@ -7,7 +7,7 @@
 civitae-mcp==0.3.3
 fastmcp==3.4.10
 # Full platform (pinned for reproducible Railway deploys)
-pytest==8.3.5
+pytest==9.0.3
 fastapi==0.136.1
 uvicorn[standard]==0.46.0
 pydantic==2.13.4
