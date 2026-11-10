@@ -1,0 +1,12 @@
+{
+  "name": "agent-universe-edge",
+  "private": true,
+  "type": "module",
+  "description": "Vercel Routing Middleware for signomy.xyz (crawler tracking). The app itself is the Python backend plus the static frontend.",
+  "scripts": {
+    "test": "node --test tests/ai-crawler.test.mjs"
+  },
+  "dependencies": {
+    "@vercel/functions": "3.10.5"
+  }
+}
