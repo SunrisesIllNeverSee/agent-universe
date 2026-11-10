@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
+import middleware, { config } from "../middleware.js";
 import { AI_CRAWLER_EVENT, crawlerCapture, detectCrawler } from "../scripts/edge/ai-crawler.mjs";
 
 const UA = {
@@ -56,6 +56,7 @@ test("a crawler hit builds one ai_bot_detected event with the shared property na
   const capture = crawlerCapture(req("https://signomy.xyz/products?utm_source=x&token=secret", UA["ChatGPT-User"]));
   assert.equal(capture.url, "https://us.i.posthog.com/i/v0/e/");
   assert.equal(capture.init.method, "POST");
+  assert.equal(capture.bot, "ChatGPT-User");
   const body = JSON.parse(capture.init.body);
   assert.equal(body.event, AI_CRAWLER_EVENT);
   assert.equal(body.event, "ai_bot_detected");
@@ -107,14 +108,72 @@ test("pages and crawler files are recorded, including www and HEAD", () => {
   assert.ok(crawlerCapture(req("https://www.signomy.xyz/about", UA.Bingbot, "HEAD")));
 });
 
-test("middleware never changes the response and never throws, even when PostHog is down", () => {
-  const source = readFileSync(new URL("../middleware.js", import.meta.url), "utf8");
-  assert.match(source, /return next\(\);/);
-  assert.match(source, /waitUntil\(/);
-  assert.match(source, /\.catch\(\(\) => \{\}\)/);
-  assert.match(source, /try \{[\s\S]*\} catch \{/);
-  // The matcher must keep crawler files and skip assets.
-  const matcher = source.slice(source.indexOf("export const config"), source.indexOf("export default"));
-  assert.ok(!matcher.includes("txt") && !matcher.includes("xml"), "robots/llms/sitemap files must reach the middleware");
-  assert.ok(matcher.includes("css|js"), "assets are skipped");
+// Run the middleware with a stubbed fetch and a waitUntil spy.
+const run = async (url, userAgent, fetchImpl, { method = "GET" } = {}) => {
+  const calls = [];
+  const waited = [];
+  const realFetch = globalThis.fetch;
+  const realWarn = console.warn;
+  const warnings = [];
+  globalThis.fetch = (u, init) => { calls.push({ url: u, init }); return fetchImpl(u, init); };
+  console.warn = (...a) => warnings.push(a.join(" "));
+  try {
+    const res = middleware(req(url, userAgent, method), { waitUntil: (p) => waited.push(p) });
+    await Promise.all(waited);
+    return { res, calls, waited, warnings };
+  } finally {
+    globalThis.fetch = realFetch;
+    console.warn = realWarn;
+  }
+};
+const ok = async () => new Response("ok");
+
+test("a crawler makes exactly one PostHog fetch through waitUntil and the request continues", async () => {
+  const { res, calls, waited } = await run("https://signomy.xyz/products?token=secret", UA.GPTBot, ok);
+  assert.equal(res.headers.get("x-middleware-next"), "1");
+  assert.equal(res.status, 200);
+  assert.equal(calls.length, 1);
+  assert.equal(waited.length, 1);
+  assert.equal(calls[0].url, "https://us.i.posthog.com/i/v0/e/");
+  assert.ok(calls[0].init.signal instanceof AbortSignal, "timeout signal is created at fetch time");
+  assert.doesNotMatch(calls[0].init.body, /token|secret/);
+});
+
+test("a browser makes no fetch and the request continues", async () => {
+  const { res, calls, waited } = await run("https://signomy.xyz/", BROWSER, ok);
+  assert.equal(res.headers.get("x-middleware-next"), "1");
+  assert.equal(calls.length, 0);
+  assert.equal(waited.length, 0);
+});
+
+test("a PostHog failure never throws out of the middleware and warns without the key or user-agent", async () => {
+  for (const impl of [
+    () => { throw new Error("sync boom"); },
+    async () => { throw new Error("rejected"); },
+    async () => new Response("nope", { status: 503 }),
+  ]) {
+    const { res, warnings } = await run("https://signomy.xyz/", UA.GPTBot, impl);
+    assert.equal(res.headers.get("x-middleware-next"), "1");
+    assert.ok(warnings.length <= 1);
+    for (const w of warnings) {
+      assert.match(w, /GPTBot/);
+      assert.doesNotMatch(w, /phc_|Mozilla/);
+    }
+  }
+  const { warnings } = await run("https://signomy.xyz/", UA.GPTBot, async () => new Response("nope", { status: 503 }));
+  assert.equal(warnings.length, 1);
+});
+
+test("a missing context never breaks the request", () => {
+  assert.equal(middleware(req("https://signomy.xyz/", UA.GPTBot)).headers.get("x-middleware-next"), "1");
+});
+
+test("the matcher skips proxied backend routes and assets but keeps pages and crawler files", () => {
+  const re = new RegExp(`^${config.matcher[0]}$`);
+  for (const p of ["/api/x", "/mcp", "/mcp/tools", "/ws/live", "/docs", "/docs/x", "/health", "/admin", "/operator/c", "/assets/a.js", "/a.png", "/s.css"]) {
+    assert.ok(!re.test(p), `${p} should be skipped`);
+  }
+  for (const p of ["/", "/products", "/robots.txt", "/llms.txt", "/sitemap-v2.xml", "/.well-known/agent.json", "/administration", "/documents"]) {
+    assert.ok(re.test(p), `${p} should reach the middleware`);
+  }
 });

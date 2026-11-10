@@ -35,9 +35,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm ci --ignore-scripts
       - run: node --check middleware.js
-      - run: npm test
+      - run: node --test tests/ai-crawler.test.mjs
 
   civitae-mcp-package:
     runs-on: ubuntu-latest

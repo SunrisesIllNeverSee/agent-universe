@@ -106,13 +106,13 @@ export function crawlerCapture(request, env = {}) {
     },
   };
   return {
+    bot: crawler.name,
     url: POSTHOG_CAPTURE_URL,
+    // No timeout signal here: middleware.js adds one when it calls fetch.
     init: {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-      // Never let a slow PostHog hold the function open.
-      signal: AbortSignal.timeout(5000),
     },
   };
 }
