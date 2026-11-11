@@ -99,6 +99,8 @@
         { label: 'MO\u00a7ES\u2122',       href: 'https://mos2es.com',          ext: true },
         { label: 'SigArena',              href: 'https://sigeconomy.com',       ext: true },
         { label: 'SigRank',               href: 'https://signalaf.com',         ext: true },
+        { label: 'SignalAF Leaderboard',   href: 'https://signalaf.com/board/all', ext: true },
+        { label: 'SigRank Methodology',   href: 'https://signalaf.com/methodology', ext: true },
         { label: 'GitHub',                href: 'https://github.com/SunrisesIllNeverSee', ext: true },
         { label: 'PyPI',                  href: 'https://pypi.org/project/civitae-mcp/',  ext: true },
         { label: 'ORCID',                 href: 'https://orcid.org/0009-0002-9904-5390',  ext: true },
