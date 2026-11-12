@@ -22,7 +22,7 @@ from app.auth import admin_key_matches, new_agent_api_key, require_admin, secret
 from app.deps import state
 from app.jwt_config import issue_agent_jwt
 from app.metrics_io import atomic_write, load_metrics, save_metrics
-from app.rate_limit import RATE_STORES as _rate_stores, check_rate_limit as _shared_check_rate_limit
+from app.rate_limit import RATE_STORES as _rate_stores, check_rate_limit as _shared_check_rate_limit, check_global_rate_limit as _global_rate_limit, client_ip as _client_ip
 from app.otel_setup import get_tracer as _get_tracer
 from app.sanitize import sanitize_text as sanitize
 from app.economy import TIERS, TRIAL_DAY_LIMIT, TRIAL_FEE_RATE, TRIAL_MISSION_LIMIT
@@ -117,6 +117,8 @@ async def agent_signup(request: Request, payload: dict) -> dict:
 
     # 2 signups per IP per hour — prevents Sybil trial abuse
     _check_rate_limit(request, "provision_signup", max_hits=2)
+    # Global ceiling: distributed callers rotate IPs, so also cap total signups.
+    _global_rate_limit("provision_signup_global", max_hits=20, window_s=3600)
 
     agent_name = sanitize(payload.get("name", "")).strip()
     if not agent_name:
@@ -124,8 +126,7 @@ async def agent_signup(request: Request, payload: dict) -> dict:
     requested_handle = sanitize(payload.get("handle", agent_name)).strip()
 
     # Extract caller IP for per-IP agent cap
-    fwd = request.headers.get("x-forwarded-for", "")
-    caller_ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
+    caller_ip = _client_ip(request)
 
     # ── Atomic signup under slot_lock — prevents concurrent write contention ──
     async with state.slot_lock:

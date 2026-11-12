@@ -131,11 +131,8 @@ def agent_token_alive(agent: dict | None, claims: dict) -> bool:
 
 def client_fingerprint(request: Request) -> str:
     """Hash the best available client address for privacy-safe security telemetry."""
-    forwarded = request.headers.get("x-forwarded-for", "")
-    host = forwarded.split(",")[0].strip() if forwarded else (
-        request.client.host if request.client else "unknown"
-    )
-    return hashlib.sha256(host.encode("utf-8")).hexdigest()[:16]
+    from app.rate_limit import client_fingerprint as _fp
+    return _fp(request)
 
 
 def log_admin_rejection(request: Request, reason: str) -> None:

@@ -15,12 +15,32 @@ from fastapi import HTTPException, Request
 RATE_STORES: dict[str, dict[str, list[float]]] = {}
 
 
-def client_fingerprint(request: Request) -> str:
+def client_ip(request: Request) -> str:
+    """Best client address that a caller cannot forge.
+
+    The platform proxy appends the peer it saw to X-Forwarded-For, so the LAST
+    entry is trustworthy while the first is whatever the client sent.
+    """
     forwarded = request.headers.get("x-forwarded-for", "")
-    ip = forwarded.split(",")[0].strip() if forwarded else (
-        request.client.host if request.client else "unknown"
-    )
-    return hashlib.sha256(ip.encode()).hexdigest()[:16]
+    if forwarded:
+        last = forwarded.split(",")[-1].strip()
+        if last:
+            return last
+    return request.client.host if request.client else "unknown"
+
+
+def client_fingerprint(request: Request) -> str:
+    return hashlib.sha256(client_ip(request).encode()).hexdigest()[:16]
+
+
+def check_global_rate_limit(bucket_name: str, max_hits: int, window_s: int) -> None:
+    """Cap total hits across all clients, so distributed callers cannot bypass per-IP limits."""
+    now = _time.time()
+    hits = [h for h in RATE_STORES.setdefault(bucket_name, {}).get("*", []) if now - h < window_s]
+    if len(hits) >= max_hits:
+        raise HTTPException(status_code=429, detail="Too many requests, try again later")
+    hits.append(now)
+    RATE_STORES[bucket_name]["*"] = hits
 
 
 def check_rate_limit(
