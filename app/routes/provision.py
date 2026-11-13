@@ -44,6 +44,34 @@ import jwt as pyjwt
 from pydantic import BaseModel
 
 UTC = timezone.utc
+GLOBAL_SIGNUP_MAX = 5
+GLOBAL_SIGNUP_WINDOW_S = 300
+
+
+def _check_global_signup_limit(registry: list[dict]) -> JSONResponse | None:
+    """Count persisted creations across origins, including suspended identities."""
+    now = datetime.now(UTC)
+    recent = []
+    for agent in registry:
+        if agent.get("type") != "agent":
+            continue
+        try:
+            created = datetime.fromisoformat(agent["provisioned"].replace("Z", "+00:00"))
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=UTC)
+        except (KeyError, TypeError, ValueError, AttributeError):
+            continue
+        if (now - created).total_seconds() < GLOBAL_SIGNUP_WINDOW_S:
+            recent.append(created)
+    if len(recent) >= GLOBAL_SIGNUP_MAX:
+        frees_slot_at = sorted(recent)[-GLOBAL_SIGNUP_MAX]
+        retry_after = max(1, int(GLOBAL_SIGNUP_WINDOW_S - (now - frees_slot_at).total_seconds()) + 1)
+        return JSONResponse(
+            {"error": "Global signup limit reached; retry later"},
+            status_code=429,
+            headers={"Retry-After": str(retry_after)},
+        )
+    return None
 
 
 class IssueAgentKeyPayload(BaseModel):
@@ -131,6 +159,9 @@ async def agent_signup(request: Request, payload: dict) -> dict:
     async with state.slot_lock:
         # Reload from disk so we see writes from other workers
         runtime.reload_registry()
+
+        if limited := _check_global_signup_limit(runtime.registry):
+            return limited
 
         # Registration is identity creation, not chamber occupancy. The legacy
         # global max_agents registry cap was removed because historical/test

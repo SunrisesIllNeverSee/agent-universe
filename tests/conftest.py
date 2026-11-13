@@ -123,6 +123,15 @@ def fresh_agent(client, unique_ip):
 
 
 @pytest.fixture(autouse=True)
+def _isolate_global_signup_budget(request, monkeypatch):
+    """The session-wide registry must not exhaust a cross-test signup budget."""
+    if request.module.__name__.endswith("test_signup_incident"):
+        return
+    from app.routes import provision
+    monkeypatch.setattr(provision, "GLOBAL_SIGNUP_MAX", 100000)
+
+
+@pytest.fixture(autouse=True)
 def _webhook_signing_secret(monkeypatch):
     """The Stripe webhook refuses to run with no signing secret; tests that mock construct_event
     still need one configured. Tests of the unset case override it."""
