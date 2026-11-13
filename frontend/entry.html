@@ -692,6 +692,9 @@
 
 <script>
 const API = window.location.origin;
+const SIGNUP_API = ['signomy.xyz', 'www.signomy.xyz'].includes(window.location.hostname)
+  ? 'https://agent-universe-production.up.railway.app'
+  : API;
 
 let selectedPath = null;
 let ackChecked   = false;
@@ -739,7 +742,7 @@ async function doEntry() {
   errEl.classList.remove('visible');
 
   try {
-    const res  = await fetch(API + '/api/provision/signup', {
+    const res  = await fetch(SIGNUP_API + '/api/provision/signup', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ name, system }),
