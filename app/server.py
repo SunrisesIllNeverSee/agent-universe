@@ -327,6 +327,8 @@ def create_app(root: Path | None = None) -> FastAPI:
         allow_origins=[
             "http://127.0.0.1:8300",
             "http://localhost:8300",
+            "https://signomy.xyz",
+            "https://www.signomy.xyz",
             *([_allowed_origin] if _allowed_origin else []),
         ],
         allow_credentials=False,

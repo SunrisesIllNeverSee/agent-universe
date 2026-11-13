@@ -7,7 +7,9 @@ for correctness today.
 from __future__ import annotations
 
 import hashlib
+import os
 import time as _time
+from ipaddress import ip_address
 
 from fastapi import HTTPException, Request
 
@@ -16,31 +18,25 @@ RATE_STORES: dict[str, dict[str, list[float]]] = {}
 
 
 def client_ip(request: Request) -> str:
-    """Best client address that a caller cannot forge.
-
-    The platform proxy appends the peer it saw to X-Forwarded-For, so the LAST
-    entry is trustworthy while the first is whatever the client sent.
-    """
-    forwarded = request.headers.get("x-forwarded-for", "")
-    if forwarded:
-        last = forwarded.split(",")[-1].strip()
-        if last:
-            return last
+    """Use Railway HTTP ingress's remote address; forwarded chains are not identity."""
+    if os.environ.get("RAILWAY_ENVIRONMENT"):
+        real_ip = request.headers.get("x-real-ip", "").strip()
+        try:
+            return str(ip_address(real_ip))
+        except ValueError:
+            pass
+    elif os.environ.get("CIVITAE_DEV_MODE") == "1":
+        # Explicit local development/test compatibility; never active on Railway.
+        forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        try:
+            return str(ip_address(forwarded))
+        except ValueError:
+            pass
     return request.client.host if request.client else "unknown"
 
 
 def client_fingerprint(request: Request) -> str:
     return hashlib.sha256(client_ip(request).encode()).hexdigest()[:16]
-
-
-def check_global_rate_limit(bucket_name: str, max_hits: int, window_s: int) -> None:
-    """Cap total hits across all clients, so distributed callers cannot bypass per-IP limits."""
-    now = _time.time()
-    hits = [h for h in RATE_STORES.setdefault(bucket_name, {}).get("*", []) if now - h < window_s]
-    if len(hits) >= max_hits:
-        raise HTTPException(status_code=429, detail="Too many requests, try again later")
-    hits.append(now)
-    RATE_STORES[bucket_name]["*"] = hits
 
 
 def check_rate_limit(
