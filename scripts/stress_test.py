@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 CIVITAE Stress Test Suite
-Tests the Railway deployment end-to-end: health, agents, missions,
+Tests an explicitly selected deployment end-to-end: health, agents, missions,
 governance (Roberts Rules), economy, KA§§A, MPP, forums, slots, seeds.
 Writes a timestamped report to ./reports/stress-YYYYMMDD-HHMMSS.txt
 """
@@ -15,8 +15,12 @@ import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Optional
+from stress_target import stress_target
 
-BASE_URL = os.getenv("CIVITAE_URL", "https://agent-universe-production.up.railway.app")
+try:
+    BASE_URL = stress_target(os.environ)
+except ValueError as exc:
+    raise SystemExit(str(exc)) from None
 REPORT_DIR = os.path.join(os.path.dirname(__file__), "reports")
 os.makedirs(REPORT_DIR, exist_ok=True)
 
