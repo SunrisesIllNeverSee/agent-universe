@@ -7,7 +7,9 @@ for correctness today.
 from __future__ import annotations
 
 import hashlib
+import os
 import time as _time
+from ipaddress import ip_address
 
 from fastapi import HTTPException, Request
 
@@ -15,12 +17,26 @@ from fastapi import HTTPException, Request
 RATE_STORES: dict[str, dict[str, list[float]]] = {}
 
 
+def client_ip(request: Request) -> str:
+    """Use Railway HTTP ingress's remote address; forwarded chains are not identity."""
+    if os.environ.get("RAILWAY_ENVIRONMENT"):
+        real_ip = request.headers.get("x-real-ip", "").strip()
+        try:
+            return str(ip_address(real_ip))
+        except ValueError:
+            pass
+    elif os.environ.get("CIVITAE_DEV_MODE") == "1":
+        # Explicit local development/test compatibility; never active on Railway.
+        forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        try:
+            return str(ip_address(forwarded))
+        except ValueError:
+            pass
+    return request.client.host if request.client else "unknown"
+
+
 def client_fingerprint(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for", "")
-    ip = forwarded.split(",")[0].strip() if forwarded else (
-        request.client.host if request.client else "unknown"
-    )
-    return hashlib.sha256(ip.encode()).hexdigest()[:16]
+    return hashlib.sha256(client_ip(request).encode()).hexdigest()[:16]
 
 
 def check_rate_limit(
