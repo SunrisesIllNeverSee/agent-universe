@@ -24,6 +24,8 @@ class AuditSpine:
             role=governance.get("role", ""),
             agent=(detail or {}).get("agent", ""),
         )
+        from .forensic_logging import note_audit
+        note_audit(entry)
         try:
             from app.otel_setup import get_tracer
             from opentelemetry import trace

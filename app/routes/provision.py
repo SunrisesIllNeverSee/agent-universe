@@ -97,6 +97,9 @@ def _require_agent_or_admin(request: Request, agent: dict) -> None:
     if admin_key_matches(request, state.admin_key):
         return
 
+    from app.forensic_logging import note_auth
+    note_auth("agent_bearer", "rejected")
+
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         raise HTTPException(401, "Agent API key required")
@@ -115,6 +118,7 @@ def _require_agent_or_admin(request: Request, agent: dict) -> None:
 
     if agent.get("status") != "active":
         raise HTTPException(403, f"Agent status: {agent.get('status')}")
+    note_auth("agent_bearer", "accepted", agent.get("agent_id"))
 
 
 # ── Shared in-process rate limiter ───────────────────────────────────────────
