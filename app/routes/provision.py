@@ -159,81 +159,84 @@ async def agent_signup(request: Request, payload: dict) -> dict:
     caller_ip = _client_ip(request)
 
     # ── Atomic signup under slot_lock — prevents concurrent write contention ──
+    from app.registration_guard import REGISTRATION_LOCK
+
     async with state.slot_lock:
-        # Reload from disk so we see writes from other workers
-        runtime.reload_registry()
+        with REGISTRATION_LOCK:
+            # Reload from disk so we see writes from other workers
+            runtime.reload_registry()
 
-        if limited := _check_global_signup_limit(runtime.registry):
-            return limited
+            if limited := _check_global_signup_limit(runtime.registry):
+                return limited
 
-        # Registration is identity creation, not chamber occupancy. The legacy
-        # global max_agents registry cap was removed because historical/test
-        # identities must not consume Velvet Rope live seats. The lobby owns
-        # concurrent occupancy (100 seats / 1-hour TTL / FIFO queue).
+            # Registration is identity creation, not chamber occupancy. The legacy
+            # global max_agents registry cap was removed because historical/test
+            # identities must not consume Velvet Rope live seats. The lobby owns
+            # concurrent occupancy (100 seats / 1-hour TTL / FIFO queue).
 
-        # Per-IP agent cap — max 3 agents per IP ever (Sybil resistance)
-        MAX_AGENTS_PER_IP = 3
-        ip_agents = [r for r in runtime.registry if r.get("signup_ip") == caller_ip and r.get("type") == "agent"]
-        if len(ip_agents) >= MAX_AGENTS_PER_IP:
-            state.audit.log("security", "sybil_signup_blocked", {"ip": caller_ip, "count": len(ip_agents)})
-            return JSONResponse({"error": "Max agents per origin reached"}, status_code=429)
+            # Per-IP agent cap — max 3 agents per IP ever (Sybil resistance)
+            MAX_AGENTS_PER_IP = 3
+            ip_agents = [r for r in runtime.registry if r.get("signup_ip") == caller_ip and r.get("type") == "agent"]
+            if len(ip_agents) >= MAX_AGENTS_PER_IP:
+                state.audit.log("security", "sybil_signup_blocked", {"ip": caller_ip, "count": len(ip_agents)})
+                return JSONResponse({"error": "Max agents per origin reached"}, status_code=429)
 
-        # Check if name or handle already exists (unique constraint)
-        existing = next((r for r in runtime.registry if r.get("name") == agent_name or r.get("handle") == requested_handle), None)
-        if existing:
-            return JSONResponse({"error": f"Agent '{agent_name}' or handle '{requested_handle}' already registered", "agent_id": existing.get("agent_id")}, status_code=409)
+            # Check if name or handle already exists (unique constraint)
+            existing = next((r for r in runtime.registry if r.get("name") == agent_name or r.get("handle") == requested_handle), None)
+            if existing:
+                return JSONResponse({"error": f"Agent '{agent_name}' or handle '{requested_handle}' already registered", "agent_id": existing.get("agent_id")}, status_code=409)
 
-        # Generate agent key (full key returned once; hash stored)
-        api_key = new_agent_api_key()
-        key_prefix = api_key[:12] + "***"
-        key_hash = _hash_key(api_key)
-        agent_id = f"agent-{secrets.token_hex(4)}"
+            # Generate agent key (full key returned once; hash stored)
+            api_key = new_agent_api_key()
+            key_prefix = api_key[:12] + "***"
+            key_hash = _hash_key(api_key)
+            agent_id = f"agent-{secrets.token_hex(4)}"
 
-        # Determine approval mode
-        approval_mode = runtime.provision.get("approval_mode", "auto")
-        status = "active" if approval_mode == "auto" else "pending"
+            # Determine approval mode
+            approval_mode = runtime.provision.get("approval_mode", "auto")
+            status = "active" if approval_mode == "auto" else "pending"
 
-        # Auto-assign role and governance
-        auto_role = runtime.provision.get("auto_assign_role", "secondary")
-        require_gov = runtime.provision.get("require_governance", True)
-        gov_mode = runtime.governance.mode if require_gov else "None (Unrestricted)"
+            # Auto-assign role and governance
+            auto_role = runtime.provision.get("auto_assign_role", "secondary")
+            require_gov = runtime.provision.get("require_governance", True)
+            gov_mode = runtime.governance.mode if require_gov else "None (Unrestricted)"
 
-        # Generate @signomy.xyz email address
-        import re as _re
-        handle_slug = _re.sub(r'[^a-z0-9-]', '', requested_handle.lower().replace(" ", "-").replace("_", "-"))
-        email_slug = handle_slug or _re.sub(r'[^a-z0-9-]', '', agent_name.lower().replace(" ", "-").replace("_", "-"))
-        agent_email = f"{email_slug}@signomy.xyz" if email_slug else f"{agent_id}@signomy.xyz"
+            # Generate @signomy.xyz email address
+            import re as _re
+            handle_slug = _re.sub(r'[^a-z0-9-]', '', requested_handle.lower().replace(" ", "-").replace("_", "-"))
+            email_slug = handle_slug or _re.sub(r'[^a-z0-9-]', '', agent_name.lower().replace(" ", "-").replace("_", "-"))
+            agent_email = f"{email_slug}@signomy.xyz" if email_slug else f"{agent_id}@signomy.xyz"
 
-        # Build registry entry
-        entry = {
-            "agent_id": agent_id,
-            "handle": handle_slug or agent_id,
-            "name": agent_name,
-            "email": agent_email,
-            "type": "agent",
-            "status": status,
-            "provisioned": datetime.now(UTC).isoformat(),
-            "key_prefix": key_prefix,
-            "key_hash": key_hash,
-            "signup_ip": caller_ip,
-            "governance": gov_mode.lower().replace(" ", "_").replace("(", "").replace(")", ""),
-            "system": payload.get("system", None),
-            "assigned_system": payload.get("system", None),
-            "role": auto_role,
-            "rate_limit": runtime.provision.get("rate_limit", {"requests_per_minute": 10, "burst": 20}),
-            "capabilities": payload.get("capabilities", []),
-            # Optional out-of-band contact for the agent's operator — the
-            # generated @signomy.xyz email is an identity label, not a mailbox.
-            # Accepts top-level operator_contact or the documented metadata.contact.
-            "operator_contact": (
-                (payload.get("operator_contact") or "").strip()[:200]
-                or ((payload.get("metadata") or {}).get("contact") or "").strip()[:200]
-                or None
-            ),
-        }
+            # Build registry entry
+            entry = {
+                "agent_id": agent_id,
+                "handle": handle_slug or agent_id,
+                "name": agent_name,
+                "email": agent_email,
+                "type": "agent",
+                "status": status,
+                "provisioned": datetime.now(UTC).isoformat(),
+                "key_prefix": key_prefix,
+                "key_hash": key_hash,
+                "signup_ip": caller_ip,
+                "governance": gov_mode.lower().replace(" ", "_").replace("(", "").replace(")", ""),
+                "system": payload.get("system", None),
+                "assigned_system": payload.get("system", None),
+                "role": auto_role,
+                "rate_limit": runtime.provision.get("rate_limit", {"requests_per_minute": 10, "burst": 20}),
+                "capabilities": payload.get("capabilities", []),
+                # Optional out-of-band contact for the agent's operator — the
+                # generated @signomy.xyz email is an identity label, not a mailbox.
+                # Accepts top-level operator_contact or the documented metadata.contact.
+                "operator_contact": (
+                    (payload.get("operator_contact") or "").strip()[:200]
+                    or ((payload.get("metadata") or {}).get("contact") or "").strip()[:200]
+                    or None
+                ),
+            }
 
-        runtime.registry.append(entry)
-        runtime.persist_registry()
+            runtime.registry.append(entry)
+            runtime.persist_registry()
 
     # Seed the agent's in-system mailbox — the welcome record teaches the
     # inbox primitive on day one (their @signomy.xyz email is an identity

@@ -64,3 +64,59 @@ def test_concurrent_origins_cannot_overfill_budget(client):
     assert statuses.count(200) == 5
     assert statuses.count(429) == 10
     assert len(state.runtime.registry) == 5
+
+
+def test_rest_kassa_and_mcp_share_one_signup_budget(client):
+    import secrets
+    from app.deps import state
+
+    def kassa(i):
+        return client.post("/api/kassa/agent/register",
+                           headers={"x-forwarded-for": f"198.51.100.{i + 1}"},
+                           json={"name": f"cross-kassa-{secrets.token_hex(5)}"})
+
+    assert register(client, 0).status_code == 200
+    assert register(client, 1).status_code == 200
+    assert kassa(11).status_code == 200
+    assert kassa(12).status_code == 200
+    # MCP registration is the fifth creation; call the tool in-process
+    # because this test module shares a session-scoped FastMCP server.
+    import asyncio
+    mcp = state.mcp_bridge.build_fastmcp()
+    result = asyncio.run(mcp.call_tool("agent.register", {
+        "handle": f"cross-mcp-{secrets.token_hex(5)}",
+        "name": f"cross-mcp-{secrets.token_hex(5)}",
+    }))
+    assert result is not None
+    assert len(state.runtime.registry) == 5
+    blocked = kassa(13)
+    assert blocked.status_code == 429
+    assert "Retry-After" in blocked.headers
+    assert register(client, 2).status_code == 429
+    assert len(state.runtime.registry) == 5
+
+
+def test_mcp_rejected_when_shared_budget_is_exhausted(client):
+    import secrets
+    for i in range(5):
+        assert register(client, i).status_code == 200
+    import asyncio
+    from app.deps import state
+    mcp = state.mcp_bridge.build_fastmcp()
+    result = asyncio.run(mcp.call_tool("agent.register", {
+        "name": f"blocked-{secrets.token_hex(5)}",
+        "handle": f"blocked-{secrets.token_hex(5)}",
+    }))
+    assert "Global signup limit reached" in str(result)
+    assert len(state.runtime.registry) == 5
+
+
+def test_kassa_origin_cannot_create_four_identities(client):
+    import secrets
+    headers = {"x-forwarded-for": "198.51.100.190"}
+    for i in range(3):
+        assert client.post("/api/kassa/agent/register", headers=headers,
+                           json={"name": f"same-source-{secrets.token_hex(6)}"}).status_code == 200
+    blocked = client.post("/api/kassa/agent/register", headers=headers,
+                          json={"name": f"same-source-{secrets.token_hex(6)}"})
+    assert blocked.status_code == 429

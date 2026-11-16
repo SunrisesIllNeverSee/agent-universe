@@ -5,6 +5,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import json
+import hashlib
 import logging
 from logging.handlers import RotatingFileHandler
 import os
@@ -32,6 +33,9 @@ class Call:
     audit_event_ids: list[int] = field(default_factory=list)
     resource_ids: list[dict] = field(default_factory=list)
     auth_checks: list[dict] = field(default_factory=list)
+    client_test_run_id: str | None = None
+    client_test_suite: str | None = None
+    ua_fingerprint: str | None = None
 
 
 current_call: ContextVar[Call | None] = ContextVar("forensic_call", default=None)
@@ -97,6 +101,9 @@ def emit(call: Call, *, transport: str, outcome: str, started: float, **fields) 
         "edge_request_id": call.edge_request_id, "source_ip": call.source_ip,
         "auth_kind": call.auth_kind, "auth_result": call.auth_result,
         "principal_id": call.principal_id, "outcome": outcome,
+        "client_test_run_id": call.client_test_run_id,
+        "client_test_suite": call.client_test_suite,
+        "user_agent_fingerprint": call.ua_fingerprint,
         "auth_checks": list(call.auth_checks),
         "duration_ms": round((time.monotonic() - started) * 1000, 2),
         "audit_event_ids": list(call.audit_event_ids), "resource_ids": list(call.resource_ids),
@@ -121,7 +128,16 @@ class ForensicMiddleware:
         edge_id = request.headers.get("x-railway-request-id", "") if os.environ.get("RAILWAY_ENVIRONMENT") else ""
         if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", edge_id):
             edge_id = None
-        call = Call(self.sink, uuid.uuid4().hex, client_ip(request), edge_id)
+        run_id = request.headers.get("x-signomy-test-run", "")
+        suite = request.headers.get("x-signomy-test-suite", "")
+        # These labels are untrusted hints, never proof of the originating process.
+        run_id = run_id if re.fullmatch(r"[A-Za-z0-9_-]{8,64}", run_id) else None
+        suite = suite if re.fullmatch(r"[A-Za-z0-9_-]{4,64}", suite) else None
+        ua = request.headers.get("user-agent", "")
+        ua_fp = hashlib.sha256(ua.encode("utf-8")).hexdigest()[:16] if ua else None
+        call = Call(self.sink, uuid.uuid4().hex, client_ip(request), edge_id,
+                    client_test_run_id=run_id, client_test_suite=suite,
+                    ua_fingerprint=ua_fp)
         if any(request.headers.get(h) for h in ("authorization", "x-admin-key", "x-api-key", "x-magic-token")):
             call.auth_kind, call.auth_result = "supplied", "not_evaluated"
         token = current_call.set(call)
@@ -184,7 +200,10 @@ def audited_fastmcp(base):
             if parent is None:
                 return await super().call_tool(name, arguments)
             call = Call(parent.sink, parent.request_id, parent.source_ip, parent.edge_request_id,
-                        parent.auth_kind, parent.auth_result, parent.principal_id)
+                        parent.auth_kind, parent.auth_result, parent.principal_id,
+                        client_test_run_id=parent.client_test_run_id,
+                        client_test_suite=parent.client_test_suite,
+                        ua_fingerprint=parent.ua_fingerprint)
             token = current_call.set(call)
             started, outcome = time.monotonic(), "exception"
             known = False

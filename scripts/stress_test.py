@@ -12,6 +12,8 @@ import time
 import random
 import string
 import os
+import re
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Optional
@@ -21,6 +23,16 @@ try:
     BASE_URL = stress_target(os.environ)
 except ValueError as exc:
     raise SystemExit(str(exc)) from None
+# Voluntary marker: this identifies a run of the *current* official script.
+# It cannot authenticate a caller or identify an already copied old script.
+RUN_ID = os.environ.get("CIVITAE_STRESS_RUN_ID", uuid.uuid4().hex)
+if not re.fullmatch(r"[A-Za-z0-9_-]{8,64}", RUN_ID):
+    raise SystemExit("CIVITAE_STRESS_RUN_ID must be 8-64 safe ASCII characters")
+SUITE_ID = "civitae-stress-v1"
+
+def marked_headers(extra=None):
+    return {**(extra or {}), "X-Signomy-Test-Run": RUN_ID, "X-Signomy-Test-Suite": SUITE_ID}
+
 REPORT_DIR = os.path.join(os.path.dirname(__file__), "reports")
 os.makedirs(REPORT_DIR, exist_ok=True)
 
@@ -51,7 +63,7 @@ def req(method, path, body=None, label=None, raw_html=False, headers=None):
     key = label or f"{method} {path}"
     t0  = time.time()
     try:
-        r = requests.request(method, url, json=body, timeout=20, headers=headers)
+        r = requests.request(method, url, json=body, timeout=20, headers=marked_headers(headers))
         elapsed = round(time.time() - t0, 3)
         R["timings"].setdefault(key, []).append(elapsed)
         ok_status = 200 <= r.status_code < 300
@@ -109,7 +121,7 @@ for path, name in [
     ("/entry",      "Entry/signup"),
 ]:
     t0 = time.time()
-    r  = requests.get(f"{BASE_URL}{path}", timeout=10)
+    r  = requests.get(f"{BASE_URL}{path}", timeout=10, headers=marked_headers())
     elapsed = round(time.time() - t0, 3)
     R["timings"].setdefault(f"page:{path}", []).append(elapsed)
     if 200 <= r.status_code < 300:
@@ -285,7 +297,7 @@ blast_times= []
 def blast(url):
     t0 = time.time()
     try:
-        r = requests.get(url, timeout=15)
+        r = requests.get(url, timeout=15, headers=marked_headers())
         t = round(time.time() - t0, 3)
         return (200 <= r.status_code < 300, t)
     except:
@@ -627,7 +639,7 @@ def mixed_blast(method, path):
     url = f"{BASE_URL}{path}"
     t0 = time.time()
     try:
-        r = requests.request(method, url, timeout=15)
+        r = requests.request(method, url, timeout=15, headers=marked_headers())
         t = round(time.time() - t0, 3)
         return (200 <= r.status_code < 300, t, path)
     except Exception as e:
@@ -666,6 +678,7 @@ report_lines = [
     f"  CIVITAE STRESS TEST REPORT",
     f"  {now.strftime('%Y-%m-%d %H:%M:%S')}",
     f"  Target: {BASE_URL}",
+    f"  Declared test-run ID: {RUN_ID} (caller supplied, not authenticated)",
     "═" * 62,
     f"  ✅  Passed  : {R['passed']}",
     f"  ❌  Failed  : {R['failed']}",

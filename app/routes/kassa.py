@@ -161,7 +161,7 @@ def _send_notify_email(entry: dict) -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/api/kassa/agent/register")
-async def kassa_agent_register(payload: KassaRegisterPayload) -> dict:
+async def kassa_agent_register(payload: KassaRegisterPayload, request: Request) -> dict:
     """
     Register an agent for KASSA. Returns agent_id + api_key (shown once) + JWT.
     Separate from provision signup -- this is the KASSA-specific auth flow.
@@ -170,32 +170,45 @@ async def kassa_agent_register(payload: KassaRegisterPayload) -> dict:
     if not agent_name:
         raise HTTPException(status_code=400, detail="Agent name required")
 
-    # Check existing
-    existing = next((r for r in state.runtime.registry if r.get("name") == agent_name), None)
-    if existing:
-        raise HTTPException(status_code=409, detail=f"Agent '{agent_name}' already registered")
+    # The three registration APIs consume the same persisted creation budget.
+    from app.registration_guard import REGISTRATION_LOCK, origin_has_capacity
+    from app.rate_limit import client_ip
+    from app.routes import provision
 
-    agent_id = f"agent-{secrets.token_hex(4)}"
-    api_key = f"kassa_{secrets.token_hex(16)}"
-    key_hash = _hash_key(api_key)
+    with REGISTRATION_LOCK:
+        state.runtime.reload_registry()
+        if limited := provision._check_global_signup_limit(state.runtime.registry):
+            return limited
+        source_ip = client_ip(request)
+        if not origin_has_capacity(state.runtime.registry, source_ip):
+            raise HTTPException(status_code=429, detail="Max agents per origin reached")
+        # Check existing
+        existing = next((r for r in state.runtime.registry if r.get("name") == agent_name), None)
+        if existing:
+            raise HTTPException(status_code=409, detail=f"Agent '{agent_name}' already registered")
 
-    entry = {
-        "agent_id": agent_id,
-        "name": agent_name,
-        "type": "agent",
-        "status": "active",
-        "provisioned": datetime.now(UTC).isoformat(),
-        "key_hash": key_hash,
-        "key_prefix": api_key[:10] + "***",
-        "governance": state.runtime.governance.mode.lower().replace(" ", "_").replace("(", "").replace(")", ""),
-        "system": payload.system,
-        "role": "secondary",
-        "rate_limit": state.runtime.provision.get("rate_limit", {"requests_per_minute": 10, "burst": 20}),
-        "operator_contact": (payload.operator_contact or "").strip()[:200] or None,
-    }
+        agent_id = f"agent-{secrets.token_hex(4)}"
+        api_key = f"kassa_{secrets.token_hex(16)}"
+        key_hash = _hash_key(api_key)
 
-    state.runtime.registry.append(entry)
-    state.runtime.persist_registry()
+        entry = {
+            "agent_id": agent_id,
+            "name": agent_name,
+            "type": "agent",
+            "status": "active",
+            "provisioned": datetime.now(UTC).isoformat(),
+            "signup_ip": source_ip,
+            "key_hash": key_hash,
+            "key_prefix": api_key[:10] + "***",
+            "governance": state.runtime.governance.mode.lower().replace(" ", "_").replace("(", "").replace(")", ""),
+            "system": payload.system,
+            "role": "secondary",
+            "rate_limit": state.runtime.provision.get("rate_limit", {"requests_per_minute": 10, "burst": 20}),
+            "operator_contact": (payload.operator_contact or "").strip()[:200] or None,
+        }
+
+        state.runtime.registry.append(entry)
+        state.runtime.persist_registry()
 
     _audit_entry = state.audit.log("kassa", "agent_registered", {"agent_id": agent_id, "name": agent_name})
     await state.emit("audit_event", _audit_entry.model_dump(mode="json"))
