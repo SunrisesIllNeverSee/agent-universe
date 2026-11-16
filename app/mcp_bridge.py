@@ -230,17 +230,21 @@ class MCPBridge:
             }
 
         # ── Output schemas ─────────────────────────────────────────────
-        class RegisterResult(TypedDict):
-            agent_id: str
-            name: str
-            api_key: str
-            email: str
-            governance: str
-            role: str
-            onboarding: str
-            note: str
-            seed_doi: NotRequired[str | None]
-            provenance_error: NotRequired[bool | None]
+        # Registration can return a denial without issued credentials. All
+        # fields allow absence/null so FastMCP can validate both outcomes.
+        class RegisterResult(TypedDict, total=False):
+            agent_id: str | None
+            name: str | None
+            api_key: str | None
+            email: str | None
+            governance: str | None
+            role: str | None
+            onboarding: str | None
+            note: str | None
+            seed_doi: str | None
+            provenance_error: bool | None
+            error: str | None
+            retry_after_seconds: int | None
 
         class StatusResult(TypedDict):
             platform: dict[str, Any]
@@ -336,40 +340,53 @@ class MCPBridge:
                 span.set_attribute("mcp.tool", "civitae_register")
                 span.set_attribute("mcp.handle", handle)
                 runtime = _state.runtime
-                runtime.reload_registry()
-                agent_name = name.strip()
-                agent_handle = handle.strip()
-                if not agent_name:
-                    span.set_attribute("mcp.result", "missing_name")
-                    return {"error": "name required"}
-                if not agent_handle:
-                    span.set_attribute("mcp.result", "missing_handle")
-                    return {"error": "handle required"}
-                existing = next((r for r in runtime.registry if r.get("name") == agent_name or r.get("handle") == agent_handle), None)
-                if existing:
-                    span.set_attribute("mcp.result", "already_registered")
-                    return {"error": f"Agent '{agent_name}' or handle '{agent_handle}' already registered", "agent_id": existing.get("agent_id")}
-                from .auth import new_agent_api_key
-                api_key = new_agent_api_key()
-                agent_id = f"agent-{secrets.token_hex(4)}"
-                import re as _re
-                slug = _re.sub(r"[^a-z0-9-]", "", agent_handle.lower().replace(" ", "-").replace("_", "-"))
-                entry = {
-                    "agent_id": agent_id, "handle": slug or agent_id, "name": agent_name,
-                    "email": f"{slug or agent_id}@signomy.xyz",
-                    "type": "agent", "status": "active",
-                    "provisioned": datetime.now(timezone.utc).isoformat(),
-                    "key_prefix": api_key[:12] + "***",
-                    "key_hash": _hash_key(api_key),
-                    "governance": runtime.governance.mode.lower().replace(" ", "_"),
-                    "system": model, "assigned_system": model,
-                    "role": runtime.provision.get("auto_assign_role", "secondary"),
-                    "rate_limit": runtime.provision.get("rate_limit", {"requests_per_minute": 10, "burst": 20}),
-                    "capabilities": capabilities or [],
-                    "operator_contact": (operator_contact or "").strip()[:200] or None,
-                }
-                runtime.registry.append(entry)
-                runtime.persist_registry()
+                from .registration_guard import REGISTRATION_LOCK, origin_has_capacity
+                from .forensic_logging import current_call
+                from .routes import provision as _provision
+
+                with REGISTRATION_LOCK:
+                    runtime.reload_registry()
+                    if limited := _provision._check_global_signup_limit(runtime.registry):
+                        return {"error": "Global signup limit reached; retry later",
+                                "retry_after_seconds": int(limited.headers["Retry-After"])}
+                    active_call = current_call.get()
+                    source_ip = active_call.source_ip if active_call else None
+                    if not origin_has_capacity(runtime.registry, source_ip):
+                        return {"error": "Max agents per origin reached"}
+                    agent_name = name.strip()
+                    agent_handle = handle.strip()
+                    if not agent_name:
+                        span.set_attribute("mcp.result", "missing_name")
+                        return {"error": "name required"}
+                    if not agent_handle:
+                        span.set_attribute("mcp.result", "missing_handle")
+                        return {"error": "handle required"}
+                    existing = next((r for r in runtime.registry if r.get("name") == agent_name or r.get("handle") == agent_handle), None)
+                    if existing:
+                        span.set_attribute("mcp.result", "already_registered")
+                        return {"error": f"Agent '{agent_name}' or handle '{agent_handle}' already registered", "agent_id": existing.get("agent_id")}
+                    from .auth import new_agent_api_key
+                    api_key = new_agent_api_key()
+                    agent_id = f"agent-{secrets.token_hex(4)}"
+                    import re as _re
+                    slug = _re.sub(r"[^a-z0-9-]", "", agent_handle.lower().replace(" ", "-").replace("_", "-"))
+                    entry = {
+                        "agent_id": agent_id, "handle": slug or agent_id, "name": agent_name,
+                        "email": f"{slug or agent_id}@signomy.xyz",
+                        "type": "agent", "status": "active",
+                        "provisioned": datetime.now(timezone.utc).isoformat(),
+                        "signup_ip": source_ip,
+                        "key_prefix": api_key[:12] + "***",
+                        "key_hash": _hash_key(api_key),
+                        "governance": runtime.governance.mode.lower().replace(" ", "_"),
+                        "system": model, "assigned_system": model,
+                        "role": runtime.provision.get("auto_assign_role", "secondary"),
+                        "rate_limit": runtime.provision.get("rate_limit", {"requests_per_minute": 10, "burst": 20}),
+                        "capabilities": capabilities or [],
+                        "operator_contact": (operator_contact or "").strip()[:200] or None,
+                    }
+                    runtime.registry.append(entry)
+                    runtime.persist_registry()
                 _state.audit.log("provision", "agent_signup_mcp", {"agent_id": agent_id, "name": agent_name})
                 seed_doi = _seed(
                     "agent_register_mcp",

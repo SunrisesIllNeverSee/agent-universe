@@ -231,3 +231,35 @@ def test_real_server_records_guard_rejections(app, tmp_root, monkeypatch):
     finally:
         vars(state).clear()
         vars(state).update(previous)
+
+
+def test_voluntary_run_marker_and_ua_hash_are_metadata_only(tmp_path):
+    import hashlib
+    app = FastAPI()
+    @app.get("/api/health-probe")
+    def probe():
+        return {"ok": True}
+    app.add_middleware(ForensicMiddleware, router=app.router, sink=CallSink(tmp_path))
+    secret_ua = "PRIVATE-SENTINEL-UNTRUSTED-UA"
+    response = TestClient(app).get("/api/health-probe",
+        headers={"X-Signomy-Test-Run": "test-20261116-abcdef",
+                 "X-Signomy-Test-Suite": "civitae-stress-v1", "User-Agent": secret_ua})
+    assert response.status_code == 200
+    content = (tmp_path / "security_calls.jsonl").read_text()
+    event = json.loads(content)
+    assert event["client_test_run_id"] == "test-20261116-abcdef"
+    assert event["client_test_suite"] == "civitae-stress-v1"
+    assert event["user_agent_fingerprint"] == hashlib.sha256(secret_ua.encode()).hexdigest()[:16]
+    assert secret_ua not in content
+
+
+def test_malicious_run_marker_is_not_recorded(tmp_path):
+    app = FastAPI()
+    @app.get("/api/probe")
+    def probe(): return {"ok": True}
+    app.add_middleware(ForensicMiddleware, router=app.router, sink=CallSink(tmp_path))
+    TestClient(app).get("/api/probe",
+        headers={"X-Signomy-Test-Run": "SECRET/with-private-content"})
+    text = (tmp_path / "security_calls.jsonl").read_text()
+    assert "SECRET" not in text
+    assert json.loads(text)["client_test_run_id"] is None

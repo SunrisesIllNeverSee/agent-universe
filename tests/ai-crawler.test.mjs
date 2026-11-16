@@ -177,3 +177,34 @@ test("the matcher skips proxied backend routes and assets but keeps pages and cr
     assert.ok(re.test(p), `${p} should reach the middleware`);
   }
 });
+
+
+test("preview backend routes fail closed while production remains routed", () => {
+  const old = process.env.VERCEL_ENV;
+  try {
+    process.env.VERCEL_ENV = "preview";
+    for (const [path, method] of [
+      ["/api/provision/signup", "POST"], ["/api/kassa/agent/register", "POST"],
+      ["/mcp", "POST"], ["/docs/reference", "GET"], ["/health", "GET"], ["/ws/live", "GET"],
+    ]) {
+      const response = middleware(req("https://preview.example.vercel.app" + path, BROWSER, method));
+      assert.equal(response.status, 503, path);
+      assert.equal(response.headers.get("x-signomy-preview-isolation"), "blocked");
+    }
+    assert.equal(middleware(req("https://preview.example.vercel.app/products", BROWSER)).headers.get("x-middleware-next"), "1");
+    process.env.VERCEL_ENV = "production";
+    assert.equal(middleware(req("https://signomy.xyz/api/provision/signup", BROWSER, "POST")).headers.get("x-middleware-next"), "1");
+  } finally {
+    if (old === undefined) delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV = old;
+  }
+});
+
+test("the matcher explicitly intercepts preview backend namespaces", () => {
+  for (const route of ["/api/agents", "/mcp", "/mcp/messages", "/docs/foo", "/health", "/ws/live"]) {
+    assert.ok(config.matcher.slice(1).some(pattern => {
+      const stem = pattern.replace("/:path*", "");
+      return route === stem || route.startsWith(stem + "/");
+    }), route);
+  }
+});
