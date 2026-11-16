@@ -42,7 +42,12 @@ def new_agent_api_key() -> str:
 
 def admin_key_matches(request: Request, expected: str | None) -> bool:
     """Return True only when a configured admin key matches the request header."""
-    return secret_matches(request.headers.get("X-Admin-Key", ""), expected)
+    provided = request.headers.get("X-Admin-Key", "")
+    accepted = secret_matches(provided, expected)
+    if provided:
+        from .forensic_logging import note_auth
+        note_auth("admin_key", "accepted" if accepted else "rejected", "operator" if accepted else None)
+    return accepted
 
 
 
@@ -58,6 +63,8 @@ def active_agent_from_bearer(
     raw_key = auth[7:].strip()
     if not raw_key:
         return None
+    from .forensic_logging import note_auth
+    note_auth("agent_bearer", "rejected")
     digest = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
     if revoked_keys and digest in revoked_keys:
         return None
@@ -67,6 +74,7 @@ def active_agent_from_bearer(
             and bool(agent.get("key_hash"))
             and secret_matches(digest, agent.get("key_hash"))
         ):
+            note_auth("agent_bearer", "accepted", agent.get("agent_id"))
             return agent
     return None
 
@@ -121,10 +129,15 @@ def agent_token_alive(agent: dict | None, claims: dict) -> bool:
     tokens die with the credential that minted them. Tokens issued before
     the field existed carry no claim — they count as epoch 0, i.e. they
     work until the first revocation event."""
+    from .forensic_logging import note_auth
+    note_auth("agent_jwt_liveness", "rejected")
     if not agent or agent.get("status") != "active":
         return False
     try:
-        return int(claims.get("epoch", 0)) == int(agent.get("token_epoch", 0))
+        alive = int(claims.get("epoch", 0)) == int(agent.get("token_epoch", 0))
+        if alive:
+            note_auth("agent_jwt_liveness", "accepted", agent.get("agent_id"))
+        return alive
     except (TypeError, ValueError):
         return False
 

@@ -609,6 +609,11 @@ def create_app(root: Path | None = None) -> FastAPI:
     # path — no trailing-slash 307 redirect that breaks POST clients.
     app.mount("", _mcp_app)
 
+    # Outermost ASGI scope also covers middleware rejections and mounted MCP.
+    if os.environ.get("CIVITAE_FORENSIC_LOGGING", "1" if _ON_RAILWAY else "0") == "1":
+        from .forensic_logging import CallSink, ForensicMiddleware
+        app.add_middleware(ForensicMiddleware, router=app.router, sink=CallSink(data_dir))
+
     return app
 
 

@@ -125,17 +125,22 @@ def _decode_legacy(token: str, secret: str) -> dict | None:
 
 def verify_jwt(token: str) -> dict | None:
     """Validate a scoped JWT, with bounded fallback for pre-migration tokens."""
+    from .forensic_logging import note_auth
+    note_auth("agent_jwt", "rejected")
     current = get_kassa_jwt_secret()
     for secret in (current, get_kassa_jwt_secret_prev()):
         if not secret:
             continue
         try:
-            return _decode_scoped(token, secret)
+            claims = _decode_scoped(token, secret)
+            note_auth("agent_jwt", "signature_valid", claims.get("sub"))
+            return claims
         except pyjwt.ExpiredSignatureError:
             continue
         except pyjwt.InvalidTokenError:
             legacy = _decode_legacy(token, secret)
             if legacy is not None:
+                note_auth("agent_jwt", "signature_valid", legacy.get("sub"))
                 return legacy
     return None
 

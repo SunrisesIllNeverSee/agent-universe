@@ -142,7 +142,8 @@ class MCPBridge:
         # stateless_http=True keeps MCP transport requests self-contained.
         # Production remains single-worker while authoritative file/in-memory
         # state has no cross-process coordination.
-        mcp = FastMCP(
+        from .forensic_logging import audited_fastmcp
+        mcp = audited_fastmcp(FastMCP)(
             "command-runtime",
             instructions=MCP_INSTRUCTIONS,
             log_level="ERROR",
@@ -197,12 +198,17 @@ class MCPBridge:
             return hashlib.sha256(key.encode()).hexdigest()
 
         def _agent_from_key(api_key: str) -> dict | None:
+            from .forensic_logging import note_auth
             if not api_key:
+                note_auth("agent_key", "missing")
                 return None
             h = _hash_key(api_key)
             if h in _state.runtime.revoked_keys:
+                note_auth("agent_key", "rejected")
                 return None
-            return next((r for r in _state.runtime.registry if r.get("key_hash") == h and r.get("status") == "active"), None)
+            principal = next((r for r in _state.runtime.registry if r.get("key_hash") == h and r.get("status") == "active"), None)
+            note_auth("agent_key", "accepted" if principal else "rejected", principal.get("agent_id") if principal else None)
+            return principal
 
         def _seed(action: str, **kwargs) -> str | None:
             """Same Seed the REST twin writes. Loud on failure (audit
@@ -1442,10 +1448,13 @@ class MCPBridge:
 
         # ── Operator tools ─────────────────────────────────────────────
         def _check_op(admin_key: str) -> str | None:
+            from .forensic_logging import note_auth
+            note_auth("admin_key", "rejected" if admin_key else "missing")
             if not _state.admin_key:
                 return "Admin key not configured on this server."
             if not secret_matches(admin_key, _state.admin_key):
                 return "Invalid admin key."
+            note_auth("admin_key", "accepted", "operator")
             return None
 
         def _resolve_review(post_or_review_id: str) -> dict | None:
