@@ -297,11 +297,19 @@ GitHub. Search existing issues first to avoid duplicates.
 
 ## License
 
-The MCP server surface (Dockerfile, `packages/civitae-mcp/`, `civitae-mcp` PyPI
-package) is MIT licensed. See [LICENSE](LICENSE).
+**Mixed-license repository — do not assume the entire checkout is MIT-licensed.**
 
-The core platform (FastAPI backend, governance, marketplace, frontend) is
-proprietary. See [LICENSE-PROPRIETARY](LICENSE-PROPRIETARY).
+The separately distributed MCP server surface (`packages/civitae-mcp/` and the
+`civitae-mcp` PyPI package, including packaging required to distribute that
+surface) is intended to be MIT-licensed; see [LICENSE](LICENSE).
+
+The core platform (including the FastAPI backend, governance, marketplace,
+frontend, and non-MCP proprietary materials) is **not** offered under MIT.
+See [LICENSE-PROPRIETARY](LICENSE-PROPRIETARY). A root-level MIT license file
+may be read more broadly than intended; this README states the project's
+intended scope but does not by itself cure any ambiguity in the existing grant.
+Before reusing code outside the separately distributed MCP package, obtain
+written permission. Third-party components retain their own licenses.
 
 Patent pending. MO§ES™ is a trademark of Ello Cello LLC.
 
