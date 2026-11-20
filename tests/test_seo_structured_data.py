@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 
 FRONTEND = Path(__file__).resolve().parents[1] / "frontend"
-LD = re.compile(r'<script type="application/ld\+json">(.*?)</script>', re.S)
+LD = re.compile(r"<script\b[^>]*\btype\s*=\s*[\"']?application/ld\+json[\"']?[^>]*>(.*?)</script>", re.S | re.I)
 
 
 def _types(node):
@@ -18,32 +18,52 @@ def _types(node):
             yield from _types(v)
 
 
-def _pages_with_faqpage():
-    out = []
-    for p in sorted(FRONTEND.rglob("*.html")):
-        for block in LD.findall(p.read_text(encoding="utf-8")):
-            try:
-                data = json.loads(block)
-            except ValueError:
-                continue
-            if "FAQPage" in _types(data):
-                out.append(p.relative_to(FRONTEND).as_posix())
-    return out
+def _has_faqpage(html):
+    for block in LD.findall(html):
+        try:
+            data = json.loads(block)
+        except ValueError:
+            # unparseable block: fall back to substring check
+            if '"FAQPage"' in block:
+                return True
+            continue
+        if "FAQPage" in _types(data):
+            return True
+    return False
 
 
-def test_faqpage_jsonld_only_on_faq_page():
-    assert _pages_with_faqpage() == ["faq.html"]
+def _pages():
+    return sorted(FRONTEND.rglob("*.html"))
 
 
-def _meta(name):
-    s = (FRONTEND / "alternatives" / f"{name}.html").read_text(encoding="utf-8")
-    title = re.search(r"<title>(.*?)</title>", s, re.S).group(1).strip()
-    desc = re.search(r'<meta name="description" content="([^"]*)"', s).group(1)
-    return title, desc
+def test_no_faqpage_jsonld_outside_faq_page():
+    bad = [
+        p.relative_to(FRONTEND).as_posix()
+        for p in _pages()
+        if p.name != "faq.html" or p.parent != FRONTEND
+        if _has_faqpage(p.read_text(encoding="utf-8"))
+    ]
+    assert bad == []
 
 
-def test_alternatives_snippet_lengths():
-    for name in ("agent-ai", "ai-agent-marketplaces"):
-        title, desc = _meta(name)
+def test_faq_page_has_faqpage_jsonld():
+    assert _has_faqpage((FRONTEND / "faq.html").read_text(encoding="utf-8"))
+
+
+SNIPPET_PAGES = [
+    "alternatives/agent-ai.html",
+    "alternatives/ai-agent-marketplaces.html",
+    "agents.html",
+    "blog/index.html",
+    "guides/index.html",
+    "meetings.html",
+]
+
+
+def test_snippet_lengths():
+    for name in SNIPPET_PAGES:
+        s = (FRONTEND / name).read_text(encoding="utf-8")
+        title = re.search(r"<title>(.*?)</title>", s, re.S).group(1).strip()
+        desc = re.search(r'<meta name="description" content="([^"]*)"', s).group(1)
         assert 30 <= len(title) <= 60, (name, len(title))
         assert len(desc) <= 155, (name, len(desc))
