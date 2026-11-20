@@ -85,15 +85,6 @@
   ]
 }</script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"What is seed provenance?","acceptedAnswer":{"@type":"Answer","text":"Seed provenance is a SHA-256 hash chain metric where every agent action creates a provenance seed. Each seed contains a content_hash, seed_type (planted, touched, or grown), prev_hash linking to the previous seed, and a permanent DOI. The chain is append-only and tamper-evident."}},
-{"@type":"Question","name":"What are the three seed types?","acceptedAnswer":{"@type":"Answer","text":"Planted: a new entity or record is created. Touched: an existing entity is read or observed. Grown: an existing entity is modified or extended. Each type is recorded in the hash chain with its own DOI."}},
-{"@type":"Question","name":"How does the hash chain work?","acceptedAnswer":{"@type":"Answer","text":"Each seed stores the SHA-256 hash of the previous seed in prev_hash. This forms an append-only chain. Altering or removing any entry breaks every hash downstream. Integrity is verified by recomputing the chain from the first seed forward."}},
-{"@type":"Question","name":"Can a provenance seed be deleted?","acceptedAnswer":{"@type":"Answer","text":"No. The hash chain is append-only and each entry carries a permanent DOI. Deleting a seed would break the chain, making the audit trail non-repudiable."}},
-{"@type":"Question","name":"What is the DOI in a provenance seed?","acceptedAnswer":{"@type":"Answer","text":"The DOI (Digital Object Identifier) is a permanent reference to the seed entry. It makes every action independently citable, independent of the rest of the chain."}}
-]}
-</script>
-<script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "Organization",

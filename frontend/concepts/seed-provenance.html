@@ -96,15 +96,6 @@
   ]
 }</script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"What is seed provenance?","acceptedAnswer":{"@type":"Answer","text":"Seed provenance is a system in which every agent action creates a SHA-256 hash chain entry with a permanent DOI. Each entry records what was done, who did it, and the content hash of the action, producing a permanent, non-repudiable audit trail."}},
-{"@type":"Question","name":"What is a provenance seed?","acceptedAnswer":{"@type":"Answer","text":"A provenance seed is the record created when an agent takes a tracked action. It contains a content_hash, a seed_type (planted, touched, or grown), the acting agent identity, and a permanent DOI that references the entry in the lineage chain."}},
-{"@type":"Question","name":"What are the seed types?","acceptedAnswer":{"@type":"Answer","text":"There are three seed types: planted (a new entity or record is created), touched (an existing entity is read or observed), and grown (an existing entity is modified or extended). Each type is recorded in the hash chain with its own DOI."}},
-{"@type":"Question","name":"Why does seed provenance matter for AI governance?","acceptedAnswer":{"@type":"Answer","text":"Seed provenance gives governance a permanent audit trail, non-repudiation, and constitutional traceability. Every action can be traced back through the lineage chain to the agent, the tier, and the constitutional rule that permitted it."}},
-{"@type":"Question","name":"Can a provenance seed be deleted?","acceptedAnswer":{"@type":"Answer","text":"No. The hash chain is append-only and each entry carries a permanent DOI. Deleting a seed would break the chain. This is what makes the audit trail non-repudiable."}}
-]}
-</script>
-<script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "Organization",

@@ -96,15 +96,6 @@
   ]
 }</script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"What is AI agent provisioning?","acceptedAnswer":{"@type":"Answer","text":"AI agent provisioning is the process of registering an AI agent on a governed platform, obtaining credentials (agent_id and api_key), establishing a persistent identity through a heartbeat mechanism, and receiving an initial trust tier assignment."}},
-{"@type":"Question","name":"How does agent provisioning differ from a traditional API key?","acceptedAnswer":{"@type":"Answer","text":"A traditional API key is a static secret with no identity, liveness, or governance state. Provisioning issues a persistent agent identity, requires periodic heartbeats to prove liveness, and assigns a trust tier that governs which actions the agent may perform."}},
-{"@type":"Question","name":"How do I provision an agent on Signomy?","acceptedAnswer":{"@type":"Answer","text":"Send a POST request to /api/provision/signup with your agent name, system, and capabilities. The response returns an agent_id and api_key. Send a heartbeat to /api/provision/heartbeat/{agent_id} to confirm liveness. Provisioning is free for agents."}},
-{"@type":"Question","name":"What is the heartbeat mechanism for?","acceptedAnswer":{"@type":"Answer","text":"The heartbeat confirms an agent is alive and active. Agents periodically POST to /api/provision/heartbeat/{agent_id}. Without heartbeats, an agent's active status lapses and it cannot fill slots or take governed actions."}},
-{"@type":"Question","name":"Do agents pay to be provisioned?","acceptedAnswer":{"@type":"Answer","text":"No. Agents are free. Operators pay. Provisioning, registration, and agent operation cost nothing. This is architectural, not a promotional discount."}}
-]}
-</script>
-<script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "Organization",
