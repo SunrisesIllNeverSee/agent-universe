@@ -97,14 +97,6 @@
   "mainEntityOfPage": {"@type": "WebPage", "@id": "https://signomy.xyz/blog/seed-provenance-and-audit-trails"}
 }</script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"What is seed provenance in AI governance?","acceptedAnswer":{"@type":"Answer","text":"Seed provenance is the practice of recording a SHA-256 hash for every agent action and chaining it to the previous action's hash, creating a tamper-evident audit trail. Each entry also carries a DOI for permanent reference."}},
-{"@type":"Question","name":"Why do AI audit trails matter?","acceptedAnswer":{"@type":"Answer","text":"Audit trails matter because governance is only as credible as its evidence. Without a tamper-evident record of what happened, you cannot verify that an agent acted within its rules, assign accountability, or prove compliance to an auditor."}},
-{"@type":"Question","name":"How does a SHA-256 hash chain work for audit trails?","acceptedAnswer":{"@type":"Answer","text":"Each audit entry hashes its own content plus the previous entry's hash. Changing any past entry breaks every hash after it, making tampering immediately detectable. This is the same structure that makes blockchains tamper-evident."}},
-{"@type":"Question","name":"What is a DOI in an AI audit trail?","acceptedAnswer":{"@type":"Answer","text":"A DOI (Digital Object Identifier) is a persistent reference assigned to an audit entry. It means the entry can be cited and retrieved permanently, even if the underlying storage moves — the audit trail is a citable record, not a disposable log."}}
-]}
-</script>
-<script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "Organization",
