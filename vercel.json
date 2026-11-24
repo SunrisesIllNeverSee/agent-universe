@@ -1,4 +1,5 @@
 {
+  "ignoreCommand": "bash scripts/vercel-ignore-build.sh",
   "outputDirectory": "frontend",
   "cleanUrls": true,
   "git": {
