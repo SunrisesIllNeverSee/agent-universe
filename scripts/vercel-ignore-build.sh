@@ -6,32 +6,58 @@
 # plus the root files it reads: vercel.json, middleware.js (and the
 # scripts/edge/ module it imports) and .vercelignore.
 #
-# Preview (every branch but main): skip by default to cut build cost. Put
-# [preview] in the commit message to get a preview link for that push.
+# Preview (every branch but main): skip by default to cut build cost, unless the
+# push changes deploy config (vercel.json, middleware, .vercelignore) or this
+# script, so those get a real Vercel build before they reach main. Put
+# [preview] in the commit message to force a preview for any push.
 #
-# Everything else (production, or Vercel did not say): build when Vercel-relevant
-# files changed since the last deployed commit. When in doubt, build.
+# Production (and anything else): build when Vercel-relevant files changed
+# since the last deployed commit. When in doubt, build.
 set -u
 
-# Skip only a git-branch preview: a deploy with no branch (CLI) always builds.
+watched="frontend vercel.json middleware.js scripts/edge .vercelignore package.json package-lock.json scripts/vercel-ignore-build.sh"
+deploy_config="vercel.json middleware.js scripts/edge .vercelignore scripts/vercel-ignore-build.sh"
 ref="${VERCEL_GIT_COMMIT_REF:-}"
-if [ "${VERCEL_ENV:-}" = "preview" ] && [ -n "$ref" ] && [ "$ref" != "main" ]; then
+
+# No branch (CLI deploy): someone asked for it explicitly, so build.
+if [ -z "$ref" ]; then
+  echo "No git branch (CLI deploy): building"
+  exit 1
+fi
+
+if [ "${VERCEL_ENV:-}" = "preview" ] && [ "$ref" != "main" ]; then
   case "${VERCEL_GIT_COMMIT_MESSAGE:-}" in
     *"[preview]"*)
       echo "[preview] in commit message: building preview"
       exit 1
       ;;
   esac
+  base="${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}"
+  # shellcheck disable=SC2086
+  git diff --quiet "$base" HEAD -- $deploy_config
+  rc=$?
+  if [ "$rc" -eq 1 ]; then
+    echo "Deploy config changed: building preview"
+    exit 1
+  fi
+  [ "$rc" -gt 1 ] && echo "git diff failed (rc=$rc); skipping preview anyway"
   echo "Skipping preview build. Add [preview] to the commit message to get one."
   exit 0
 fi
 
-# Compare against the last deployed commit when Vercel provides it, so a
-# multi-commit push is judged on all its commits, not only the newest one.
-base="${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}"
-if git diff --quiet "$base" HEAD -- frontend vercel.json middleware.js scripts/edge .vercelignore; then
+# Production: compare against the last deployed commit. If Vercel does not say
+# which one that was, build rather than guess from HEAD^.
+base="${VERCEL_GIT_PREVIOUS_SHA:-}"
+if [ -z "$base" ]; then
+  echo "No previous deployed commit known: building"
+  exit 1
+fi
+# shellcheck disable=SC2086
+git diff --quiet "$base" HEAD -- $watched
+rc=$?
+if [ "$rc" -eq 0 ]; then
   echo "No Vercel-relevant files changed since $base: skipping build"
   exit 0
 fi
-# Files changed, or git could not tell (exit 128): build.
+[ "$rc" -gt 1 ] && echo "git diff failed (rc=$rc): building"
 exit 1
