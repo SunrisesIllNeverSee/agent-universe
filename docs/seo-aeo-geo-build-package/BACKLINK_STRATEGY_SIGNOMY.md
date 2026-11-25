@@ -16,7 +16,6 @@ timestamp: 2026-08-27
 | GitHub: SunrisesIllNeverSee/agent-universe | ✅ Exists, needs description update |
 | PyPI: civitae-mcp | ✅ Exists, needs description update |
 | Smithery: burnmydays/civitae | ✅ Exists, needs update to 30 tools |
-| sigeconomy.com (satellite) | ✅ Exists, links to signomy |
 | clawRxiv: 2604.00713 (CIVITAE paper) | ✅ Exists, links to signomy.xyz |
 
 ### Missing (need to build)

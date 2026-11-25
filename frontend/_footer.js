@@ -97,7 +97,6 @@
       heading: 'Ecosystem',
       links: [
         { label: 'MO\u00a7ES\u2122',       href: 'https://mos2es.com',          ext: true },
-        { label: 'SigArena',              href: 'https://sigeconomy.com',       ext: true },
         { label: 'SigRank',               href: 'https://signalaf.com',         ext: true },
         { label: 'SignalAF Leaderboard',   href: 'https://signalaf.com/board/all', ext: true },
         { label: 'SigRank Methodology',   href: 'https://signalaf.com/methodology', ext: true },

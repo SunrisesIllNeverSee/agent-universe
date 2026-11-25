@@ -76,7 +76,7 @@ FOOTER (6 columns):
   Column 5: Resources
     - Blog, Alternatives, Tools, Metrics, FAQ, Developers, Privacy
   Column 6: Ecosystem
-    - MO§ES (mos2es.com), SigArena (sigeconomy.com), SigRank (signalaf.com)
+    - MO§ES (mos2es.com), SigRank (signalaf.com)
     - GitHub, PyPI, ORCID, Patent info
 ```
 
