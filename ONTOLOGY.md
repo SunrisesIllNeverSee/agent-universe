@@ -76,7 +76,7 @@ changes.
 **Where it lives:**
 - `data/agents.jsonl` — agent records
 - M1 endpoints: `POST /api/provision/signup`, `POST /api/provision/login`,
-  `GET /api/agent/profile`, `PATCH /api/agent/profile`
+  `GET /api/kassa/agent/me`, `PATCH /api/agents/{handle}`
 - JWT payload: `{ sub: agent_id, handle, tier }`
 
 **What it is NOT:**

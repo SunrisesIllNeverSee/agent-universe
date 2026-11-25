@@ -276,11 +276,10 @@ def test_hosted_mcp_contract_versions_match() -> None:
     assert server["remotes"][0]["url"] == card["url"]
 
 
-
 def test_agent_json_login_path_is_in_openapi() -> None:
     """The login route advertised in agent.json must be the documented one."""
     manifest = json.loads((FRONTEND / "agent.json").read_text(encoding="utf-8"))
     spec = json.loads((FRONTEND / "openapi.json").read_text(encoding="utf-8"))
     login = manifest["api"]["login"]
     assert login == "/api/provision/login"
-    assert "post" in spec["paths"][login]
+    assert "post" in spec["paths"].get(login, {})

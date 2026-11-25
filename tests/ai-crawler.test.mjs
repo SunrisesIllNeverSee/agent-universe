@@ -212,7 +212,9 @@ test("the matcher explicitly intercepts preview backend namespaces", () => {
 });
 
 test("distinct_id bot ids are lowercase and bot_verified is null, ua_only", () => {
-  const body = JSON.parse(crawlerCapture(req("https://signomy.xyz/", UA["Amazonbot"] ?? "Amazonbot/0.1")).init.body);
+  const capture = crawlerCapture(req("https://signomy.xyz/", UA.Amazonbot));
+  assert.ok(capture, "Amazonbot UA must match the registry");
+  const body = JSON.parse(capture.init.body);
   assert.equal(body.distinct_id, "crawler:amazonbot");
   assert.equal(body.properties.bot_verified, null);
   assert.equal(body.properties.bot_verification, "ua_only");
