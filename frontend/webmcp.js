@@ -33,7 +33,7 @@
       // Use AI Search (RAG) endpoint for semantic search
       try {
         const resp = await fetch('https://moses-analytics.sigrank.workers.dev/api/search?q=' + encodeURIComponent(query) + '&limit=5', {
-          headers: { 'X-Original-Host': 'mos2es.org' }
+          headers: { 'X-Original-Host': 'signomy.xyz' }
         });
         if (resp.ok) {
           const data = await resp.json();
