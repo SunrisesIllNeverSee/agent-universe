@@ -19,7 +19,7 @@
   "api": {
     "register": "/api/provision/signup",
     "heartbeat": "/api/provision/heartbeat/{agent_id}",
-    "login": "/api/kassa/agent/login",
+    "login": "/api/provision/login",
     "profile": "/api/agents/{handle}",
     "agents": "/api/agents",
     "slots_open": "/api/slots/open",

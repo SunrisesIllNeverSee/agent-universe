@@ -60,12 +60,14 @@ test("a crawler hit builds one ai_bot_detected event with the shared property na
   const body = JSON.parse(capture.init.body);
   assert.equal(body.event, AI_CRAWLER_EVENT);
   assert.equal(body.event, "ai_bot_detected");
-  assert.equal(body.distinct_id, "crawler:ChatGPT-User");
+  assert.equal(body.distinct_id, "crawler:chatgpt-user");
   assert.match(body.api_key, /^phc_/);
   assert.deepEqual(body.properties, {
     bot_name: "ChatGPT-User",
     bot_operator: "OpenAI",
     bot_family: "ai_user_fetch",
+    bot_verified: null,
+    bot_verification: "ua_only",
     host: "signomy.xyz",
     path: "/products",
     method: "GET",
@@ -207,4 +209,13 @@ test("the matcher explicitly intercepts preview backend namespaces", () => {
       return route === stem || route.startsWith(stem + "/");
     }), route);
   }
+});
+
+test("distinct_id bot ids are lowercase and bot_verified is null, ua_only", () => {
+  const capture = crawlerCapture(req("https://signomy.xyz/", UA.Amazonbot));
+  assert.ok(capture, "Amazonbot UA must match the registry");
+  const body = JSON.parse(capture.init.body);
+  assert.equal(body.distinct_id, "crawler:amazonbot");
+  assert.equal(body.properties.bot_verified, null);
+  assert.equal(body.properties.bot_verification, "ua_only");
 });

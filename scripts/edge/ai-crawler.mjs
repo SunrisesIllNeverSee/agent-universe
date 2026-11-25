@@ -89,12 +89,16 @@ export function crawlerCapture(request, env = {}) {
     api_key: env.POSTHOG_KEY || POSTHOG_PUBLIC_KEY,
     event: AI_CRAWLER_EVENT,
     // One PostHog id per bot, with no person profile: bots aren't people.
-    distinct_id: `crawler:${crawler.name}`,
+    distinct_id: `crawler:${crawler.name.toLowerCase()}`,
     timestamp: new Date().toISOString(),
     properties: {
       bot_name: crawler.name,
       bot_operator: crawler.operator,
       bot_family: crawler.family,
+      // User-Agent only: no cheap published-IP or reverse-DNS check runs in
+      // this middleware, so a claimed bot is not a verified one.
+      bot_verified: null,
+      bot_verification: "ua_only",
       host,
       path,
       method: request.method,
