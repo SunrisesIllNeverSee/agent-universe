@@ -1,7 +1,7 @@
 ---
 type: keyword-registry
 title: "SigRank 500-Keyword Map"
-description: "500 keywords across 11 rings from SigRank direct vocabulary to broad AI coding awareness. Maps every search term that should funnel to signalaf.com or mos2es.org."
+description: "500 keywords across 11 rings from SigRank direct vocabulary to broad AI coding awareness. Maps every search term that should funnel to signalaf.com or mos2es.com."
 tags: [seo, aeo, geo, keywords, sigrank, signalaf, mos2es, token-telemetry, leaderboard]
 timestamp: 2026-08-27T11:00:00-04:00
 ---
@@ -11,7 +11,7 @@ timestamp: 2026-08-27T11:00:00-04:00
 > **Source:** Brave Search competitive research + Google Search Console query data
 > (signalaf.com, last 28 days: 63 queries, 407 impressions, 11 clicks).
 > **Purpose:** Every keyword a person might type that should eventually lead to
-> signalaf.com (SigRank) or mos2es.org (MO§ES™). Eleven rings from proprietary
+> signalaf.com (SigRank) or mos2es.com (MO§ES™). Eleven rings from proprietary
 > vocabulary out to the broadest top-of-funnel awareness queries.
 > **Companion files:**
 > - `KEYWORD_MAP_500.csv` — machine-readable tracking spreadsheet
@@ -29,9 +29,9 @@ timestamp: 2026-08-27T11:00:00-04:00
 | 3 | Tool-specific token tracking | 50 | Tool-specific measurement | signalaf.com |
 | 4 | Leaderboard/gamification | 50 | Competition/ranking | signalaf.com |
 | 5 | Efficiency/metrics/optimization | 60 | Improvement/measurement | signalaf.com |
-| 6 | Enterprise cost/spend | 60 | Enterprise buying | signalaf.com + mos2es.org |
+| 6 | Enterprise cost/spend | 60 | Enterprise buying | signalaf.com + mos2es.com |
 | 7 | Tool comparisons | 50 | Tool selection | signalaf.com |
-| 8 | Skill assessment/evaluation | 50 | Workforce measurement | mos2es.org |
+| 8 | Skill assessment/evaluation | 50 | Workforce measurement | mos2es.com |
 | 9 | Agent observability/monitoring | 40 | Production monitoring | signalaf.com |
 | 10 | Broad AI coding/vibe coding | 40 | Top-of-funnel awareness | signalaf.com |
 | 11 | Prompt/context engineering | 40 | Optimization techniques | signalaf.com |
@@ -446,60 +446,60 @@ People comparing specific AI coding tools.
 
 ## Ring 8 — Developer Skill / Assessment / Evaluation (50 keywords)
 
-People searching for how to evaluate AI skills or developer performance. mos2es.org angle.
+People searching for how to evaluate AI skills or developer performance. mos2es.com angle.
 
 | # | Keyword | Who ranks | Target site/page |
 |---|---|---|---|
-| 331 | ai skills assessment | workera, g2 | mos2es.org/vs/workera |
-| 332 | ai skills test | workera, various | mos2es.org/guides/ai-skills-test |
-| 333 | ai developer skills | workera, codemypixel | mos2es.org/guides/ai-developer-skills |
-| 334 | developer skill assessment | workera, bryq | mos2es.org/vs/bryq |
-| 335 | coding skill assessment | workera, hackerrank | mos2es.org/guides/coding-skill-assessment |
-| 336 | ai coding skills | codemypixel, various | mos2es.org/guides/ai-coding-skills |
-| 337 | developer productivity measurement | getdx, jellyfish | mos2es.org/guides/developer-productivity-measurement |
-| 338 | developer performance metrics | uplevel, exceeds.ai | mos2es.org/guides/developer-performance-metrics |
-| 339 | developer efficiency metrics | exceeds.ai, larridin | mos2es.org/guides/developer-efficiency-metrics |
-| 340 | engineering productivity metrics | getdx, swarmia | mos2es.org/guides/engineering-productivity-metrics |
-| 341 | engineering team productivity | jellyfish, larridin | mos2es.org/guides/engineering-team-productivity |
-| 342 | ai developer measurement | getdx, exceeds.ai | mos2es.org/guides/ai-developer-measurement |
-| 343 | developer benchmarking | larridin, getdx | mos2es.org/guides/developer-benchmarking |
-| 344 | team productivity benchmark | larridin, getdx | mos2es.org/guides/team-productivity-benchmark |
-| 345 | developer performance benchmark | larridin | mos2es.org/guides/developer-performance-benchmark |
-| 346 | ai workforce measurement | workera, worklytics | mos2es.org/guides/ai-workforce-measurement |
-| 347 | ai workforce readiness | workera | mos2es.org/guides/ai-workforce-readiness |
-| 348 | ai readiness assessment | workera, g2 | mos2es.org/guides/ai-readiness-assessment |
-| 349 | enterprise ai readiness | workera, confident-ai | mos2es.org/guides/enterprise-ai-readiness |
-| 350 | ai capability assessment | workera, confident-ai | mos2es.org/guides/ai-capability-assessment |
-| 351 | ai skills evaluation | workera, aisa.to | mos2es.org/guides/ai-skills-evaluation |
-| 352 | ai proficiency test | workera, various | mos2es.org/guides/ai-proficiency-test |
-| 353 | ai competency assessment | workera, bryq | mos2es.org/guides/ai-competency-assessment |
-| 354 | developer ai proficiency | various | mos2es.org/guides/developer-ai-proficiency |
-| 355 | ai coding proficiency | various | mos2es.org/guides/ai-coding-proficiency |
-| 356 | ai operator skill | (your concept) | mos2es.org/concepts/operator-evaluation |
-| 357 | ai operator performance | (your concept) | mos2es.org/concepts/operator-evaluation |
-| 358 | measuring ai operators | (your concept) | mos2es.org/guides/how-to-evaluate-ai-operators |
-| 359 | evaluating ai operators | (your concept) | mos2es.org/guides/how-to-evaluate-ai-operators |
-| 360 | ai operator measurement | (your concept) | mos2es.org/guides/how-to-measure-ai-operator-performance |
-| 361 | workera alternative | (your /vs/ page) | mos2es.org/vs/workera |
-| 362 | workera vs | (your /vs/ page) | mos2es.org/vs/workera |
-| 363 | workera pricing | g2, pricingnow | mos2es.org/vs/workera |
-| 364 | workera alternatives | (your /alternatives/ page) | mos2es.org/alternatives/workera-alternatives |
-| 365 | worklytics alternative | (your /vs/ page) | mos2es.org/vs/worklytics |
-| 366 | worklytics vs | (your /vs/ page) | mos2es.org/vs/worklytics |
-| 367 | worklytics alternatives | (your /alternatives/ page) | mos2es.org/alternatives/worklytics-alternatives |
-| 368 | weave alternative | (your /vs/ page) | mos2es.org/vs/weave |
-| 369 | weave vs | (your /vs/ page) | mos2es.org/vs/weave |
-| 370 | paxel alternative | (your /vs/ page) | mos2es.org/vs/paxel |
-| 371 | paxel vs | (your /vs/ page) | mos2es.org/vs/paxel |
-| 372 | bryq alternative | (your /vs/ page) | mos2es.org/vs/bryq |
-| 373 | canditech alternative | (your /vs/ page) | mos2es.org/vs/canditech |
-| 374 | genassess alternative | (your /vs/ page) | mos2es.org/vs/genassess |
-| 375 | ai acumen alternative | (your /vs/ page) | mos2es.org/vs/ai-acumen |
-| 376 | prompt ranks alternative | (your /vs/ page) | mos2es.org/vs/prompt-ranks |
-| 377 | lmsys arena alternative | (your /vs/ page) | mos2es.org/vs/lmsys-arena |
-| 378 | braintrust alternative | (your /vs/ page) | mos2es.org/vs/braintrust |
-| 379 | vals ai alternative | (your /vs/ page) | mos2es.org/vs/vals-ai |
-| 380 | wakatime alternative | (your /vs/ page) | mos2es.org/vs/wakatime |
+| 331 | ai skills assessment | workera, g2 | mos2es.com/vs/workera |
+| 332 | ai skills test | workera, various | mos2es.com/guides/ai-skills-test |
+| 333 | ai developer skills | workera, codemypixel | mos2es.com/guides/ai-developer-skills |
+| 334 | developer skill assessment | workera, bryq | mos2es.com/vs/bryq |
+| 335 | coding skill assessment | workera, hackerrank | mos2es.com/guides/coding-skill-assessment |
+| 336 | ai coding skills | codemypixel, various | mos2es.com/guides/ai-coding-skills |
+| 337 | developer productivity measurement | getdx, jellyfish | mos2es.com/guides/developer-productivity-measurement |
+| 338 | developer performance metrics | uplevel, exceeds.ai | mos2es.com/guides/developer-performance-metrics |
+| 339 | developer efficiency metrics | exceeds.ai, larridin | mos2es.com/guides/developer-efficiency-metrics |
+| 340 | engineering productivity metrics | getdx, swarmia | mos2es.com/guides/engineering-productivity-metrics |
+| 341 | engineering team productivity | jellyfish, larridin | mos2es.com/guides/engineering-team-productivity |
+| 342 | ai developer measurement | getdx, exceeds.ai | mos2es.com/guides/ai-developer-measurement |
+| 343 | developer benchmarking | larridin, getdx | mos2es.com/guides/developer-benchmarking |
+| 344 | team productivity benchmark | larridin, getdx | mos2es.com/guides/team-productivity-benchmark |
+| 345 | developer performance benchmark | larridin | mos2es.com/guides/developer-performance-benchmark |
+| 346 | ai workforce measurement | workera, worklytics | mos2es.com/guides/ai-workforce-measurement |
+| 347 | ai workforce readiness | workera | mos2es.com/guides/ai-workforce-readiness |
+| 348 | ai readiness assessment | workera, g2 | mos2es.com/guides/ai-readiness-assessment |
+| 349 | enterprise ai readiness | workera, confident-ai | mos2es.com/guides/enterprise-ai-readiness |
+| 350 | ai capability assessment | workera, confident-ai | mos2es.com/guides/ai-capability-assessment |
+| 351 | ai skills evaluation | workera, aisa.to | mos2es.com/guides/ai-skills-evaluation |
+| 352 | ai proficiency test | workera, various | mos2es.com/guides/ai-proficiency-test |
+| 353 | ai competency assessment | workera, bryq | mos2es.com/guides/ai-competency-assessment |
+| 354 | developer ai proficiency | various | mos2es.com/guides/developer-ai-proficiency |
+| 355 | ai coding proficiency | various | mos2es.com/guides/ai-coding-proficiency |
+| 356 | ai operator skill | (your concept) | mos2es.com/concepts/operator-evaluation |
+| 357 | ai operator performance | (your concept) | mos2es.com/concepts/operator-evaluation |
+| 358 | measuring ai operators | (your concept) | mos2es.com/guides/how-to-evaluate-ai-operators |
+| 359 | evaluating ai operators | (your concept) | mos2es.com/guides/how-to-evaluate-ai-operators |
+| 360 | ai operator measurement | (your concept) | mos2es.com/guides/how-to-measure-ai-operator-performance |
+| 361 | workera alternative | (your /vs/ page) | mos2es.com/vs/workera |
+| 362 | workera vs | (your /vs/ page) | mos2es.com/vs/workera |
+| 363 | workera pricing | g2, pricingnow | mos2es.com/vs/workera |
+| 364 | workera alternatives | (your /alternatives/ page) | mos2es.com/alternatives/workera-alternatives |
+| 365 | worklytics alternative | (your /vs/ page) | mos2es.com/vs/worklytics |
+| 366 | worklytics vs | (your /vs/ page) | mos2es.com/vs/worklytics |
+| 367 | worklytics alternatives | (your /alternatives/ page) | mos2es.com/alternatives/worklytics-alternatives |
+| 368 | weave alternative | (your /vs/ page) | mos2es.com/vs/weave |
+| 369 | weave vs | (your /vs/ page) | mos2es.com/vs/weave |
+| 370 | paxel alternative | (your /vs/ page) | mos2es.com/vs/paxel |
+| 371 | paxel vs | (your /vs/ page) | mos2es.com/vs/paxel |
+| 372 | bryq alternative | (your /vs/ page) | mos2es.com/vs/bryq |
+| 373 | canditech alternative | (your /vs/ page) | mos2es.com/vs/canditech |
+| 374 | genassess alternative | (your /vs/ page) | mos2es.com/vs/genassess |
+| 375 | ai acumen alternative | (your /vs/ page) | mos2es.com/vs/ai-acumen |
+| 376 | prompt ranks alternative | (your /vs/ page) | mos2es.com/vs/prompt-ranks |
+| 377 | lmsys arena alternative | (your /vs/ page) | mos2es.com/vs/lmsys-arena |
+| 378 | braintrust alternative | (your /vs/ page) | mos2es.com/vs/braintrust |
+| 379 | vals ai alternative | (your /vs/ page) | mos2es.com/vs/vals-ai |
+| 380 | wakatime alternative | (your /vs/ page) | mos2es.com/vs/wakatime |
 
 ---
 

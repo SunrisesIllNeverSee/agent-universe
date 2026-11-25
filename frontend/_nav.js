@@ -32,7 +32,7 @@
   (function() {
     var ua = navigator.userAgent;
     var path = location.pathname;
-    var BEACON_URL = 'https://mos2es.org/api/analytics/beacon';
+    var BEACON_URL = 'https://mos2es.com/api/analytics/beacon';
 
     var aiBots = ['gptbot','oai-searchbot','chatgpt-user','perplexitybot','claudebot','anthropic-ai','google-extended','bingbot','ccbot','bytespider','applebot'];
     var isAiBot = aiBots.some(function(b) { return ua.toLowerCase().includes(b); });

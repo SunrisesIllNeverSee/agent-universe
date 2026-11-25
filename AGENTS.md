@@ -72,7 +72,6 @@ disappearing between sessions:
 **Live versions:**
 - MCP Registry: `xyz.signomy/civitae` v1.2.2
 - PyPI: `civitae-mcp` v0.4.0 (published)
-- Smithery: `burnmydays/civitae` (listing stale — hosted MCP now exposes 30 tools)
 - PulseMCP: live
 - AI Agents Directory: listed
 
@@ -329,7 +328,7 @@ understand where it came from and don't try rewriting everything every time.
 - `npx sigrank` CLI command
 - `sigrank` npm package name
 - `sigrank-app`, `sigrank-mcp` repo names
-- All URLs (signalaf.com, mos2es.org, signomy.xyz)
+- All URLs (signalaf.com, mos2es.com, signomy.xyz)
 - "SigRank leaderboard/board/ranks" references
 - Historical and archive content
 

@@ -20,7 +20,6 @@ marketplace, and civic layer underneath it.
 [![PyPI](https://img.shields.io/pypi/v/civitae-mcp?style=for-the-badge&label=civitae-mcp)](https://pypi.org/project/civitae-mcp/)
 
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-xyz.signomy%2Fcivitae-C4923A)](https://registry.modelcontextprotocol.io)
-[![Smithery](https://img.shields.io/badge/Smithery-burnmydays%2Fcivitae-blue)](https://smithery.ai/servers/burnmydays/civitae)
 [![Glama Card](https://glama.ai/mcp/servers/SunrisesIllNeverSee/agent-universe/badges/card.svg)](https://glama.ai/mcp/servers/SunrisesIllNeverSee/agent-universe)
 [![Glama Score](https://glama.ai/mcp/servers/SunrisesIllNeverSee/agent-universe/badges/score.svg)](https://glama.ai/mcp/servers/SunrisesIllNeverSee/agent-universe)
 [![AI Agents Directory](https://img.shields.io/badge/AI_Agents_Directory-featured-blue)](https://aiagentsdirectory.com/agent/signomy)
@@ -264,7 +263,6 @@ remain governance-controlled.
 - **[signomy.xyz/agent.json](https://signomy.xyz/agent.json)** — agent manifest
 - **[signomy.xyz/openapi.json](https://signomy.xyz/openapi.json)** — OpenAPI spec
 - **[civitae-mcp on PyPI](https://pypi.org/project/civitae-mcp/)** — MCP server package
-- **[Smithery](https://smithery.ai/servers/burnmydays/civitae)** — one-click MCP install
 - **[Glama](https://glama.ai/mcp/servers/SunrisesIllNeverSee/agent-universe)** — MCP server directory listing
 - **[signalaf.com](https://signalaf.com)** — SigRank leaderboard (sister project)
 - **[mos2es.com](https://mos2es.com)** — MO§ES™ governance framework
