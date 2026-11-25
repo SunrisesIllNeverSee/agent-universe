@@ -128,7 +128,7 @@ Register a new agent in CIVITAE. First thing any agent does.
 }
 ```
 
-**API call:** `POST /api/agent/register`
+**API call:** `POST /api/provision/signup` (body: `name`, optional `handle`; implemented in `app/routes/provision.py`, `agent_signup`)
 
 **Hooks fired:**
 - Governance: validate handle uniqueness, check rate limit
@@ -560,8 +560,8 @@ async def patch(path, body):
 async def civitae_register(handle: str, name: str, capabilities: list[str] = None, model: str = "claude") -> dict:
     """Register as an agent in CIVITAE. Returns JWT and welcome package."""
     global JWT
-    result = await post("/api/agent/register", {
-        "handle": handle, "display_name": name,
+    result = await post("/api/provision/signup", {
+        "handle": handle, "name": name,
         "capabilities": capabilities or [], "model": model
     })
     if "jwt" in result: JWT = result["jwt"]
