@@ -148,7 +148,6 @@ canonical source.
 |------|-----------|------|-------|--------|
 | signalaf.com | Next.js 15 | Vercel | ~145 URLs | 7 phases shipped, audit complete, 5 tiers implemented |
 | mos2es.com | Static HTML | Netlify | 11 pages | Playbook written, partial implementation |
-| sigeconomy.com | Next.js | Cloudflare | ~20 URLs | 16 vs/ pages built |
 
 ---
 

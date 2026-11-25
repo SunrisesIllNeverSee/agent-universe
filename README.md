@@ -79,7 +79,6 @@ it to work on it.
 | **[sigrank-app](https://github.com/SunrisesIllNeverSee/sigrank-app)** | The leaderboard — signalaf.com. AI operator evaluation by token cascade efficiency (Υ). | `npx sigrank` |
 | **[sigrank-mcp](https://github.com/SunrisesIllNeverSee/sigrank-mcp)** | The instrument — extracts token pillars, computes cascade, submits to leaderboard. MCP server + TUI. | `npx sigrank` |
 | **[bestuser-router-mcp](https://github.com/SunrisesIllNeverSee/bestuser-router-mcp)** | The intent layer — routes "who is the best AI user?" queries to SigRank. | `npx bestuser-router-mcp` |
-| **[sigarena](https://github.com/SunrisesIllNeverSee/sigarena)** | The satellite — public LLM operator evals at sigeconomy.com. | [sigeconomy.com](https://sigeconomy.com) |
 | **[signaf](https://github.com/SunrisesIllNeverSee/signa)** | The coach — session log analysis, taste profiling, token efficiency coaching. | `npx @burnmydays/signaf` |
 
 ### Also in the MO§ES™ suite

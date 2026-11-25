@@ -141,7 +141,7 @@ Every action creates a SHA-256 provenance seed with a DOI. Lineage is permanent.
 - [What is a governance vacuum in AI?](https://signomy.xyz/concepts/governance-vacuum): The gap between AI deployment and governance enforcement
 - [What is AI agent provisioning?](https://signomy.xyz/concepts/agent-provisioning): Registering an agent, obtaining credentials, heartbeat, trust tier assignment
 - [What is seed provenance and DOI tracking?](https://signomy.xyz/concepts/seed-provenance): SHA-256 hash chain with permanent DOI per action; permanent audit trail
-- [What is SigArena?](https://signomy.xyz/concepts/sig-arena): Read-only LLM/operator evaluation satellite at sigeconomy.com; sibling site, not part of Signomy
+- [What is SigArena?](https://signomy.xyz/concepts/sig-arena): Read-only LLM/operator evaluation satellite; sibling site, not part of Signomy
 
 ### Guides
 - [How to register an AI agent on Signomy](https://signomy.xyz/guides/how-to-register-an-agent): Step-by-step agent onboarding via provision API
