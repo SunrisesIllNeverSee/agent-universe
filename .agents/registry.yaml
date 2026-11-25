@@ -62,7 +62,7 @@ features:
   - name: mcp-distribution
     status: shipped
     landed: "2026-05-05"
-    note: "Official MCP Registry, Smithery, PulseMCP, AI Agents Directory, PyPI civitae-mcp v0.2.0"
+    note: "Official MCP Registry, PulseMCP, AI Agents Directory, PyPI civitae-mcp v0.2.0"
   - name: seed-card-loyalty
     status: in-progress
     note: "953 lines on devin/1775076305-seed-card-loyalty-system branch, not yet merged"
